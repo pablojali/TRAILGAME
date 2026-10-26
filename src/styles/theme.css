@@ -1,0 +1,63 @@
+/*
+ * Design tokens — dark-first palette (DEVELOPMENT.md §5).
+ * Forest green, charcoal, off-white, orange and ochre accents.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Palette */
+  --color-charcoal-950: #0d100f;
+  --color-charcoal-900: #121614;
+  --color-charcoal-800: #1a201d;
+  --color-charcoal-700: #232b27;
+  --color-charcoal-600: #313b36;
+  --color-forest-700: #1f4a33;
+  --color-forest-500: #2f6b4a;
+  --color-forest-300: #6fbf8e;
+  --color-offwhite: #f2efe6;
+  --color-stone: #a9b0a8;
+  --color-orange: #f07c2a;
+  --color-ochre: #d4a23c;
+
+  /* Semantic roles */
+  --bg: var(--color-charcoal-900);
+  --bg-sunken: var(--color-charcoal-950);
+  --surface: var(--color-charcoal-800);
+  --surface-raised: var(--color-charcoal-700);
+  --border: var(--color-charcoal-600);
+  --text: var(--color-offwhite);
+  --text-muted: var(--color-stone);
+  --accent: var(--color-orange);
+  --accent-secondary: var(--color-ochre);
+  --brand: var(--color-forest-500);
+  --brand-strong: var(--color-forest-700);
+  --brand-text: var(--color-forest-300);
+  --focus-ring: var(--color-orange);
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.625rem;
+  --font-size-2xl: 2rem;
+
+  /* Spacing, radius, motion */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --transition-fast: 120ms ease-out;
+
+  /* Layout */
+  --bottom-nav-height: 64px;
+  --sidebar-width: 232px;
+  --content-max-width: 960px;
+  --touch-target: 48px;
+}

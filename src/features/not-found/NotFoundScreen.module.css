@@ -1,0 +1,12 @@
+.link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--color-charcoal-950);
+  font-weight: 700;
+  text-decoration: none;
+}

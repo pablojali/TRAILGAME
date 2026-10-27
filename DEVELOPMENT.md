@@ -96,6 +96,24 @@ Versions below are the intended starting baseline, not a reason to force an inco
 | CI | GitHub Actions | Install, lint, type-check, test and build on pull requests/pushes |
 | Integrations | Strava API / VTL data interface | Future milestones; no dependency in MVP |
 
+### Resolved versions (M0)
+
+Exact versions pinned in `package.json` / `package-lock.json` at project initialization:
+
+| Package | Version | Note |
+|---|---|---|
+| react / react-dom | 19.3.1 | |
+| react-router | 7.18.4 | v8 exists; 7.x kept as the established stable line with React 19 |
+| vite / @vitejs/plugin-react | 7.3.7 / 5.2.0 | Per baseline (Vite 8 exists, not adopted) |
+| typescript | 5.9.3 | TypeScript 7 exists but typescript-eslint supports `<6.1` |
+| vitest | 4.1.12 | 3.x has open security advisories (tinypool, @vitest/mocker) |
+| eslint / typescript-eslint | 9.39.5 / 8.72.0 | Flat config |
+| @testing-library/react / jsdom | 16.3.3 / 26.1.0 | |
+
+Deviations / notes:
+- CI and `.nvmrc` use Node 24. `package.json` `engines` allows Node ≥ 22.12 (Vite 7 minimum); the M0 checks were run locally on Node 22.22.0.
+- npm 10.9 fails to resolve Vitest 4's optional peer dependencies (`Cannot read properties of null (reading 'edgesOut')`) when *adding* packages. The lockfile was generated with npm 11 (bundled with Node 24). `npm ci` works with both npm 10 and 11.
+
 ### Dependency policy
 
 - Do not use floating or wildcard dependency versions.

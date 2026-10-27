@@ -1,0 +1,23 @@
+import type { RouteObject } from 'react-router'
+import { CareerScreen } from '../features/career/CareerScreen'
+import { DashboardScreen } from '../features/dashboard/DashboardScreen'
+import { EquipmentScreen } from '../features/equipment/EquipmentScreen'
+import { NotFoundScreen } from '../features/not-found/NotFoundScreen'
+import { RacesScreen } from '../features/races/RacesScreen'
+import { TrainingScreen } from '../features/training/TrainingScreen'
+import { AppShell } from './AppShell'
+
+export const routes: RouteObject[] = [
+  {
+    path: '/',
+    element: <AppShell />,
+    children: [
+      { index: true, element: <DashboardScreen /> },
+      { path: 'training', element: <TrainingScreen /> },
+      { path: 'equipment', element: <EquipmentScreen /> },
+      { path: 'races', element: <RacesScreen /> },
+      { path: 'career', element: <CareerScreen /> },
+      { path: '*', element: <NotFoundScreen /> },
+    ],
+  },
+]

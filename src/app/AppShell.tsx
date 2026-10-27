@@ -1,5 +1,6 @@
 import { NavLink, Outlet, ScrollRestoration } from 'react-router'
 import { Icon } from '../components/Icon'
+import { GameNotices } from './game/GameNotices'
 import { NAV_ITEMS } from './navigation'
 import styles from './AppShell.module.css'
 
@@ -36,6 +37,7 @@ export function AppShell() {
 
       <main id="main-content" className={styles.main} tabIndex={-1}>
         <div className={styles.content}>
+          <GameNotices />
           <Outlet />
         </div>
       </main>

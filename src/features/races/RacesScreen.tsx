@@ -8,7 +8,7 @@ export function RacesScreen() {
       description="Find events that match the athlete's level and enter them."
     >
       <ComingSoon
-        milestone="M1"
+        milestone="a later milestone"
         items={[
           'Event calendar with eligibility',
           'Course profile with distance and elevation',

@@ -20,13 +20,42 @@ interface StatTileProps {
   /** Display value; placeholders use an em dash until data exists. */
   value: string
   tone?: 'brand' | 'accent' | 'ochre'
+  /** Shows an accessible bar for values on a fixed scale. */
+  meter?: { value: number; min?: number; max: number }
 }
 
-export function StatTile({ label, value, tone = 'brand' }: StatTileProps) {
+export function StatTile({ label, value, tone = 'brand', meter }: StatTileProps) {
   return (
     <div className={`${styles.statTile} ${styles[tone]}`}>
       <span className={styles.statLabel}>{label}</span>
       <span className={styles.statValue}>{value}</span>
+      {meter && <Meter label={label} {...meter} />}
+    </div>
+  )
+}
+
+interface MeterProps {
+  label: string
+  value: number
+  min?: number
+  max: number
+  /** Spoken value; defaults to "value of max". */
+  valueText?: string
+}
+
+export function Meter({ label, value, min = 0, max, valueText }: MeterProps) {
+  const percent = max > min ? ((value - min) / (max - min)) * 100 : 100
+  return (
+    <div
+      className={styles.meter}
+      role="meter"
+      aria-label={label}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={value}
+      aria-valuetext={valueText ?? `${value} of ${max}`}
+    >
+      <div className={styles.meterFill} style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} />
     </div>
   )
 }

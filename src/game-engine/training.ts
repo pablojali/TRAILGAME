@@ -1,5 +1,10 @@
 import { STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL, getLevel } from '../domain/athlete/levels'
+import {
+  INJURY_FATIGUE_THRESHOLD,
+  INJURY_FITNESS_LOSS,
+  INJURY_REST_DAYS,
+} from '../domain/training/injury'
 import { isSessionType, TRAINING_SESSIONS, type SessionType } from '../domain/training/sessions'
 import {
   createWeek,
@@ -7,6 +12,7 @@ import {
   getCurrentDay,
   type DayOutcome,
   type GameState,
+  type TrainingWeek,
 } from './gameState'
 
 export type TrainingError =
@@ -17,6 +23,8 @@ export type TrainingError =
   /** The request refers to a different week (e.g. a stale screen). */
   | 'wrong-week'
   | 'unknown-session'
+  /** The current day is a forced Rest day after an injury. */
+  | 'forced-rest'
 
 export type TrainingResult<T> = { ok: true; value: T } | { ok: false; error: TrainingError }
 
@@ -37,20 +45,45 @@ export interface ExecutionResult {
   attributePointsAwarded: number
   /** True when executing the final day started a new week. */
   weekCompleted: boolean
+  /** True when the session caused an injury. */
+  injured: boolean
 }
 
 export function clampStat(value: number): number {
   return Math.min(STAT_MAX, Math.max(STAT_MIN, value))
 }
 
-/** Preview of the changes a session would apply to the current athlete, after clamping. */
+/**
+ * Changes a session would apply to the current athlete, after clamping. A non-rest session that
+ * would leave Fatigue above the injury threshold is reported as an injury: no XP, a Fitness loss
+ * instead of the gain, and its Fatigue cost still applies.
+ */
 export function previewSession(state: GameState, session: SessionType): DayOutcome {
   const rules = TRAINING_SESSIONS[session]
   const { fitness, fatigue } = state.athlete
+  const fatigueChange = clampStat(fatigue + rules.fatigueDelta) - fatigue
+  if (session !== 'rest' && fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD) {
+    return {
+      xpGained: 0,
+      fitnessChange: clampStat(fitness - INJURY_FITNESS_LOSS) - fitness,
+      fatigueChange,
+      injured: true,
+    }
+  }
   return {
     xpGained: rules.xp,
     fitnessChange: clampStat(fitness + rules.fitnessDelta) - fitness,
-    fatigueChange: clampStat(fatigue + rules.fatigueDelta) - fatigue,
+    fatigueChange,
+  }
+}
+
+/** Plans Rest on up to `count` days of the week, starting at `fromIndex`. */
+function forceRest(week: TrainingWeek, fromIndex: number, count: number): TrainingWeek {
+  return {
+    ...week,
+    days: week.days.map((day, index) =>
+      index >= fromIndex && index < fromIndex + count ? { ...day, session: 'rest' } : day,
+    ),
   }
 }
 
@@ -70,6 +103,7 @@ export function planSession(
   if (!isSessionType(session)) return { ok: false, error: 'unknown-session' }
   const error = checkDay(state, ref)
   if (error) return { ok: false, error }
+  if (state.forcedRestDays > 0) return { ok: false, error: 'forced-rest' }
 
   const days = state.week.days.map((day, index) =>
     index === ref.dayIndex ? { ...day, session } : day,
@@ -92,6 +126,7 @@ export function executeCurrentDay(
 
   const day = getCurrentDay(state.week)
   const outcome = previewSession(state, day.session)
+  const injured = outcome.injured === true
   const athlete = {
     ...state.athlete,
     xp: state.athlete.xp + outcome.xpGained,
@@ -99,17 +134,22 @@ export function executeCurrentDay(
     fatigue: state.athlete.fatigue + outcome.fatigueChange,
   }
 
+  // A forced Rest day uses up one day of the injury; a new injury forces the following days.
+  const forcedRestDays = injured ? INJURY_REST_DAYS : Math.max(0, state.forcedRestDays - 1)
+
   const nextDayIndex = state.week.currentDayIndex + 1
   const weekCompleted = nextDayIndex >= DAYS_PER_WEEK
   const week = weekCompleted
-    ? createWeek(state.week.number + 1)
-    : {
-        ...state.week,
-        currentDayIndex: nextDayIndex,
-        days: state.week.days.map((d, index) =>
-          index === ref.dayIndex ? { ...d, outcome } : d,
-        ),
-      }
+    ? forceRest(createWeek(state.week.number + 1), 0, forcedRestDays)
+    : forceRest(
+        {
+          ...state.week,
+          currentDayIndex: nextDayIndex,
+          days: state.week.days.map((d, index) => (index === ref.dayIndex ? { ...d, outcome } : d)),
+        },
+        nextDayIndex,
+        forcedRestDays,
+      )
 
   const levelBefore = getLevel(state.athlete.xp)
   const levelAfter = getLevel(athlete.xp)
@@ -118,13 +158,14 @@ export function executeCurrentDay(
   return {
     ok: true,
     value: {
-      state: { athlete, week, fitnessDecayReference },
+      state: { athlete, week, fitnessDecayReference, forcedRestDays },
       executed: { ...ref, session: day.session },
       outcome,
       levelBefore,
       levelAfter,
       attributePointsAwarded: (levelAfter - levelBefore) * ATTRIBUTE_POINTS_PER_LEVEL,
       weekCompleted,
+      injured,
     },
   }
 }

@@ -1,4 +1,4 @@
-import type { Athlete, ProfileId } from '../domain/athlete/athlete'
+import type { Athlete, ProfileId, Sex } from '../domain/athlete/athlete'
 import { PROFILES } from '../domain/athlete/profiles'
 import type { SessionType } from '../domain/training/sessions'
 
@@ -9,6 +9,8 @@ export interface DayOutcome {
   xpGained: number
   fitnessChange: number
   fatigueChange: number
+  /** True if the session caused an injury. */
+  injured?: boolean
 }
 
 export interface TrainingDay {
@@ -37,6 +39,11 @@ export interface GameState {
    * non-rest session, or the end of the last decay period applied.
    */
   fitnessDecayReference: number
+  /**
+   * Number of upcoming days, starting with the current one, that are forced to Rest after an injury.
+   * Those days are already planned as Rest and cannot be changed.
+   */
+  forcedRestDays: number
 }
 
 /** Deterministic plan used for the first week and every following week. */
@@ -58,11 +65,25 @@ export function createWeek(number: number): TrainingWeek {
   }
 }
 
-/** Starting state for a new career with the chosen profile, created at `now` (epoch ms). */
-export function createInitialGameState(profile: ProfileId, now: number): GameState {
+/** Cosmetic identity chosen when creating a career. */
+export interface AthleteIdentity {
+  name: string
+  sex: Sex
+}
+
+/**
+ * Starting state for a new career with the chosen profile, created at `now` (epoch ms).
+ * The identity is cosmetic and does not affect any starting value.
+ */
+export function createInitialGameState(
+  profile: ProfileId,
+  now: number,
+  identity: AthleteIdentity,
+): GameState {
   return {
     athlete: {
-      name: 'Demo Runner',
+      name: identity.name,
+      sex: identity.sex,
       profile,
       xp: 0,
       fitness: 20,
@@ -72,6 +93,7 @@ export function createInitialGameState(profile: ProfileId, now: number): GameSta
     },
     week: createWeek(1),
     fitnessDecayReference: now,
+    forcedRestDays: 0,
   }
 }
 

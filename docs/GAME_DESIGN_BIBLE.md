@@ -1,8 +1,10 @@
 # TRAIL GAME — GAME DESIGN BIBLE
 
-**Version:** 1.1
+**Version:** 1.2
 
 **Status:** Approved design baseline — partially implemented (M0, M1 and M2 accepted); remaining systems pending milestone assignment
+
+**Changes in 1.2 (owner decisions, 28 October 2026):** Rest now applies Fatigue −8 and Fitness −2 (§4.4); new injury rule (§4.7); the simulated training week is labelled Monday–Sunday (§4.2); career creation adds a cosmetic sex and the runner's name (§2.1). These were implemented on the working branch together with UI Improvements v1 (see `docs/UI_IMPROVEMENTS.md`).
 
 **Project:** Trail Game
 
@@ -70,6 +72,8 @@ Profile selection should be presented through four visually distinct cards conta
 - Confirmation action.
 
 The player must confirm the selected profile before starting the career.
+
+**Cosmetic identity (1.2):** before confirming, the player also chooses the runner's sex (Female or Male) and, as a final step, the runner's name (required, 1–16 characters). Both are saved with the career. Sex only changes the runner's artwork; it never affects attributes, starting values or any other gameplay value, and it cannot be changed after the career is created.
 
 ### 2.2 Initial athlete state
 
@@ -165,7 +169,7 @@ Fitness represents the athlete's current physical readiness and accumulated trai
 - Range: 0–100.
 - Initial value: 20.
 - Fitness increases through training.
-- Fitness decreases through inactivity.
+- Fitness decreases through inactivity and on Rest days (−2 per Rest day, 1.2).
 - Fitness must never exceed 100 or fall below 0.
 
 Fitness is not the same as an attribute.
@@ -237,6 +241,8 @@ The initial training plan is:
 
 This is the initial demo plan, not a complete personalized training-plan generator.
 
+The week is simulated: day 1 of every training week is labelled Monday and day 7 Sunday, independent of the real date (owner decision, 1.2).
+
 The plan may be expanded in future milestones.
 
 ### 4.3 Training rewards: XP
@@ -282,9 +288,11 @@ Use conventional rounding to the nearest integer, with half values rounded up.
 | Strength | +3 | +2 |
 | Hills | +5 | +3 |
 | Long Run | +6 | +3 |
-| Rest | 0 | 0 |
+| Rest | 0 | −2 (1.2) |
 
 Fitness gains must be capped at 100.
+
+**Revision 1.2:** each Rest day reduces Fitness by 2 (owner decision, 28 October 2026). Rest still grants no XP and still does not reset the inactivity reference (§4.5).
 
 The new values intentionally make Fitness progression slower than in the original M1 prototype.
 
@@ -299,9 +307,11 @@ Reference values to verify against the source implementation:
 | Strength | +8 |
 | Hills | +12 |
 | Long Run | +16 |
-| Rest | -12 |
+| Rest | −8 (1.2; was −12) |
 
 These Fatigue values are carried forward from the current design baseline and must be checked against the actual source code before implementation.
+
+**Revision 1.2:** Rest reduces Fatigue by 8 instead of 12 (owner decision, 28 October 2026). With the default weekly plan this adds +39 Fatigue and +9 Fitness per week, so a player who never changes the plan reaches the injury rule (§4.7) in week 3.
 
 ### 4.5 Fitness decay through inactivity
 
@@ -349,6 +359,19 @@ This behavior must remain consistent with the existing implementation until the 
 The real-time Fitness decay rule introduces a second concept: elapsed real-world time.
 
 The implementation must not accidentally apply both real-time decay and duplicate simulated-day decay for the same elapsed period. The PM must decide how the game calendar and real-world time interact before the decay feature is implemented.
+
+**Resolution (M2):** decay uses real elapsed time only; advancing the simulated week never causes decay. The −2 Fitness of a Rest day (1.2) is the Rest session's own effect, not decay.
+
+### 4.7 Injury (1.2)
+
+Owner decision, 28 October 2026.
+
+- Completing a non-rest session that leaves Fatigue **above 95**, measured after the session, injures the athlete.
+- Training is never blocked: the player is warned before completing the session and may train anyway.
+- The injuring session grants no XP, and Fitness drops by 15 instead of the session's gain (never below 0). The session's Fatigue cost still applies.
+- The next 5 days are forced Rest days, carried into the next week if needed. They cannot be changed, and each one applies the normal Rest effects.
+- The injuring session still counts as training for the inactivity reference (§4.5).
+- An injury never affects attributes.
 
 ---
 

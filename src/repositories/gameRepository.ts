@@ -2,12 +2,15 @@ import {
   ATTRIBUTE_IDS,
   ATTRIBUTE_MAX,
   ATTRIBUTE_MIN,
+  isSex,
   STAT_MAX,
   STAT_MIN,
   type Attributes,
+  type Sex,
 } from '../domain/athlete/athlete'
 import { getEarnedAttributePoints } from '../domain/athlete/levels'
 import { isProfileId, PROFILE_ATTRIBUTE_TOTAL } from '../domain/athlete/profiles'
+import { INJURY_REST_DAYS } from '../domain/training/injury'
 import { isSessionType } from '../domain/training/sessions'
 import { DAYS_PER_WEEK, type DayOutcome, type GameState, type TrainingDay } from '../game-engine/gameState'
 
@@ -40,6 +43,12 @@ export type LoadResult =
 export const SAVE_KEY = 'trailgame.save'
 export const SCHEMA_VERSION = 2
 
+/**
+ * Sex for v2 careers saved before the cosmetic `sex` field existed (owner decision). The field was
+ * added without a schema bump so those careers keep loading.
+ */
+export const LEGACY_DEFAULT_SEX: Sex = 'male'
+
 interface SaveEnvelope {
   schemaVersion: number
   savedAt: string
@@ -63,7 +72,8 @@ function isOutcome(value: unknown): value is DayOutcome {
     isRecord(value) &&
     isInt(value.xpGained, 0) &&
     isInt(value.fitnessChange, -STAT_MAX, STAT_MAX) &&
-    isInt(value.fatigueChange, -STAT_MAX, STAT_MAX)
+    isInt(value.fatigueChange, -STAT_MAX, STAT_MAX) &&
+    (value.injured === undefined || typeof value.injured === 'boolean')
   )
 }
 
@@ -94,8 +104,11 @@ export function parseGameState(value: unknown, now: number): GameState | null {
   const { athlete, week } = value
 
   const attributes = parseAttributes(athlete.attributes)
+  // Missing sex: a career saved before the field existed. Any other non-sex value is invalid data.
+  const sex = athlete.sex === undefined ? LEGACY_DEFAULT_SEX : athlete.sex
   if (
     typeof athlete.name !== 'string' ||
+    !isSex(sex) ||
     !isProfileId(athlete.profile) ||
     !isInt(athlete.xp, 0) ||
     !isStat(athlete.fitness) ||
@@ -119,10 +132,17 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     return null
   }
 
+  // Missing: a career saved before the injury rule existed. Forced Rest days must be planned as Rest.
+  const forcedRestDays = value.forcedRestDays === undefined ? 0 : value.forcedRestDays
+  if (!isInt(forcedRestDays, 0, INJURY_REST_DAYS)) return null
+  const forcedInWeek = (week.days as TrainingDay[]).slice(currentDayIndex, currentDayIndex + forcedRestDays)
+  if (!forcedInWeek.every((day) => day.session === 'rest')) return null
+
   const reference = value.fitnessDecayReference
   return {
     athlete: {
       name: athlete.name,
+      sex,
       profile: athlete.profile,
       xp: athlete.xp,
       fitness: athlete.fitness,
@@ -140,6 +160,7 @@ export function parseGameState(value: unknown, now: number): GameState | null {
       })),
     },
     fitnessDecayReference: typeof reference === 'number' && Number.isFinite(reference) ? reference : now,
+    forcedRestDays,
   }
 }
 

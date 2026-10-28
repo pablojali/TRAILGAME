@@ -3,7 +3,7 @@ import type { AttributeId, ProfileId } from '../../domain/athlete/athlete'
 import type { SessionType } from '../../domain/training/sessions'
 import { allocateAttributePoint } from '../../game-engine/attributes'
 import { applyFitnessDecay } from '../../game-engine/fitnessDecay'
-import { createInitialGameState, type GameState } from '../../game-engine/gameState'
+import { createInitialGameState, type AthleteIdentity, type GameState } from '../../game-engine/gameState'
 import * as engine from '../../game-engine/training'
 import type { DayRef, ExecutionResult } from '../../game-engine/training'
 import { createLocalStorageGameRepository, type GameRepository } from '../../repositories/gameRepository'
@@ -90,10 +90,10 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
   }, [currentState])
 
   const startCareer = useCallback(
-    (profile: ProfileId) => {
+    (profile: ProfileId, identity: AthleteIdentity) => {
       setLastExecution(null)
       setDecayNotice(null)
-      commit({ kind: 'playing', state: createInitialGameState(profile, clockRef.current()) })
+      commit({ kind: 'playing', state: createInitialGameState(profile, clockRef.current(), identity) })
     },
     [commit],
   )

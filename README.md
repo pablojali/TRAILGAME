@@ -2,11 +2,13 @@
 
 Trail-running career management game (beta). Mobile-first, responsive React + TypeScript web app.
 See [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the technical specification and
-[`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) for the game design.
+[`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) for the game design (v1.2) and
+[`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md) for the current UI pass and its decisions.
 
-**Current milestone:** M2 — Athlete Progression (four starting profiles, levels with attribute
-points, real-time Fitness decay). Dashboard, Training and Attributes are functional; Equipment, Races
-and Career are placeholders. Progress is saved in the browser's localStorage only.
+**Current state:** M2 — Athlete Progression is accepted. UI Improvements v1 (runner creation,
+Dashboard, Training) and the post-M2 Rest and injury rules are on the working branch, pending review.
+Dashboard, Training and Attributes are functional; Equipment, Races and Career are placeholders.
+Progress is saved in the browser's localStorage only.
 
 ## Requirements
 
@@ -73,21 +75,52 @@ milestone that needs them.
   never deletes data: M1 (v1) saves, unknown versions and damaged data show a blocking screen with
   **Restart Career** and **Exit**.
 - **Reset demo** (Dashboard) deletes the career and returns to profile selection.
+- Rest reduces Fatigue by 8 and Fitness by 2. Completing a session that leaves Fatigue above 95 injures the runner:
+  no XP, −15 Fitness and 5 forced Rest days (`src/domain/training/injury.ts`).
+- The runner's name and sex are cosmetic. Careers saved before the `sex` field existed load as
+  `male`. Creation artwork goes in `assets/runner/creation/{sex}/{profile}.webp` (or `.png`); profiles
+  without an image show a labelled placeholder. Climber already has both images.
+
+## Adding runner creation artwork
+
+1. Put the original illustration in `assets/runner/` (white or light plain background, runner facing
+   right).
+2. Run the preparation script (needs Python 3 and Pillow: `pip install pillow`):
+
+   ```bash
+   python3 scripts/prepare_creation_art.py assets/runner/Sprinter_women.jpg \
+     assets/runner/creation/female/sprinter.webp
+   ```
+
+   It removes the background, crops the runner and places it on a transparent 640×960 canvas.
+3. Check the result on a dark background, then build. No code changes are needed: the profile card
+   uses the new image instead of the placeholder. Profile file names: `climber`, `sprinter`,
+   `all-rounder`, `endurance`; sex folders: `female`, `male`.
 
 ## Manual test checklist (M2)
 
-1. First visit: every tab shows **Choose your athlete**. Pick each profile and check its six
-   attributes and the 96-point total; nothing starts until **Start career as …** is pressed.
-2. New career: Level 1, 0 XP, Fitness 20/100, Fatigue 0/100, 0 unspent points, profile attributes.
-3. Training: effects show the M2 values (e.g. Easy run +9 XP, +2 Fitness, +5 Fatigue). Trail
+1. First visit: every tab shows **Choose your athlete**, with no bottom navigation and no page
+   scroll. Switch Female/Male (all runner images change), swipe or use the dots to compare the
+   profiles, then **Choose …** and enter a name (1–16 characters). Nothing is saved until
+   **Start career**; the name then appears on the Dashboard.
+2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner (placeholder, no
+   equipment), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
+   attribute points, Today, the week and Reset demo are below it.
+3. Training: the Mon–Sun strip is on top and the selected day's full detail below it, without
+   scrolling or popups. Tap a day's tab to see its detail; today's detail has the session selector,
+   effects and the complete button. A double tap on complete only completes one day.
+4. Injury: with Fatigue near 95, a session that would end above 95 shows an injury warning; training
+   anyway gives no XP, −15 Fitness and 5 locked rest days (each Rest day also costs 2 Fitness).
+5. New career: Level 1, 0 XP, Fitness 20/100, Fatigue 0/100, 0 unspent points, profile attributes.
+6. Training: effects show the M2 values (e.g. Easy run +9 XP, +2 Fitness, +5 Fatigue). Trail
    technique can be selected but is not in the plan. Complete a day; reload; progress is kept.
-4. Level up at 100 XP: feedback shows +2 attribute points; **Allocate points** opens Attributes.
+7. Level up at 100 XP: feedback shows +2 attribute points; **Allocate points** opens Attributes.
    Each **+1** raises one attribute; buttons become inactive at 0 points.
-5. Fitness decay: in the browser dev tools, set the saved `fitnessDecayReference` 3 days in the past
+8. Fitness decay: in the browser dev tools, set the saved `fitnessDecayReference` 3 days in the past
    and reload — Fitness drops by 3 once, with a notice; reloading again changes nothing.
-6. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
+9. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
    tab. **Exit** keeps the save. **Restart Career** → tick the box → choose a profile → new career.
-7. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
+10. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
 
 ## Deployment — Cloudflare Pages
 

@@ -1,9 +1,9 @@
 # Trail Manager — Development Specification
 
 **Document:** `DEVELOPMENT.md`  
-**Version:** 0.3.0  
-**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; next milestone pending PM definition  
-**Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md)  
+**Version:** 0.4.0  
+**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes implemented on the working branch, pending owner review and merge  
+**Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) (v1.2) · UI pass: [`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
 **Product owner / PM:** ChatGPT  
@@ -507,7 +507,7 @@ Delivered scope:
   `src/domain/athlete/profiles.ts`. New careers: Level 1, 0 XP, Fitness 20, Fatigue 0, 0 points.
 - Training rewards in `src/domain/training/sessions.ts`: XP / Fitness / Fatigue — Easy run 9/2/5,
   Intervals 16/3/14, Strength 11/2/8, Hills 14/3/12, Long run 18/3/16, Trail technique 11/2/6,
-  Rest 0/0/−12. Weekly plan unchanged; Trail technique is selectable but not in the plan.
+  Rest 0/0/−12 (Rest changed to −8 after M2; see "Gameplay changes after M2"). Weekly plan unchanged; Trail technique is selectable but not in the plan.
 - Levels at 0 / 100 / 250 / 450 / 700 XP (`src/domain/athlete/levels.ts`). Each level gained grants
   2 attribute points. Level and earned points derive from XP; the save stores points spent, so
   points can be neither lost nor granted twice.
@@ -525,6 +525,75 @@ Delivered scope:
 - Approved UX decisions (D1–D4): the blocking screen also covers malformed and unsupported saves;
   Exit shows a static "save left untouched" screen; every route shows the setup flow until a career
   exists; Reset demo deletes the career and returns to profile selection.
+  (D3 was later superseded by UI Improvements v1: the navigation is now hidden in the setup flow.)
+
+### Gameplay changes after M2 (owner decisions, 28 October 2026)
+
+Requested by the owner during UI Improvements v1; implemented in a separate commit.
+
+- **Rest:** Fatigue −8 (was −12) and Fitness −2 per Rest day (was 0), including forced Rest days
+  (Fitness −2 added on 28 October 2026, owner decision). Rest still grants no XP and still does not
+  reset the Fitness decay reference. Other session values unchanged.
+- **Injury** (`src/domain/training/injury.ts`): completing a non-rest session that leaves Fatigue
+  above 95 (measured after the session) injures the athlete. Training is never blocked; the player is
+  warned first. The injured session grants no XP, Fitness drops by 15 instead of the session gain,
+  and the next 5 days are forced to Rest (carried into the next week if needed) and cannot be
+  changed. Implementation choices not specified by the owner: the session's Fatigue cost still
+  applies, and it still counts as training for the Fitness decay reference.
+- **Consequences:** the unchanged default weekly plan now adds +39 Fatigue and +9 Fitness per week
+  (was +13), so a player who never changes the plan is injured on Tuesday of week 3. An injury now
+  costs 15 Fitness plus 2 per forced Rest day (10 over 5 days), plus any inactivity decay.
+- **Saves:** new `forcedRestDays` field and optional `injured` flag on day outcomes; still schema v2.
+  Careers saved before these fields load with no forced Rest days.
+
+### UI Improvements v1 (in progress)
+
+**Status:** UI/UX pass defined in `docs/UI_IMPROVEMENTS.md`; not a gameplay milestone. Implemented one
+screen per commit on the working branch; not merged into `main`.
+
+- **Runner creation — implemented.** Two steps with no page scroll at 360×640 and 412×915:
+  (1) Female/Male toggle (Female preselected), a snapping profile carousel with dots, six attribute
+  bars — strengths green with ▲, neutral values grey, weaknesses very soft red with ▼ (owner
+  decision, 28 October 2026) — and a fixed "Choose [profile]" button; (2) runner name
+  (required, 1–16 characters, trimmed) with a preview. The bottom navigation is hidden on every
+  screen shown before a career exists, including the incompatible-save warning.
+- **Cosmetic identity:** `athlete.sex` (`female` | `male`) and the chosen name are saved; sex never
+  affects gameplay values. Save schema stays v2: careers saved before the field existed load with
+  `sex: 'male'` (owner decision), without being rewritten on load.
+- **Creation artwork:** final images go in `assets/runner/creation/{sex}/{profile}.webp` (or `.png`)
+  and are picked up without code changes; profiles without an image show a labelled placeholder.
+  Climber (female and male) uses the owner's illustrations (`assets/runner/Climber_women.jpg`,
+  `Climber_men.jpg`, kept as sources), prepared with `scripts/prepare_creation_art.py`: white
+  background removed (including gaps between limbs and poles), cropped and placed on a transparent
+  640×960 (2:3) canvas with the feet on a common baseline, saved as WebP (60 kB and 77 kB). The
+  other six images are still placeholders. On phones up to 700 px tall the brand bar is hidden during
+  the setup flow so the runner image has more room.
+- **Dashboard — implemented.** The first screen fits between the brand bar and the bottom navigation
+  at 360×640 and 412×915: "Name - Profile · Lv N" and "Week N · Monday" above a centred runner,
+  attributes on the left (full names, with the bar and value on the line below each name — owner
+  decision), Level, XP (bar to the next level), Fitness and
+  Fatigue on the right. Fatigue of 70 or more is shown as "High" in a warning colour (display-only
+  threshold, not a gameplay rule). Attribute points, Today, the week summary and Reset demo are cards
+  below the first screen (owner decision).
+- **Dashboard runner:** separate from the creation art. Base body per sex at
+  `assets/runner/dashboard/{sex}/body.webp` (or `.png`) plus stacked equipment layers at
+  `assets/runner/dashboard/{sex}/equipment/{item}.webp|png` (`src/features/dashboard/dashboardArt.ts`).
+  There is no equipment system yet, so a new career shows the base body only; until artwork exists a
+  labelled placeholder with minimal base clothing is shown (owner decision).
+- **Week days:** labelled Monday–Sunday (`src/domain/training/weekdays.ts`); day 1 of every simulated
+  week is Monday, independent of the real date (owner decision).
+- **Training — implemented.** No page scroll at 360×640 and 412×915, including the injury and
+  feedback states: a Monday–Sunday strip (session icon, status, today highlighted), then the selected
+  day's full detail shown directly below it — no "Details" button and no popup (owner decision,
+  28 October 2026, replacing the spec's popup and the first implementation's bottom sheet). Tapping a
+  day's tab shows its detail: for today, the session selector, description, XP/Fitness/Fatigue
+  effects (before → after) and the complete button; for other days, the planned effects or the
+  result. Only today can be changed or completed. Only existing data is shown — not duration,
+  distance or intensity (owner decision). After completing a day the button shows "Saved ✓" and
+  ignores taps for 0.7 s, so a double tap cannot complete two days. Injury risk shows a warning and
+  the button "Complete anyway — injury"; during forced Rest the selector is locked and the detail
+  shows the forced rest days left. The feedback message names the completed day and its effects;
+  the next day is highlighted in the strip, and a new week is announced.
 
 > **Note:** the milestones below are the original plan. Their names, order and scope are to be
 > confirmed by the PM. M3–M6 keep their original numbers. The original "Persistence and account"
@@ -638,9 +707,10 @@ Start with **M0 only**.
 
 ---
 
-## 15. Design reconciliation — Bible v1.1 vs implementation
+## 15. Design reconciliation — Bible vs implementation
 
-Reviewed against `main` at `c1f22a0` (M2 accepted on 28 October 2026). The Bible is the intended
+Reviewed against `main` at `c1f22a0` (M2 accepted on 28 October 2026); rows 6, 13 and 14 updated on
+the working branch for Bible v1.2. The Bible is the intended
 design; the code is the delivered state.
 
 | # | Topic | Bible v1.1 | Implementation | Status |
@@ -650,10 +720,12 @@ design; the code is the delivered state.
 | 3 | Starting values | Attributes 12–20 (96 total); Fitness 20; Fatigue 0 | Same | Resolved in M2 |
 | 4 | Training rewards | XP −10 %, positive Fitness −50 %; Fatigue unchanged | Same | Resolved in M2 |
 | 5 | Trail technique | Not listed in the Bible tables | Kept: 11 XP, +2 Fitness, +6 Fatigue (PM brief); not in the weekly plan | Resolved by PM brief |
-| 6 | Week days | Monday–Sunday | Day 1–7 (no real calendar) | Open |
+| 6 | Week days | Monday–Sunday | Monday–Sunday labels; day 1 of each simulated week is Monday | Resolved (owner decision, 28 Oct 2026) |
 | 7 | Fitness decay | −1 per full 24 h without a non-rest session | Implemented on real time, independent of the simulated week | Resolved in M2 |
 | 8 | Levels and points | Level 5 at 700 XP; 2 points per level; manual allocation | Same; no refunds | Resolved in M2 |
 | 9 | Money and equipment | 100 coins; basic shoes and vest | Not implemented | Open (economy / equipment milestone) |
 | 10 | Save data | Migrations, timestamps | Schema v2 with decay timestamp; v1 is not migrated (explicit restart flow, per PM brief) | Resolved in M2 |
 | 11 | Attribute adaptation from training | Mapping defined, amounts not balanced | Not implemented; attributes change only by points | Open |
 | 12 | Profile change at season end | Requires a season system | Not implemented | Open |
+| 13 | Rest effects | Fatigue −8, Fitness −2 (Bible 1.2 §4.4) | Same | Resolved (owner decisions, 28 Oct 2026) |
+| 14 | Injury | Fatigue > 95 after a session: no XP, −15 Fitness, 5 forced Rest days (Bible 1.2 §4.7) | Same | Resolved (owner decision, 28 Oct 2026) |

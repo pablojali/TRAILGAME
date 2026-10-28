@@ -72,8 +72,8 @@ export const TRAINING_SESSIONS: Record<SessionType, SessionDefinition> = {
     label: 'Rest',
     description: 'Recover and reduce fatigue.',
     xp: 0,
-    fitnessDelta: 0,
-    fatigueDelta: -12,
+    fitnessDelta: -2,
+    fatigueDelta: -8,
   },
 }
 

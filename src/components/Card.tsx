@@ -15,25 +15,6 @@ export function Card({ title, children }: CardProps) {
   )
 }
 
-interface StatTileProps {
-  label: string
-  /** Display value; placeholders use an em dash until data exists. */
-  value: string
-  tone?: 'brand' | 'accent' | 'ochre'
-  /** Shows an accessible bar for values on a fixed scale. */
-  meter?: { value: number; min?: number; max: number }
-}
-
-export function StatTile({ label, value, tone = 'brand', meter }: StatTileProps) {
-  return (
-    <div className={`${styles.statTile} ${styles[tone]}`}>
-      <span className={styles.statLabel}>{label}</span>
-      <span className={styles.statValue}>{value}</span>
-      {meter && <Meter label={label} {...meter} />}
-    </div>
-  )
-}
-
 interface MeterProps {
   label: string
   value: number
@@ -41,13 +22,15 @@ interface MeterProps {
   max: number
   /** Spoken value; defaults to "value of max". */
   valueText?: string
+  /** Extra class, e.g. to set the bar colour through `color`. */
+  className?: string
 }
 
-export function Meter({ label, value, min = 0, max, valueText }: MeterProps) {
+export function Meter({ label, value, min = 0, max, valueText, className = '' }: MeterProps) {
   const percent = max > min ? ((value - min) / (max - min)) * 100 : 100
   return (
     <div
-      className={styles.meter}
+      className={`${styles.meter} ${className}`}
       role="meter"
       aria-label={label}
       aria-valuemin={min}

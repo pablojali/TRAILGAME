@@ -1,51 +1,99 @@
-import { screen, within } from '@testing-library/react'
+import { act, fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { newGame, T0, withAthlete } from '../../test/gameFixtures'
 import { readSave, renderApp, seedCareer } from '../../test/renderApp'
 
 const HOUR = 60 * 60 * 1000
+type User = ReturnType<typeof userEvent.setup>
 
-/** Returns an effect preview as "delta | before → after". */
+function strip() {
+  return within(screen.getByRole('list', { name: /plan$/ })).getAllByRole('button')
+}
+
+/** The selected day's detail, shown directly under the week strip. */
+function detail() {
+  const section = document.getElementById('day-detail')
+  if (!section) throw new Error('Day detail not rendered')
+  return section
+}
+
+/** Returns an effect as "delta | before → after". */
 function effect(name: 'XP' | 'Fitness' | 'Fatigue') {
-  const value = screen.getByText(name, { selector: 'dt' }).nextElementSibling!
-  const [delta, result] = Array.from(value.children).map((el) => el.textContent)
+  const term = within(detail()).getByText(name, { selector: 'dt' })
+  const [delta, result] = Array.from(term.nextElementSibling!.children).map((el) => el.textContent)
   return `${delta} | ${result}`
 }
 
-function dayItems() {
-  return within(screen.getByRole('region', { name: /plan$/ })).getAllByRole('listitem')
-}
-
 function feedback() {
-  return screen.getAllByRole('status').find((el) => el.textContent?.includes('complete:'))
+  return screen.getAllByRole('status').find((el) => /complete:|Injured!/.test(el.textContent ?? ''))
 }
 
-describe('TrainingScreen', () => {
+async function completeToday(user: User) {
+  // Wait out the double-tap pause left by a previous completion.
+  await within(detail()).findByRole('button', { name: /^(Complete|Take rest)/ }, { timeout: 1500 })
+  await user.click(within(detail()).getByRole('button', { name: /^(Complete|Take rest)/ }))
+}
+
+describe('TrainingScreen — week strip and day detail', () => {
   beforeEach(() => {
     seedCareer()
   })
 
-  it('shows the approved seven-day plan with day 1 as today', () => {
+  it('shows the week Monday–Sunday first, with today highlighted', () => {
     renderApp('/training')
-    const days = dayItems()
-    expect(days.map((d) => d.textContent)).toEqual([
-      'Day 1Easy runToday',
-      'Day 2IntervalsUpcoming',
-      'Day 3StrengthUpcoming',
-      'Day 4RestUpcoming',
-      'Day 5HillsUpcoming',
-      'Day 6Long runUpcoming',
-      'Day 7RestUpcoming',
+    expect(screen.getByRole('heading', { level: 1, name: 'Training' })).toBeInTheDocument()
+    expect(strip().map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Monday, Easy run, today',
+      'Tuesday, Intervals, planned',
+      'Wednesday, Strength, planned',
+      'Thursday, Rest, planned',
+      'Friday, Hills, planned',
+      'Saturday, Long run, planned',
+      'Sunday, Rest, planned',
     ])
-    expect(days[0]).toHaveAttribute('aria-current', 'step')
+    expect(strip()[0]).toHaveAttribute('aria-current', 'date')
+    expect(strip()[0]).toHaveAttribute('aria-pressed', 'true')
     expect(feedback()).toBeUndefined()
   })
 
-  it('offers every session type, including Trail technique', () => {
+  it("shows today's full detail directly, with no Details button or popup", () => {
     renderApp('/training')
-    const options = within(screen.getByLabelText('Session for day 1')).getAllByRole('option')
-    expect(options.map((o) => o.textContent)).toEqual([
+    expect(detail()).toHaveTextContent('Monday · Today')
+    expect(within(detail()).getByRole('heading', { level: 2, name: 'Easy run' })).toBeInTheDocument()
+    expect(within(detail()).getByLabelText('Session for Monday')).toHaveDisplayValue('Easy run')
+    expect(detail()).toHaveTextContent('Relaxed aerobic running.')
+    expect(effect('XP')).toBe('+9 | 0 → 9')
+    expect(effect('Fitness')).toBe('+2 | 20 → 22')
+    expect(effect('Fatigue')).toBe('+5 | 0 → 5')
+    expect(within(detail()).getByRole('button', { name: 'Complete Easy run' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Details/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(detail()).not.toHaveTextContent(/km|min|intensity/i)
+  })
+
+  it('shows another day directly when its tab is tapped, without actions', async () => {
+    const user = userEvent.setup()
+    renderApp('/training')
+    await user.click(strip()[4]!)
+    expect(strip()[4]).toHaveAttribute('aria-pressed', 'true')
+    expect(within(detail()).getByRole('heading', { level: 2, name: 'Hills' })).toBeInTheDocument()
+    expect(detail()).toHaveTextContent('Friday · Planned')
+    expect(detail()).toHaveTextContent('Repeated climbs and descents.')
+    expect(detail()).toHaveTextContent('Planned: XP +14 · Fitness +3 · Fatigue +12')
+    expect(detail()).toHaveTextContent('Only today’s session can be changed or completed.')
+    expect(within(detail()).queryByRole('combobox')).not.toBeInTheDocument()
+    expect(within(detail()).queryByRole('button')).not.toBeInTheDocument()
+
+    await user.click(strip()[0]!)
+    expect(detail()).toHaveTextContent('Monday · Today')
+  })
+
+  it('offers every session type for today and previews the revised effects', async () => {
+    const user = userEvent.setup()
+    renderApp('/training')
+    const select = within(detail()).getByLabelText('Session for Monday')
+    expect(within(select).getAllByRole('option').map((o) => o.textContent)).toEqual([
       'Easy run',
       'Intervals',
       'Hills',
@@ -54,91 +102,97 @@ describe('TrainingScreen', () => {
       'Trail technique',
       'Rest',
     ])
-  })
-
-  it('previews the revised effects of the selected session', async () => {
-    const user = userEvent.setup()
-    renderApp('/training')
-    expect(effect('XP')).toBe('+9 | 0 → 9')
-    expect(effect('Fitness')).toBe('+2 | 20 → 22')
-    expect(effect('Fatigue')).toBe('+5 | 0 → 5')
-
-    await user.selectOptions(screen.getByLabelText('Session for day 1'), 'Long run')
-    expect(effect('XP')).toBe('+18 | 0 → 18')
-    expect(effect('Fitness')).toBe('+3 | 20 → 23')
-    expect(effect('Fatigue')).toBe('+16 | 0 → 16')
-
-    await user.selectOptions(screen.getByLabelText('Session for day 1'), 'Trail technique')
+    await user.selectOptions(select, 'Trail technique')
     expect(effect('XP')).toBe('+11 | 0 → 11')
-    expect(effect('Fitness')).toBe('+2 | 20 → 22')
-    expect(effect('Fatigue')).toBe('+6 | 0 → 6')
-    expect(screen.getByRole('button', { name: 'Complete day 1: Trail technique' })).toBeInTheDocument()
+    expect(strip()[0]).toHaveAccessibleName('Monday, Trail technique, today')
+    expect(within(detail()).getByRole('button', { name: 'Complete Trail technique' })).toBeInTheDocument()
   })
 
-  it('previews rest as a fatigue reduction clamped at zero', async () => {
+  it('previews Rest as −2 Fitness and −8 Fatigue', async () => {
     seedCareer(withAthlete(newGame(), { fatigue: 10 }))
     const user = userEvent.setup()
     renderApp('/training')
-    await user.selectOptions(screen.getByLabelText('Session for day 1'), 'Rest')
+    await user.selectOptions(within(detail()).getByLabelText('Session for Monday'), 'Rest')
     expect(effect('XP')).toBe('0 | 0 → 0')
-    expect(effect('Fitness')).toBe('0 | 20 → 20')
-    expect(effect('Fatigue')).toBe('−10 | 10 → 0')
-    expect(screen.getByRole('button', { name: 'Take rest day 1' })).toBeInTheDocument()
+    expect(effect('Fitness')).toBe('−2 | 20 → 18')
+    expect(effect('Fatigue')).toBe('−8 | 10 → 2')
+    expect(within(detail()).getByRole('button', { name: 'Take rest day (Mon)' })).toBeInTheDocument()
+  })
+})
+
+describe('TrainingScreen — completing sessions', () => {
+  beforeEach(() => {
+    seedCareer()
   })
 
-  it('executes the current day once and advances to the next day', async () => {
+  it('completes today once and advances to the next day', async () => {
     const user = userEvent.setup()
     renderApp('/training')
+    await completeToday(user)
 
-    await user.click(screen.getByRole('button', { name: 'Complete day 1: Easy run' }))
-
-    expect(feedback()).toHaveTextContent('Week 1, day 1 complete: Easy run')
+    expect(feedback()).toHaveTextContent('Monday complete: Easy run')
     expect(feedback()).toHaveTextContent('XP +9 · Fitness +2 · Fatigue +5')
-    expect(feedback()).toHaveTextContent('Next: Day 2, Intervals.')
-    const days = dayItems()
-    expect(days[0]).toHaveTextContent('Completed · +9 XP')
-    expect(days[1]).toHaveAttribute('aria-current', 'step')
-    expect(screen.queryByLabelText('Session for day 1')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /day 1/ })).not.toBeInTheDocument()
-    expect(effect('XP')).toBe('+16 | 9 → 25')
+    expect(strip()[0]).toHaveAccessibleName('Monday, Easy run, completed')
+    expect(strip()[1]).toHaveAttribute('aria-current', 'date')
+    expect(detail()).toHaveTextContent('Tuesday · Today')
     expect(readSave()!.state.athlete).toMatchObject({ xp: 9, fitness: 22, fatigue: 5 })
+  })
+
+  it('shows the result of a completed day when its tab is tapped', async () => {
+    const user = userEvent.setup()
+    renderApp('/training')
+    await completeToday(user)
+    await user.click(strip()[0]!)
+    expect(detail()).toHaveTextContent('Result: XP +9 · Fitness +2 · Fatigue +5')
+    expect(within(detail()).queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('does not complete two days from an accidental double tap', async () => {
+    renderApp('/training')
+    const complete = within(detail()).getByRole('button', { name: 'Complete Easy run' })
+    fireEvent.click(complete)
+    // The same button now belongs to the next day, but pauses briefly.
+    expect(complete).toHaveTextContent('Saved ✓')
+    expect(complete).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(complete)
+    expect(readSave()!.state.athlete.xp).toBe(9)
+    expect(readSave()!.state.week.currentDayIndex).toBe(1)
+
+    // After the pause the next day can be completed normally.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 750)))
+    expect(within(detail()).getByRole('button', { name: 'Complete Intervals' })).not.toHaveAttribute('aria-disabled')
   })
 
   it('announces a level up with the attribute points earned', async () => {
     seedCareer(withAthlete(newGame(), { xp: 91 }))
     const user = userEvent.setup()
     renderApp('/training')
-    await user.click(screen.getByRole('button', { name: 'Complete day 1: Easy run' }))
+    await completeToday(user)
     expect(feedback()).toHaveTextContent('Level up! Now Level 2. +2 attribute points.')
     await user.click(within(feedback()!).getByRole('link', { name: 'Allocate points' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Attributes' })).toBeInTheDocument()
-    expect(screen.getByText('attribute points to spend')).toBeInTheDocument()
   })
 
-  it('rolls over to a new week after day 7 and keeps progression', async () => {
+  it('rolls over to a new week after Sunday and keeps progression', async () => {
     const user = userEvent.setup()
     renderApp('/training')
-    for (let day = 1; day <= 7; day++) {
-      await user.click(screen.getByRole('button', { name: new RegExp(`day ${day}`) }))
-    }
-    expect(feedback()).toHaveTextContent('Week 1 complete. Week 2 has started. Next: Day 1, Easy run.')
-    expect(screen.getByRole('heading', { name: 'Week 2 plan' })).toBeInTheDocument()
-    expect(dayItems().filter((d) => d.textContent?.includes('Completed'))).toHaveLength(0)
-    expect(effect('XP')).toBe('+9 | 68 → 77')
-    expect(effect('Fitness')).toBe('+2 | 33 → 35')
+    for (let day = 0; day < 7; day++) await completeToday(user)
+    expect(feedback()).toHaveTextContent('Week 1 complete. Week 2 has started: Monday, Easy run.')
+    expect(screen.getByRole('list', { name: 'Week 2 plan' })).toBeInTheDocument()
+    expect(strip().filter((b) => b.getAttribute('aria-label')!.endsWith('completed'))).toHaveLength(0)
+    expect(readSave()!.state.athlete).toMatchObject({ xp: 68, fitness: 29 })
   })
 
   it('persists edits and executions across a reload', async () => {
     const user = userEvent.setup()
     const first = renderApp('/training')
-    await user.click(screen.getByRole('button', { name: 'Complete day 1: Easy run' }))
-    await user.selectOptions(screen.getByLabelText('Session for day 2'), 'Hills')
+    await completeToday(user)
+    await user.selectOptions(within(detail()).getByLabelText('Session for Tuesday'), 'Hills')
     first.unmount()
 
     renderApp('/training')
-    expect(dayItems()[0]).toHaveTextContent('Completed · +9 XP')
-    expect(screen.getByLabelText('Session for day 2')).toHaveDisplayValue('Hills')
-    expect(effect('XP')).toBe('+14 | 9 → 23')
+    expect(strip()[0]).toHaveAccessibleName('Monday, Easy run, completed')
+    expect(strip()[1]).toHaveAccessibleName('Tuesday, Hills, today')
   })
 
   it('resets the inactivity reference on a non-rest session but not on Rest', async () => {
@@ -146,12 +200,12 @@ describe('TrainingScreen', () => {
     renderApp('/training')
 
     vi.setSystemTime(T0 + 5 * HOUR)
-    await user.click(screen.getByRole('button', { name: 'Complete day 1: Easy run' }))
+    await completeToday(user)
     expect(readSave()!.state.fitnessDecayReference).toBe(T0 + 5 * HOUR)
 
-    await user.selectOptions(screen.getByLabelText('Session for day 2'), 'Rest')
+    await user.selectOptions(within(detail()).getByLabelText('Session for Tuesday'), 'Rest')
     vi.setSystemTime(T0 + 9 * HOUR)
-    await user.click(screen.getByRole('button', { name: 'Take rest day 2' }))
+    await user.click(await within(detail()).findByRole('button', { name: 'Take rest day (Tue)' }, { timeout: 1500 }))
     expect(readSave()!.state.fitnessDecayReference).toBe(T0 + 5 * HOUR)
   })
 
@@ -159,9 +213,61 @@ describe('TrainingScreen', () => {
     const user = userEvent.setup()
     renderApp('/training')
     vi.setSystemTime(T0 + 2 * 24 * HOUR + HOUR)
-    await user.click(screen.getByRole('button', { name: 'Complete day 1: Easy run' }))
+    await completeToday(user)
     // 20 − 2 (two full days) + 2 (Easy run).
     expect(readSave()!.state.athlete.fitness).toBe(20)
     expect(screen.getByText('Fitness −2: 2 full days without a training session.')).toBeInTheDocument()
+  })
+})
+
+describe('TrainingScreen — injury', () => {
+  it('warns in the day detail before an injuring session', async () => {
+    seedCareer(withAthlete(newGame(), { fatigue: 92 }))
+    const user = userEvent.setup()
+    renderApp('/training')
+    expect(effect('XP')).toBe('0 | 0 → 0')
+    expect(effect('Fitness')).toBe('−15 | 20 → 5')
+    expect(within(detail()).getByRole('alert')).toHaveTextContent(
+      'Injury warning: Fatigue would reach 97 (above 95). Training anyway: no XP, −15 Fitness, 5 forced rest days.',
+    )
+    expect(within(detail()).getByRole('button', { name: 'Complete anyway — injury' })).toBeInTheDocument()
+
+    // Switching to Rest removes the risk.
+    await user.selectOptions(within(detail()).getByLabelText('Session for Monday'), 'Rest')
+    expect(within(detail()).queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('does not warn when the session ends at exactly 95 Fatigue', () => {
+    seedCareer(withAthlete(newGame(), { fatigue: 90 }))
+    renderApp('/training')
+    expect(within(detail()).queryByRole('alert')).not.toBeInTheDocument()
+    expect(within(detail()).getByRole('button', { name: 'Complete Easy run' })).toBeInTheDocument()
+  })
+
+  it('injures the runner when trained anyway and locks 5 rest days', async () => {
+    seedCareer(withAthlete(newGame(), { xp: 91, fitness: 40, fatigue: 92 }))
+    const user = userEvent.setup()
+    renderApp('/training')
+    await user.click(within(detail()).getByRole('button', { name: 'Complete anyway — injury' }))
+
+    expect(feedback()).toHaveTextContent('Injured! Monday: Easy run')
+    expect(feedback()).toHaveTextContent('XP 0 · Fitness −15 · Fatigue +5 · 5 forced rest days')
+    expect(feedback()).not.toHaveTextContent('Level up')
+    expect(strip()[0]).toHaveAccessibleName('Monday, Easy run, injured')
+    expect(strip().slice(1, 6).map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Tuesday, Rest, today, forced rest',
+      'Wednesday, Rest, planned, forced rest',
+      'Thursday, Rest, planned, forced rest',
+      'Friday, Rest, planned, forced rest',
+      'Saturday, Rest, planned, forced rest',
+    ])
+    expect(readSave()!.state).toMatchObject({ athlete: { xp: 91, fitness: 25, fatigue: 97 }, forcedRestDays: 5 })
+
+    // During forced rest the session is locked and each Rest day counts down (and costs 2 Fitness).
+    expect(within(detail()).getByLabelText('Session for Tuesday')).toBeDisabled()
+    expect(detail()).toHaveTextContent('Injured: 5 forced rest days left. Session locked.')
+    await completeToday(user)
+    expect(detail()).toHaveTextContent('Injured: 4 forced rest days left. Session locked.')
+    expect(readSave()!.state.athlete.fitness).toBe(23)
   })
 })

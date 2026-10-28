@@ -1,0 +1,64 @@
+.art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  /* Soft glow so the dark runner stands out on the dark UI (spec: done in CSS, not in the image). */
+  background: radial-gradient(ellipse at 50% 60%, rgb(240 124 42 / 0.18), transparent 70%),
+    var(--bg-sunken);
+}
+
+.image,
+.figure {
+  /* Positioned so the artwork fills the space it is given without adding its own height. */
+  position: absolute;
+  inset: var(--space-2);
+  width: calc(100% - 2 * var(--space-2));
+  height: calc(100% - 2 * var(--space-2));
+  object-fit: contain;
+}
+
+.limb,
+.ground,
+.hair {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.limb {
+  stroke: #5d6963;
+  stroke-width: 7;
+}
+
+.head {
+  fill: #5d6963;
+}
+
+.hair {
+  stroke: #5d6963;
+  stroke-width: 5;
+}
+
+.ground {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.tag {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  padding: 2px var(--space-2);
+  border: 1px dashed var(--text-muted);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

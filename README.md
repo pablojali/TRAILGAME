@@ -17,7 +17,7 @@ and Career are placeholders. Progress is saved in the browser's localStorage onl
 
 ```bash
 npm ci                 # install exact versions from package-lock.json
-cp .env.example .env.local   # optional; no variables are used until M2
+cp .env.example .env.local   # optional; no variables are used until M7
 npm run dev            # http://localhost:5173
 ```
 
@@ -103,7 +103,7 @@ Not yet connected. To deploy from GitHub:
 4. Save and deploy. Every push to `main` deploys to production; other branches get preview URLs.
 
 `public/_redirects` sends all paths to `index.html`, so deep links such as `/races` work after deployment.
-No environment variables are required for M0. From M2, add `VITE_SUPABASE_URL` and
+No environment variables are required for M0. From M7, add `VITE_SUPABASE_URL` and
 `VITE_SUPABASE_ANON_KEY` in the Pages project settings — never a service-role key.
 
 ## Continuous integration

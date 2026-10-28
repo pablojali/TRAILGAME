@@ -2,7 +2,7 @@
 
 **Version:** 1.1
 
-**Status:** Approved design baseline — implementation pending milestone assignment
+**Status:** Approved design baseline — partially implemented (M0, M1 and M2 accepted); remaining systems pending milestone assignment
 
 **Project:** Trail Game
 
@@ -880,7 +880,7 @@ The following requirements revise or extend the original M1 design:
 - Define attribute-point rewards and allocation rules.
 - Establish profile changes at the end of a completed season.
 
-These rules are design requirements, not confirmation that they are already implemented.
+These rules are design requirements. Implementation status: profile selection, profile-specific starting attributes, starting Fitness 20, the revised XP and Fitness rewards, time-based Fitness decay and attribute-point rewards and allocation were implemented and accepted in M2. Attribute adaptation by training type and profile changes at the end of a season are not implemented.
 
 Because M1 has already been delivered, the PM must assign these changes to an explicitly named follow-up milestone or approve a deliberate M1 revision before implementation begins.
 
@@ -903,7 +903,7 @@ A suitable next milestone could cover:
 
 The PM should confirm the scope and milestone name before implementation.
 
-**Status (implementation note):** the PM approved this scope as **M2 — Athlete Progression**, including Trail Technique at 11 XP / +2 Fitness / +6 Fatigue (kept out of the weekly plan) and an explicit restart flow for v1 saves instead of a migration. It is implemented on branch `ccr-4899c2c5-ikxanb` and pending PM acceptance; see `DEVELOPMENT.md` §11 and §15.
+**Status (implementation note):** the PM approved this scope as **M2 — Athlete Progression**, including Trail Technique at 11 XP / +2 Fitness / +6 Fatigue (kept out of the weekly plan) and an explicit restart flow for v1 saves instead of a migration. It was formally accepted by the General PM on 28 October 2026 and merged into `main` (merge commit `c1f22a0`, implementation commit `2058f48`); see `DEVELOPMENT.md` §11 and §15.
 
 ### 15.5 Later milestones
 

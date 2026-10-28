@@ -2,7 +2,7 @@
 
 **Document:** `DEVELOPMENT.md`  
 **Version:** 0.3.0  
-**Status:** Active — M0 and M1 merged into `main`; M2 (Athlete Progression) implemented on the working branch, pending PM acceptance  
+**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; next milestone pending PM definition  
 **Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
@@ -478,8 +478,26 @@ career progression. They will be assigned to milestones defined by the PM follow
 
 ### M2 — Athlete Progression
 
-**Status:** Implemented on branch `ccr-4899c2c5-ikxanb`; pending PM review, Cloudflare preview and
-manual testing. Not merged into `main`.
+**Status:** Delivered and formally accepted by the General PM on 28 October 2026, with documented
+non-blocking limitations. Merged into `main` with merge commit `c1f22a0` (implementation commit
+`2058f48`).
+
+Validation:
+- Owner-reported: tested by the owner on the Cloudflare Pages preview.
+- Independently rerun technical validation at `c1f22a0`: 182 automated tests passed; lint, type-check
+  and production build passed; GitHub Actions CI passed on `main`.
+- Not independently verified by the developer: physical-device behaviour and the Cloudflare
+  deployments.
+
+Documented non-blocking limitations (from the final audit):
+- Displayed Fitness and the Training preview can lag after more than 24 h in the foreground without
+  any action or tab switch; decay is applied before every state change, so saved data is unaffected.
+- Attribute 100 is not reachable in M2 (Level 5 grants 8 points in total); the cap is enforced and
+  tested in the engine.
+- With two tabs open on the same career, the last save wins (no cross-tab sync); rewards and points
+  are never duplicated, but an update can be lost.
+- A saved decay reference in the future (device clock moved back) causes no decay until the device
+  clock passes it.
 
 **Goal:** athlete creation with four profiles and long-term progression through levels, attribute
 points and real-time Fitness decay, as specified in the PM brief and Bible §2–§6.
@@ -509,10 +527,13 @@ Delivered scope:
   exists; Reset demo deletes the career and returns to profile selection.
 
 > **Note:** the milestones below are the original plan. Their names, order and scope are to be
-> confirmed by the PM. The original "M2 — Persistence and account" is kept under its own name until
-> it is renumbered.
+> confirmed by the PM. M3–M6 keep their original numbers. The original "Persistence and account"
+> milestone, first planned as M2, was renumbered to M7 to avoid conflicting with the delivered M2;
+> its number does not set its order.
 
-### Persistence and account (originally planned as M2)
+### M7 — Persistence and account
+
+**Status:** Future milestone; not started. Originally planned as M2; scope unchanged.
 
 **Goal:** save player progress reliably.
 
@@ -619,8 +640,8 @@ Start with **M0 only**.
 
 ## 15. Design reconciliation — Bible v1.1 vs implementation
 
-Updated for M2 on the working branch. The Bible is the intended design; the code is the delivered
-state.
+Reviewed against `main` at `c1f22a0` (M2 accepted on 28 October 2026). The Bible is the intended
+design; the code is the delivered state.
 
 | # | Topic | Bible v1.1 | Implementation | Status |
 |---|---|---|---|---|

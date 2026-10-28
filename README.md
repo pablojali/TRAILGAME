@@ -88,11 +88,11 @@ milestone that needs them.
 2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner (placeholder, no
    equipment), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
    attribute points, Today, the week and Reset demo are below it.
-3. Training: the Mon–Sun strip is on top and today's activity below it, without scrolling. Tap
-   another day to see it; tap the activity to open the detail sheet and close it with ×, by tapping
-   outside or with the Back button. Completing a session from the sheet moves to the next day.
+3. Training: the Mon–Sun strip is on top and the selected day's full detail below it, without
+   scrolling or popups. Tap a day's tab to see its detail; today's detail has the session selector,
+   effects and the complete button. A double tap on complete only completes one day.
 4. Injury: with Fatigue near 95, a session that would end above 95 shows an injury warning; training
-   anyway gives no XP, −15 Fitness and 5 locked rest days (banner on Training).
+   anyway gives no XP, −15 Fitness and 5 locked rest days (each Rest day also costs 2 Fitness).
 5. New career: Level 1, 0 XP, Fitness 20/100, Fatigue 0/100, 0 unspent points, profile attributes.
 6. Training: effects show the M2 values (e.g. Easy run +9 XP, +2 Fitness, +5 Fatigue). Trail
    technique can be selected but is not in the plan. Complete a day; reload; progress is kept.

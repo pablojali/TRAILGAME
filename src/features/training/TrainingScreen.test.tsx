@@ -11,36 +11,31 @@ function strip() {
   return within(screen.getByRole('list', { name: /plan$/ })).getAllByRole('button')
 }
 
-function card() {
-  return screen.getByRole('button', { name: /Details ›/ })
+/** The selected day's detail, shown directly under the week strip. */
+function detail() {
+  const section = document.getElementById('day-detail')
+  if (!section) throw new Error('Day detail not rendered')
+  return section
 }
 
-function dialog() {
-  return screen.getByRole('dialog')
-}
-
-async function openDetail(user: User) {
-  await user.click(card())
-  return dialog()
-}
-
-/** Returns an effect preview in the detail sheet as "delta | before → after". */
+/** Returns an effect as "delta | before → after". */
 function effect(name: 'XP' | 'Fitness' | 'Fatigue') {
-  const value = within(dialog()).getByText(name, { selector: 'dt' }).nextElementSibling!
-  const [delta, result] = Array.from(value.children).map((el) => el.textContent)
+  const term = within(detail()).getByText(name, { selector: 'dt' })
+  const [delta, result] = Array.from(term.nextElementSibling!.children).map((el) => el.textContent)
   return `${delta} | ${result}`
 }
 
 function feedback() {
-  return screen.getAllByRole('status').find((el) => el.textContent?.includes('complete:'))
+  return screen.getAllByRole('status').find((el) => /complete:|Injured!/.test(el.textContent ?? ''))
 }
 
 async function completeToday(user: User) {
-  await openDetail(user)
-  await user.click(within(dialog()).getByRole('button', { name: /^(Complete|Take rest)/ }))
+  // Wait out the double-tap pause left by a previous completion.
+  await within(detail()).findByRole('button', { name: /^(Complete|Take rest)/ }, { timeout: 1500 })
+  await user.click(within(detail()).getByRole('button', { name: /^(Complete|Take rest)/ }))
 }
 
-describe('TrainingScreen — week strip and activity card', () => {
+describe('TrainingScreen — week strip and day detail', () => {
   beforeEach(() => {
     seedCareer()
   })
@@ -62,88 +57,42 @@ describe('TrainingScreen — week strip and activity card', () => {
     expect(feedback()).toBeUndefined()
   })
 
-  it("shows today's activity with only the existing data: type, description and effects", () => {
+  it("shows today's full detail directly, with no Details button or popup", () => {
     renderApp('/training')
-    expect(card()).toHaveTextContent('Monday · Today')
-    expect(card()).toHaveTextContent('Easy run')
-    expect(card()).toHaveTextContent('Relaxed aerobic running.')
-    expect(card()).toHaveTextContent('XP +9 · Fitness +2 · Fatigue +5')
-    expect(card()).not.toHaveTextContent(/km|min|intensity/i)
+    expect(detail()).toHaveTextContent('Monday · Today')
+    expect(within(detail()).getByRole('heading', { level: 2, name: 'Easy run' })).toBeInTheDocument()
+    expect(within(detail()).getByLabelText('Session for Monday')).toHaveDisplayValue('Easy run')
+    expect(detail()).toHaveTextContent('Relaxed aerobic running.')
+    expect(effect('XP')).toBe('+9 | 0 → 9')
+    expect(effect('Fitness')).toBe('+2 | 20 → 22')
+    expect(effect('Fatigue')).toBe('+5 | 0 → 5')
+    expect(within(detail()).getByRole('button', { name: 'Complete Easy run' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Details/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(detail()).not.toHaveTextContent(/km|min|intensity/i)
   })
 
-  it('shows another day in the card when it is tapped', async () => {
+  it('shows another day directly when its tab is tapped, without actions', async () => {
     const user = userEvent.setup()
     renderApp('/training')
     await user.click(strip()[4]!)
     expect(strip()[4]).toHaveAttribute('aria-pressed', 'true')
-    expect(card()).toHaveTextContent('Friday · Planned')
-    expect(card()).toHaveTextContent('Hills')
-    expect(card()).toHaveTextContent('Planned: XP +14 · Fitness +3 · Fatigue +12')
+    expect(within(detail()).getByRole('heading', { level: 2, name: 'Hills' })).toBeInTheDocument()
+    expect(detail()).toHaveTextContent('Friday · Planned')
+    expect(detail()).toHaveTextContent('Repeated climbs and descents.')
+    expect(detail()).toHaveTextContent('Planned: XP +14 · Fitness +3 · Fatigue +12')
+    expect(detail()).toHaveTextContent('Only today’s session can be changed or completed.')
+    expect(within(detail()).queryByRole('combobox')).not.toBeInTheDocument()
+    expect(within(detail()).queryByRole('button')).not.toBeInTheDocument()
+
     await user.click(strip()[0]!)
-    expect(card()).toHaveTextContent('Monday · Today')
-  })
-})
-
-describe('TrainingScreen — detail sheet', () => {
-  beforeEach(() => {
-    seedCareer()
-  })
-
-  it('opens from the activity card and closes with the close button, returning focus', async () => {
-    const user = userEvent.setup()
-    renderApp('/training')
-    const sheet = await openDetail(user)
-    expect(sheet).toHaveAccessibleName('Monday · Easy run')
-    expect(within(sheet).getByRole('button', { name: 'Close' })).toHaveFocus()
-    await user.click(within(sheet).getByRole('button', { name: 'Close' }))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(card()).toHaveFocus()
-  })
-
-  it('closes by tapping outside', async () => {
-    const user = userEvent.setup()
-    renderApp('/training')
-    await openDetail(user)
-    await user.click(screen.getByTestId('sheet-backdrop'))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
-  it('closes with Escape', async () => {
-    const user = userEvent.setup()
-    renderApp('/training')
-    await openDetail(user)
-    await user.keyboard('{Escape}')
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
-  it('closes with the back button and is reflected in the URL', async () => {
-    const user = userEvent.setup()
-    const { router } = renderApp('/training')
-    await openDetail(user)
-    expect(router.state.location.search).toBe('?detail')
-    await act(() => router.navigate(-1))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/training')
-    expect(router.state.location.search).toBe('')
-  })
-
-  it('keeps keyboard focus inside the sheet', async () => {
-    const user = userEvent.setup()
-    renderApp('/training')
-    const sheet = await openDetail(user)
-    const last = within(sheet).getByRole('button', { name: 'Complete Easy run' })
-    last.focus()
-    await user.tab()
-    expect(within(sheet).getByRole('button', { name: 'Close' })).toHaveFocus()
-    await user.tab({ shift: true })
-    expect(last).toHaveFocus()
+    expect(detail()).toHaveTextContent('Monday · Today')
   })
 
   it('offers every session type for today and previews the revised effects', async () => {
     const user = userEvent.setup()
     renderApp('/training')
-    await openDetail(user)
-    const select = within(dialog()).getByLabelText('Session for Monday')
+    const select = within(detail()).getByLabelText('Session for Monday')
     expect(within(select).getAllByRole('option').map((o) => o.textContent)).toEqual([
       'Easy run',
       'Intervals',
@@ -153,37 +102,21 @@ describe('TrainingScreen — detail sheet', () => {
       'Trail technique',
       'Rest',
     ])
-    expect(effect('XP')).toBe('+9 | 0 → 9')
-    expect(effect('Fitness')).toBe('+2 | 20 → 22')
-    expect(effect('Fatigue')).toBe('+5 | 0 → 5')
-
     await user.selectOptions(select, 'Trail technique')
     expect(effect('XP')).toBe('+11 | 0 → 11')
-    expect(dialog()).toHaveAccessibleName('Monday · Trail technique')
     expect(strip()[0]).toHaveAccessibleName('Monday, Trail technique, today')
-    expect(within(dialog()).getByRole('button', { name: 'Complete Trail technique' })).toBeInTheDocument()
+    expect(within(detail()).getByRole('button', { name: 'Complete Trail technique' })).toBeInTheDocument()
   })
 
-  it('previews Rest as an 8-point fatigue reduction', async () => {
+  it('previews Rest as −2 Fitness and −8 Fatigue', async () => {
     seedCareer(withAthlete(newGame(), { fatigue: 10 }))
     const user = userEvent.setup()
     renderApp('/training')
-    await openDetail(user)
-    await user.selectOptions(within(dialog()).getByLabelText('Session for Monday'), 'Rest')
+    await user.selectOptions(within(detail()).getByLabelText('Session for Monday'), 'Rest')
+    expect(effect('XP')).toBe('0 | 0 → 0')
+    expect(effect('Fitness')).toBe('−2 | 20 → 18')
     expect(effect('Fatigue')).toBe('−8 | 10 → 2')
-    expect(within(dialog()).getByRole('button', { name: 'Take rest day (Mon)' })).toBeInTheDocument()
-  })
-
-  it('shows planned effects for upcoming days, without actions', async () => {
-    const user = userEvent.setup()
-    renderApp('/training')
-    await user.click(strip()[5]!)
-    const sheet = await openDetail(user)
-    expect(sheet).toHaveAccessibleName('Saturday · Long run')
-    expect(sheet).toHaveTextContent('Planned effects: XP +18 · Fitness +3 · Fatigue +16')
-    expect(sheet).toHaveTextContent('Only today’s session can be changed or completed.')
-    expect(within(sheet).queryByRole('combobox')).not.toBeInTheDocument()
-    expect(within(sheet).queryByRole('button', { name: /^(Complete|Take rest)/ })).not.toBeInTheDocument()
+    expect(within(detail()).getByRole('button', { name: 'Take rest day (Mon)' })).toBeInTheDocument()
   })
 })
 
@@ -192,40 +125,42 @@ describe('TrainingScreen — completing sessions', () => {
     seedCareer()
   })
 
-  it('completes today once from the sheet and advances to the next day', async () => {
+  it('completes today once and advances to the next day', async () => {
     const user = userEvent.setup()
     renderApp('/training')
     await completeToday(user)
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(feedback()).toHaveTextContent('Monday complete: Easy run')
     expect(feedback()).toHaveTextContent('XP +9 · Fitness +2 · Fatigue +5')
-    expect(feedback()).toHaveTextContent('Next: Tuesday, Intervals.')
     expect(strip()[0]).toHaveAccessibleName('Monday, Easy run, completed')
     expect(strip()[1]).toHaveAttribute('aria-current', 'date')
-    expect(card()).toHaveTextContent('Tuesday · Today')
+    expect(detail()).toHaveTextContent('Tuesday · Today')
     expect(readSave()!.state.athlete).toMatchObject({ xp: 9, fitness: 22, fatigue: 5 })
   })
 
-  it('shows the result of a completed day without actions', async () => {
+  it('shows the result of a completed day when its tab is tapped', async () => {
     const user = userEvent.setup()
     renderApp('/training')
     await completeToday(user)
     await user.click(strip()[0]!)
-    const sheet = await openDetail(user)
-    expect(sheet).toHaveTextContent('Result: XP +9 · Fitness +2 · Fatigue +5')
-    expect(within(sheet).queryByRole('button', { name: /^(Complete|Take rest)/ })).not.toBeInTheDocument()
+    expect(detail()).toHaveTextContent('Result: XP +9 · Fitness +2 · Fatigue +5')
+    expect(within(detail()).queryByRole('button')).not.toBeInTheDocument()
   })
 
-  it('does not complete the same day twice from repeated clicks', async () => {
-    const user = userEvent.setup()
+  it('does not complete two days from an accidental double tap', async () => {
     renderApp('/training')
-    await openDetail(user)
-    const complete = within(dialog()).getByRole('button', { name: 'Complete Easy run' })
+    const complete = within(detail()).getByRole('button', { name: 'Complete Easy run' })
     fireEvent.click(complete)
+    // The same button now belongs to the next day, but pauses briefly.
+    expect(complete).toHaveTextContent('Saved ✓')
+    expect(complete).toHaveAttribute('aria-disabled', 'true')
     fireEvent.click(complete)
     expect(readSave()!.state.athlete.xp).toBe(9)
     expect(readSave()!.state.week.currentDayIndex).toBe(1)
+
+    // After the pause the next day can be completed normally.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 750)))
+    expect(within(detail()).getByRole('button', { name: 'Complete Intervals' })).not.toHaveAttribute('aria-disabled')
   })
 
   it('announces a level up with the attribute points earned', async () => {
@@ -242,18 +177,17 @@ describe('TrainingScreen — completing sessions', () => {
     const user = userEvent.setup()
     renderApp('/training')
     for (let day = 0; day < 7; day++) await completeToday(user)
-    expect(feedback()).toHaveTextContent('Week 1 complete. Week 2 has started. Next: Monday, Easy run.')
+    expect(feedback()).toHaveTextContent('Week 1 complete. Week 2 has started: Monday, Easy run.')
     expect(screen.getByRole('list', { name: 'Week 2 plan' })).toBeInTheDocument()
     expect(strip().filter((b) => b.getAttribute('aria-label')!.endsWith('completed'))).toHaveLength(0)
-    expect(readSave()!.state.athlete.xp).toBe(68)
+    expect(readSave()!.state.athlete).toMatchObject({ xp: 68, fitness: 29 })
   })
 
   it('persists edits and executions across a reload', async () => {
     const user = userEvent.setup()
     const first = renderApp('/training')
     await completeToday(user)
-    await openDetail(user)
-    await user.selectOptions(within(dialog()).getByLabelText('Session for Tuesday'), 'Hills')
+    await user.selectOptions(within(detail()).getByLabelText('Session for Tuesday'), 'Hills')
     first.unmount()
 
     renderApp('/training')
@@ -269,10 +203,9 @@ describe('TrainingScreen — completing sessions', () => {
     await completeToday(user)
     expect(readSave()!.state.fitnessDecayReference).toBe(T0 + 5 * HOUR)
 
-    await openDetail(user)
-    await user.selectOptions(within(dialog()).getByLabelText('Session for Tuesday'), 'Rest')
+    await user.selectOptions(within(detail()).getByLabelText('Session for Tuesday'), 'Rest')
     vi.setSystemTime(T0 + 9 * HOUR)
-    await user.click(within(dialog()).getByRole('button', { name: 'Take rest day (Tue)' }))
+    await user.click(await within(detail()).findByRole('button', { name: 'Take rest day (Tue)' }, { timeout: 1500 }))
     expect(readSave()!.state.fitnessDecayReference).toBe(T0 + 5 * HOUR)
   })
 
@@ -288,43 +221,38 @@ describe('TrainingScreen — completing sessions', () => {
 })
 
 describe('TrainingScreen — injury', () => {
-  it('warns on the card and in the sheet before an injuring session', async () => {
+  it('warns in the day detail before an injuring session', async () => {
     seedCareer(withAthlete(newGame(), { fatigue: 92 }))
     const user = userEvent.setup()
     renderApp('/training')
-    expect(card()).toHaveTextContent('Injury risk: open to review before training.')
-    expect(card()).toHaveTextContent('XP 0 · Fitness −15 · Fatigue +5')
-
-    await openDetail(user)
-    expect(within(dialog()).getByRole('alert')).toHaveTextContent(
-      'Injury warning: this session would raise Fatigue to 97, above 95. If you train anyway, your runner is injured: no XP, −15 Fitness and 5 forced rest days.',
+    expect(effect('XP')).toBe('0 | 0 → 0')
+    expect(effect('Fitness')).toBe('−15 | 20 → 5')
+    expect(within(detail()).getByRole('alert')).toHaveTextContent(
+      'Injury warning: Fatigue would reach 97 (above 95). Training anyway: no XP, −15 Fitness, 5 forced rest days.',
     )
-    expect(within(dialog()).getByRole('button', { name: 'Complete anyway — injury' })).toBeInTheDocument()
+    expect(within(detail()).getByRole('button', { name: 'Complete anyway — injury' })).toBeInTheDocument()
 
     // Switching to Rest removes the risk.
-    await user.selectOptions(within(dialog()).getByLabelText('Session for Monday'), 'Rest')
-    expect(within(dialog()).queryByRole('alert')).not.toBeInTheDocument()
+    await user.selectOptions(within(detail()).getByLabelText('Session for Monday'), 'Rest')
+    expect(within(detail()).queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('does not warn when the session ends at exactly 95 Fatigue', async () => {
+  it('does not warn when the session ends at exactly 95 Fatigue', () => {
     seedCareer(withAthlete(newGame(), { fatigue: 90 }))
-    const user = userEvent.setup()
     renderApp('/training')
-    await openDetail(user)
-    expect(within(dialog()).queryByRole('alert')).not.toBeInTheDocument()
-    expect(within(dialog()).getByRole('button', { name: 'Complete Easy run' })).toBeInTheDocument()
+    expect(within(detail()).queryByRole('alert')).not.toBeInTheDocument()
+    expect(within(detail()).getByRole('button', { name: 'Complete Easy run' })).toBeInTheDocument()
   })
 
-  it('injures the runner when trained anyway and forces 5 rest days', async () => {
+  it('injures the runner when trained anyway and locks 5 rest days', async () => {
     seedCareer(withAthlete(newGame(), { xp: 91, fitness: 40, fatigue: 92 }))
     const user = userEvent.setup()
     renderApp('/training')
-    await openDetail(user)
-    await user.click(within(dialog()).getByRole('button', { name: 'Complete anyway — injury' }))
+    await user.click(within(detail()).getByRole('button', { name: 'Complete anyway — injury' }))
 
-    expect(feedback()).toHaveTextContent('Injured! No XP, −15 Fitness and 5 forced rest days.')
+    expect(feedback()).toHaveTextContent('Injured! Monday: Easy run')
+    expect(feedback()).toHaveTextContent('XP 0 · Fitness −15 · Fatigue +5 · 5 forced rest days')
     expect(feedback()).not.toHaveTextContent('Level up')
-    expect(screen.getByText('Injured: 5 forced rest days left.')).toBeInTheDocument()
     expect(strip()[0]).toHaveAccessibleName('Monday, Easy run, injured')
     expect(strip().slice(1, 6).map((b) => b.getAttribute('aria-label'))).toEqual([
       'Tuesday, Rest, today, forced rest',
@@ -335,11 +263,11 @@ describe('TrainingScreen — injury', () => {
     ])
     expect(readSave()!.state).toMatchObject({ athlete: { xp: 91, fitness: 25, fatigue: 97 }, forcedRestDays: 5 })
 
-    // During forced rest the session cannot be changed, and Rest counts the days down.
-    await openDetail(user)
-    expect(within(dialog()).getByLabelText('Session for Tuesday')).toBeDisabled()
-    expect(dialog()).toHaveTextContent('Forced rest after an injury: this session cannot be changed.')
-    await user.click(within(dialog()).getByRole('button', { name: 'Take rest day (Tue)' }))
-    expect(screen.getByText('Injured: 4 forced rest days left.')).toBeInTheDocument()
+    // During forced rest the session is locked and each Rest day counts down (and costs 2 Fitness).
+    expect(within(detail()).getByLabelText('Session for Tuesday')).toBeDisabled()
+    expect(detail()).toHaveTextContent('Injured: 5 forced rest days left. Session locked.')
+    await completeToday(user)
+    expect(detail()).toHaveTextContent('Injured: 4 forced rest days left. Session locked.')
+    expect(readSave()!.state.athlete.fitness).toBe(23)
   })
 })

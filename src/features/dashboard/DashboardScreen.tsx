@@ -9,7 +9,6 @@ import {
   ATTRIBUTE_LABELS,
   ATTRIBUTE_MAX,
   STAT_MAX,
-  type AttributeId,
 } from '../../domain/athlete/athlete'
 import { getLevelProgress } from '../../domain/athlete/levels'
 import { PROFILES } from '../../domain/athlete/profiles'
@@ -20,16 +19,6 @@ import { getCurrentDay, getDayStatus } from '../../game-engine/gameState'
 import { previewSession, summarizeWeek } from '../../game-engine/training'
 import { DashboardRunner } from './DashboardRunner'
 import styles from './DashboardScreen.module.css'
-
-/** Short attribute names for the narrow side column. */
-const ATTRIBUTE_SHORT: Record<AttributeId, string> = {
-  endurance: 'END',
-  climbing: 'CLB',
-  speed: 'SPD',
-  technical: 'TEC',
-  recovery: 'REC',
-  consistency: 'CON',
-}
 
 /** Display-only threshold: Fatigue at or above this is shown as high. Not a gameplay rule. */
 const HIGH_FATIGUE = 70
@@ -68,17 +57,22 @@ export function DashboardScreen() {
             <ul className={styles.sideList}>
               {ATTRIBUTE_IDS.map((id) => (
                 <li key={id} className={styles.attribute}>
-                  <span className={styles.attributeText} aria-hidden="true">
-                    <span>{ATTRIBUTE_SHORT[id]}</span>
-                    <span className={styles.value}>{athlete.attributes[id]}</span>
+                  {/* The meter announces name and value; the visible text is for sighted users. */}
+                  <span className={styles.attributeName} aria-hidden="true">
+                    {ATTRIBUTE_LABELS[id]}
                   </span>
-                  <Meter
-                    label={ATTRIBUTE_LABELS[id]}
-                    value={athlete.attributes[id]}
-                    max={ATTRIBUTE_MAX}
-                    valueText={`${athlete.attributes[id]} of ${ATTRIBUTE_MAX}`}
-                    className={styles.sideMeter}
-                  />
+                  <span className={styles.attributeRow}>
+                    <Meter
+                      label={ATTRIBUTE_LABELS[id]}
+                      value={athlete.attributes[id]}
+                      max={ATTRIBUTE_MAX}
+                      valueText={`${athlete.attributes[id]} of ${ATTRIBUTE_MAX}`}
+                      className={styles.sideMeter}
+                    />
+                    <span className={styles.value} aria-hidden="true">
+                      {athlete.attributes[id]}
+                    </span>
+                  </span>
                 </li>
               ))}
             </ul>

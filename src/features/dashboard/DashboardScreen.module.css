@@ -54,14 +54,14 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 84px) minmax(0, 1fr) minmax(0, 84px);
+  grid-template-columns: minmax(0, 96px) minmax(0, 1fr) minmax(0, 96px);
   align-items: center;
   gap: var(--space-2);
 }
 
 /* Narrow, semi-transparent side cards. Minimum text size 12px. */
 .side {
-  padding: var(--space-2);
+  padding: var(--space-2) 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: rgb(26 32 29 / 0.85);
@@ -77,12 +77,22 @@
   list-style: none;
 }
 
-.attributeText {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-1);
+.attributeName {
+  display: block;
   color: var(--text-muted);
   font-weight: 700;
+}
+
+/* Bar and value on the line below the full attribute name. */
+.attributeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.side .attributeRow [role='meter'] {
+  flex: 1;
+  margin-top: 0;
 }
 
 .value {

@@ -6,8 +6,8 @@
 
 .header {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  gap: var(--space-3);
 }
 
 .eyebrow {
@@ -22,16 +22,6 @@
   font-size: var(--font-size-xl);
   font-weight: 800;
   line-height: 1.15;
-}
-
-.injuryBanner {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid #ff8a6b;
-  border-left-width: 4px;
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  color: #ffb39f;
-  font-weight: 700;
 }
 
 /* Week strip: seven equal day buttons. */
@@ -102,45 +92,26 @@
   border-color: var(--accent);
 }
 
-/* Activity card: a large button that opens the detail sheet. */
-.card {
+/* Selected day's detail, shown directly under the strip. */
+.detail {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  width: 100%;
-  padding: var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
-.card:hover {
-  border-color: var(--text-muted);
-}
-
-.cardTop {
+.detailTop {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
+  flex-wrap: wrap;
 }
 
-.cardWhen {
-  color: var(--accent-secondary);
-  font-weight: 700;
-}
-
-.cardMore {
-  color: var(--accent);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.cardSession {
+.detailTitle {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -148,20 +119,31 @@
   font-weight: 800;
 }
 
-.cardDescription {
+.detailWhen {
+  color: var(--accent-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.description {
   color: var(--text-muted);
   font-size: var(--font-size-sm);
 }
 
-.cardEffects {
+.summary {
   font-size: var(--font-size-sm);
-  font-weight: 700;
 }
 
-.cardWarning {
-  color: #ffb39f;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Execution feedback. */
@@ -209,14 +191,28 @@
   color: var(--text-muted);
 }
 
-/* Detail sheet content. */
+/* Today's actions. */
 .field {
   display: flex;
   flex-direction: column;
+  gap: var(--space-1);
+}
+
+.selectRow {
+  display: flex;
+  align-items: center;
   gap: var(--space-2);
 }
 
-.label {
+.selectRow .select {
+  flex: 1;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+}
+
+.injuredHint {
+  color: #ffb39f;
+  font-size: var(--font-size-sm);
   font-weight: 700;
 }
 
@@ -239,24 +235,19 @@
   font-size: var(--font-size-sm);
 }
 
-.subheading {
-  margin: 0 0 var(--space-2);
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .effects {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-2);
+  gap: var(--space-1);
   margin: 0;
 }
 
 .effects > div {
-  padding: var(--space-2) var(--space-3);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  column-gap: var(--space-1);
+  padding: var(--space-2);
   border-radius: var(--radius-md);
   background: var(--surface-raised);
 }
@@ -265,14 +256,22 @@
   color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-weight: 700;
-  text-transform: uppercase;
 }
 
 .effects dd {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
+  display: contents;
   font-variant-numeric: tabular-nums;
+}
+
+.effects .delta {
+  justify-self: end;
+  font-size: var(--font-size-md);
+}
+
+.effects .result {
+  grid-column: 1 / -1;
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
 }
 
 .delta {
@@ -311,11 +310,11 @@
   }
 
   .day {
-    min-height: 64px;
+    min-height: 58px;
   }
 
-  .card {
-    padding: var(--space-3);
+  .detail {
+    padding: var(--space-2) var(--space-3) var(--space-3);
   }
 
   .feedback {

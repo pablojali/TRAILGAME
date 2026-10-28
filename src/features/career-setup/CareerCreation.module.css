@@ -174,24 +174,27 @@
 .bars [role='meter'].bar {
   height: 5px;
   margin-top: 2px;
-  color: var(--brand-text);
+  /* Neutral attributes: grey. */
+  color: #8a938e;
 }
 
+/* Strengths: green, with ▲. */
 .strong {
-  color: var(--accent-secondary);
+  color: var(--brand-text);
   font-weight: 700;
 }
 
 .bars .strong [role='meter'].bar {
-  color: var(--accent-secondary);
+  color: var(--brand-text);
 }
 
+/* Weaknesses: very soft red, with ▼. */
 .weak {
-  color: var(--text-muted);
+  color: #f2b8b5;
 }
 
 .bars .weak [role='meter'].bar {
-  color: var(--color-charcoal-600);
+  color: #d99a96;
 }
 
 .total {

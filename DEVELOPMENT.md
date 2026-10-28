@@ -553,7 +553,8 @@ screen per commit on the working branch; not merged into `main`.
 
 - **Runner creation — implemented.** Two steps with no page scroll at 360×640 and 412×915:
   (1) Female/Male toggle (Female preselected), a snapping profile carousel with dots, six attribute
-  bars with ▲ strengths and ▼ weaknesses, and a fixed "Choose [profile]" button; (2) runner name
+  bars — strengths green with ▲, neutral values grey, weaknesses very soft red with ▼ (owner
+  decision, 28 October 2026) — and a fixed "Choose [profile]" button; (2) runner name
   (required, 1–16 characters, trimmed) with a preview. The bottom navigation is hidden on every
   screen shown before a career exists, including the incompatible-save warning.
 - **Cosmetic identity:** `athlete.sex` (`female` | `male`) and the chosen name are saved; sex never
@@ -564,7 +565,8 @@ screen per commit on the working branch; not merged into `main`.
   The reference photos in `assets/runner/` are style references, not used in the app.
 - **Dashboard — implemented.** The first screen fits between the brand bar and the bottom navigation
   at 360×640 and 412×915: "Name - Profile · Lv N" and "Week N · Monday" above a centred runner,
-  attributes on the left (short names and bars), Level, XP (bar to the next level), Fitness and
+  attributes on the left (full names, with the bar and value on the line below each name — owner
+  decision), Level, XP (bar to the next level), Fitness and
   Fatigue on the right. Fatigue of 70 or more is shown as "High" in a warning colour (display-only
   threshold, not a gameplay rule). Attribute points, Today, the week summary and Reset demo are cards
   below the first screen (owner decision).
@@ -576,14 +578,17 @@ screen per commit on the working branch; not merged into `main`.
 - **Week days:** labelled Monday–Sunday (`src/domain/training/weekdays.ts`); day 1 of every simulated
   week is Monday, independent of the real date (owner decision).
 - **Training — implemented.** No page scroll at 360×640 and 412×915, including the injury and
-  feedback states: a Monday–Sunday strip (session icon, status, today highlighted), then the
-  selected day's activity card. Tapping the card opens a bottom sheet (`src/components/BottomSheet.tsx`)
-  with the detail and actions (change today's session, complete it); it closes with ×, a tap outside,
-  Escape or the Back button (the sheet is the `?detail` history entry). Tapping another day shows it
-  in the card; only today can be changed or completed. The activity shows only existing data — type,
-  description and XP/Fitness/Fatigue effects — not duration, distance or intensity (owner decision).
-  Injury risk is shown on the card and in the sheet, whose button becomes "Complete anyway — injury";
-  forced Rest days show a banner and a locked session selector.
+  feedback states: a Monday–Sunday strip (session icon, status, today highlighted), then the selected
+  day's full detail shown directly below it — no "Details" button and no popup (owner decision,
+  28 October 2026, replacing the spec's popup and the first implementation's bottom sheet). Tapping a
+  day's tab shows its detail: for today, the session selector, description, XP/Fitness/Fatigue
+  effects (before → after) and the complete button; for other days, the planned effects or the
+  result. Only today can be changed or completed. Only existing data is shown — not duration,
+  distance or intensity (owner decision). After completing a day the button shows "Saved ✓" and
+  ignores taps for 0.7 s, so a double tap cannot complete two days. Injury risk shows a warning and
+  the button "Complete anyway — injury"; during forced Rest the selector is locked and the detail
+  shows the forced rest days left. The feedback message names the completed day and its effects;
+  the next day is highlighted in the strip, and a new week is announced.
 
 > **Note:** the milestones below are the original plan. Their names, order and scope are to be
 > confirmed by the PM. M3–M6 keep their original numbers. The original "Persistence and account"

@@ -32,3 +32,62 @@
 .muted {
   color: var(--text-muted);
 }
+
+.identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.badge {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  background: var(--brand-strong);
+  color: var(--brand-text);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.level {
+  color: var(--accent-secondary);
+  font-weight: 800;
+}
+
+.session {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+}
+
+.weekDots {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weekDots li {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+}
+
+.weekDots .completed {
+  background: var(--brand-text);
+}
+
+.weekDots .current {
+  background: var(--accent);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.effects span {
+  white-space: nowrap;
+}

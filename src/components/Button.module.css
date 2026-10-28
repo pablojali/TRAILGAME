@@ -1,0 +1,49 @@
+/* Shared action styles for buttons and button-like links. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--color-charcoal-950);
+}
+
+.primary:hover {
+  background: #f48f45;
+}
+
+.secondary {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.secondary:hover {
+  background: var(--surface-raised);
+}
+
+.danger {
+  background: transparent;
+  border-color: #b5543a;
+  color: #f2a48f;
+}
+
+.danger:hover {
+  background: rgb(181 84 58 / 0.15);
+}
+
+.block {
+  width: 100%;
+}

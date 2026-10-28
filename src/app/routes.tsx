@@ -6,11 +6,16 @@ import { NotFoundScreen } from '../features/not-found/NotFoundScreen'
 import { RacesScreen } from '../features/races/RacesScreen'
 import { TrainingScreen } from '../features/training/TrainingScreen'
 import { AppShell } from './AppShell'
+import { GameProvider } from './game/GameProvider'
 
 export const routes: RouteObject[] = [
   {
     path: '/',
-    element: <AppShell />,
+    element: (
+      <GameProvider>
+        <AppShell />
+      </GameProvider>
+    ),
     children: [
       { index: true, element: <DashboardScreen /> },
       { path: 'training', element: <TrainingScreen /> },

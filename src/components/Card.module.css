@@ -76,3 +76,31 @@
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
+
+.meter {
+  color: var(--accent-secondary);
+  height: 6px;
+  margin-top: var(--space-1);
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+}
+
+.meterFill {
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+  transition: width var(--transition-fast);
+}
+
+.brand .meter {
+  color: var(--brand-text);
+}
+
+.accent .meter {
+  color: var(--accent);
+}
+
+.ochre .meter {
+  color: var(--accent-secondary);
+}

@@ -8,7 +8,7 @@ export function CareerScreen() {
       description="Track results, ranking and season progression."
     >
       <ComingSoon
-        milestone="M1"
+        milestone="a later milestone"
         items={[
           'Race results and rewards history',
           'Season ranking against simulated rivals',

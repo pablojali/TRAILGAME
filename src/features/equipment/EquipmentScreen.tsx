@@ -8,7 +8,7 @@ export function EquipmentScreen() {
       description="Manage owned gear and buy new equipment with terrain-specific bonuses."
     >
       <ComingSoon
-        milestone="M1"
+        milestone="a later milestone"
         items={[
           'Inventory of owned shoes, hydration vests and poles',
           'Shop with prices and visible unlock requirements',

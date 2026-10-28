@@ -187,3 +187,50 @@ Until final illustrations exist, use clearly identifiable **placeholders** (simp
 3. Layered Dashboard runner component with placeholders (per sex), separate from the creation illustrations.
 4. Dashboard.
 5. Training with popup.
+
+---
+
+## Implementation status and owner decisions (28 October 2026)
+
+Added after implementation. The sections above are the original request; where they differ from this
+section, this section records what was decided and built. Branch `ccr-4899c2c5-ikxanb`, not yet merged
+into `main`. Technical details: `DEVELOPMENT.md` §11 ("UI Improvements v1").
+
+### Decisions taken during implementation
+- **Profiles:** the game has 4 profiles (Climber, Sprinter, All-rounder, Endurance), so the creation
+  set needs 8 illustrations (4 profiles × 2 sexes), not 12.
+- **Artwork:** placeholders only for now. The reference photos in `assets/runner/` are style
+  references (JPEG, grey studio background, pedestals) and are not used in the app.
+- **Sex:** Female is preselected. Careers saved before the field existed load as Male.
+- **Name:** required, 1–16 characters, spaces trimmed.
+- **Navigation:** hidden on every screen before a career exists, including the incompatible-save
+  warning.
+- **Dashboard:** no equipment system exists yet, so the runner shows the base body only; the layer
+  system is ready. The remaining content (attribute points, today, the week, Reset demo) is placed in
+  cards below the first screen, which may scroll; the first screen itself fits without scrolling.
+- **Week days:** Monday–Sunday; day 1 of every simulated week is Monday.
+- **Training:** shows only existing data (type, description, XP/Fitness/Fatigue effects); there is no
+  duration, distance or intensity data. The day detail is shown directly under the week strip when a
+  day's tab is tapped — no "Details" button and no popup (this replaces the popup in section 3).
+
+### Visual adjustments after the first review
+- Runner creation bars: strengths green with ▲, neutral attributes grey, weaknesses very soft red
+  with ▼.
+- Dashboard attributes: full names, with the bar and value on the line below each name.
+
+### Gameplay changes requested during this work
+These go beyond the "interface only" rule above and were requested explicitly by the owner. They are
+recorded in `docs/GAME_DESIGN_BIBLE.md` v1.2 (§4.4 and §4.7):
+- Rest: Fatigue −8 (was −12) and Fitness −2 per Rest day (was 0).
+- Injury: completing a non-rest session that leaves Fatigue above 95 gives no XP, −15 Fitness and
+  5 forced Rest days. The player is warned first; training is never blocked.
+
+### Acceptance criteria — result
+- Runner creation: met at 360×640 and 412×915 (no scroll, sex toggle, swipe and dots, distinct
+  image per profile and sex, confirm button always visible, name and sex saved, no navigation).
+  Images are placeholders until the final artwork is added.
+- Dashboard: met (runner centred with name, profile and level; attributes left; level, XP, fitness
+  and fatigue right; base body only; never the creation art; first screen without scroll). The
+  "image updates with new gear" criterion is ready in code but cannot be shown until equipment exists.
+- Training: week first, day detail directly below, no scroll at 360×640 in any state. The popup
+  criteria were replaced by the inline detail (owner decision).

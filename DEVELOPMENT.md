@@ -1,9 +1,9 @@
 # Trail Manager — Development Specification
 
 **Document:** `DEVELOPMENT.md`  
-**Version:** 0.3.0  
-**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; next milestone pending PM definition  
-**Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md)  
+**Version:** 0.4.0  
+**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes implemented on the working branch, pending owner review and merge  
+**Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) (v1.2) · UI pass: [`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
 **Product owner / PM:** ChatGPT  
@@ -702,9 +702,10 @@ Start with **M0 only**.
 
 ---
 
-## 15. Design reconciliation — Bible v1.1 vs implementation
+## 15. Design reconciliation — Bible vs implementation
 
-Reviewed against `main` at `c1f22a0` (M2 accepted on 28 October 2026). The Bible is the intended
+Reviewed against `main` at `c1f22a0` (M2 accepted on 28 October 2026); rows 6, 13 and 14 updated on
+the working branch for Bible v1.2. The Bible is the intended
 design; the code is the delivered state.
 
 | # | Topic | Bible v1.1 | Implementation | Status |
@@ -714,12 +715,12 @@ design; the code is the delivered state.
 | 3 | Starting values | Attributes 12–20 (96 total); Fitness 20; Fatigue 0 | Same | Resolved in M2 |
 | 4 | Training rewards | XP −10 %, positive Fitness −50 %; Fatigue unchanged | Same | Resolved in M2 |
 | 5 | Trail technique | Not listed in the Bible tables | Kept: 11 XP, +2 Fitness, +6 Fatigue (PM brief); not in the weekly plan | Resolved by PM brief |
-| 6 | Week days | Monday–Sunday | Day 1–7 (no real calendar) | Open |
+| 6 | Week days | Monday–Sunday | Monday–Sunday labels; day 1 of each simulated week is Monday | Resolved (owner decision, 28 Oct 2026) |
 | 7 | Fitness decay | −1 per full 24 h without a non-rest session | Implemented on real time, independent of the simulated week | Resolved in M2 |
 | 8 | Levels and points | Level 5 at 700 XP; 2 points per level; manual allocation | Same; no refunds | Resolved in M2 |
 | 9 | Money and equipment | 100 coins; basic shoes and vest | Not implemented | Open (economy / equipment milestone) |
 | 10 | Save data | Migrations, timestamps | Schema v2 with decay timestamp; v1 is not migrated (explicit restart flow, per PM brief) | Resolved in M2 |
 | 11 | Attribute adaptation from training | Mapping defined, amounts not balanced | Not implemented; attributes change only by points | Open |
 | 12 | Profile change at season end | Requires a season system | Not implemented | Open |
-| 13 | Rest effects | Fatigue −12, Fitness 0 (Bible §4.4) | Fatigue −8, Fitness −2 (owner decisions, 28 Oct 2026) | Bible to be updated by the PM |
-| 14 | Injury | Not defined | Fatigue > 95 after a session: no XP, −15 Fitness, 5 forced Rest days | Bible to be updated by the PM |
+| 13 | Rest effects | Fatigue −8, Fitness −2 (Bible 1.2 §4.4) | Same | Resolved (owner decisions, 28 Oct 2026) |
+| 14 | Injury | Fatigue > 95 after a session: no XP, −15 Fitness, 5 forced Rest days (Bible 1.2 §4.7) | Same | Resolved (owner decision, 28 Oct 2026) |

@@ -2,11 +2,13 @@
 
 Trail-running career management game (beta). Mobile-first, responsive React + TypeScript web app.
 See [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the technical specification and
-[`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) for the game design.
+[`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) for the game design (v1.2) and
+[`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md) for the current UI pass and its decisions.
 
-**Current milestone:** M2 — Athlete Progression (four starting profiles, levels with attribute
-points, real-time Fitness decay). Dashboard, Training and Attributes are functional; Equipment, Races
-and Career are placeholders. Progress is saved in the browser's localStorage only.
+**Current state:** M2 — Athlete Progression is accepted. UI Improvements v1 (runner creation,
+Dashboard, Training) and the post-M2 Rest and injury rules are on the working branch, pending review.
+Dashboard, Training and Attributes are functional; Equipment, Races and Career are placeholders.
+Progress is saved in the browser's localStorage only.
 
 ## Requirements
 

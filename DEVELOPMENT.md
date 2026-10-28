@@ -1,8 +1,9 @@
 # Trail Manager — Development Specification
 
 **Document:** `DEVELOPMENT.md`  
-**Version:** 0.1.0  
-**Status:** Initial baseline — ready for implementation planning  
+**Version:** 0.2.0  
+**Status:** Active — M0 and M1 delivered and merged into `main`; next milestone pending PM definition  
+**Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
 **Product owner / PM:** ChatGPT  
@@ -61,7 +62,7 @@ The product should feel like a sports management game, not a spreadsheet or a fi
 
 ### Rules for Claude Code
 
-- Read this file before starting work.
+- Read this file and `docs/GAME_DESIGN_BIBLE.md` before starting work.
 - Do not silently change the stack, architecture, dependencies or product rules.
 - Do not implement future integrations before their milestone.
 - Avoid large rewrites; make small, reviewable changes.
@@ -247,6 +248,11 @@ On mobile, use a persistent bottom navigation bar. On larger screens, adapt to a
 
 ## 6. MVP scope
 
+> **Note:** §6–§8 are the original technical baseline. Game rules (profiles, attributes, starting
+> values, training rewards, progression) are now defined in `docs/GAME_DESIGN_BIBLE.md`. Where they
+> differ, the Bible is the intended design and the code is the delivered state; see §15. Changes are
+> implemented only through a milestone approved by the PM.
+
 ### Included in MVP
 
 - Local development and deployable responsive web app.
@@ -429,6 +435,8 @@ Neither integration may block core gameplay or app startup.
 
 ### M0 — Repository foundation
 
+**Status:** Delivered and accepted. Merged into `main` with merge commit `694bf6b`.
+
 **Goal:** establish a clean, deployable application skeleton.
 
 Acceptance criteria:
@@ -441,19 +449,34 @@ Acceptance criteria:
 - README explains local setup and deployment.
 - GitHub deployment to Cloudflare Pages is documented or configured, depending on repository access.
 
-### M1 — Playable local career loop
+### M1 — Dashboard and Training prototype
 
-**Goal:** test the game without requiring authentication or a live backend for every action.
+**Status:** Delivered, tested by the owner on the Cloudflare Pages preview (Android) and accepted.
+Delivered in commit `dd61ee6`; merged into `main` with merge commit `e0d8822`.
 
-Acceptance criteria:
-- Demo athlete and seed content load.
-- Player can plan a week and complete a training session.
-- Fitness, fatigue, XP and attributes update through the game engine.
-- Player can view available equipment and purchase an affordable item.
-- Player can enter and simulate an eligible race.
-- Results, rewards and career progression are visible.
-- Core engine calculations have automated tests.
-- Demo/reset mechanism is available for repeatable testing.
+**Goal:** a playable, persistent, single-player training-management prototype on the Dashboard and
+Training screens, without authentication or a backend.
+
+Delivered scope (as approved by the PM; this replaces the original M1 draft):
+- Fixed All-rounder demo athlete: Level 1, 0 XP, Fitness 50, Fatigue 10, six attributes at 50
+  (unchanged during M1).
+- Deterministic seven-day plan (Easy run, Intervals, Strength, Rest, Hills, Long run, Rest), repeated
+  every week.
+- Seven sessions with XP / Fitness / Fatigue values in `src/domain/training/sessions.ts`; Fitness and
+  Fatigue clamped to 0–100.
+- Levels by cumulative XP in `src/domain/athlete/levels.ts` (1: 0–99, 2: 100–249, 3: 250–449, 4: 450+).
+- Daily state machine: only the current day can be edited or executed, exactly once; after day 7 a new
+  week starts and progression is kept.
+- Versioned localStorage save (`trailgame.save`, `schemaVersion: 1`) behind a repository interface;
+  invalid or unsupported saves recover to a new demo with a notice.
+- Reset demo action; unit and integration tests for rules, engine, persistence and both screens.
+- Equipment, Races and Career remain placeholders.
+
+Moved out of M1 (not yet scheduled): equipment purchase, race entry and simulation, race rewards and
+career progression. They will be assigned to milestones defined by the PM following the Bible (§15).
+
+> **Note:** the milestones below are the original plan. Their names, order and scope are to be
+> confirmed by the PM. The Bible (§15.4) proposes an *Athlete Progression* milestone as the next step.
 
 ### M2 — Persistence and account
 
@@ -543,6 +566,9 @@ The PM will classify it as:
 
 ## 14. First instruction for Claude Code
 
+> **Historical:** this was the instruction for M0, which is complete. Current work follows the
+> milestone brief issued by the PM.
+
 Start with **M0 only**.
 
 1. Inspect the repository and current Git state before changing files.
@@ -554,3 +580,23 @@ Start with **M0 only**.
 7. If the repository is empty, initialize the project cleanly. If it already contains a project, preserve useful work and ask before destructive changes.
 
 **M0 is accepted only after the user can open the deployed or local application on a phone and navigate the placeholder screens.**
+
+---
+
+## 15. Design reconciliation — Bible v1.1 vs implementation
+
+Recorded on 2026-10-28 against `main` at `e0d8822`. The Bible is the intended design; the code is the
+delivered state. None of these items is implemented yet; each needs a PM decision or milestone.
+
+| # | Topic | Bible v1.1 | Current code / this document | Needs |
+|---|---|---|---|---|
+| 1 | Attributes | Endurance, Climbing, Speed, Technical, Recovery, Consistency; scale 1–100 | Endurance, Speed, Power, Technique, Strength, Recovery; scale 0–100 (§6–§7) | Confirm the Bible set and the renaming |
+| 2 | Profiles | 4: Climber, Sprinter, All-rounder, Endurance; chosen at career start | Fixed All-rounder; §6 lists 5 archetypes (incl. Ultrarunner, Technical specialist) | Confirm 4 profiles |
+| 3 | Starting values | Attributes 12–20 (96 total); Fitness 20; Fatigue 0 | Attributes 50; Fitness 50; Fatigue 10 | Milestone |
+| 4 | Training rewards | XP −10 % and positive Fitness −50 % for five sessions; Fatigue unchanged | M1 values; Fatigue values match the Bible | Milestone |
+| 5 | Trail technique session | Not listed | Exists (+12 XP, +3 Fitness, +6 Fatigue) | Keep, remove or define new values |
+| 6 | Week days | Monday–Sunday | Day 1–7 (no real calendar) | Confirm labels |
+| 7 | Fitness decay | −1 per full 24 h without a non-rest session | Not implemented; the week advances per completed session | PM decision on real time vs game calendar (Bible §4.6) |
+| 8 | Levels | Level 5 at 700 XP (provisional); 2 attribute points per level | Levels 1–4; no attribute points | Validate threshold and rewards |
+| 9 | Money and equipment | 100 coins; basic shoes and vest (provisional) | Not implemented | Economy / equipment milestone |
+| 10 | Save data | Schema migrations, timestamps | `schemaVersion: 1`; incompatible saves reset with a notice | Migrate or reset when the schema changes |

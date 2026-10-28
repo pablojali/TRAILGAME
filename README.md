@@ -1,7 +1,8 @@
 # TRAILGAME — Trail Manager
 
 Trail-running career management game (beta). Mobile-first, responsive React + TypeScript web app.
-See [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the product and technical specification.
+See [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the technical specification and
+[`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) for the game design.
 
 **Current milestone:** M1 — playable local training loop (Dashboard and Training are functional;
 Equipment, Races and Career are placeholders). Progress is saved in the browser's localStorage only.

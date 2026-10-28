@@ -1,4 +1,4 @@
-import type { Athlete, ProfileId } from '../domain/athlete/athlete'
+import type { Athlete, ProfileId, Sex } from '../domain/athlete/athlete'
 import { PROFILES } from '../domain/athlete/profiles'
 import type { SessionType } from '../domain/training/sessions'
 
@@ -58,11 +58,25 @@ export function createWeek(number: number): TrainingWeek {
   }
 }
 
-/** Starting state for a new career with the chosen profile, created at `now` (epoch ms). */
-export function createInitialGameState(profile: ProfileId, now: number): GameState {
+/** Cosmetic identity chosen when creating a career. */
+export interface AthleteIdentity {
+  name: string
+  sex: Sex
+}
+
+/**
+ * Starting state for a new career with the chosen profile, created at `now` (epoch ms).
+ * The identity is cosmetic and does not affect any starting value.
+ */
+export function createInitialGameState(
+  profile: ProfileId,
+  now: number,
+  identity: AthleteIdentity,
+): GameState {
   return {
     athlete: {
-      name: 'Demo Runner',
+      name: identity.name,
+      sex: identity.sex,
       profile,
       xp: 0,
       fitness: 20,

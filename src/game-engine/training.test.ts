@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { PROFILE_IDS, PROFILES } from '../domain/athlete/profiles'
 import type { SessionType } from '../domain/training/sessions'
 import { createInitialGameState, DEFAULT_WEEK_PLAN, getDayStatus } from './gameState'
-import { currentRef, execute, newGame, T0, withAthlete, withSession } from '../test/gameFixtures'
+import { currentRef, execute, newGame, T0, TEST_IDENTITY, withAthlete, withSession } from '../test/gameFixtures'
 import { executeCurrentDay, planSession, previewSession, summarizeWeek } from './training'
 
 const HOUR = 60 * 60 * 1000
@@ -11,9 +11,10 @@ const WEEK_XP = 68
 
 describe('createInitialGameState', () => {
   it.each(PROFILE_IDS)('creates a %s career with the approved initial state', (profile) => {
-    const { athlete, week, fitnessDecayReference } = createInitialGameState(profile, T0)
+    const { athlete, week, fitnessDecayReference } = createInitialGameState(profile, T0, TEST_IDENTITY)
     expect(athlete).toEqual({
       name: 'Demo Runner',
+      sex: 'female',
       profile,
       xp: 0,
       fitness: 20,
@@ -26,6 +27,17 @@ describe('createInitialGameState', () => {
     expect(week.currentDayIndex).toBe(0)
     expect(week.days.map((d) => d.session)).toEqual(DEFAULT_WEEK_PLAN)
     expect(week.days.every((d) => d.outcome === null)).toBe(true)
+  })
+
+  it('makes sex and name cosmetic: every other value is identical for both sexes', () => {
+    for (const profile of PROFILE_IDS) {
+      const female = createInitialGameState(profile, T0, { name: 'A', sex: 'female' })
+      const male = createInitialGameState(profile, T0, { name: 'B', sex: 'male' })
+      const strip = (s: typeof female) => ({ ...s, athlete: { ...s.athlete, sex: null, name: null } })
+      expect(strip(female)).toEqual(strip(male))
+      // Training outcomes are identical too.
+      expect(strip(execute(female).state)).toEqual(strip(execute(male).state))
+    }
   })
 
   it('copies profile attributes instead of sharing them', () => {

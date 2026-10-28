@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react'
 import type { AttributeId, ProfileId } from '../../domain/athlete/athlete'
 import type { SessionType } from '../../domain/training/sessions'
 import type { AllocationError } from '../../game-engine/attributes'
-import type { GameState } from '../../game-engine/gameState'
+import type { AthleteIdentity, GameState } from '../../game-engine/gameState'
 import type { DayRef, ExecutionResult, TrainingError } from '../../game-engine/training'
 import type { IncompatibleReason } from '../../repositories/gameRepository'
 
@@ -28,7 +28,7 @@ export interface GameContextValue {
   /** Result of the most recent execution in this session, for feedback. */
   lastExecution: ExecutionResult | null
   /** Creates and saves a new career. Overwrites any existing save. */
-  startCareer(profile: ProfileId): void
+  startCareer(profile: ProfileId, identity: AthleteIdentity): void
   /** From an incompatible save, goes to profile selection. Writes nothing. */
   beginRestart(): void
   /** Deletes the current career and returns to profile selection. */

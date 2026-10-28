@@ -73,11 +73,16 @@ milestone that needs them.
   never deletes data: M1 (v1) saves, unknown versions and damaged data show a blocking screen with
   **Restart Career** and **Exit**.
 - **Reset demo** (Dashboard) deletes the career and returns to profile selection.
+- The runner's name and sex are cosmetic. Careers saved before the `sex` field existed load as
+  `male`. Final creation artwork goes in `assets/runner/creation/{sex}/{profile}.webp` (or `.png`);
+  until then labelled placeholders are shown.
 
 ## Manual test checklist (M2)
 
-1. First visit: every tab shows **Choose your athlete**. Pick each profile and check its six
-   attributes and the 96-point total; nothing starts until **Start career as …** is pressed.
+1. First visit: every tab shows **Choose your athlete**, with no bottom navigation and no page
+   scroll. Switch Female/Male (all runner images change), swipe or use the dots to compare the
+   profiles, then **Choose …** and enter a name (1–16 characters). Nothing is saved until
+   **Start career**; the name then appears on the Dashboard.
 2. New career: Level 1, 0 XP, Fitness 20/100, Fatigue 0/100, 0 unspent points, profile attributes.
 3. Training: effects show the M2 values (e.g. Easy run +9 XP, +2 Fitness, +5 Fatigue). Trail
    technique can be selected but is not in the plan. Complete a day; reload; progress is kept.

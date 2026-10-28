@@ -41,13 +41,15 @@ interface MeterProps {
   max: number
   /** Spoken value; defaults to "value of max". */
   valueText?: string
+  /** Extra class, e.g. to set the bar colour through `color`. */
+  className?: string
 }
 
-export function Meter({ label, value, min = 0, max, valueText }: MeterProps) {
+export function Meter({ label, value, min = 0, max, valueText, className = '' }: MeterProps) {
   const percent = max > min ? ((value - min) / (max - min)) * 100 : 100
   return (
     <div
-      className={styles.meter}
+      className={`${styles.meter} ${className}`}
       role="meter"
       aria-label={label}
       aria-valuemin={min}

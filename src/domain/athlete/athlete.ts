@@ -28,6 +28,30 @@ export const ATTRIBUTE_LABELS: Record<AttributeId, string> = {
   consistency: 'Consistency',
 }
 
+/** Runner's sex. Cosmetic only: it selects artwork and never affects any gameplay value. */
+export type Sex = 'female' | 'male'
+
+/** Display order for the sex selector. */
+export const SEXES: readonly Sex[] = ['female', 'male']
+
+export const SEX_LABELS: Record<Sex, string> = {
+  female: 'Female',
+  male: 'Male',
+}
+
+export function isSex(value: unknown): value is Sex {
+  return value === 'female' || value === 'male'
+}
+
+/** Maximum length of a runner name, after trimming. */
+export const ATHLETE_NAME_MAX_LENGTH = 16
+
+/** Returns the trimmed name if it is 1–16 characters long, otherwise null. */
+export function cleanAthleteName(value: string): string | null {
+  const name = value.trim()
+  return name.length >= 1 && name.length <= ATHLETE_NAME_MAX_LENGTH ? name : null
+}
+
 /** Six core attributes, integers on a 1–100 scale. */
 export type Attributes = Record<AttributeId, number>
 
@@ -36,6 +60,8 @@ export const ATTRIBUTE_MAX = 100
 
 export interface Athlete {
   name: string
+  /** Cosmetic only. */
+  sex: Sex
   profile: ProfileId
   /** Cumulative XP; never decreases. Level and earned attribute points derive from it. */
   xp: number

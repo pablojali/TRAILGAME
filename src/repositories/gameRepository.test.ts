@@ -3,7 +3,7 @@ import type { GameState } from '../game-engine/gameState'
 import { allocateAttributePoint } from '../game-engine/attributes'
 import { execute, newGame, T0, withAthlete } from '../test/gameFixtures'
 import { M1_SAVE } from '../test/legacySaves'
-import { createLocalStorageGameRepository, SAVE_KEY, SCHEMA_VERSION } from './gameRepository'
+import { createLocalStorageGameRepository, LEGACY_DEFAULT_SEX, SAVE_KEY, SCHEMA_VERSION } from './gameRepository'
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial))
@@ -51,6 +51,25 @@ describe('localStorage game repository', () => {
     expect(repo.load(T0)).toEqual({ status: 'loaded', state: result.state })
   })
 
+  it('round-trips the cosmetic sex and name', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const state = newGame('endurance', T0, { name: 'Leo', sex: 'male' })
+    repo.save(state)
+    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+  })
+
+  it('loads a v2 career saved before the sex field existed, as male, without rewriting it', () => {
+    const state = progressedState(3)
+    const athleteWithoutSex: Partial<GameState['athlete']> = { ...state.athlete }
+    delete athleteWithoutSex.sex
+    const raw = saveOf({ ...state, athlete: athleteWithoutSex })
+    const storage = memoryStorage({ [SAVE_KEY]: raw })
+    const result = createLocalStorageGameRepository(storage).load(T0)
+    expect(LEGACY_DEFAULT_SEX).toBe('male')
+    expect(result).toEqual({ status: 'loaded', state: { ...state, athlete: { ...state.athlete, sex: 'male' } } })
+    expect(storage.data.get(SAVE_KEY)).toBe(raw)
+  })
+
   it('clear removes the saved career', () => {
     const storage = memoryStorage()
     const repo = createLocalStorageGameRepository(storage)
@@ -88,6 +107,8 @@ describe('localStorage game repository', () => {
     ['a missing state', saveOf(undefined)],
     ['an M1-shaped state under v2', saveOf(JSON.parse(M1_SAVE).state)],
     ['an unknown profile', saveOf({ ...valid, athlete: { ...valid.athlete, profile: 'ultrarunner' } })],
+    ['an invalid sex', saveOf({ ...valid, athlete: { ...valid.athlete, sex: 'other' } })],
+    ['a null sex', saveOf({ ...valid, athlete: { ...valid.athlete, sex: null } })],
     ['fitness above 100', saveOf({ ...valid, athlete: { ...valid.athlete, fitness: 101 } })],
     ['negative fatigue', saveOf({ ...valid, athlete: { ...valid.athlete, fatigue: -1 } })],
     ['non-integer XP', saveOf({ ...valid, athlete: { ...valid.athlete, xp: 'lots' } })],

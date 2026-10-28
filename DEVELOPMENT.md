@@ -525,6 +525,26 @@ Delivered scope:
 - Approved UX decisions (D1–D4): the blocking screen also covers malformed and unsupported saves;
   Exit shows a static "save left untouched" screen; every route shows the setup flow until a career
   exists; Reset demo deletes the career and returns to profile selection.
+  (D3 was later superseded by UI Improvements v1: the navigation is now hidden in the setup flow.)
+
+### UI Improvements v1 (in progress)
+
+**Status:** UI/UX pass defined in `docs/UI_IMPROVEMENTS.md`; not a gameplay milestone. Implemented one
+screen per commit on the working branch; not merged into `main`.
+
+- **Runner creation — implemented.** Two steps with no page scroll at 360×640 and 412×915:
+  (1) Female/Male toggle (Female preselected), a snapping profile carousel with dots, six attribute
+  bars with ▲ strengths and ▼ weaknesses, and a fixed "Choose [profile]" button; (2) runner name
+  (required, 1–16 characters, trimmed) with a preview. The bottom navigation is hidden on every
+  screen shown before a career exists, including the incompatible-save warning.
+- **Cosmetic identity:** `athlete.sex` (`female` | `male`) and the chosen name are saved; sex never
+  affects gameplay values. Save schema stays v2: careers saved before the field existed load with
+  `sex: 'male'` (owner decision), without being rewritten on load.
+- **Creation artwork:** placeholders only (owner decision). Final images go in
+  `assets/runner/creation/{sex}/{profile}.webp` (or `.png`) and are picked up without code changes.
+  The reference photos in `assets/runner/` are style references, not used in the app.
+- **Dashboard and Training — pending**, with open decisions (equipment layers, Mon–Sun labels,
+  activity duration/intensity data, placement of existing actions).
 
 > **Note:** the milestones below are the original plan. Their names, order and scope are to be
 > confirmed by the PM. M3–M6 keep their original numbers. The original "Persistence and account"

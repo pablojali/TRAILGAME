@@ -1,0 +1,318 @@
+/* Career creation: one fixed-height column that fits the viewport without page scrolling. */
+.step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eyebrow {
+  color: var(--accent-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  line-height: 1.15;
+  outline: none;
+}
+
+.help {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.srOnly,
+.srOnlyInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Female / Male segmented control. */
+.sexToggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  min-width: 0;
+}
+
+.segment {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.segmentOn {
+  background: var(--accent);
+  color: var(--color-charcoal-950);
+}
+
+.segment:has(:focus-visible) {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Horizontal carousel with snapping; the next card peeks in from the side. */
+.carousel {
+  --slide-width: min(84%, 340px);
+  flex: 1;
+  min-height: 300px;
+  display: flex;
+  gap: var(--space-3);
+  margin: 0 calc(-1 * var(--space-4));
+  padding: 2px calc((100% - var(--slide-width)) / 2 + var(--space-4));
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
+  border-radius: var(--radius-lg);
+}
+
+.slide {
+  /* Contains the visually hidden labels so they cannot widen the page. */
+  position: relative;
+  flex: 0 0 var(--slide-width);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  scroll-snap-align: center;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity var(--transition-fast), border-color var(--transition-fast);
+}
+
+.slideSelected {
+  border-color: var(--accent);
+  opacity: 1;
+  cursor: default;
+}
+
+.slideArt {
+  flex: 1;
+  min-height: 72px;
+}
+
+.profileName {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.description {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+}
+
+.bars {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-xs);
+}
+
+.barText {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+.barValue {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.bars [role='meter'].bar {
+  height: 5px;
+  margin-top: 2px;
+  color: var(--brand-text);
+}
+
+.strong {
+  color: var(--accent-secondary);
+  font-weight: 700;
+}
+
+.bars .strong [role='meter'].bar {
+  color: var(--accent-secondary);
+}
+
+.weak {
+  color: var(--text-muted);
+}
+
+.bars .weak [role='meter'].bar {
+  color: var(--color-charcoal-600);
+}
+
+.total {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* Position dots: small marks inside comfortable tap areas. */
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.dotMark {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-charcoal-600);
+  transition: width var(--transition-fast), background-color var(--transition-fast);
+}
+
+.dot[aria-pressed='true'] .dotMark {
+  width: 24px;
+  background: var(--accent);
+}
+
+/* Name step. */
+.preview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 140px;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.previewArt {
+  flex: 1;
+}
+
+.previewLabel {
+  text-align: center;
+  font-weight: 700;
+}
+
+.nameForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fieldLabel {
+  font-weight: 700;
+}
+
+.input {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  color: var(--text);
+  font: inherit;
+  font-size: max(16px, 1rem); /* avoids iOS zoom on focus */
+}
+
+.input[aria-invalid='true'] {
+  border-color: #f2a48f;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.error {
+  color: #f2a48f;
+  font-weight: 600;
+}
+
+.caution {
+  padding: var(--space-2) var(--space-3);
+  border-left: 4px solid var(--accent-secondary);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: var(--font-size-sm);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.grow {
+  flex: 1;
+}
+
+/* Small phones: tighten spacing so the runner keeps as much room as possible. */
+@media (max-height: 700px) {
+  .step {
+    gap: var(--space-2);
+  }
+
+  .title {
+    font-size: var(--font-size-lg);
+  }
+}

@@ -1,13 +1,20 @@
 import type { ProfileId } from '../domain/athlete/athlete'
 import type { SessionType } from '../domain/training/sessions'
-import { createInitialGameState, type GameState } from '../game-engine/gameState'
+import { createInitialGameState, type AthleteIdentity, type GameState } from '../game-engine/gameState'
 import { executeCurrentDay, planSession, type DayRef } from '../game-engine/training'
 
 /** Fixed creation time used by engine tests. */
 export const T0 = Date.UTC(2026, 0, 1, 8, 0, 0)
 
-export function newGame(profile: ProfileId = 'all-rounder', now = T0): GameState {
-  return createInitialGameState(profile, now)
+/** Identity used by tests unless a test needs another one. */
+export const TEST_IDENTITY: AthleteIdentity = { name: 'Demo Runner', sex: 'female' }
+
+export function newGame(
+  profile: ProfileId = 'all-rounder',
+  now = T0,
+  identity: AthleteIdentity = TEST_IDENTITY,
+): GameState {
+  return createInitialGameState(profile, now, identity)
 }
 
 export function currentRef(state: GameState): DayRef {

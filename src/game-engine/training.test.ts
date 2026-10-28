@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PROFILE_IDS, PROFILES } from '../domain/athlete/profiles'
 import type { SessionType } from '../domain/training/sessions'
+import { defaultAppearance } from '../domain/athlete/appearance'
 import { createInitialGameState, DEFAULT_WEEK_PLAN, getDayStatus } from './gameState'
 import { currentRef, execute, newGame, T0, TEST_IDENTITY, withAthlete, withSession } from '../test/gameFixtures'
 import { executeCurrentDay, planSession, previewSession, summarizeWeek } from './training'
@@ -15,6 +16,7 @@ describe('createInitialGameState', () => {
     expect(athlete).toEqual({
       name: 'Demo Runner',
       sex: 'female',
+      appearance: defaultAppearance('female'),
       profile,
       xp: 0,
       fitness: 20,
@@ -29,11 +31,19 @@ describe('createInitialGameState', () => {
     expect(week.days.every((d) => d.outcome === null)).toBe(true)
   })
 
-  it('makes sex and name cosmetic: every other value is identical for both sexes', () => {
+  it('makes sex, appearance and name cosmetic: every other value is identical', () => {
     for (const profile of PROFILE_IDS) {
       const female = createInitialGameState(profile, T0, { name: 'A', sex: 'female' })
-      const male = createInitialGameState(profile, T0, { name: 'B', sex: 'male' })
-      const strip = (s: typeof female) => ({ ...s, athlete: { ...s.athlete, sex: null, name: null } })
+      const male = createInitialGameState(profile, T0, {
+        name: 'B',
+        sex: 'male',
+        appearance: { hair: 'curly', skin: 'tone-4', outfit: 'basic' },
+      })
+      expect(male.athlete.appearance).toEqual({ hair: 'curly', skin: 'tone-4', outfit: 'basic' })
+      const strip = (s: typeof female) => ({
+        ...s,
+        athlete: { ...s.athlete, sex: null, name: null, appearance: null },
+      })
       expect(strip(female)).toEqual(strip(male))
       // Training outcomes are identical too.
       expect(strip(execute(female).state)).toEqual(strip(execute(male).state))

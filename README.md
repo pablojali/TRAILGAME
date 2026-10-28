@@ -77,8 +77,10 @@ milestone that needs them.
 - **Reset demo** (Dashboard) deletes the career and returns to profile selection.
 - Rest reduces Fatigue by 8 and Fitness by 2. Completing a session that leaves Fatigue above 95 injures the runner:
   no XP, −15 Fitness and 5 forced Rest days (`src/domain/training/injury.ts`).
-- The runner's name and sex are cosmetic. Careers saved before the `sex` field existed load as
-  `male`. Creation artwork goes in `assets/runner/creation/{sex}/{profile}.webp` (or `.png`); profiles
+- The runner's name, sex and appearance (hairstyle, skin tone, outfit) are cosmetic. Careers saved
+  before the `sex` field existed load as `male`; careers saved before `appearance` existed load with
+  the default appearance for their sex. Shoes are equipment, not appearance: the avatar has none until
+  an equipment model exists. Creation artwork goes in `assets/runner/creation/{sex}/{profile}.webp` (or `.png`); profiles
   without an image show a labelled placeholder. Climber already has both images.
 
 ## Adding runner creation artwork
@@ -101,10 +103,11 @@ milestone that needs them.
 
 1. First visit: every tab shows **Choose your athlete**, with no bottom navigation and no page
    scroll. Switch Female/Male (all runner images change), swipe or use the dots to compare the
-   profiles, then **Choose …** and enter a name (1–16 characters). Nothing is saved until
-   **Start career**; the name then appears on the Dashboard.
-2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner (placeholder, no
-   equipment), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
+   profiles, then **Choose …**. Customize the avatar (Hair, Skin, Outfit tabs; the Female/Male
+   choice is the same as on step 1), **Continue**, and enter a name (1–16 characters). Nothing is
+   saved until **Start career**; the name then appears on the Dashboard.
+2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner's avatar (as customized,
+   no equipment, no shoes), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
    attribute points, Today, the week and Reset demo are below it.
 3. Training: the Mon–Sun strip is on top and the selected day's full detail below it, without
    scrolling or popups. Tap a day's tab to see its detail; today's detail has the session selector,

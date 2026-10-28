@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { defaultAppearance } from '../domain/athlete/appearance'
 import type { GameState } from '../game-engine/gameState'
 import { allocateAttributePoint } from '../game-engine/attributes'
 import { execute, newGame, T0, withAthlete } from '../test/gameFixtures'
@@ -62,12 +63,55 @@ describe('localStorage game repository', () => {
     const state = progressedState(3)
     const athleteWithoutSex: Partial<GameState['athlete']> = { ...state.athlete }
     delete athleteWithoutSex.sex
+    delete athleteWithoutSex.appearance
     const raw = saveOf({ ...state, athlete: athleteWithoutSex })
     const storage = memoryStorage({ [SAVE_KEY]: raw })
     const result = createLocalStorageGameRepository(storage).load(T0)
     expect(LEGACY_DEFAULT_SEX).toBe('male')
-    expect(result).toEqual({ status: 'loaded', state: { ...state, athlete: { ...state.athlete, sex: 'male' } } })
+    expect(result).toEqual({
+      status: 'loaded',
+      state: { ...state, athlete: { ...state.athlete, sex: 'male', appearance: defaultAppearance('male') } },
+    })
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
+  })
+
+  it('loads a career saved before appearance existed with the default appearance, without rewriting it', () => {
+    const state = progressedState(3)
+    const athleteWithoutAppearance: Partial<GameState['athlete']> = { ...state.athlete, sex: 'male' }
+    delete athleteWithoutAppearance.appearance
+    const raw = saveOf({ ...state, athlete: athleteWithoutAppearance })
+    const storage = memoryStorage({ [SAVE_KEY]: raw })
+    const result = createLocalStorageGameRepository(storage).load(T0)
+    expect(result).toEqual({
+      status: 'loaded',
+      state: { ...state, athlete: { ...state.athlete, sex: 'male', appearance: defaultAppearance('male') } },
+    })
+    expect(storage.data.get(SAVE_KEY)).toBe(raw)
+  })
+
+  it('round-trips a chosen appearance', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const state = newGame('climber', T0, {
+      name: 'Ana',
+      sex: 'female',
+      appearance: { hair: 'braid', skin: 'tone-3', outfit: 'basic' },
+    })
+    repo.save(state)
+    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+  })
+
+  it.each([
+    ['not an object', 'braid'],
+    ['unknown values', { hair: 'mohawk', skin: 'blue', outfit: 'tuxedo' }],
+    ['a hairstyle of the other sex', { hair: 'curly', skin: 'tone-1', outfit: 'basic' }],
+  ])('never rejects a career for an invalid appearance (%s): it uses the defaults', (_, appearance) => {
+    const state = newGame()
+    const raw = saveOf({ ...state, athlete: { ...state.athlete, appearance } })
+    const result = createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)
+    expect(result.status).toBe('loaded')
+    const loaded = result.status === 'loaded' ? result.state.athlete.appearance : null
+    expect(loaded?.outfit).toBe('basic')
+    expect(loaded?.hair).toBe('ponytail')
   })
 
   it('round-trips an injury: forced Rest days and the injured outcome', () => {

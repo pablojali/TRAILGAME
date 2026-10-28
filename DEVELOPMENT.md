@@ -2,7 +2,7 @@
 
 **Document:** `DEVELOPMENT.md`  
 **Version:** 0.4.0  
-**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes implemented on the working branch, pending owner review and merge  
+**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A implemented on the working branch, pending owner review  
 **Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) (v1.2) · UI pass: [`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
@@ -546,10 +546,11 @@ Requested by the owner during UI Improvements v1; implemented in a separate comm
 - **Saves:** new `forcedRestDays` field and optional `injured` flag on day outcomes; still schema v2.
   Careers saved before these fields load with no forced Rest days.
 
-### UI Improvements v1 (in progress)
+### UI Improvements v1
 
-**Status:** UI/UX pass defined in `docs/UI_IMPROVEMENTS.md`; not a gameplay milestone. Implemented one
-screen per commit on the working branch; not merged into `main`.
+**Status:** UI/UX pass defined in `docs/UI_IMPROVEMENTS.md`; not a gameplay milestone. Merged into
+`main` on 28 October 2026 (`08017b3`, owner authorization). The runner creation flow and the
+Dashboard runner were later extended by Avatar creation Stage A (next section).
 
 - **Runner creation — implemented.** Two steps with no page scroll at 360×640 and 412×915:
   (1) Female/Male toggle (Female preselected), a snapping profile carousel with dots, six attribute
@@ -575,11 +576,9 @@ screen per commit on the working branch; not merged into `main`.
   Fatigue on the right. Fatigue of 70 or more is shown as "High" in a warning colour (display-only
   threshold, not a gameplay rule). Attribute points, Today, the week summary and Reset demo are cards
   below the first screen (owner decision).
-- **Dashboard runner:** separate from the creation art. Base body per sex at
-  `assets/runner/dashboard/{sex}/body.webp` (or `.png`) plus stacked equipment layers at
-  `assets/runner/dashboard/{sex}/equipment/{item}.webp|png` (`src/features/dashboard/dashboardArt.ts`).
-  There is no equipment system yet, so a new career shows the base body only; until artwork exists a
-  labelled placeholder with minimal base clothing is shown (owner decision).
+- **Dashboard runner:** separate from the creation art. Shows the runner's avatar plus stacked
+  equipment layers (`src/features/dashboard/dashboardArt.ts`). There is no equipment system yet, so it
+  shows the avatar only. (The labelled placeholder body of UI v1 was replaced by the avatar in Stage A.)
 - **Week days:** labelled Monday–Sunday (`src/domain/training/weekdays.ts`); day 1 of every simulated
   week is Monday, independent of the real date (owner decision).
 - **Training — implemented.** No page scroll at 360×640 and 412×915, including the injury and
@@ -594,6 +593,33 @@ screen per commit on the working branch; not merged into `main`.
   the button "Complete anyway — injury"; during forced Rest the selector is locked and the detail
   shows the forced rest days left. The feedback message names the completed day and its effects;
   the next day is highlighted in the strip, and a new week is announced.
+
+### Avatar creation — Stage A (in progress)
+
+**Status:** PM brief "Avatar creation & progressive customization", Stage A only. Implemented on the
+working branch; not merged into `main`. Owner decisions (28 October 2026): the developer's
+recommendations were accepted except one — **shoes are equipment**, not part of the appearance.
+
+- **Style:** the painted illustrations stay on the profile cards only. The avatar is a separate,
+  simple vector (SVG) drawing — standing, three-quarter view facing right — in
+  `src/components/avatar/Avatar.tsx`, reused by creation and the Dashboard.
+- **Flow:** Profile → Appearance → Name (three steps). The Female/Male toggle is on the profile step
+  and mirrored on the appearance step (one shared choice). The name step is the final confirmation
+  with the avatar preview. No page scroll at 360×640, 412×915 and 1280×800.
+- **Options** (`src/domain/athlete/appearance.ts`, stable ids): 3 hairstyles per sex (female
+  `ponytail`, `bob`, `braid`; male `short`, `buzz`, `curly`), 4 skin tones (`tone-1`…`tone-4`, colours
+  as CSS variables in `Avatar.module.css`), and one outfit, `basic` (white top, dark shorts). Tabs
+  Hair / Skin / Outfit with 48 px swatches. Changing sex keeps the hairstyle's position in the list.
+- **Shoes:** equipment, not appearance. There is no equipment model, so the avatar is drawn without
+  shoes (bare feet) and never shows shoes as equipped. Shoes and other equipment will be layers on the
+  avatar canvas (`AVATAR_VIEWBOX`, 80 × 216) once an equipment model says an item is equipped:
+  `assets/runner/dashboard/{sex}/equipment/{item}.svg|webp|png`.
+- **Saves:** new `athlete.appearance` (`{ hair, skin, outfit }`); still schema v2, no migration.
+  Careers saved without it load with the default for their sex (first hairstyle, `tone-2`, `basic`)
+  and are not rewritten on load; unknown or invalid values fall back to the default field by field and
+  never make a career fail to load. `sex` keeps its meaning. Appearance has no gameplay effect (tested).
+- **Out of scope (unchanged):** shop, currency, unlocks, rewards, inventory, equipment effects,
+  monetization.
 
 > **Note:** the milestones below are the original plan. Their names, order and scope are to be
 > confirmed by the PM. M3–M6 keep their original numbers. The original "Persistence and account"

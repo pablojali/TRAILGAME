@@ -1,3 +1,5 @@
+import type { Appearance } from './appearance'
+
 /** Starting profiles (Game Design Bible §2). Identifiers are stable; labels are for display. */
 export type ProfileId = 'climber' | 'sprinter' | 'all-rounder' | 'endurance'
 
@@ -62,6 +64,8 @@ export interface Athlete {
   name: string
   /** Cosmetic only. */
   sex: Sex
+  /** Cosmetic only. Saves without it load with the default appearance for the runner's sex. */
+  appearance: Appearance
   profile: ProfileId
   /** Cumulative XP; never decreases. Level and earned attribute points derive from it. */
   xp: number

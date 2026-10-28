@@ -1,11 +1,11 @@
 import type { Sex } from '../../domain/athlete/athlete'
 
 /**
- * Dashboard runner artwork, separate from the creation illustrations:
- * `assets/runner/dashboard/{sex}/body.(webp|png)` is the base body without equipment and
- * `assets/runner/dashboard/{sex}/equipment/{item}.(webp|png)` are stacked layers with the same canvas.
+ * Equipment artwork layered over the Dashboard avatar:
+ * `assets/runner/dashboard/{sex}/equipment/{item}.(webp|png|svg)`, drawn on the avatar canvas
+ * (80 × 216, see `AVATAR_VIEWBOX`) so it lines up with the body.
  */
-const DASHBOARD_ART = import.meta.glob<string>('/assets/runner/dashboard/**/*.{webp,png}', {
+const EQUIPMENT_ART = import.meta.glob<string>('/assets/runner/dashboard/**/*.{webp,png,svg}', {
   eager: true,
   query: '?url',
   import: 'default',
@@ -16,28 +16,20 @@ export interface RunnerLayer {
   url: string
 }
 
-export interface DashboardArt {
-  /** Base body image, or null to show the placeholder. */
-  body: string | null
-  /** Equipment layers that have artwork, bottom to top in the order given. */
-  layers: RunnerLayer[]
-}
-
 function find(manifest: Record<string, string>, path: string): string | null {
-  return manifest[`${path}.webp`] ?? manifest[`${path}.png`] ?? null
+  return manifest[`${path}.svg`] ?? manifest[`${path}.webp`] ?? manifest[`${path}.png`] ?? null
 }
 
-/** Resolves the artwork for a runner. Items without artwork are skipped. */
-export function resolveDashboardArt(
+/** Layers for the equipped items, bottom to top in the order given. Items without artwork are skipped. */
+export function resolveEquipmentLayers(
   sex: Sex,
   equipment: readonly string[],
-  manifest: Record<string, string> = DASHBOARD_ART,
-): DashboardArt {
-  const base = `/assets/runner/dashboard/${sex}`
+  manifest: Record<string, string> = EQUIPMENT_ART,
+): RunnerLayer[] {
   const layers: RunnerLayer[] = []
   for (const id of equipment) {
-    const url = find(manifest, `${base}/equipment/${id}`)
+    const url = find(manifest, `/assets/runner/dashboard/${sex}/equipment/${id}`)
     if (url) layers.push({ id, url })
   }
-  return { body: find(manifest, `${base}/body`), layers }
+  return layers
 }

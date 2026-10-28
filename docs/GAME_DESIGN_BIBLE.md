@@ -75,6 +75,8 @@ The player must confirm the selected profile before starting the career.
 
 **Cosmetic identity (1.2):** before confirming, the player also chooses the runner's sex (Female or Male) and, as a final step, the runner's name (required, 1–16 characters). Both are saved with the career. Sex only changes the runner's artwork; it never affects attributes, starting values or any other gameplay value, and it cannot be changed after the career is created.
 
+**Appearance (Avatar Stage A, owner decisions 28 October 2026):** between profile and name, the player customizes the runner's avatar: hairstyle (3 per sex), skin tone (4) and outfit (basic kit only: white top, dark shorts). Appearance is cosmetic and saved with the career; it never affects gameplay. Shoes are **equipment**, not appearance: the avatar shows shoes only when an equipment model says they are equipped.
+
 ### 2.2 Initial athlete state
 
 The initial state is:

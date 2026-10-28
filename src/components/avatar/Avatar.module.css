@@ -1,0 +1,100 @@
+/* Skin tones are CSS variables selected by the saved tone id. */
+.avatar {
+  --avatar-skin: #d9a77f;
+  --avatar-skin-shade: #c08e68;
+  --avatar-hair: #3b2a20;
+  --avatar-top: #f2efe6;
+  --avatar-top-edge: #c9c4b6;
+  --avatar-shorts: #262b29;
+
+  display: block;
+  overflow: visible;
+}
+
+.avatar[data-skin='tone-1'] {
+  --avatar-skin: #f1d3b6;
+  --avatar-skin-shade: #dcb898;
+}
+
+.avatar[data-skin='tone-2'] {
+  --avatar-skin: #d9a77f;
+  --avatar-skin-shade: #c08e68;
+}
+
+.avatar[data-skin='tone-3'] {
+  --avatar-skin: #a8714c;
+  --avatar-skin-shade: #8e5c3c;
+}
+
+.avatar[data-skin='tone-4'] {
+  --avatar-skin: #6b4430;
+  --avatar-skin-shade: #573523;
+}
+
+.skinFill {
+  fill: var(--avatar-skin);
+}
+
+.skinShadeFill {
+  fill: var(--avatar-skin-shade);
+}
+
+.limb {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.skin {
+  stroke: var(--avatar-skin);
+}
+
+.skinShade {
+  stroke: var(--avatar-skin-shade);
+}
+
+.top {
+  fill: var(--avatar-top);
+  stroke: var(--avatar-top-edge);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+.sleeve {
+  fill: none;
+  stroke: var(--avatar-top);
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+.shorts {
+  fill: var(--avatar-shorts);
+  /* Lifts the dark shorts off the dark UI. */
+  stroke: #4a524e;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+.hair {
+  fill: var(--avatar-hair);
+}
+
+.buzz {
+  opacity: 0.85;
+}
+
+.feature {
+  fill: #1d1714;
+}
+
+.mouth {
+  fill: none;
+  stroke: #1d1714;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.shadow {
+  fill: rgb(0 0 0 / 0.35);
+}

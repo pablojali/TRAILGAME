@@ -78,8 +78,24 @@ milestone that needs them.
 - Rest reduces Fatigue by 8 and Fitness by 2. Completing a session that leaves Fatigue above 95 injures the runner:
   no XP, −15 Fitness and 5 forced Rest days (`src/domain/training/injury.ts`).
 - The runner's name and sex are cosmetic. Careers saved before the `sex` field existed load as
-  `male`. Final creation artwork goes in `assets/runner/creation/{sex}/{profile}.webp` (or `.png`);
-  until then labelled placeholders are shown.
+  `male`. Creation artwork goes in `assets/runner/creation/{sex}/{profile}.webp` (or `.png`); profiles
+  without an image show a labelled placeholder. Climber already has both images.
+
+## Adding runner creation artwork
+
+1. Put the original illustration in `assets/runner/` (white or light plain background, runner facing
+   right).
+2. Run the preparation script (needs Python 3 and Pillow: `pip install pillow`):
+
+   ```bash
+   python3 scripts/prepare_creation_art.py assets/runner/Sprinter_women.jpg \
+     assets/runner/creation/female/sprinter.webp
+   ```
+
+   It removes the background, crops the runner and places it on a transparent 640×960 canvas.
+3. Check the result on a dark background, then build. No code changes are needed: the profile card
+   uses the new image instead of the placeholder. Profile file names: `climber`, `sprinter`,
+   `all-rounder`, `endurance`; sex folders: `female`, `male`.
 
 ## Manual test checklist (M2)
 

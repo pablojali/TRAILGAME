@@ -199,8 +199,12 @@ into `main`. Technical details: `DEVELOPMENT.md` §11 ("UI Improvements v1").
 ### Decisions taken during implementation
 - **Profiles:** the game has 4 profiles (Climber, Sprinter, All-rounder, Endurance), so the creation
   set needs 8 illustrations (4 profiles × 2 sexes), not 12.
-- **Artwork:** placeholders only for now. The reference photos in `assets/runner/` are style
-  references (JPEG, grey studio background, pedestals) and are not used in the app.
+- **Artwork:** Climber uses the owner's illustrations (female and male, added 28 October 2026),
+  prepared with `scripts/prepare_creation_art.py` (background removed, transparent 640×960 WebP in
+  `assets/runner/creation/{sex}/climber.webp`). The other three profiles still show placeholders
+  until their images exist. The earlier reference photos were removed by the owner. Note: wide poses
+  (such as the female Climber with open poles) appear smaller on very short phones, because every
+  image shares the same 2:3 canvas.
 - **Sex:** Female is preselected. Careers saved before the field existed load as Male.
 - **Name:** required, 1–16 characters, spaces trimmed.
 - **Navigation:** hidden on every screen before a career exists, including the incompatible-save

@@ -207,6 +207,17 @@
   min-height: 100%;
 }
 
+/* Short phones: the setup flow is full-screen, so the brand bar gives its space to the content. */
+@media (max-width: 767px) and (max-height: 700px) {
+  .setup .brandBar {
+    display: none;
+  }
+
+  .setup .main {
+    padding-top: calc(var(--space-3) + env(safe-area-inset-top));
+  }
+}
+
 @media (min-width: 768px) {
   .setup {
     display: flex;

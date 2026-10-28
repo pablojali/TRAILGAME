@@ -106,15 +106,20 @@ describe('career creation — profile step', () => {
   it('changes every runner image when the sex changes', async () => {
     const user = userEvent.setup()
     renderApp('/')
-    const art = () => slides().map((s) => within(s).getByRole('img').getAttribute('aria-label'))
-    expect(art()).toEqual([
-      'Climber, female runner (placeholder art)',
+    const art = () => slides().map((s) => within(s).getByRole('img'))
+    // Climber has final artwork; the other profiles still show labelled placeholders.
+    expect(art().map((img) => img.getAttribute('aria-label') ?? img.getAttribute('alt'))).toEqual([
+      'Climber, female runner',
       'Sprinter, female runner (placeholder art)',
       'All-rounder, female runner (placeholder art)',
       'Endurance, female runner (placeholder art)',
     ])
+    expect(art()[0]).toHaveAttribute('src', expect.stringContaining('/creation/female/climber.webp'))
+
     await user.click(screen.getByRole('radio', { name: 'Male' }))
-    expect(art().every((label) => label!.includes(', male runner'))).toBe(true)
+    expect(art()[0]).toHaveAccessibleName('Climber, male runner')
+    expect(art()[0]).toHaveAttribute('src', expect.stringContaining('/creation/male/climber.webp'))
+    expect(art().slice(1).every((img) => img.getAttribute('aria-label')!.includes(', male runner'))).toBe(true)
     // Selection is unaffected.
     expect(chooseButton()).toHaveTextContent('Choose Climber')
   })

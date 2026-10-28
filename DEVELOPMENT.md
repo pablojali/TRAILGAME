@@ -560,9 +560,14 @@ screen per commit on the working branch; not merged into `main`.
 - **Cosmetic identity:** `athlete.sex` (`female` | `male`) and the chosen name are saved; sex never
   affects gameplay values. Save schema stays v2: careers saved before the field existed load with
   `sex: 'male'` (owner decision), without being rewritten on load.
-- **Creation artwork:** placeholders only (owner decision). Final images go in
-  `assets/runner/creation/{sex}/{profile}.webp` (or `.png`) and are picked up without code changes.
-  The reference photos in `assets/runner/` are style references, not used in the app.
+- **Creation artwork:** final images go in `assets/runner/creation/{sex}/{profile}.webp` (or `.png`)
+  and are picked up without code changes; profiles without an image show a labelled placeholder.
+  Climber (female and male) uses the owner's illustrations (`assets/runner/Climber_women.jpg`,
+  `Climber_men.jpg`, kept as sources), prepared with `scripts/prepare_creation_art.py`: white
+  background removed (including gaps between limbs and poles), cropped and placed on a transparent
+  640×960 (2:3) canvas with the feet on a common baseline, saved as WebP (60 kB and 77 kB). The
+  other six images are still placeholders. On phones up to 700 px tall the brand bar is hidden during
+  the setup flow so the runner image has more room.
 - **Dashboard — implemented.** The first screen fits between the brand bar and the bottom navigation
   at 360×640 and 412×915: "Name - Profile · Lv N" and "Week N · Monday" above a centred runner,
   attributes on the left (full names, with the bar and value on the line below each name — owner

@@ -507,7 +507,7 @@ Delivered scope:
   `src/domain/athlete/profiles.ts`. New careers: Level 1, 0 XP, Fitness 20, Fatigue 0, 0 points.
 - Training rewards in `src/domain/training/sessions.ts`: XP / Fitness / Fatigue — Easy run 9/2/5,
   Intervals 16/3/14, Strength 11/2/8, Hills 14/3/12, Long run 18/3/16, Trail technique 11/2/6,
-  Rest 0/0/−12. Weekly plan unchanged; Trail technique is selectable but not in the plan.
+  Rest 0/0/−12 (Rest changed to −8 after M2; see "Gameplay changes after M2"). Weekly plan unchanged; Trail technique is selectable but not in the plan.
 - Levels at 0 / 100 / 250 / 450 / 700 XP (`src/domain/athlete/levels.ts`). Each level gained grants
   2 attribute points. Level and earned points derive from XP; the save stores points spent, so
   points can be neither lost nor granted twice.
@@ -526,6 +526,22 @@ Delivered scope:
   Exit shows a static "save left untouched" screen; every route shows the setup flow until a career
   exists; Reset demo deletes the career and returns to profile selection.
   (D3 was later superseded by UI Improvements v1: the navigation is now hidden in the setup flow.)
+
+### Gameplay changes after M2 (owner decisions, 28 October 2026)
+
+Requested by the owner during UI Improvements v1; implemented in a separate commit.
+
+- **Rest:** Fatigue −8 (was −12). Other session values unchanged.
+- **Injury** (`src/domain/training/injury.ts`): completing a non-rest session that leaves Fatigue
+  above 95 (measured after the session) injures the athlete. Training is never blocked; the player is
+  warned first. The injured session grants no XP, Fitness drops by 15 instead of the session gain,
+  and the next 5 days are forced to Rest (carried into the next week if needed) and cannot be
+  changed. Implementation choices not specified by the owner: the session's Fatigue cost still
+  applies, and it still counts as training for the Fitness decay reference.
+- **Consequence:** the unchanged default weekly plan now adds +39 Fatigue per week, so a player who
+  never changes the plan is injured on Tuesday of week 3.
+- **Saves:** new `forcedRestDays` field and optional `injured` flag on day outcomes; still schema v2.
+  Careers saved before these fields load with no forced Rest days.
 
 ### UI Improvements v1 (in progress)
 
@@ -690,3 +706,5 @@ design; the code is the delivered state.
 | 10 | Save data | Migrations, timestamps | Schema v2 with decay timestamp; v1 is not migrated (explicit restart flow, per PM brief) | Resolved in M2 |
 | 11 | Attribute adaptation from training | Mapping defined, amounts not balanced | Not implemented; attributes change only by points | Open |
 | 12 | Profile change at season end | Requires a season system | Not implemented | Open |
+| 13 | Rest Fatigue effect | −12 (Bible §4.4) | −8 (owner decision, 28 Oct 2026) | Bible to be updated by the PM |
+| 14 | Injury | Not defined | Fatigue > 95 after a session: no XP, −15 Fitness, 5 forced Rest days | Bible to be updated by the PM |

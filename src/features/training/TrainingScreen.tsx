@@ -21,6 +21,7 @@ const ERROR_MESSAGES: Record<TrainingError, string> = {
   'day-not-current': 'Only today’s session can be changed or completed.',
   'wrong-week': 'The training week has changed. Review today’s session and try again.',
   'unknown-session': 'That session is not available.',
+  'forced-rest': 'Your runner is injured: today must be a rest day.',
 }
 
 export function TrainingScreen() {

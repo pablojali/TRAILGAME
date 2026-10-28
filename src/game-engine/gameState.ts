@@ -9,6 +9,8 @@ export interface DayOutcome {
   xpGained: number
   fitnessChange: number
   fatigueChange: number
+  /** True if the session caused an injury. */
+  injured?: boolean
 }
 
 export interface TrainingDay {
@@ -37,6 +39,11 @@ export interface GameState {
    * non-rest session, or the end of the last decay period applied.
    */
   fitnessDecayReference: number
+  /**
+   * Number of upcoming days, starting with the current one, that are forced to Rest after an injury.
+   * Those days are already planned as Rest and cannot be changed.
+   */
+  forcedRestDays: number
 }
 
 /** Deterministic plan used for the first week and every following week. */
@@ -86,6 +93,7 @@ export function createInitialGameState(
     },
     week: createWeek(1),
     fitnessDecayReference: now,
+    forcedRestDays: 0,
   }
 }
 

@@ -75,14 +75,14 @@ describe('TrainingScreen', () => {
     expect(screen.getByRole('button', { name: 'Complete day 1: Trail technique' })).toBeInTheDocument()
   })
 
-  it('previews rest as a fatigue reduction clamped at zero', async () => {
+  it('previews rest as an 8-point fatigue reduction', async () => {
     seedCareer(withAthlete(newGame(), { fatigue: 10 }))
     const user = userEvent.setup()
     renderApp('/training')
     await user.selectOptions(screen.getByLabelText('Session for day 1'), 'Rest')
     expect(effect('XP')).toBe('0 | 0 → 0')
     expect(effect('Fitness')).toBe('0 | 20 → 20')
-    expect(effect('Fatigue')).toBe('−10 | 10 → 0')
+    expect(effect('Fatigue')).toBe('−8 | 10 → 2')
     expect(screen.getByRole('button', { name: 'Take rest day 1' })).toBeInTheDocument()
   })
 

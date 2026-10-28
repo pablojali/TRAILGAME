@@ -66,11 +66,11 @@ describe('executeCurrentDay', () => {
     expect(result.state.athlete).toMatchObject({ xp, fitness, fatigue })
   })
 
-  it('rest reduces fatigue by 12 and grants no XP or fitness', () => {
+  it('rest reduces fatigue by 8 and grants no XP or fitness', () => {
     const state = withSession(withAthlete(newGame(), { xp: 40, fitness: 60, fatigue: 30 }), 'rest')
     const result = execute(state)
-    expect(result.state.athlete).toMatchObject({ xp: 40, fitness: 60, fatigue: 18 })
-    expect(result.outcome).toEqual({ xpGained: 0, fitnessChange: 0, fatigueChange: -12 })
+    expect(result.state.athlete).toMatchObject({ xp: 40, fitness: 60, fatigue: 22 })
+    expect(result.outcome).toEqual({ xpGained: 0, fitnessChange: 0, fatigueChange: -8 })
   })
 
   it('clamps fatigue at 0 on rest', () => {
@@ -79,18 +79,19 @@ describe('executeCurrentDay', () => {
     expect(result.outcome.fatigueChange).toBe(-5)
   })
 
-  it('clamps fitness and fatigue at 100', () => {
-    const result = execute(withSession(withAthlete(newGame(), { fitness: 99, fatigue: 95 }), 'long-run'))
+  it('clamps fitness at 100', () => {
+    const result = execute(withSession(withAthlete(newGame(), { fitness: 99 }), 'long-run'))
     expect(result.state.athlete.fitness).toBe(100)
-    expect(result.state.athlete.fatigue).toBe(100)
-    expect(result.outcome).toEqual({ xpGained: 18, fitnessChange: 1, fatigueChange: 5 })
+    expect(result.outcome).toEqual({ xpGained: 18, fitnessChange: 1, fatigueChange: 16 })
   })
 
   it('keeps stats within 0–100 over many weeks of any session', () => {
     for (const session of ['long-run', 'rest'] as const) {
       let state = newGame()
       for (let i = 0; i < 70; i++) {
-        state = execute(withSession(state, session)).state
+        // Forced Rest days after an injury cannot be re-planned.
+        if (state.forcedRestDays === 0) state = withSession(state, session)
+        state = execute(state).state
         for (const v of [state.athlete.fitness, state.athlete.fatigue]) {
           expect(v).toBeGreaterThanOrEqual(0)
           expect(v).toBeLessThanOrEqual(100)
@@ -185,13 +186,15 @@ describe('executeCurrentDay', () => {
   it('accumulates XP across weeks and never decreases it', () => {
     let state = newGame()
     let previousXp = 0
-    for (let i = 0; i < 21; i++) {
+    for (let i = 0; i < 14; i++) {
       state = execute(state).state
       expect(state.athlete.xp).toBeGreaterThanOrEqual(previousXp)
       previousXp = state.athlete.xp
     }
-    expect(state.week.number).toBe(4)
-    expect(state.athlete.xp).toBe(WEEK_XP * 3)
+    expect(state.week.number).toBe(3)
+    expect(state.athlete.xp).toBe(WEEK_XP * 2)
+    // Default plan: +39 Fatigue per week with Rest at −8.
+    expect(state.athlete.fatigue).toBe(78)
   })
 
   describe('fitness decay reference', () => {

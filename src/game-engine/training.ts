@@ -1,5 +1,5 @@
 import { STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
-import { getLevel } from '../domain/athlete/levels'
+import { ATTRIBUTE_POINTS_PER_LEVEL, getLevel } from '../domain/athlete/levels'
 import { isSessionType, TRAINING_SESSIONS, type SessionType } from '../domain/training/sessions'
 import {
   createWeek,
@@ -33,6 +33,8 @@ export interface ExecutionResult {
   outcome: DayOutcome
   levelBefore: number
   levelAfter: number
+  /** Attribute points awarded by the levels gained in this execution. */
+  attributePointsAwarded: number
   /** True when executing the final day started a new week. */
   weekCompleted: boolean
 }
@@ -76,10 +78,15 @@ export function planSession(
 }
 
 /**
- * Executes the current day's planned session exactly once, then advances to the next day.
- * After the final day, a new week starts; athlete progression is kept.
+ * Executes the current day's planned session exactly once at `now` (epoch ms), then advances to the
+ * next day. After the final day, a new week starts; athlete progression is kept. A non-rest session
+ * resets the Fitness decay reference; Rest does not.
  */
-export function executeCurrentDay(state: GameState, ref: DayRef): TrainingResult<ExecutionResult> {
+export function executeCurrentDay(
+  state: GameState,
+  ref: DayRef,
+  now: number,
+): TrainingResult<ExecutionResult> {
   const error = checkDay(state, ref)
   if (error) return { ok: false, error }
 
@@ -104,14 +111,19 @@ export function executeCurrentDay(state: GameState, ref: DayRef): TrainingResult
         ),
       }
 
+  const levelBefore = getLevel(state.athlete.xp)
+  const levelAfter = getLevel(athlete.xp)
+  const fitnessDecayReference = day.session === 'rest' ? state.fitnessDecayReference : now
+
   return {
     ok: true,
     value: {
-      state: { athlete, week },
+      state: { athlete, week, fitnessDecayReference },
       executed: { ...ref, session: day.session },
       outcome,
-      levelBefore: getLevel(state.athlete.xp),
-      levelAfter: getLevel(athlete.xp),
+      levelBefore,
+      levelAfter,
+      attributePointsAwarded: (levelAfter - levelBefore) * ATTRIBUTE_POINTS_PER_LEVEL,
       weekCompleted,
     },
   }

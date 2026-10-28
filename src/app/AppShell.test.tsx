@@ -1,8 +1,9 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { NAV_ITEMS } from './navigation'
+import { seedCareer } from '../test/renderApp'
 import { routes } from './routes'
 
 function renderAt(path: string) {
@@ -12,6 +13,10 @@ function renderAt(path: string) {
 }
 
 describe('AppShell', () => {
+  beforeEach(() => {
+    seedCareer()
+  })
+
   it('renders the five main navigation links in order', () => {
     renderAt('/')
     const nav = screen.getByRole('navigation', { name: 'Main' })

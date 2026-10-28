@@ -1,13 +1,17 @@
 /**
  * Level thresholds by cumulative XP, ascending. To add a level, append an entry.
- * Level 1: 0–99, Level 2: 100–249, Level 3: 250–449, Level 4: 450+.
+ * Level 1: 0–99, Level 2: 100–249, Level 3: 250–449, Level 4: 450–699, Level 5: 700+.
  */
 export const LEVEL_THRESHOLDS: readonly { level: number; minXp: number }[] = [
   { level: 1, minXp: 0 },
   { level: 2, minXp: 100 },
   { level: 3, minXp: 250 },
   { level: 4, minXp: 450 },
+  { level: 5, minXp: 700 },
 ]
+
+/** Attribute points awarded for each level gained. */
+export const ATTRIBUTE_POINTS_PER_LEVEL = 2
 
 export interface LevelProgress {
   level: number
@@ -29,4 +33,9 @@ export function getLevelProgress(xp: number): LevelProgress {
 
 export function getLevel(xp: number): number {
   return getLevelProgress(xp).level
+}
+
+/** Total attribute points earned from levels gained so far (none at level 1). */
+export function getEarnedAttributePoints(xp: number): number {
+  return (getLevel(xp) - 1) * ATTRIBUTE_POINTS_PER_LEVEL
 }

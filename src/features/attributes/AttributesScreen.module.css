@@ -1,0 +1,68 @@
+.summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-weight: 700;
+}
+
+.points {
+  color: var(--accent-secondary);
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'text add'
+    'meter add';
+  align-items: center;
+  column-gap: var(--space-4);
+  row-gap: var(--space-1);
+}
+
+.rowText {
+  grid-area: text;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.row > [role='meter'] {
+  grid-area: meter;
+  margin-top: 0;
+}
+
+.label {
+  font-weight: 700;
+}
+
+.value {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.add {
+  grid-area: add;
+  min-width: var(--touch-target);
+  padding: 0 var(--space-4);
+}
+
+.back {
+  align-self: flex-start;
+}

@@ -903,6 +903,8 @@ A suitable next milestone could cover:
 
 The PM should confirm the scope and milestone name before implementation.
 
+**Status (implementation note):** the PM approved this scope as **M2 — Athlete Progression**, including Trail Technique at 11 XP / +2 Fitness / +6 Fatigue (kept out of the weekly plan) and an explicit restart flow for v1 saves instead of a migration. It is implemented on branch `ccr-4899c2c5-ikxanb` and pending PM acceptance; see `DEVELOPMENT.md` §11 and §15.
+
 ### 15.5 Later milestones
 
 The following systems require additional design before implementation:

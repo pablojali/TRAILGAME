@@ -1,39 +1,44 @@
-import { ATTRIBUTE_IDS, STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
-import { isSessionType } from '../domain/training/sessions'
 import {
-  createInitialGameState,
-  DAYS_PER_WEEK,
-  type DayOutcome,
-  type GameState,
-  type TrainingDay,
-} from '../game-engine/gameState'
+  ATTRIBUTE_IDS,
+  ATTRIBUTE_MAX,
+  ATTRIBUTE_MIN,
+  STAT_MAX,
+  STAT_MIN,
+  type Attributes,
+} from '../domain/athlete/athlete'
+import { getEarnedAttributePoints } from '../domain/athlete/levels'
+import { isProfileId, PROFILE_ATTRIBUTE_TOTAL } from '../domain/athlete/profiles'
+import { isSessionType } from '../domain/training/sessions'
+import { DAYS_PER_WEEK, type DayOutcome, type GameState, type TrainingDay } from '../game-engine/gameState'
 
 /**
- * Persistence boundary for the single-player game. M1 stores to localStorage;
+ * Persistence boundary for the single-player career. M2 stores to localStorage;
  * a future backend can implement the same interface.
  */
 export interface GameRepository {
-  load(): LoadResult
+  /** Reads the saved career. Never modifies or deletes stored data. */
+  load(now: number): LoadResult
   /** Returns false if the state could not be stored. */
   save(state: GameState): boolean
-  /** Removes the saved game. */
+  /** Removes the saved career. */
   clear(): void
 }
 
-export type LoadStatus =
-  /** No save found; initial demo state. */
-  | 'new'
-  | 'loaded'
-  /** A save existed but was malformed or unsupported; initial demo state. */
-  | 'recovered'
+export type IncompatibleReason =
+  /** A save from M1 (schema v1), whose athlete model cannot be converted. */
+  | 'legacy-v1'
+  /** A save with an unknown schema version, e.g. from a newer build. */
+  | 'unsupported-version'
+  /** Unreadable or invalid data. */
+  | 'malformed'
 
-export interface LoadResult {
-  state: GameState
-  status: LoadStatus
-}
+export type LoadResult =
+  | { status: 'empty' }
+  | { status: 'loaded'; state: GameState }
+  | { status: 'incompatible'; reason: IncompatibleReason }
 
 export const SAVE_KEY = 'trailgame.save'
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 interface SaveEnvelope {
   schemaVersion: number
@@ -68,23 +73,41 @@ function isTrainingDay(value: unknown, index: number, currentDayIndex: number): 
   return index < currentDayIndex ? isOutcome(value.outcome) : value.outcome === null
 }
 
-/** Validates untrusted saved data. Returns null if it is not a valid M1 game state. */
-export function parseGameState(value: unknown): GameState | null {
+function parseAttributes(value: unknown): Attributes | null {
+  if (!isRecord(value)) return null
+  const attributes = {} as Attributes
+  for (const id of ATTRIBUTE_IDS) {
+    const v = value[id]
+    if (!isInt(v, ATTRIBUTE_MIN, ATTRIBUTE_MAX)) return null
+    attributes[id] = v
+  }
+  return attributes
+}
+
+/**
+ * Validates untrusted v2 game state. Returns null if it is not a consistent career.
+ * A missing or invalid Fitness decay reference is replaced by `now` (no decay) rather than
+ * rejecting an otherwise valid career; future references are handled by the decay rule.
+ */
+export function parseGameState(value: unknown, now: number): GameState | null {
   if (!isRecord(value) || !isRecord(value.athlete) || !isRecord(value.week)) return null
   const { athlete, week } = value
 
+  const attributes = parseAttributes(athlete.attributes)
   if (
     typeof athlete.name !== 'string' ||
-    athlete.archetype !== 'all-rounder' ||
+    !isProfileId(athlete.profile) ||
     !isInt(athlete.xp, 0) ||
     !isStat(athlete.fitness) ||
     !isStat(athlete.fatigue) ||
-    !isRecord(athlete.attributes)
+    !attributes ||
+    !isInt(athlete.spentAttributePoints, 0, getEarnedAttributePoints(athlete.xp))
   ) {
     return null
   }
-  const attributes = athlete.attributes
-  if (!ATTRIBUTE_IDS.every((id) => isStat(attributes[id]))) return null
+  // Attributes change only by spending points, so their total is fixed by the points spent.
+  const total = ATTRIBUTE_IDS.reduce((sum, id) => sum + attributes[id], 0)
+  if (total !== PROFILE_ATTRIBUTE_TOTAL + athlete.spentAttributePoints) return null
 
   if (!isInt(week.number, 1) || !isInt(week.currentDayIndex, 0, DAYS_PER_WEEK - 1)) return null
   const currentDayIndex = week.currentDayIndex
@@ -96,21 +119,16 @@ export function parseGameState(value: unknown): GameState | null {
     return null
   }
 
+  const reference = value.fitnessDecayReference
   return {
     athlete: {
       name: athlete.name,
-      archetype: athlete.archetype,
+      profile: athlete.profile,
       xp: athlete.xp,
       fitness: athlete.fitness,
       fatigue: athlete.fatigue,
-      attributes: {
-        endurance: attributes.endurance as number,
-        speed: attributes.speed as number,
-        power: attributes.power as number,
-        technique: attributes.technique as number,
-        strength: attributes.strength as number,
-        recovery: attributes.recovery as number,
-      },
+      attributes,
+      spentAttributePoints: athlete.spentAttributePoints,
     },
     week: {
       number: week.number,
@@ -121,49 +139,41 @@ export function parseGameState(value: unknown): GameState | null {
         outcome: day.outcome && { ...day.outcome },
       })),
     },
+    fitnessDecayReference: typeof reference === 'number' && Number.isFinite(reference) ? reference : now,
   }
 }
 
-/** Parses a raw saved string. Returns null for missing, malformed or unsupported data. */
-export function parseSave(raw: string): GameState | null {
+/** Classifies a raw saved string. Never throws. */
+export function parseSave(raw: string, now: number): LoadResult {
   let data: unknown
   try {
     data = JSON.parse(raw)
   } catch {
-    return null
+    return { status: 'incompatible', reason: 'malformed' }
   }
-  if (!isRecord(data) || data.schemaVersion !== SCHEMA_VERSION) return null
-  return parseGameState(data.state)
+  if (!isRecord(data) || typeof data.schemaVersion !== 'number') {
+    return { status: 'incompatible', reason: 'malformed' }
+  }
+  if (data.schemaVersion === 1) return { status: 'incompatible', reason: 'legacy-v1' }
+  if (data.schemaVersion !== SCHEMA_VERSION) {
+    return { status: 'incompatible', reason: 'unsupported-version' }
+  }
+  const state = parseGameState(data.state, now)
+  return state ? { status: 'loaded', state } : { status: 'incompatible', reason: 'malformed' }
 }
 
 export function createLocalStorageGameRepository(
   storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null = getLocalStorage(),
 ): GameRepository {
-  function clear() {
-    try {
-      storage?.removeItem(SAVE_KEY)
-    } catch {
-      // Nothing to clear if storage is unavailable.
-    }
-  }
-
   return {
-    clear,
-
-    load() {
+    load(now) {
       let raw: string | null = null
       try {
         raw = storage?.getItem(SAVE_KEY) ?? null
       } catch {
         // Storage unavailable (e.g. blocked by browser settings).
       }
-      if (raw === null) return { state: createInitialGameState(), status: 'new' }
-
-      const state = parseSave(raw)
-      if (state) return { state, status: 'loaded' }
-
-      clear()
-      return { state: createInitialGameState(), status: 'recovered' }
+      return raw === null ? { status: 'empty' } : parseSave(raw, now)
     },
 
     save(state) {
@@ -178,6 +188,14 @@ export function createLocalStorageGameRepository(
         return true
       } catch {
         return false
+      }
+    },
+
+    clear() {
+      try {
+        storage?.removeItem(SAVE_KEY)
+      } catch {
+        // Nothing to clear if storage is unavailable.
       }
     },
   }

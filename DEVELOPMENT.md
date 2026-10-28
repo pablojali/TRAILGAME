@@ -1,8 +1,8 @@
 # Trail Manager — Development Specification
 
 **Document:** `DEVELOPMENT.md`  
-**Version:** 0.2.0  
-**Status:** Active — M0 and M1 delivered and merged into `main`; next milestone pending PM definition  
+**Version:** 0.3.0  
+**Status:** Active — M0 and M1 merged into `main`; M2 (Athlete Progression) implemented on the working branch, pending PM acceptance  
 **Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
@@ -249,27 +249,27 @@ On mobile, use a persistent bottom navigation bar. On larger screens, adapt to a
 ## 6. MVP scope
 
 > **Note:** §6–§8 are the original technical baseline. Game rules (profiles, attributes, starting
-> values, training rewards, progression) are now defined in `docs/GAME_DESIGN_BIBLE.md`. Where they
-> differ, the Bible is the intended design and the code is the delivered state; see §15. Changes are
-> implemented only through a milestone approved by the PM.
+> values, training rewards, progression) are defined in `docs/GAME_DESIGN_BIBLE.md`; the profile and
+> attribute lists below were updated to the M2 implementation. Where other parts differ, the Bible is
+> the intended design and the code is the delivered state; see §15. Changes are implemented only
+> through a milestone approved by the PM.
 
 ### Included in MVP
 
 - Local development and deployable responsive web app.
 - Dashboard for one player-controlled athlete.
-- Five athlete archetypes:
+- Four starting profiles (implemented in M2):
   - Climber
   - Sprinter
-  - Ultrarunner
-  - Technical specialist
   - All-rounder
-- Six core attributes:
   - Endurance
+- Six core attributes (implemented in M2):
+  - Endurance
+  - Climbing
   - Speed
-  - Power
-  - Technique
-  - Strength
+  - Technical
   - Recovery
+  - Consistency
 - Weekly training planner.
 - Session types: easy run, intervals, hill training, long run, strength, technical practice and rest.
 - Separate fitness and fatigue values.
@@ -303,18 +303,19 @@ These values are starting assumptions for a playable prototype and must be tuned
 
 ### Athlete attributes
 
-Each attribute uses a 0–100 scale at the game layer. Initial values and archetype bonuses should be defined in a single balance configuration.
+Each attribute is an integer on a 1–100 scale. Starting values per profile live in
+`src/domain/athlete/profiles.ts` (Bible §2.3); every profile totals 96 points.
 
-| Attribute | Main influence |
+| Attribute | Main influence (Bible §2.3) |
 |---|---|
-| Endurance | Sustaining performance over time and distance |
-| Speed | Pace on runnable and flatter sections |
-| Power | Short steep climbs and accelerations |
-| Technique | Technical descents and difficult terrain |
-| Strength | Climbing durability and late-race resilience |
-| Recovery | Fatigue reduction and adaptation between sessions |
+| Endurance | Capacity to maintain performance over long distances |
+| Climbing | Performance on uphill terrain |
+| Speed | Performance on fast and runnable terrain |
+| Technical | Ability to handle technical trails and difficult descents |
+| Recovery | Ability to recover from training and fatigue |
+| Consistency | Ability to sustain training and perform reliably over time |
 
-Archetypes provide a starting profile and modest strengths/weaknesses; they must not permanently block a play style.
+Profiles provide a starting distribution with strengths and weaknesses; they must not permanently block a play style.
 
 ### Training
 
@@ -475,10 +476,43 @@ Delivered scope (as approved by the PM; this replaces the original M1 draft):
 Moved out of M1 (not yet scheduled): equipment purchase, race entry and simulation, race rewards and
 career progression. They will be assigned to milestones defined by the PM following the Bible (§15).
 
-> **Note:** the milestones below are the original plan. Their names, order and scope are to be
-> confirmed by the PM. The Bible (§15.4) proposes an *Athlete Progression* milestone as the next step.
+### M2 — Athlete Progression
 
-### M2 — Persistence and account
+**Status:** Implemented on branch `ccr-4899c2c5-ikxanb`; pending PM review, Cloudflare preview and
+manual testing. Not merged into `main`.
+
+**Goal:** athlete creation with four profiles and long-term progression through levels, attribute
+points and real-time Fitness decay, as specified in the PM brief and Bible §2–§6.
+
+Delivered scope:
+- Profile selection (Climber, Sprinter, All-rounder, Endurance) before a career exists; attributes from
+  `src/domain/athlete/profiles.ts`. New careers: Level 1, 0 XP, Fitness 20, Fatigue 0, 0 points.
+- Training rewards in `src/domain/training/sessions.ts`: XP / Fitness / Fatigue — Easy run 9/2/5,
+  Intervals 16/3/14, Strength 11/2/8, Hills 14/3/12, Long run 18/3/16, Trail technique 11/2/6,
+  Rest 0/0/−12. Weekly plan unchanged; Trail technique is selectable but not in the plan.
+- Levels at 0 / 100 / 250 / 450 / 700 XP (`src/domain/athlete/levels.ts`). Each level gained grants
+  2 attribute points. Level and earned points derive from XP; the save stores points spent, so
+  points can be neither lost nor granted twice.
+- Attribute screen (`/attributes`): +1 per action, capped at 100; stale or repeated requests are
+  rejected by the engine (`src/game-engine/attributes.ts`). No automatic attribute growth.
+- Fitness decay (`src/game-engine/fitnessDecay.ts`): −1 per complete 24 h since the reference, which
+  is set at career creation and on each completed non-rest session (not Rest). Applied on load, when
+  the tab becomes visible again and before each action; the reference advances by whole periods so
+  partial time is kept and no period is applied twice. Invalid or future references reset to now.
+  Independent of the simulated week.
+- Save schema v2 (`src/repositories/gameRepository.ts`). Loading never writes or deletes. v1 saves,
+  unknown versions and malformed data show a blocking screen (Restart Career / Exit); Restart needs an
+  explicit acknowledgement and only overwrites the old save when a new profile is confirmed. Exit
+  leaves the save untouched.
+- Approved UX decisions (D1–D4): the blocking screen also covers malformed and unsupported saves;
+  Exit shows a static "save left untouched" screen; every route shows the setup flow until a career
+  exists; Reset demo deletes the career and returns to profile selection.
+
+> **Note:** the milestones below are the original plan. Their names, order and scope are to be
+> confirmed by the PM. The original "M2 — Persistence and account" is kept under its own name until
+> it is renumbered.
+
+### Persistence and account (originally planned as M2)
 
 **Goal:** save player progress reliably.
 
@@ -585,18 +619,20 @@ Start with **M0 only**.
 
 ## 15. Design reconciliation — Bible v1.1 vs implementation
 
-Recorded on 2026-10-28 against `main` at `e0d8822`. The Bible is the intended design; the code is the
-delivered state. None of these items is implemented yet; each needs a PM decision or milestone.
+Updated for M2 on the working branch. The Bible is the intended design; the code is the delivered
+state.
 
-| # | Topic | Bible v1.1 | Current code / this document | Needs |
+| # | Topic | Bible v1.1 | Implementation | Status |
 |---|---|---|---|---|
-| 1 | Attributes | Endurance, Climbing, Speed, Technical, Recovery, Consistency; scale 1–100 | Endurance, Speed, Power, Technique, Strength, Recovery; scale 0–100 (§6–§7) | Confirm the Bible set and the renaming |
-| 2 | Profiles | 4: Climber, Sprinter, All-rounder, Endurance; chosen at career start | Fixed All-rounder; §6 lists 5 archetypes (incl. Ultrarunner, Technical specialist) | Confirm 4 profiles |
-| 3 | Starting values | Attributes 12–20 (96 total); Fitness 20; Fatigue 0 | Attributes 50; Fitness 50; Fatigue 10 | Milestone |
-| 4 | Training rewards | XP −10 % and positive Fitness −50 % for five sessions; Fatigue unchanged | M1 values; Fatigue values match the Bible | Milestone |
-| 5 | Trail technique session | Not listed | Exists (+12 XP, +3 Fitness, +6 Fatigue) | Keep, remove or define new values |
-| 6 | Week days | Monday–Sunday | Day 1–7 (no real calendar) | Confirm labels |
-| 7 | Fitness decay | −1 per full 24 h without a non-rest session | Not implemented; the week advances per completed session | PM decision on real time vs game calendar (Bible §4.6) |
-| 8 | Levels | Level 5 at 700 XP (provisional); 2 attribute points per level | Levels 1–4; no attribute points | Validate threshold and rewards |
-| 9 | Money and equipment | 100 coins; basic shoes and vest (provisional) | Not implemented | Economy / equipment milestone |
-| 10 | Save data | Schema migrations, timestamps | `schemaVersion: 1`; incompatible saves reset with a notice | Migrate or reset when the schema changes |
+| 1 | Attributes | Endurance, Climbing, Speed, Technical, Recovery, Consistency; 1–100 | Same | Resolved in M2 |
+| 2 | Profiles | Climber, Sprinter, All-rounder, Endurance; chosen at career start | Same | Resolved in M2 |
+| 3 | Starting values | Attributes 12–20 (96 total); Fitness 20; Fatigue 0 | Same | Resolved in M2 |
+| 4 | Training rewards | XP −10 %, positive Fitness −50 %; Fatigue unchanged | Same | Resolved in M2 |
+| 5 | Trail technique | Not listed in the Bible tables | Kept: 11 XP, +2 Fitness, +6 Fatigue (PM brief); not in the weekly plan | Resolved by PM brief |
+| 6 | Week days | Monday–Sunday | Day 1–7 (no real calendar) | Open |
+| 7 | Fitness decay | −1 per full 24 h without a non-rest session | Implemented on real time, independent of the simulated week | Resolved in M2 |
+| 8 | Levels and points | Level 5 at 700 XP; 2 points per level; manual allocation | Same; no refunds | Resolved in M2 |
+| 9 | Money and equipment | 100 coins; basic shoes and vest | Not implemented | Open (economy / equipment milestone) |
+| 10 | Save data | Migrations, timestamps | Schema v2 with decay timestamp; v1 is not migrated (explicit restart flow, per PM brief) | Resolved in M2 |
+| 11 | Attribute adaptation from training | Mapping defined, amounts not balanced | Not implemented; attributes change only by points | Open |
+| 12 | Profile change at season end | Requires a season system | Not implemented | Open |

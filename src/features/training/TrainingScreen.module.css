@@ -1,19 +1,197 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eyebrow {
+  color: var(--accent-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.injuryBanner {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid #ff8a6b;
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: #ffb39f;
+  font-weight: 700;
+}
+
+/* Week strip: seven equal day buttons. */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 72px;
+  padding: var(--space-1) 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.dayName {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.dayMark {
+  min-height: 1.1em;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.completed {
+  color: var(--text-muted);
+}
+
+.completed .dayMark {
+  color: var(--brand-text);
+}
+
+.current {
+  border-color: var(--accent);
+  box-shadow: inset 0 3px 0 var(--accent);
+}
+
+.current .dayName,
+.current .dayMark {
+  color: var(--accent);
+}
+
+.selected {
+  background: var(--surface-raised);
+  border-color: var(--text-muted);
+}
+
+.selected.current {
+  border-color: var(--accent);
+}
+
+/* Activity card: a large button that opens the detail sheet. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.card:hover {
+  border-color: var(--text-muted);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.cardWhen {
+  color: var(--accent-secondary);
+  font-weight: 700;
+}
+
+.cardMore {
+  color: var(--accent);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cardSession {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+}
+
+.cardDescription {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.cardEffects {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.cardWarning {
+  color: #ffb39f;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+/* Execution feedback. */
 .feedbackRegion:empty {
-  margin-bottom: calc(-1 * var(--space-5));
+  display: none;
 }
 
 .feedback {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-4);
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--brand);
   border-left-width: 4px;
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--brand-strong) 35%, var(--surface));
+  font-size: var(--font-size-sm);
+}
+
+.feedbackInjured {
+  border-color: #ff8a6b;
+  background: color-mix(in srgb, #5a2418 35%, var(--surface));
 }
 
 .feedbackTitle {
+  font-weight: 800;
+}
+
+.injuredText {
+  color: #ffb39f;
   font-weight: 800;
 }
 
@@ -22,10 +200,16 @@
   font-weight: 800;
 }
 
+.inlineLink {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .next {
   color: var(--text-muted);
 }
 
+/* Detail sheet content. */
 .field {
   display: flex;
   flex-direction: column;
@@ -44,6 +228,10 @@
   background: var(--bg-sunken);
   color: var(--text);
   font: inherit;
+}
+
+.select:disabled {
+  opacity: 0.7;
 }
 
 .hint {
@@ -97,99 +285,40 @@
   font-size: var(--font-size-sm);
 }
 
+.warning {
+  padding: var(--space-3);
+  border-left: 4px solid #ff8a6b;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #5a2418 35%, var(--surface));
+  font-size: var(--font-size-sm);
+}
+
 .error {
   color: #f2a48f;
   font-weight: 600;
 }
 
-.week {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+@media (min-width: 768px) {
+  .day {
+    min-height: 84px;
+  }
 }
 
-.sectionTitle {
-  font-size: var(--font-size-md);
-  font-weight: 700;
-}
-
-.days {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.day {
-  display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: var(--touch-target);
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-}
-
-.dayNumber {
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-}
-
-.daySession {
-  font-weight: 700;
-}
-
-.dayStatus {
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
-  text-align: right;
-}
-
-.completed .daySession {
-  color: var(--text-muted);
-}
-
-.completed .dayStatus {
-  color: var(--brand-text);
-}
-
-.current {
-  border-color: var(--accent);
-  box-shadow: inset 4px 0 0 var(--accent);
-}
-
-.current .dayStatus {
-  color: var(--accent);
-  font-weight: 700;
-}
-
-@media (min-width: 1024px) {
-  .days {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+/* Small phones: tighter spacing so the screen fits even with injury and feedback messages. */
+@media (max-height: 700px) {
+  .screen {
+    gap: var(--space-2);
   }
 
   .day {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-    gap: var(--space-1);
+    min-height: 64px;
+  }
+
+  .card {
     padding: var(--space-3);
   }
 
-  .dayStatus {
-    text-align: left;
+  .feedback {
+    padding: var(--space-2) var(--space-3);
   }
-
-  .current {
-    box-shadow: inset 0 4px 0 var(--accent);
-  }
-}
-
-.inlineLink {
-  color: var(--accent);
-  font-weight: 700;
 }

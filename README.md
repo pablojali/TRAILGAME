@@ -88,16 +88,21 @@ milestone that needs them.
 2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner (placeholder, no
    equipment), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
    attribute points, Today, the week and Reset demo are below it.
-3. New career: Level 1, 0 XP, Fitness 20/100, Fatigue 0/100, 0 unspent points, profile attributes.
-4. Training: effects show the M2 values (e.g. Easy run +9 XP, +2 Fitness, +5 Fatigue). Trail
+3. Training: the Mon–Sun strip is on top and today's activity below it, without scrolling. Tap
+   another day to see it; tap the activity to open the detail sheet and close it with ×, by tapping
+   outside or with the Back button. Completing a session from the sheet moves to the next day.
+4. Injury: with Fatigue near 95, a session that would end above 95 shows an injury warning; training
+   anyway gives no XP, −15 Fitness and 5 locked rest days (banner on Training).
+5. New career: Level 1, 0 XP, Fitness 20/100, Fatigue 0/100, 0 unspent points, profile attributes.
+6. Training: effects show the M2 values (e.g. Easy run +9 XP, +2 Fitness, +5 Fatigue). Trail
    technique can be selected but is not in the plan. Complete a day; reload; progress is kept.
-5. Level up at 100 XP: feedback shows +2 attribute points; **Allocate points** opens Attributes.
+7. Level up at 100 XP: feedback shows +2 attribute points; **Allocate points** opens Attributes.
    Each **+1** raises one attribute; buttons become inactive at 0 points.
-6. Fitness decay: in the browser dev tools, set the saved `fitnessDecayReference` 3 days in the past
+8. Fitness decay: in the browser dev tools, set the saved `fitnessDecayReference` 3 days in the past
    and reload — Fitness drops by 3 once, with a notice; reloading again changes nothing.
-7. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
+9. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
    tab. **Exit** keeps the save. **Restart Career** → tick the box → choose a profile → new career.
-8. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
+10. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
 
 ## Deployment — Cloudflare Pages
 

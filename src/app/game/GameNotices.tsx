@@ -1,11 +1,9 @@
-import { useState } from 'react'
 import { useGame } from './gameContext'
 import styles from './GameNotices.module.css'
 
-/** Shell-level messages about loading and saving the game. */
+/** Shell-level messages about saving and Fitness decay. */
 export function GameNotices() {
-  const { loadStatus, saveFailed } = useGame()
-  const [recoveryDismissed, setRecoveryDismissed] = useState(false)
+  const { saveFailed, decayNotice, dismissDecayNotice } = useGame()
 
   return (
     <div role="status" className={styles.notices}>
@@ -15,10 +13,13 @@ export function GameNotices() {
           page.
         </p>
       )}
-      {loadStatus === 'recovered' && !recoveryDismissed && (
+      {decayNotice && decayNotice.fitnessLost > 0 && (
         <div className={styles.notice}>
-          <p>Your saved game could not be loaded, so a new demo game was started.</p>
-          <button type="button" className={styles.dismiss} onClick={() => setRecoveryDismissed(true)}>
+          <p>
+            Fitness −{decayNotice.fitnessLost}: {decayNotice.periods} full{' '}
+            {decayNotice.periods === 1 ? 'day' : 'days'} without a training session.
+          </p>
+          <button type="button" className={styles.dismiss} onClick={dismissDecayNotice}>
             Dismiss
           </button>
         </div>

@@ -1,144 +1,167 @@
-import { screen } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
-import { createInitialGameState } from '../../game-engine/gameState'
-import { SAVE_KEY, SCHEMA_VERSION } from '../../repositories/gameRepository'
-import { renderApp } from '../../test/renderApp'
+import { describe, expect, it, vi } from 'vitest'
+import { DECAY_PERIOD_MS } from '../../game-engine/fitnessDecay'
+import { SAVE_KEY } from '../../repositories/gameRepository'
+import { newGame, T0, withAthlete } from '../../test/gameFixtures'
+import { readSave, renderApp, seedCareer } from '../../test/renderApp'
+
+const DAY = DECAY_PERIOD_MS
 
 function tile(label: string) {
   return screen.getByText(label, { selector: 'span' }).nextElementSibling!.textContent
 }
 
-function seedSave(mutate: (state: ReturnType<typeof createInitialGameState>) => void) {
-  const state = createInitialGameState()
-  mutate(state)
-  localStorage.setItem(SAVE_KEY, JSON.stringify({ schemaVersion: SCHEMA_VERSION, savedAt: '', state }))
+function attributeValues() {
+  const card = screen.getByRole('heading', { name: 'Attributes' }).closest('article')!
+  return within(card)
+    .getAllByRole('listitem')
+    .map((li) => li.firstElementChild!.textContent)
 }
 
 describe('DashboardScreen', () => {
-  it('shows the initial All-rounder demo state', () => {
+  it('shows the initial state of the chosen profile', () => {
+    seedCareer(newGame('climber'))
     renderApp('/')
     expect(screen.getByText('Week 1 · Day 1 of 7')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Demo Runner' })).toBeInTheDocument()
-    expect(screen.getByText('All-rounder')).toBeInTheDocument()
+    expect(screen.getByText('Climber', { selector: 'span' })).toBeInTheDocument()
     expect(screen.getByText('0 XP · 100 XP to Level 2')).toBeInTheDocument()
     expect(tile('Level')).toBe('1')
     expect(tile('XP')).toBe('0')
-    expect(tile('Fitness')).toBe('50/100')
-    expect(tile('Fatigue')).toBe('10/100')
-    expect(screen.getByRole('meter', { name: 'Fitness' })).toHaveAttribute('aria-valuenow', '50')
-    expect(screen.getByRole('meter', { name: 'Fatigue' })).toHaveAttribute('aria-valuetext', '10 of 100')
+    expect(tile('Fitness')).toBe('20/100')
+    expect(tile('Fatigue')).toBe('0/100')
+    expect(screen.getByRole('meter', { name: 'Fitness' })).toHaveAttribute('aria-valuenow', '20')
+    expect(attributeValues()).toEqual([
+      'Endurance16',
+      'Climbing20',
+      'Speed13',
+      'Technical18',
+      'Recovery14',
+      'Consistency15',
+    ])
+    expect(screen.getByRole('meter', { name: 'Climbing' })).toHaveAttribute('aria-valuetext', '20 of 100')
+    expect(screen.getByText('unspent attribute points', { exact: false })).toHaveTextContent('0 unspent attribute points')
+    expect(screen.getByRole('link', { name: 'View attributes' })).toHaveAttribute('href', '/attributes')
     expect(screen.getByRole('heading', { name: 'Today · Day 1' })).toBeInTheDocument()
     expect(screen.getByText('Easy run')).toBeInTheDocument()
-    expect(screen.getByText('0 of 7', { exact: false })).toHaveTextContent('0 of 7')
+    expect(screen.getByText('XP +9').parentElement).toHaveTextContent('XP +9 · Fitness +2 · Fatigue +5')
   })
 
   it('derives every value from the saved game state', () => {
-    seedSave((state) => {
-      state.athlete.xp = 260
-      state.athlete.fitness = 71
-      state.athlete.fatigue = 33
-      state.week.number = 3
-      state.week.currentDayIndex = 2
-      state.week.days[0]!.outcome = { xpGained: 10, fitnessChange: 3, fatigueChange: 5 }
-      state.week.days[1]!.outcome = { xpGained: 18, fitnessChange: 5, fatigueChange: 14 }
-      state.week.days[2]!.session = 'hills'
-    })
+    const state = withAthlete(newGame('sprinter'), { xp: 260, fitness: 71, fatigue: 33, spentAttributePoints: 1 })
+    state.athlete.attributes.endurance += 1
+    state.week.number = 3
+    state.week.currentDayIndex = 2
+    state.week.days[0]!.outcome = { xpGained: 9, fitnessChange: 2, fatigueChange: 5 }
+    state.week.days[1]!.outcome = { xpGained: 16, fitnessChange: 3, fatigueChange: 14 }
+    state.week.days[2]!.session = 'hills'
+    seedCareer(state)
     renderApp('/')
+
     expect(screen.getByText('Week 3 · Day 3 of 7')).toBeInTheDocument()
+    expect(screen.getByText('Sprinter', { selector: 'span' })).toBeInTheDocument()
     expect(tile('Level')).toBe('3')
     expect(tile('XP')).toBe('260')
     expect(tile('Fitness')).toBe('71/100')
     expect(tile('Fatigue')).toBe('33/100')
     expect(screen.getByText('260 XP · 190 XP to Level 4')).toBeInTheDocument()
-    expect(screen.getByRole('meter', { name: 'Progress to Level 4' })).toHaveAttribute(
-      'aria-valuetext',
-      '260 of 450 XP',
-    )
-    expect(screen.getByRole('heading', { name: 'Today · Day 3' })).toBeInTheDocument()
-    expect(screen.getByText('Hills')).toBeInTheDocument()
-    expect(screen.getByText('XP +16').parentElement).toHaveTextContent('XP +16 · Fitness +5 · Fatigue +12')
-    expect(screen.getByText('28 XP earned this week')).toBeInTheDocument()
+    expect(attributeValues()[0]).toBe('Endurance14')
+    // Level 3 earned 4 points; 1 is spent.
+    expect(screen.getByText('unspent attribute points', { exact: false })).toHaveTextContent('3 unspent attribute points')
+    expect(screen.getByRole('link', { name: 'Allocate points' })).toHaveAttribute('href', '/attributes')
+    expect(screen.getByText('XP +14').parentElement).toHaveTextContent('XP +14 · Fitness +3 · Fatigue +12')
+    expect(screen.getByText('25 XP earned this week')).toBeInTheDocument()
   })
 
-  it('shows the maximum level without a next threshold', () => {
-    seedSave((state) => {
-      state.athlete.xp = 450
-    })
+  it('shows level 5 as the maximum level', () => {
+    seedCareer(withAthlete(newGame(), { xp: 700 }))
     renderApp('/')
-    expect(tile('Level')).toBe('4')
-    expect(screen.getByText('450 XP · Maximum level reached')).toBeInTheDocument()
+    expect(tile('Level')).toBe('5')
+    expect(screen.getByText('700 XP · Maximum level reached')).toBeInTheDocument()
+  })
+
+  it('applies Fitness decay on load, announces it and saves it once', () => {
+    seedCareer(newGame())
+    vi.setSystemTime(T0 + 3 * DAY + 5000)
+    const first = renderApp('/')
+    expect(tile('Fitness')).toBe('17/100')
+    expect(screen.getByText('Fitness −3: 3 full days without a training session.')).toBeInTheDocument()
+    expect(readSave()!.state).toMatchObject({ athlete: { fitness: 17 }, fitnessDecayReference: T0 + 3 * DAY })
+    first.unmount()
+
+    // Reopening later the same day does not apply the same periods again.
+    vi.setSystemTime(T0 + 3 * DAY + 60_000)
+    renderApp('/')
+    expect(tile('Fitness')).toBe('17/100')
+    expect(screen.queryByText(/without a training session\./)).not.toBeInTheDocument()
+  })
+
+  it('does not decay before a full day has passed', () => {
+    seedCareer(newGame())
+    vi.setSystemTime(T0 + DAY - 1)
+    renderApp('/')
+    expect(tile('Fitness')).toBe('20/100')
+  })
+
+  it('applies decay when the app becomes visible again', async () => {
+    seedCareer(newGame())
+    renderApp('/')
+    expect(tile('Fitness')).toBe('20/100')
+    vi.setSystemTime(T0 + 2 * DAY)
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(tile('Fitness')).toBe('18/100')
+    expect(readSave()!.state.athlete.fitness).toBe(18)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(screen.queryByText(/Fitness −2/)).not.toBeInTheDocument()
   })
 
   it('links to the Training screen', async () => {
     const user = userEvent.setup()
+    seedCareer()
     const { router } = renderApp('/')
     await user.click(screen.getByRole('link', { name: 'Go to training' }))
     expect(router.state.location.pathname).toBe('/training')
-    expect(screen.getByRole('heading', { level: 1, name: 'Training' })).toBeInTheDocument()
   })
 
   it('reflects training done on the Training screen', async () => {
     const user = userEvent.setup()
+    seedCareer()
     renderApp('/training')
     await user.click(screen.getByRole('button', { name: 'Complete day 1: Easy run' }))
     await user.click(screen.getByRole('link', { name: 'Dashboard' }))
-    expect(tile('XP')).toBe('10')
-    expect(tile('Fitness')).toBe('53/100')
-    expect(tile('Fatigue')).toBe('15/100')
+    expect(tile('XP')).toBe('9')
+    expect(tile('Fitness')).toBe('22/100')
+    expect(tile('Fatigue')).toBe('5/100')
     expect(screen.getByText('Week 1 · Day 2 of 7')).toBeInTheDocument()
-    expect(screen.getByText('10 XP earned this week')).toBeInTheDocument()
   })
 
-  it('resets the demo after confirmation and clears the save', async () => {
+  it('reset demo asks for confirmation, then clears the save and returns to profile selection', async () => {
     const user = userEvent.setup()
-    seedSave((state) => {
-      state.athlete.xp = 120
-      state.athlete.fatigue = 60
-    })
+    seedCareer(withAthlete(newGame(), { xp: 120 }))
     renderApp('/')
-    expect(tile('XP')).toBe('120')
 
     await user.click(screen.getByRole('button', { name: 'Reset demo' }))
     expect(screen.getByRole('button', { name: 'Confirm reset' })).toHaveFocus()
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(tile('XP')).toBe('120')
-    expect(localStorage.getItem(SAVE_KEY)).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Reset demo' })).toHaveFocus()
+    expect(localStorage.getItem(SAVE_KEY)).not.toBeNull()
 
     await user.click(screen.getByRole('button', { name: 'Reset demo' }))
     await user.click(screen.getByRole('button', { name: 'Confirm reset' }))
-    expect(tile('XP')).toBe('0')
-    expect(tile('Fatigue')).toBe('10/100')
+    expect(screen.getByRole('heading', { level: 1, name: 'Choose your athlete' })).toBeInTheDocument()
+    expect(screen.queryByText(/will replace your previous saved career/)).not.toBeInTheDocument()
     expect(localStorage.getItem(SAVE_KEY)).toBeNull()
-    expect(screen.getByText(/Demo reset\./)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reset demo' })).toHaveFocus()
-  })
-
-  it('recovers from a corrupted save with a notice instead of crashing', async () => {
-    const user = userEvent.setup()
-    localStorage.setItem(SAVE_KEY, '{"schemaVersion":1,"state":{"athlete":')
-    renderApp('/')
-    expect(tile('XP')).toBe('0')
-    expect(screen.getByText(/saved game could not be loaded/)).toBeInTheDocument()
-    expect(localStorage.getItem(SAVE_KEY)).toBeNull()
-    await user.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(screen.queryByText(/saved game could not be loaded/)).not.toBeInTheDocument()
-  })
-
-  it('recovers from a save with an unsupported schema version', () => {
-    localStorage.setItem(
-      SAVE_KEY,
-      JSON.stringify({ schemaVersion: 99, savedAt: '', state: createInitialGameState() }),
-    )
-    renderApp('/')
-    expect(tile('Level')).toBe('1')
-    expect(screen.getByText(/saved game could not be loaded/)).toBeInTheDocument()
+    expect(document.getElementById('main-content')).toHaveFocus()
   })
 })
 
 describe('placeholder screens', () => {
   it.each(['/career', '/equipment', '/races'])('%s remains a placeholder', (path) => {
+    seedCareer()
     renderApp(path)
     expect(screen.getByRole('heading', { name: 'Planned for a later milestone' })).toBeInTheDocument()
   })

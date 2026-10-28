@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
-import { useGame } from '../../app/game/gameContext'
+import { Link } from 'react-router'
+import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
 import { formatDelta } from '../../components/format'
@@ -23,7 +24,7 @@ const ERROR_MESSAGES: Record<TrainingError, string> = {
 }
 
 export function TrainingScreen() {
-  const { state, lastExecution, planSession, executeDay } = useGame()
+  const { state, lastExecution, planSession, executeDay } = useCareer()
   const { athlete, week } = state
   const today = getCurrentDay(week)
   const ref: DayRef = { week: week.number, dayIndex: week.currentDayIndex }
@@ -98,6 +99,10 @@ export function TrainingScreen() {
               </dd>
             </div>
           </dl>
+          <p className={styles.hint}>
+            Fitness drops by 1 for each full day without a training session. Rest does not count as
+            training.
+          </p>
         </div>
 
         <button
@@ -159,7 +164,14 @@ function ExecutionFeedback({ result }: { result: ExecutionResult }) {
         XP {formatDelta(outcome.xpGained)} · Fitness {formatDelta(outcome.fitnessChange)} · Fatigue{' '}
         {formatDelta(outcome.fatigueChange)}
       </p>
-      {levelAfter > levelBefore && <p className={styles.levelUp}>Level up! Now Level {levelAfter}.</p>}
+      {levelAfter > levelBefore && (
+        <p className={styles.levelUp}>
+          Level up! Now Level {levelAfter}. +{result.attributePointsAwarded} attribute points.{' '}
+          <Link to="/attributes" className={styles.inlineLink}>
+            Allocate points
+          </Link>
+        </p>
+      )}
       <p className={styles.next}>
         {weekCompleted ? `Week ${executed.week} complete. Week ${state.week.number} has started. ` : ''}
         Next: Day {next.day}, {TRAINING_SESSIONS[next.session].label}.

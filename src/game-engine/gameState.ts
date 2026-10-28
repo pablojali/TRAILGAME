@@ -1,4 +1,5 @@
-import type { Athlete } from '../domain/athlete/athlete'
+import type { Athlete, ProfileId } from '../domain/athlete/athlete'
+import { PROFILES } from '../domain/athlete/profiles'
 import type { SessionType } from '../domain/training/sessions'
 
 export const DAYS_PER_WEEK = 7
@@ -31,6 +32,11 @@ export interface TrainingWeek {
 export interface GameState {
   athlete: Athlete
   week: TrainingWeek
+  /**
+   * Epoch milliseconds from which Fitness decay is measured: career creation, the last completed
+   * non-rest session, or the end of the last decay period applied.
+   */
+  fitnessDecayReference: number
 }
 
 /** Deterministic plan used for the first week and every following week. */
@@ -52,24 +58,20 @@ export function createWeek(number: number): TrainingWeek {
   }
 }
 
-export function createInitialGameState(): GameState {
+/** Starting state for a new career with the chosen profile, created at `now` (epoch ms). */
+export function createInitialGameState(profile: ProfileId, now: number): GameState {
   return {
     athlete: {
       name: 'Demo Runner',
-      archetype: 'all-rounder',
+      profile,
       xp: 0,
-      fitness: 50,
-      fatigue: 10,
-      attributes: {
-        endurance: 50,
-        speed: 50,
-        power: 50,
-        technique: 50,
-        strength: 50,
-        recovery: 50,
-      },
+      fitness: 20,
+      fatigue: 0,
+      attributes: { ...PROFILES[profile].attributes },
+      spentAttributePoints: 0,
     },
     week: createWeek(1),
+    fitnessDecayReference: now,
   }
 }
 

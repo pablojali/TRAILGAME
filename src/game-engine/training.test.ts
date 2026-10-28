@@ -1,120 +1,104 @@
 import { describe, expect, it } from 'vitest'
+import { PROFILE_IDS, PROFILES } from '../domain/athlete/profiles'
 import type { SessionType } from '../domain/training/sessions'
-import { createInitialGameState, DEFAULT_WEEK_PLAN, getDayStatus, type GameState } from './gameState'
-import { executeCurrentDay, planSession, previewSession, summarizeWeek, type DayRef } from './training'
+import { createInitialGameState, DEFAULT_WEEK_PLAN, getDayStatus } from './gameState'
+import { currentRef, execute, newGame, T0, withAthlete, withSession } from '../test/gameFixtures'
+import { executeCurrentDay, planSession, previewSession, summarizeWeek } from './training'
 
-function currentRef(state: GameState): DayRef {
-  return { week: state.week.number, dayIndex: state.week.currentDayIndex }
-}
-
-function execute(state: GameState) {
-  const result = executeCurrentDay(state, currentRef(state))
-  if (!result.ok) throw new Error(result.error)
-  return result.value
-}
-
-function withAthlete(overrides: Partial<GameState['athlete']>): GameState {
-  const state = createInitialGameState()
-  return { ...state, athlete: { ...state.athlete, ...overrides } }
-}
-
-function withSession(state: GameState, session: SessionType): GameState {
-  const result = planSession(state, currentRef(state), session)
-  if (!result.ok) throw new Error(result.error)
-  return result.value
-}
+const HOUR = 60 * 60 * 1000
+/** Default plan: 9 + 16 + 11 + 0 + 14 + 18 + 0. */
+const WEEK_XP = 68
 
 describe('createInitialGameState', () => {
-  it('creates the All-rounder demo athlete', () => {
-    const { athlete, week } = createInitialGameState()
+  it.each(PROFILE_IDS)('creates a %s career with the approved initial state', (profile) => {
+    const { athlete, week, fitnessDecayReference } = createInitialGameState(profile, T0)
     expect(athlete).toEqual({
       name: 'Demo Runner',
-      archetype: 'all-rounder',
+      profile,
       xp: 0,
-      fitness: 50,
-      fatigue: 10,
-      attributes: { endurance: 50, speed: 50, power: 50, technique: 50, strength: 50, recovery: 50 },
+      fitness: 20,
+      fatigue: 0,
+      attributes: PROFILES[profile].attributes,
+      spentAttributePoints: 0,
     })
+    expect(fitnessDecayReference).toBe(T0)
     expect(week.number).toBe(1)
     expect(week.currentDayIndex).toBe(0)
     expect(week.days.map((d) => d.session)).toEqual(DEFAULT_WEEK_PLAN)
     expect(week.days.every((d) => d.outcome === null)).toBe(true)
   })
 
-  it('is deterministic and returns independent copies', () => {
-    const a = createInitialGameState()
-    const b = createInitialGameState()
-    expect(a).toEqual(b)
-    a.week.days[0]!.session = 'rest'
-    expect(b.week.days[0]!.session).toBe('easy-run')
+  it('copies profile attributes instead of sharing them', () => {
+    const state = newGame('climber')
+    state.athlete.attributes.climbing = 99
+    expect(PROFILES.climber.attributes.climbing).toBe(20)
   })
 
-  it('plans a mix of training and rest', () => {
-    expect(DEFAULT_WEEK_PLAN).toHaveLength(7)
-    expect(DEFAULT_WEEK_PLAN).toContain('rest')
-    expect(DEFAULT_WEEK_PLAN.filter((s) => s !== 'rest').length).toBeGreaterThan(3)
+  it('keeps the approved weekly plan without Trail technique', () => {
+    expect(DEFAULT_WEEK_PLAN).toEqual(['easy-run', 'intervals', 'strength', 'rest', 'hills', 'long-run', 'rest'])
+    expect(DEFAULT_WEEK_PLAN).not.toContain('trail-technique')
   })
 })
 
 describe('executeCurrentDay', () => {
   it.each<[SessionType, number, number, number]>([
-    ['easy-run', 10, 53, 15],
-    ['intervals', 18, 55, 24],
-    ['hills', 16, 55, 22],
-    ['long-run', 20, 56, 26],
-    ['strength', 12, 53, 18],
-    ['trail-technique', 12, 53, 16],
-    ['rest', 0, 50, 0],
+    ['easy-run', 9, 22, 5],
+    ['intervals', 16, 23, 14],
+    ['hills', 14, 23, 12],
+    ['long-run', 18, 23, 16],
+    ['strength', 11, 22, 8],
+    ['trail-technique', 11, 22, 6],
+    ['rest', 0, 20, 0],
   ])('applies %s: XP %i, fitness %i, fatigue %i', (session, xp, fitness, fatigue) => {
-    const result = execute(withSession(createInitialGameState(), session))
+    const result = execute(withSession(newGame(), session))
     expect(result.state.athlete).toMatchObject({ xp, fitness, fatigue })
   })
 
   it('rest reduces fatigue by 12 and grants no XP or fitness', () => {
-    const state = withSession(withAthlete({ xp: 40, fitness: 60, fatigue: 30 }), 'rest')
+    const state = withSession(withAthlete(newGame(), { xp: 40, fitness: 60, fatigue: 30 }), 'rest')
     const result = execute(state)
     expect(result.state.athlete).toMatchObject({ xp: 40, fitness: 60, fatigue: 18 })
     expect(result.outcome).toEqual({ xpGained: 0, fitnessChange: 0, fatigueChange: -12 })
   })
 
   it('clamps fatigue at 0 on rest', () => {
-    const result = execute(withSession(withAthlete({ fatigue: 5 }), 'rest'))
+    const result = execute(withSession(withAthlete(newGame(), { fatigue: 5 }), 'rest'))
     expect(result.state.athlete.fatigue).toBe(0)
     expect(result.outcome.fatigueChange).toBe(-5)
   })
 
   it('clamps fitness and fatigue at 100', () => {
-    const result = execute(withSession(withAthlete({ fitness: 98, fatigue: 95 }), 'long-run'))
+    const result = execute(withSession(withAthlete(newGame(), { fitness: 99, fatigue: 95 }), 'long-run'))
     expect(result.state.athlete.fitness).toBe(100)
     expect(result.state.athlete.fatigue).toBe(100)
-    expect(result.outcome).toEqual({ xpGained: 20, fitnessChange: 2, fatigueChange: 5 })
+    expect(result.outcome).toEqual({ xpGained: 18, fitnessChange: 1, fatigueChange: 5 })
   })
 
   it('keeps stats within 0–100 over many weeks of any session', () => {
     for (const session of ['long-run', 'rest'] as const) {
-      let state = createInitialGameState()
+      let state = newGame()
       for (let i = 0; i < 70; i++) {
         state = execute(withSession(state, session)).state
-        expect(state.athlete.fitness).toBeGreaterThanOrEqual(0)
-        expect(state.athlete.fitness).toBeLessThanOrEqual(100)
-        expect(state.athlete.fatigue).toBeGreaterThanOrEqual(0)
-        expect(state.athlete.fatigue).toBeLessThanOrEqual(100)
+        for (const v of [state.athlete.fitness, state.athlete.fatigue]) {
+          expect(v).toBeGreaterThanOrEqual(0)
+          expect(v).toBeLessThanOrEqual(100)
+        }
       }
     }
   })
 
-  it('never changes the six attributes', () => {
-    let state = createInitialGameState()
-    const before = state.athlete.attributes
-    for (let i = 0; i < 14; i++) state = execute(state).state
-    expect(state.athlete.attributes).toEqual(before)
+  it('never changes attributes automatically', () => {
+    let state = newGame('sprinter')
+    for (let i = 0; i < 28; i++) state = execute(state).state
+    expect(state.athlete.attributes).toEqual(PROFILES.sprinter.attributes)
+    expect(state.athlete.spentAttributePoints).toBe(0)
   })
 
   it('marks the day completed with its outcome and advances to the next day', () => {
-    const result = execute(createInitialGameState())
+    const result = execute(newGame())
     const { week } = result.state
     expect(week.currentDayIndex).toBe(1)
-    expect(week.days[0]!.outcome).toEqual({ xpGained: 10, fitnessChange: 3, fatigueChange: 5 })
+    expect(week.days[0]!.outcome).toEqual({ xpGained: 9, fitnessChange: 2, fatigueChange: 5 })
     expect(getDayStatus(week, 0)).toBe('completed')
     expect(getDayStatus(week, 1)).toBe('current')
     expect(getDayStatus(week, 2)).toBe('upcoming')
@@ -123,47 +107,54 @@ describe('executeCurrentDay', () => {
   })
 
   it('does not mutate the input state', () => {
-    const state = createInitialGameState()
+    const state = newGame()
     const snapshot = structuredClone(state)
     execute(state)
     expect(state).toEqual(snapshot)
   })
 
   it('rejects executing the same day twice', () => {
-    const state = createInitialGameState()
+    const state = newGame()
     const ref = currentRef(state)
-    const first = executeCurrentDay(state, ref)
+    const first = executeCurrentDay(state, ref, T0)
     if (!first.ok) throw new Error(first.error)
-    const second = executeCurrentDay(first.value.state, ref)
-    expect(second).toEqual({ ok: false, error: 'day-completed' })
+    expect(executeCurrentDay(first.value.state, ref, T0)).toEqual({ ok: false, error: 'day-completed' })
   })
 
   it('rejects executing a future day', () => {
-    const state = createInitialGameState()
-    expect(executeCurrentDay(state, { week: 1, dayIndex: 2 })).toEqual({
+    expect(executeCurrentDay(newGame(), { week: 1, dayIndex: 2 }, T0)).toEqual({
       ok: false,
       error: 'day-not-current',
     })
   })
 
   it('rejects a request for a different week', () => {
-    let state = createInitialGameState()
+    let state = newGame()
     for (let i = 0; i < 7; i++) state = execute(state).state
-    expect(executeCurrentDay(state, { week: 1, dayIndex: 0 })).toEqual({
-      ok: false,
-      error: 'wrong-week',
-    })
+    expect(executeCurrentDay(state, { week: 1, dayIndex: 0 }, T0)).toEqual({ ok: false, error: 'wrong-week' })
   })
 
-  it('reports level changes', () => {
-    const result = execute(withSession(withAthlete({ xp: 90 }), 'easy-run'))
+  it('reports level changes and awards 2 attribute points per level', () => {
+    const below = execute(withSession(withAthlete(newGame(), { xp: 90 }), 'easy-run'))
+    expect(below.state.athlete.xp).toBe(99)
+    expect(below.attributePointsAwarded).toBe(0)
+
+    const result = execute(withSession(withAthlete(newGame(), { xp: 91 }), 'easy-run'))
+    expect(result.state.athlete.xp).toBe(100)
     expect(result.levelBefore).toBe(1)
     expect(result.levelAfter).toBe(2)
-    expect(result.state.athlete.xp).toBe(100)
+    expect(result.attributePointsAwarded).toBe(2)
+  })
+
+  it('reaches level 5 at exactly 700 XP', () => {
+    const result = execute(withSession(withAthlete(newGame(), { xp: 682 }), 'long-run'))
+    expect(result.state.athlete.xp).toBe(700)
+    expect(result.levelAfter).toBe(5)
+    expect(result.attributePointsAwarded).toBe(2)
   })
 
   it('starts a new week after day 7 without resetting progression', () => {
-    let state = createInitialGameState()
+    let state = newGame()
     let last
     for (let i = 0; i < 7; i++) {
       last = execute(state)
@@ -175,12 +166,12 @@ describe('executeCurrentDay', () => {
     expect(state.week.currentDayIndex).toBe(0)
     expect(state.week.days.map((d) => d.session)).toEqual(DEFAULT_WEEK_PLAN)
     expect(state.week.days.every((d) => d.outcome === null)).toBe(true)
-    // Default plan: 10 + 18 + 12 + 0 + 16 + 20 + 0
-    expect(state.athlete.xp).toBe(76)
+    expect(state.athlete.xp).toBe(WEEK_XP)
+    expect(state.athlete.fitness).toBe(20 + 13)
   })
 
   it('accumulates XP across weeks and never decreases it', () => {
-    let state = createInitialGameState()
+    let state = newGame()
     let previousXp = 0
     for (let i = 0; i < 21; i++) {
       state = execute(state).state
@@ -188,45 +179,64 @@ describe('executeCurrentDay', () => {
       previousXp = state.athlete.xp
     }
     expect(state.week.number).toBe(4)
-    expect(state.athlete.xp).toBe(76 * 3)
+    expect(state.athlete.xp).toBe(WEEK_XP * 3)
+  })
+
+  describe('fitness decay reference', () => {
+    it('moves to the completion time after a non-rest session', () => {
+      const result = execute(newGame(), T0 + 30 * HOUR)
+      expect(result.state.fitnessDecayReference).toBe(T0 + 30 * HOUR)
+    })
+
+    it('is not changed by Rest', () => {
+      const result = execute(withSession(newGame(), 'rest'), T0 + 30 * HOUR)
+      expect(result.state.fitnessDecayReference).toBe(T0)
+    })
+
+    it('is not changed by advancing the simulated week', () => {
+      let state = newGame()
+      for (let i = 0; i < 7; i++) state = execute(withSession(state, 'rest'), T0 + i).state
+      expect(state.week.number).toBe(2)
+      expect(state.fitnessDecayReference).toBe(T0)
+      expect(state.athlete.fitness).toBe(20)
+    })
   })
 })
 
 describe('planSession', () => {
-  it('changes the current day only', () => {
-    const state = createInitialGameState()
-    const result = planSession(state, { week: 1, dayIndex: 0 }, 'long-run')
+  it('changes the current day only and allows Trail technique', () => {
+    const state = newGame()
+    const result = planSession(state, { week: 1, dayIndex: 0 }, 'trail-technique')
     if (!result.ok) throw new Error(result.error)
     expect(result.value.week.days.map((d) => d.session)).toEqual([
-      'long-run',
+      'trail-technique',
       ...DEFAULT_WEEK_PLAN.slice(1),
     ])
     expect(state.week.days[0]!.session).toBe('easy-run')
   })
 
-  it('does not change athlete stats', () => {
-    const state = createInitialGameState()
+  it('does not change athlete stats or the decay reference', () => {
+    const state = newGame()
     const result = planSession(state, currentRef(state), 'intervals')
-    expect(result.ok && result.value.athlete).toEqual(state.athlete)
+    if (!result.ok) throw new Error(result.error)
+    expect(result.value.athlete).toEqual(state.athlete)
+    expect(result.value.fitnessDecayReference).toBe(state.fitnessDecayReference)
   })
 
   it('rejects changing a completed day', () => {
-    const state = execute(createInitialGameState()).state
-    expect(planSession(state, { week: 1, dayIndex: 0 }, 'rest')).toEqual({
-      ok: false,
-      error: 'day-completed',
-    })
+    const state = execute(newGame()).state
+    expect(planSession(state, { week: 1, dayIndex: 0 }, 'rest')).toEqual({ ok: false, error: 'day-completed' })
   })
 
   it('rejects changing a future day', () => {
-    expect(planSession(createInitialGameState(), { week: 1, dayIndex: 3 }, 'rest')).toEqual({
+    expect(planSession(newGame(), { week: 1, dayIndex: 3 }, 'rest')).toEqual({
       ok: false,
       error: 'day-not-current',
     })
   })
 
   it('rejects unknown sessions', () => {
-    const state = createInitialGameState()
+    const state = newGame()
     expect(planSession(state, currentRef(state), 'sprint' as SessionType)).toEqual({
       ok: false,
       error: 'unknown-session',
@@ -236,17 +246,17 @@ describe('planSession', () => {
 
 describe('previewSession', () => {
   it('matches what execution applies', () => {
-    const state = withSession(withAthlete({ fitness: 97, fatigue: 92 }), 'intervals')
+    const state = withSession(withAthlete(newGame(), { fitness: 98, fatigue: 92 }), 'intervals')
     expect(previewSession(state, 'intervals')).toEqual(execute(state).outcome)
   })
 })
 
 describe('summarizeWeek', () => {
   it('counts completed days and XP for the current week', () => {
-    let state = createInitialGameState()
+    let state = newGame()
     expect(summarizeWeek(state)).toEqual({ completedDays: 0, totalDays: 7, xpGained: 0 })
     state = execute(state).state
     state = execute(state).state
-    expect(summarizeWeek(state)).toEqual({ completedDays: 2, totalDays: 7, xpGained: 28 })
+    expect(summarizeWeek(state)).toEqual({ completedDays: 2, totalDays: 7, xpGained: 25 })
   })
 })

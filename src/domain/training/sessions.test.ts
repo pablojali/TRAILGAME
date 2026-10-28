@@ -2,18 +2,18 @@ import { describe, expect, it } from 'vitest'
 import { isSessionType, SESSION_TYPES, TRAINING_SESSIONS } from './sessions'
 
 describe('TRAINING_SESSIONS', () => {
-  it('matches the approved M1 values', () => {
+  it('matches the approved M2 values', () => {
     const table = SESSION_TYPES.map((id) => {
       const s = TRAINING_SESSIONS[id]
       return [s.label, s.xp, s.fitnessDelta, s.fatigueDelta]
     })
     expect(table).toEqual([
-      ['Easy run', 10, 3, 5],
-      ['Intervals', 18, 5, 14],
-      ['Hills', 16, 5, 12],
-      ['Long run', 20, 6, 16],
-      ['Strength', 12, 3, 8],
-      ['Trail technique', 12, 3, 6],
+      ['Easy run', 9, 2, 5],
+      ['Intervals', 16, 3, 14],
+      ['Hills', 14, 3, 12],
+      ['Long run', 18, 3, 16],
+      ['Strength', 11, 2, 8],
+      ['Trail technique', 11, 2, 6],
       ['Rest', 0, 0, -12],
     ])
   })

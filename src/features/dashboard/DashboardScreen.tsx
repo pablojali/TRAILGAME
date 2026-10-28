@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { useGame } from '../../app/game/gameContext'
+import { useCareer, useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card, Meter, StatTile } from '../../components/Card'
 import { formatDelta } from '../../components/format'
 import grid from '../../components/Grid.module.css'
 import { Screen } from '../../components/Screen'
-import { ARCHETYPE_LABELS } from '../../domain/athlete/athlete'
+import { ATTRIBUTE_IDS, ATTRIBUTE_LABELS, ATTRIBUTE_MAX } from '../../domain/athlete/athlete'
+import { PROFILES } from '../../domain/athlete/profiles'
+import { getUnspentAttributePoints } from '../../game-engine/attributes'
 import { getLevelProgress } from '../../domain/athlete/levels'
 import { TRAINING_SESSIONS } from '../../domain/training/sessions'
 import { DAYS_PER_WEEK, getCurrentDay, getDayStatus } from '../../game-engine/gameState'
@@ -14,9 +16,10 @@ import { previewSession, summarizeWeek } from '../../game-engine/training'
 import styles from './DashboardScreen.module.css'
 
 export function DashboardScreen() {
-  const { state } = useGame()
+  const { state } = useCareer()
   const { athlete, week } = state
   const progress = getLevelProgress(athlete.xp)
+  const unspent = getUnspentAttributePoints(athlete)
   const today = getCurrentDay(week)
   const todaySession = TRAINING_SESSIONS[today.session]
   const effects = previewSession(state, today.session)
@@ -47,7 +50,7 @@ export function DashboardScreen() {
 
       <Card title={athlete.name}>
         <div className={styles.identity}>
-          <span className={styles.badge}>{ARCHETYPE_LABELS[athlete.archetype]}</span>
+          <span className={styles.badge}>{PROFILES[athlete.profile].label}</span>
           <span className={styles.level}>Level {progress.level}</span>
         </div>
         {progress.nextLevelMinXp === null ? (
@@ -67,6 +70,18 @@ export function DashboardScreen() {
             />
           </>
         )}
+        <div className={styles.pointsRow}>
+          <p>
+            <strong className={styles.points}>{unspent}</strong> unspent attribute{' '}
+            {unspent === 1 ? 'point' : 'points'}
+          </p>
+          <Link
+            to="/attributes"
+            className={`${button.button} ${unspent > 0 ? button.primary : button.secondary}`}
+          >
+            {unspent > 0 ? 'Allocate points' : 'View attributes'}
+          </Link>
+        </div>
       </Card>
 
       <div className={grid.stats}>
@@ -115,15 +130,33 @@ export function DashboardScreen() {
         </Card>
       </div>
 
+      <Card title="Attributes">
+        <ul className={styles.attributes}>
+          {ATTRIBUTE_IDS.map((id) => (
+            <li key={id}>
+              <span className={styles.attributeText}>
+                <span>{ATTRIBUTE_LABELS[id]}</span>
+                <strong>{athlete.attributes[id]}</strong>
+              </span>
+              <Meter
+                label={ATTRIBUTE_LABELS[id]}
+                value={athlete.attributes[id]}
+                max={ATTRIBUTE_MAX}
+                valueText={`${athlete.attributes[id]} of ${ATTRIBUTE_MAX}`}
+              />
+            </li>
+          ))}
+        </ul>
+      </Card>
+
       <ResetDemo />
     </Screen>
   )
 }
 
 function ResetDemo() {
-  const { resetDemo } = useGame()
+  const { resetCareer } = useGame()
   const [confirming, setConfirming] = useState(false)
-  const [message, setMessage] = useState('')
   const resetButton = useRef<HTMLButtonElement>(null)
   const confirmButton = useRef<HTMLButtonElement>(null)
   // Keeps keyboard focus on the visible control when the buttons swap.
@@ -145,18 +178,14 @@ function ResetDemo() {
       {confirming ? (
         <>
           <p className={styles.muted}>
-            This erases all saved progress and restores the starting demo athlete.
+            This erases all saved progress. You will then choose a new starting profile.
           </p>
           <div className={styles.actions}>
             <button
               ref={confirmButton}
               type="button"
               className={`${button.button} ${button.danger}`}
-              onClick={() => {
-                resetDemo()
-                setMessage('Demo reset. The athlete and plan are back to the starting state.')
-                toggle(false)
-              }}
+              onClick={resetCareer}
             >
               Confirm reset
             </button>
@@ -171,25 +200,19 @@ function ResetDemo() {
         </>
       ) : (
         <>
-          <p className={styles.muted}>Start over with the original demo athlete and plan.</p>
+          <p className={styles.muted}>Start over with a new career and starting profile.</p>
           <div className={styles.actions}>
             <button
               ref={resetButton}
               type="button"
               className={`${button.button} ${button.secondary}`}
-              onClick={() => {
-                setMessage('')
-                toggle(true)
-              }}
+              onClick={() => toggle(true)}
             >
               Reset demo
             </button>
           </div>
         </>
       )}
-      <p role="status" className={styles.muted}>
-        {message}
-      </p>
     </Card>
   )
 }

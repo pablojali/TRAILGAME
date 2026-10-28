@@ -1,10 +1,12 @@
 # TRAILGAME — Trail Manager
 
 Trail-running career management game (beta). Mobile-first, responsive React + TypeScript web app.
-See [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the product and technical specification.
+See [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the technical specification and
+[`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) for the game design.
 
-**Current milestone:** M1 — playable local training loop (Dashboard and Training are functional;
-Equipment, Races and Career are placeholders). Progress is saved in the browser's localStorage only.
+**Current milestone:** M2 — Athlete Progression (four starting profiles, levels with attribute
+points, real-time Fitness decay). Dashboard, Training and Attributes are functional; Equipment, Races
+and Career are placeholders. Progress is saved in the browser's localStorage only.
 
 ## Requirements
 
@@ -48,12 +50,12 @@ Vite prints the `Network:` URL to open on the phone.
 
 ```text
 src/
-├── app/          # app shell, routes, navigation config, game provider (React state + saving)
+├── app/          # app shell, routes, navigation config, game provider (phases, saving, decay)
 ├── components/   # reusable UI components (Screen, Card, Meter, Icon)
-├── domain/       # typed models and rules: athlete, levels, training sessions
-├── game-engine/  # pure game state and daily progression (no React)
-├── repositories/ # persistence (localStorage in M1), versioned and validated
-├── features/     # route-level screens: dashboard, training, equipment, races, career
+├── domain/       # typed models and rules: athlete, profiles, levels, training sessions
+├── game-engine/  # pure rules: daily progression, attribute points, Fitness decay (no React)
+├── repositories/ # persistence (localStorage), versioned and validated
+├── features/     # route-level screens: career setup, dashboard, training, attributes and placeholders
 ├── styles/       # theme tokens (CSS variables) and global styles
 └── test/         # test setup and helpers
 ```
@@ -61,23 +63,31 @@ src/
 Further folders from `DEVELOPMENT.md` §4 (`services/`, `integrations/`, `supabase/`) are added in the
 milestone that needs them.
 
-## Game rules and saved data (M1)
+## Game rules and saved data (M2)
 
-- Training values (XP, fitness, fatigue per session) live only in `src/domain/training/sessions.ts`.
-- Level thresholds live only in `src/domain/athlete/levels.ts`.
-- The game is saved under the localStorage key `trailgame.save` with a `schemaVersion`. Missing,
-  malformed or unsupported saves are discarded and a new demo game starts, with an on-screen notice.
-- **Reset demo** (Dashboard) restores the starting athlete and plan and deletes the save.
+- Starting profiles and attributes: `src/domain/athlete/profiles.ts`.
+- Training values (XP, Fitness, Fatigue per session): `src/domain/training/sessions.ts`.
+- Level thresholds and attribute points per level: `src/domain/athlete/levels.ts`.
+- Fitness decay: `src/game-engine/fitnessDecay.ts` (−1 per full 24 h without a non-rest session).
+- The career is saved under the localStorage key `trailgame.save` with `schemaVersion: 2`. Loading
+  never deletes data: M1 (v1) saves, unknown versions and damaged data show a blocking screen with
+  **Restart Career** and **Exit**.
+- **Reset demo** (Dashboard) deletes the career and returns to profile selection.
 
-## Manual test checklist (M1)
+## Manual test checklist (M2)
 
-1. Fresh start (or after **Reset demo**): Week 1 · Day 1, Level 1, 0 XP, Fitness 50/100, Fatigue 10/100.
-2. Training: change the day 1 session; the effects preview and plan update.
-3. Complete the day: feedback appears, day 1 shows *Completed*, day 2 becomes *Today*.
-4. Reload the page: progress and the edited plan are kept.
-5. Complete all 7 days: Week 2 starts on day 1 with XP, fitness and fatigue kept.
-6. Dashboard shows the same values as Training.
-7. Reset demo → Confirm reset: everything returns to step 1.
+1. First visit: every tab shows **Choose your athlete**. Pick each profile and check its six
+   attributes and the 96-point total; nothing starts until **Start career as …** is pressed.
+2. New career: Level 1, 0 XP, Fitness 20/100, Fatigue 0/100, 0 unspent points, profile attributes.
+3. Training: effects show the M2 values (e.g. Easy run +9 XP, +2 Fitness, +5 Fatigue). Trail
+   technique can be selected but is not in the plan. Complete a day; reload; progress is kept.
+4. Level up at 100 XP: feedback shows +2 attribute points; **Allocate points** opens Attributes.
+   Each **+1** raises one attribute; buttons become inactive at 0 points.
+5. Fitness decay: in the browser dev tools, set the saved `fitnessDecayReference` 3 days in the past
+   and reload — Fitness drops by 3 once, with a notice; reloading again changes nothing.
+6. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
+   tab. **Exit** keeps the save. **Restart Career** → tick the box → choose a profile → new career.
+7. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
 
 ## Deployment — Cloudflare Pages
 

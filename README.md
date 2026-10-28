@@ -103,7 +103,7 @@ milestone that needs them.
 
 1. First visit: every tab shows **Choose your athlete**, with no bottom navigation and no page
    scroll. Switch Female/Male (all runner images change), swipe or use the dots to compare the
-   profiles, then **Choose …**. Customize the avatar (Hair, Skin, Outfit tabs; the Female/Male
+   profiles, then **Choose …**. Customize the avatar (a black silhouette placeholder) (Hair, Skin, Outfit tabs; the Female/Male
    choice is the same as on step 1), **Continue**, and enter a name (1–16 characters). Nothing is
    saved until **Start career**; the name then appears on the Dashboard.
 2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner's avatar (as customized,

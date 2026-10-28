@@ -600,9 +600,12 @@ Dashboard runner were later extended by Avatar creation Stage A (next section).
 working branch; not merged into `main`. Owner decisions (28 October 2026): the developer's
 recommendations were accepted except one — **shoes are equipment**, not part of the appearance.
 
-- **Style:** the painted illustrations stay on the profile cards only. The avatar is a separate,
-  simple vector (SVG) drawing — standing, three-quarter view facing right — in
-  `src/components/avatar/Avatar.tsx`, reused by creation and the Dashboard.
+- **Style:** the painted illustrations stay on the profile cards only. The avatar is a separate SVG
+  drawing — standing, three-quarter view facing right — in `src/components/avatar/Avatar.tsx`, reused
+  by creation and the Dashboard. After owner review (the first coloured drawing was rejected), it is
+  a **black silhouette placeholder** with a light rim (owner decision, 28 October 2026) until final
+  layered artwork exists. The customization options are kept: hairstyles change the outline, and
+  skin tone is saved and shown on its colour swatch ("Skin tone shows with the final art").
 - **Flow:** Profile → Appearance → Name (three steps). The Female/Male toggle is on the profile step
   and mirrored on the appearance step (one shared choice). The name step is the final confirmation
   with the avatar preview. No page scroll at 360×640, 412×915 and 1280×800.

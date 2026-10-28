@@ -160,6 +160,8 @@ describe('career creation — appearance step', () => {
     await user.click(screen.getByRole('radio', { name: 'Braid' }))
     await user.click(screen.getByRole('tab', { name: 'Skin' }))
     expect(screen.getAllByRole('radio', { name: /Skin tone/ })).toHaveLength(4)
+    // The placeholder silhouette cannot show the tone, so the preview says so.
+    expect(screen.getByText('Skin tone shows with the final art.')).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: 'Skin tone 4' }))
     expect(avatar()).toHaveAccessibleName('Avatar preview: female, braid, skin tone 4, basic kit')
 

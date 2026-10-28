@@ -1,100 +1,56 @@
-/* Skin tones are CSS variables selected by the saved tone id. */
+/* Placeholder silhouette: every part uses the same ink, with a light rim so it reads on the dark UI. */
 .avatar {
-  --avatar-skin: #d9a77f;
-  --avatar-skin-shade: #c08e68;
-  --avatar-hair: #3b2a20;
-  --avatar-top: #f2efe6;
-  --avatar-top-edge: #c9c4b6;
-  --avatar-shorts: #262b29;
+  --avatar-ink: #050606;
 
   display: block;
   overflow: visible;
+  filter: drop-shadow(0 0 1px rgb(242 239 230 / 0.55)) drop-shadow(0 0 6px rgb(242 239 230 / 0.12));
 }
 
-.avatar[data-skin='tone-1'] {
-  --avatar-skin: #f1d3b6;
-  --avatar-skin-shade: #dcb898;
-}
-
-.avatar[data-skin='tone-2'] {
-  --avatar-skin: #d9a77f;
-  --avatar-skin-shade: #c08e68;
-}
-
-.avatar[data-skin='tone-3'] {
-  --avatar-skin: #a8714c;
-  --avatar-skin-shade: #8e5c3c;
-}
-
-.avatar[data-skin='tone-4'] {
-  --avatar-skin: #6b4430;
-  --avatar-skin-shade: #573523;
-}
-
-.skinFill {
-  fill: var(--avatar-skin);
-}
-
-.skinShadeFill {
-  fill: var(--avatar-skin-shade);
+.ink {
+  fill: var(--avatar-ink);
 }
 
 .limb {
   fill: none;
+  stroke: var(--avatar-ink);
   stroke-width: 8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.skin {
-  stroke: var(--avatar-skin);
-}
-
-.skinShade {
-  stroke: var(--avatar-skin-shade);
-}
-
-.top {
-  fill: var(--avatar-top);
-  stroke: var(--avatar-top-edge);
-  stroke-width: 0.8;
-  stroke-linejoin: round;
-}
-
 .sleeve {
   fill: none;
-  stroke: var(--avatar-top);
+  stroke: var(--avatar-ink);
   stroke-width: 12;
-  stroke-linecap: round;
-}
-
-.shorts {
-  fill: var(--avatar-shorts);
-  /* Lifts the dark shorts off the dark UI. */
-  stroke: #4a524e;
-  stroke-width: 0.8;
-  stroke-linejoin: round;
-}
-
-.hair {
-  fill: var(--avatar-hair);
-}
-
-.buzz {
-  opacity: 0.85;
-}
-
-.feature {
-  fill: #1d1714;
-}
-
-.mouth {
-  fill: none;
-  stroke: #1d1714;
-  stroke-width: 1.2;
   stroke-linecap: round;
 }
 
 .shadow {
   fill: rgb(0 0 0 / 0.35);
+}
+
+/* Skin tones, selected by the saved tone id. */
+.skinChip {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--avatar-skin);
+}
+
+.skinChip[data-skin='tone-1'] {
+  --avatar-skin: #f1d3b6;
+}
+
+.skinChip[data-skin='tone-2'] {
+  --avatar-skin: #d9a77f;
+}
+
+.skinChip[data-skin='tone-3'] {
+  --avatar-skin: #a8714c;
+}
+
+.skinChip[data-skin='tone-4'] {
+  --avatar-skin: #6b4430;
 }

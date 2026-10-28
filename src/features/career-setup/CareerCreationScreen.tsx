@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
-import { Avatar } from '../../components/avatar/Avatar'
+import { Avatar, SkinToneChip } from '../../components/avatar/Avatar'
 import {
   defaultAppearance,
   hairForSex,
@@ -396,6 +396,7 @@ function AppearanceStep({
         <div className={styles.previewStage}>
           <Avatar sex={sex} appearance={appearance} label={previewLabel} />
         </div>
+        <p className={styles.previewNote}>Skin tone shows with the final art.</p>
       </div>
 
       <div className={styles.tabs} role="tablist" aria-label="Appearance" onKeyDown={onTabKeyDown}>
@@ -435,7 +436,11 @@ function AppearanceStep({
                   className={styles.srOnlyInput}
                 />
                 <span className={styles.swatchArt}>
-                  <Avatar sex={sex} appearance={option.swatch} crop={option.crop} />
+                  {tab === 'skin' ? (
+                    <SkinToneChip skin={option.swatch.skin} />
+                  ) : (
+                    <Avatar sex={sex} appearance={option.swatch} crop={option.crop} />
+                  )}
                 </span>
                 <span className={option.caption ? styles.swatchCaption : styles.srOnly}>{option.label}</span>
               </label>

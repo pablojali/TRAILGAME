@@ -60,17 +60,17 @@ describe('executeCurrentDay', () => {
     ['long-run', 18, 23, 16],
     ['strength', 11, 22, 8],
     ['trail-technique', 11, 22, 6],
-    ['rest', 0, 20, 0],
+    ['rest', 0, 18, 0],
   ])('applies %s: XP %i, fitness %i, fatigue %i', (session, xp, fitness, fatigue) => {
     const result = execute(withSession(newGame(), session))
     expect(result.state.athlete).toMatchObject({ xp, fitness, fatigue })
   })
 
-  it('rest reduces fatigue by 8 and grants no XP or fitness', () => {
+  it('rest reduces fatigue by 8 and Fitness by 2, and grants no XP', () => {
     const state = withSession(withAthlete(newGame(), { xp: 40, fitness: 60, fatigue: 30 }), 'rest')
     const result = execute(state)
-    expect(result.state.athlete).toMatchObject({ xp: 40, fitness: 60, fatigue: 22 })
-    expect(result.outcome).toEqual({ xpGained: 0, fitnessChange: 0, fatigueChange: -8 })
+    expect(result.state.athlete).toMatchObject({ xp: 40, fitness: 58, fatigue: 22 })
+    expect(result.outcome).toEqual({ xpGained: 0, fitnessChange: -2, fatigueChange: -8 })
   })
 
   it('clamps fatigue at 0 on rest', () => {
@@ -180,7 +180,8 @@ describe('executeCurrentDay', () => {
     expect(state.week.days.map((d) => d.session)).toEqual(DEFAULT_WEEK_PLAN)
     expect(state.week.days.every((d) => d.outcome === null)).toBe(true)
     expect(state.athlete.xp).toBe(WEEK_XP)
-    expect(state.athlete.fitness).toBe(20 + 13)
+    // Default plan: +2 +3 +2 −2 +3 +3 −2.
+    expect(state.athlete.fitness).toBe(20 + 9)
   })
 
   it('accumulates XP across weeks and never decreases it', () => {
@@ -213,7 +214,8 @@ describe('executeCurrentDay', () => {
       for (let i = 0; i < 7; i++) state = execute(withSession(state, 'rest'), T0 + i).state
       expect(state.week.number).toBe(2)
       expect(state.fitnessDecayReference).toBe(T0)
-      expect(state.athlete.fitness).toBe(20)
+      // Only the Rest effect (−2 per day), no extra decay from the simulated days.
+      expect(state.athlete.fitness).toBe(20 - 7 * 2)
     })
   })
 })

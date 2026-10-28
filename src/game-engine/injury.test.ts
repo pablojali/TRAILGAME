@@ -37,7 +37,7 @@ describe('injury rule', () => {
   it('never applies to Rest', () => {
     expect(previewSession(withAthlete(newGame(), { fatigue: 100 }), 'rest')).toEqual({
       xpGained: 0,
-      fitnessChange: 0,
+      fitnessChange: -2,
       fatigueChange: -8,
     })
   })

@@ -66,7 +66,8 @@ describe('applyFitnessDecay', () => {
 
   it('is not reset by Rest', () => {
     const rested = execute(withSession(newGame(), 'rest'), T0 + 30 * HOUR).state
-    expect(applyFitnessDecay(rested, T0 + 2 * DAY).state.athlete.fitness).toBe(18)
+    expect(rested.athlete.fitness).toBe(18) // Rest: −2
+    expect(applyFitnessDecay(rested, T0 + 2 * DAY).state.athlete.fitness).toBe(16)
   })
 
   it.each([

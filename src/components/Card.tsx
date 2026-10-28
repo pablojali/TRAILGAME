@@ -15,25 +15,6 @@ export function Card({ title, children }: CardProps) {
   )
 }
 
-interface StatTileProps {
-  label: string
-  /** Display value; placeholders use an em dash until data exists. */
-  value: string
-  tone?: 'brand' | 'accent' | 'ochre'
-  /** Shows an accessible bar for values on a fixed scale. */
-  meter?: { value: number; min?: number; max: number }
-}
-
-export function StatTile({ label, value, tone = 'brand', meter }: StatTileProps) {
-  return (
-    <div className={`${styles.statTile} ${styles[tone]}`}>
-      <span className={styles.statLabel}>{label}</span>
-      <span className={styles.statValue}>{value}</span>
-      {meter && <Meter label={label} {...meter} />}
-    </div>
-  )
-}
-
 interface MeterProps {
   label: string
   value: number

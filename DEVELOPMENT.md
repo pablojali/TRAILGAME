@@ -543,8 +543,21 @@ screen per commit on the working branch; not merged into `main`.
 - **Creation artwork:** placeholders only (owner decision). Final images go in
   `assets/runner/creation/{sex}/{profile}.webp` (or `.png`) and are picked up without code changes.
   The reference photos in `assets/runner/` are style references, not used in the app.
-- **Dashboard and Training — pending**, with open decisions (equipment layers, Mon–Sun labels,
-  activity duration/intensity data, placement of existing actions).
+- **Dashboard — implemented.** The first screen fits between the brand bar and the bottom navigation
+  at 360×640 and 412×915: "Name - Profile · Lv N" and "Week N · Monday" above a centred runner,
+  attributes on the left (short names and bars), Level, XP (bar to the next level), Fitness and
+  Fatigue on the right. Fatigue of 70 or more is shown as "High" in a warning colour (display-only
+  threshold, not a gameplay rule). Attribute points, Today, the week summary and Reset demo are cards
+  below the first screen (owner decision).
+- **Dashboard runner:** separate from the creation art. Base body per sex at
+  `assets/runner/dashboard/{sex}/body.webp` (or `.png`) plus stacked equipment layers at
+  `assets/runner/dashboard/{sex}/equipment/{item}.webp|png` (`src/features/dashboard/dashboardArt.ts`).
+  There is no equipment system yet, so a new career shows the base body only; until artwork exists a
+  labelled placeholder with minimal base clothing is shown (owner decision).
+- **Week days:** labelled Monday–Sunday (`src/domain/training/weekdays.ts`); day 1 of every simulated
+  week is Monday, independent of the real date (owner decision).
+- **Training — pending.** Open point: the spec's activity duration, distance and intensity do not
+  exist in the session data.
 
 > **Note:** the milestones below are the original plan. Their names, order and scope are to be
 > confirmed by the PM. M3–M6 keep their original numbers. The original "Persistence and account"

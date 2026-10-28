@@ -83,16 +83,19 @@ milestone that needs them.
    scroll. Switch Female/Male (all runner images change), swipe or use the dots to compare the
    profiles, then **Choose …** and enter a name (1–16 characters). Nothing is saved until
    **Start career**; the name then appears on the Dashboard.
-2. New career: Level 1, 0 XP, Fitness 20/100, Fatigue 0/100, 0 unspent points, profile attributes.
-3. Training: effects show the M2 values (e.g. Easy run +9 XP, +2 Fitness, +5 Fatigue). Trail
+2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner (placeholder, no
+   equipment), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
+   attribute points, Today, the week and Reset demo are below it.
+3. New career: Level 1, 0 XP, Fitness 20/100, Fatigue 0/100, 0 unspent points, profile attributes.
+4. Training: effects show the M2 values (e.g. Easy run +9 XP, +2 Fitness, +5 Fatigue). Trail
    technique can be selected but is not in the plan. Complete a day; reload; progress is kept.
-4. Level up at 100 XP: feedback shows +2 attribute points; **Allocate points** opens Attributes.
+5. Level up at 100 XP: feedback shows +2 attribute points; **Allocate points** opens Attributes.
    Each **+1** raises one attribute; buttons become inactive at 0 points.
-5. Fitness decay: in the browser dev tools, set the saved `fitnessDecayReference` 3 days in the past
+6. Fitness decay: in the browser dev tools, set the saved `fitnessDecayReference` 3 days in the past
    and reload — Fitness drops by 3 once, with a notice; reloading again changes nothing.
-6. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
+7. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
    tab. **Exit** keeps the save. **Restart Career** → tick the box → choose a profile → new career.
-7. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
+8. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
 
 ## Deployment — Cloudflare Pages
 

@@ -1,95 +1,162 @@
-.hero {
-  height: 120px;
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
   overflow: hidden;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, #1c2a23 0%, var(--surface) 100%);
-  border: 1px solid var(--border);
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.ridge {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.ridgeBack {
-  fill: var(--brand-strong);
-}
-
-.ridgeFront {
-  fill: var(--brand);
-}
-
-.trail {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-dasharray: 6 6;
-  vector-effect: non-scaling-stroke;
-}
-
-.muted {
-  color: var(--text-muted);
+/*
+ * First screen: fills the visible height between the brand bar (53px) and the bottom navigation,
+ * so the runner and the key numbers are visible without scrolling. Cards follow below.
+ */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: calc(
+    100dvh - 53px - var(--bottom-nav-height) - 1px - 2 * var(--space-4) - env(safe-area-inset-top) -
+      env(safe-area-inset-bottom)
+  );
+  min-height: 400px;
 }
 
 .identity {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
+  text-align: center;
 }
 
-.badge {
-  padding: var(--space-1) var(--space-3);
-  border-radius: 999px;
-  background: var(--brand-strong);
-  color: var(--brand-text);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-}
-
-.level {
-  color: var(--accent-secondary);
-  font-weight: 800;
-}
-
-.session {
+.identityName {
   font-size: var(--font-size-lg);
   font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
-.weekDots {
+.when {
+  color: var(--accent-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.stage {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: minmax(0, 84px) minmax(0, 1fr) minmax(0, 84px);
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Narrow, semi-transparent side cards. Minimum text size 12px. */
+.side {
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgb(26 32 29 / 0.85);
+  font-size: var(--font-size-xs);
+}
+
+.sideList {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.weekDots li {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--surface-raised);
-}
-
-.weekDots .completed {
-  background: var(--brand-text);
-}
-
-.weekDots .current {
-  background: var(--accent);
-}
-
-.actions {
+.attributeText {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
+  justify-content: space-between;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  font-weight: 700;
 }
 
-.effects span {
-  white-space: nowrap;
+.value {
+  color: var(--text);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.side [role='meter'] {
+  height: 4px;
+  margin-top: 2px;
+}
+
+.side [role='meter'].sideMeter {
+  color: var(--brand-text);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat dt {
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat dd {
+  margin: 0;
+}
+
+.stat .value {
+  font-size: var(--font-size-md);
+}
+
+.statNote {
+  color: var(--text-muted);
+}
+
+.side [role='meter'].xpMeter {
+  color: var(--accent-secondary);
+}
+
+.side [role='meter'].fitnessMeter {
+  color: var(--brand-text);
+}
+
+.side [role='meter'].fatigueMeter {
+  color: var(--accent);
+}
+
+/* High fatigue: warning colour plus a text label, so it is not conveyed by colour alone. */
+.fatigueHigh .value,
+.fatigueHigh dt {
+  color: #ff8a6b;
+}
+
+.fatigueHigh [role='meter'].fatigueMeter {
+  color: #ff6b4a;
+}
+
+.highTag {
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* Cards below the first screen. */
+.cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
 }
 
 .pointsRow {
@@ -105,23 +172,84 @@
   font-size: var(--font-size-lg);
 }
 
-.attributes {
+.session {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.effects span {
+  white-space: nowrap;
+}
+
+.weekDots {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3) var(--space-5);
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.attributeText {
+.weekDots li {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.weekDots li::after {
+  content: '';
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+}
+
+.weekDotLabel {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.weekDots .completed::after {
+  background: var(--brand-text);
+}
+
+.weekDots .current::after {
+  background: var(--accent);
+}
+
+.weekDots .current .weekDotLabel {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
 @media (min-width: 768px) {
-  .attributes {
+  .hero {
+    height: calc(100dvh - 2 * var(--space-6));
+    max-height: 760px;
+  }
+
+  .stage {
+    grid-template-columns: minmax(0, 160px) minmax(0, 1fr) minmax(0, 160px);
+    gap: var(--space-4);
+  }
+
+  .side {
+    padding: var(--space-3);
+    font-size: var(--font-size-sm);
+  }
+
+  .cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

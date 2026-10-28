@@ -40,43 +40,6 @@
   transform: rotate(45deg);
 }
 
-.statTile {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-3) var(--space-4);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-left-width: 4px;
-  border-radius: var(--radius-md);
-}
-
-.brand {
-  border-left-color: var(--brand-text);
-}
-
-.accent {
-  border-left-color: var(--accent);
-}
-
-.ochre {
-  border-left-color: var(--accent-secondary);
-}
-
-.statLabel {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.statValue {
-  font-size: var(--font-size-lg);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
 .meter {
   color: var(--accent-secondary);
   height: 6px;
@@ -93,14 +56,3 @@
   transition: width var(--transition-fast);
 }
 
-.brand .meter {
-  color: var(--brand-text);
-}
-
-.accent .meter {
-  color: var(--accent);
-}
-
-.ochre .meter {
-  color: var(--accent-secondary);
-}

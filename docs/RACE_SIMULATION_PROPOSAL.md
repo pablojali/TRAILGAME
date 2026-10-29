@@ -1,306 +1,424 @@
-# M4.2 — Race Simulation Model: Proposal
+# M4.2 — Race Simulation Model: Proposal (revision 2)
 
-**Status:** Proposal for owner approval. **Nothing in this document is implemented.** Per Game Design
-Bible §10.5 and §10.13, no simulation formula is coded until the owner approves this model.
-**Author:** Claude Code (developer), 29 October 2026
-**Specification it answers:** Game Design Bible §10 (v1.3); depends on M4.1 (race catalog and entry).
+**Status:** Proposal for owner approval. **Not approved. Nothing in this document is implemented**,
+and no production code, training code or formula was changed to prepare it (Game Design Bible §10.5,
+§10.13). All decisions D1–D10 are **pending owner approval**.
+**Author:** Claude Code (developer). Revision 1: 29 October 2026. Revision 2: 29 October 2026, after
+the PM review "M4.2 review — changes required before owner approval".
 
-All numbers below were computed with a throwaway reference prototype of exactly these formulas, so
-the examples and test cases are consistent with the model. Every constant is configurable and listed
-in §5.6.
+**Supporting calculations:**
+
+- [`docs/race-simulation/prototype.mjs`](./race-simulation/prototype.mjs): a self-contained,
+  dependency-free reference script implementing every formula below.
+- [`docs/race-simulation/results.md`](./race-simulation/results.md): its full output. Every number in
+  this document comes from there.
+
+Reproduce with:
+
+```bash
+node docs/race-simulation/prototype.mjs --check > docs/race-simulation/results.md
+```
+
+`--check` exits with an error if any verification fails; it currently passes. Inside the repository
+(Node 22.18+), the script also checks that its copy of the catalog, fees, prizes, multipliers,
+profiles and level thresholds matches `src/`.
 
 ---
 
-## 1. Summary
+## Part A — Verified findings
 
-- Each race is split into **segments** (runnable, climb, descent) generated from the race's distance,
-  elevation gain, category and terrain technicality.
-- Each segment's time = its **effort-kilometres** × a base pace × the athlete's **ability** for that
-  terrain × **Fitness** × **Fatigue** × a **slowdown** that grows with the distance already covered.
-- The athlete races against a **field of 49 rivals** whose times are spread around a reference
-  athlete for the race's recommended level. **Position** = 1 + rivals who were faster.
-- Optional, small, seeded **day form** (±3–4 %, narrowed by Consistency) — owner decision.
-- A race **takes the current training day**: it adds Fatigue, counts as activity, can trigger the
-  existing injury rule, and grants race XP and coins (anti-farming applied).
-- The result screen explains the **3 factors that changed the time most**, computed from the
-  simulation itself; a factor that did not affect the calculation is never shown.
+### A1. Reproducibility (review item 1)
 
-Uses all six attributes, Fitness and Fatigue. Does **not** use equipment (no equipment model),
-strategy, weather, nutrition, cutoffs or DNF (out of scope, §10.14).
+**Athletes used.** Starting attributes are exactly those of `src/domain/athlete/profiles.ts`:
 
-## 2. Inputs
+| Profile | Endurance | Climbing | Speed | Technical | Recovery | Consistency |
+|---|---:|---:|---:|---:|---:|---:|
+| Climber | 16 | 20 | 13 | 18 | 14 | 15 |
+| Sprinter | 13 | 12 | 20 | 17 | 16 | 18 |
+| All-rounder | 16 | 16 | 16 | 16 | 16 | 16 |
+| Endurance | 20 | 15 | 14 | 13 | 18 | 16 |
 
-Taken from the saved career at the moment the player starts the race (after any due Fitness decay):
+"Best possible today" means level 5 (8 attribute points), Fitness 95 and Fatigue 0:
 
-| Input | Source | Used for |
-|---|---|---|
-| Speed, Endurance | athlete attributes | runnable ability |
-| Climbing, Endurance | athlete attributes | climb ability |
-| Technical, Speed | athlete attributes | technical-descent ability |
-| Endurance, Recovery | athlete attributes | durability (slowdown over distance) |
-| Consistency | athlete attribute | width of day form (only if day form is approved) |
-| Fitness (0–100) | athlete | overall pace |
-| Fatigue (0–100) | athlete | overall pace |
-| Level | derived from XP | anti-farming (§7); nothing in the time model |
-| Distance, elevation gain, category | race catalog (M4.1) | segments |
-| Technicality 0–3 | **new race field** (§3.2) | descents |
+- **Best Climber:** Climber + 8 Climbing (Climbing 28).
+- **Best Endurance:** Endurance + 4 Endurance + 4 Recovery (Endurance 24, Recovery 22).
+- **Best Sprinter:** Sprinter + 8 Speed (Speed 28).
 
-Level does not make an athlete faster by itself (Bible §10.1: results must depend on more than level).
+**Test cases.** All 10 cases from revision 1 reproduce exactly (`results.md` §3): same time to the
+second, same position.
 
-## 3. Course model
+**Discrepancies between revision 1 tables**, now resolved:
 
-### 3.1 Segments
+1. The test table (Fitness 60, Fatigue 20 and other fixed states) and the balance tables (new career
+   F20/Fa0, F50/Fa30, best possible) use **different athletes**, so their positions differ by design.
+   Revision 2 labels every athlete explicitly.
+2. Revision 1 §9.1 merged two athletes into ranges ("10–12", "19–22") and first printed "9–12" for
+   RACE-007, a transcription error. Revision 2 shows one column per athlete: RACE-007 is 10 (best
+   Climber), 12 (best Endurance), 14 (best Sprinter).
+3. Revision 1 §9.2 showed times for RACE-012 but positions for the other races. Revision 2 shows both.
+4. Earlier chat messages quoted intermediate numbers (for example "Climber 3:53 vs Sprinter 4:09")
+   from versions of the prototype before the constants were final. They are not part of any
+   proposal and should be ignored.
 
-For a race of distance `D` km, elevation gain `G` m and category share `s`:
+**Prototype versus document.** Revision 1's prototype used fractional segment lengths, and the
+document did not say how lengths are rounded. Revision 2 specifies whole metres (A2) and the
+prototype implements that. Every formula in Part B maps one-to-one to a function in
+`prototype.mjs` (table B9). The 10 test results did not change after rounding.
 
-- Climbing distance = descending distance = `s × D`; runnable distance = `D − 2 s D`.
-  Category share `s`: Open 0.20, Trail 0.30, Mountain 0.35, Elite 0.38.
-- Number of climbs `n = ceil(G / 600)` (no single climb above 600 m D+).
-- Segment order: `runnable, (climb, descent, runnable) × n`, with the runnable distance split evenly
-  into `n + 1` parts and the gain split evenly across the `n` climbs. Total descent = total gain
-  (courses start and finish at the same altitude).
+### A2. Course generation (review item 2)
 
-Effort-kilometres (the ITRA-style "km-effort"): runnable and descent = km; climb = km + gain / 100.
+All 12 courses were checked (`results.md` §2):
 
-### 3.2 Technicality (new catalog field, proposed values)
+- The segment count is `3 × climbs + 1`.
+- Every segment is longer than 0 m.
+- Lengths sum exactly to the catalog distance, ascent sums exactly to the catalog elevation gain, and
+  descent equals ascent.
+- The steepest average segment gradient is 18.0 %.
+- Effort-km equal `distance + gain / 100` exactly.
 
-The catalog has terrain descriptions but no number. Proposed `technicality` (0 = none, 3 = high),
-read from each description:
+Rounding works in whole metres. Totals are split into parts that differ by at most 1 m, with the
+remainder going to the first parts. For example, RACE-007 has climbs of 2,567 / 2,567 / 2,566 m with
+434 / 433 / 433 m of gain.
+
+Edge cases tested, all behaving as specified:
+
+- 0 m gain gives one runnable segment.
+- Exactly 600 m gives one climb; 601 m gives two.
+- 1 m of gain over 1 km works.
+- Fractional distances (5.5 km, 7.777 km) work.
+- A course steeper than 40 % average is rejected as invalid data.
+- Zero distance is rejected.
+
+### A3. Balance and sensitivity (review item 3)
+
+The baseline is an All-rounder with every attribute at 16, Fitness 50 and Fatigue 20. One input
+changes at a time, in four races: short RACE-001, medium RACE-004, medium technical RACE-007 and
+ultra RACE-012. Full table: `results.md` §5. Main points:
+
+| Input change | RACE-001 | RACE-004 | RACE-007 | RACE-012 |
+|---|---:|---:|---:|---:|
+| Fitness 50 → 20 / 80 | +12.0 % / −12.0 % | same | same | same |
+| Fatigue 20 → 0 / 80 | −5.7 % / +17.0 % | same | same | same |
+| +8 Endurance | −4.5 % | −4.8 % | −5.6 % | −9.1 % |
+| +8 Climbing | −2.3 % | −4.0 % | −4.8 % | −5.3 % |
+| +8 Speed | −8.5 % | −6.3 % | −4.8 % | −3.5 % |
+| +8 Technical | 0.0 % | −1.1 % | −2.2 % | −3.4 % |
+| +8 Recovery | −0.2 % | −0.6 % | −1.4 % | −4.3 % |
+| +8 Consistency | 0.0 % | 0.0 % | 0.0 % | 0.0 % |
+| +10 Fitness | −4.0 % | −4.0 % | −4.0 % | −4.0 % |
+
+Findings:
+
+- **Fitness and Fatigue** act the same way in every race (they multiply the whole time). Fitness is
+  the strongest single lever (±20 % over its range), as intended: it is what the player manages each
+  week. Spent on the attribute that suits the race, the whole level-5 attribute budget (+8 points)
+  is worth about 10–23 Fitness: +8 Climbing in RACE-004 equals +10 Fitness, and +8 Endurance in
+  RACE-012 equals about +23.
+- **No attribute dominates everywhere.** The weight of each attribute moves with the course
+  (`results.md` §5.2):
+  - Speed falls from 57 % (RACE-001) to 13 % (RACE-012).
+  - Endurance rises from 28 % to 36 %.
+  - Climbing ranges from 14 % to 27 %.
+  - Technical ranges from 0 % on non-technical courses to 17 %.
+  - Recovery ranges from 2 % to 17 %.
+
+  Speed is the strongest attribute in short races (+8 Speed is −8.5 % in RACE-001), but it is
+  bounded by the ability curve and weak in ultras.
+- **Consistency has no effect** without day form (option A). Even with day form (option B) it only
+  narrows the variance, with an average effect of zero. Its points are wasted. The Sprinter has the
+  most of them (18), so it has 78 useful points against 80–81 for the other profiles. This is a real
+  bias; see D9.
+- **Extreme values stay monotonic and bounded.** For every race, profile and value from 1 to 100,
+  more Fitness or any attribute never makes the runner slower, and more Fatigue never makes them
+  faster (`results.md` §8).
+
+**Why the profiles are nearly tied in RACE-004** (spread 1.0 %, positions 21–22). The course's
+attribute weights are Endurance 28 %, Climbing 24 %, Speed 39 %, Technical 6 % and Recovery 4 %. This
+mixed course weights the attributes the profiles trade off against each other almost evenly. Each
+profile's weighted ability comes to about 16, because every profile has the same 96 points.
+
+The ability curve `(20 / ability) ^ 0.35` is convex, so in a mixed course uneven attributes cost a
+little more than they gain. That is why the All-rounder edges ahead there. This is the intended
+identity of a mixed "Trail" course, not a defect: it is the course where profile matters least and
+condition matters most.
+
+**Profiles stay differentiated** (Fitness 60, Fatigue 20; `results.md` §4.2). Each profile is
+fastest on its own terrain:
+
+| Profile | Fastest in |
+|---|---|
+| Sprinter | RACE-001, RACE-002 (short and fast) |
+| All-rounder | RACE-003, RACE-004 (mixed) |
+| Climber | RACE-005, RACE-007, RACE-008, RACE-010 (steep, technical) |
+| Endurance | RACE-006, RACE-009, RACE-011, RACE-012 (long) |
+
+The gap between the fastest and slowest profile grows from 1.0 % (RACE-004) to 9.1 % (RACE-012).
+
+**Progression check** (`results.md` §4.1):
+
+- A new career finishes 19th/50 in the Open races.
+- The best athletes reachable today win Open and Trail races, finish 9th–21st in Mountain races and
+  18th–32nd in Elite races.
+- Mountain and Elite remain long-term goals while levels stop at 5 and training does not raise
+  attributes.
+
+### A4. Race-day integration — existing code paths (review item 4)
+
+| Concern | Where it happens today |
+|---|---|
+| Rejecting stale or repeated requests | `checkDay`, `src/game-engine/training.ts:90–95` (week and day must be the current ones) |
+| Computing a day's effects | `previewSession`, `training.ts:61–78`: fatigue clamped to 0–100 at :64; injury check (Fatigue after > 95, non-rest) at :65–72 |
+| Completing the day | `executeCurrentDay`, `training.ts:119–171`: applies XP, Fitness and Fatigue (:130–135) |
+| Forced Rest bookkeeping | `training.ts:138` (a new injury sets 5 days; otherwise one is used up) and `forceRest` :81–88 |
+| Advancing the calendar | `training.ts:140–152`: next day, or a new week via `createWeek` (`gameState.ts`) after day 7 |
+| Resetting Fitness decay | `training.ts:156`: any non-rest day sets the decay reference to `now` |
+| Level-up | Derived from XP: `getLevel` (`src/domain/athlete/levels.ts`), `training.ts:154–155`, :166 |
+| Decay before any action | `currentState`, `src/app/game/GameProvider.tsx:64–75` (uses `applyFitnessDecay`, `fitnessDecay.ts:21–41`) |
+| One state change, one save | `commit`, `GameProvider.tsx:54–61`; `executeDay`, :132–141 |
+| Double-tap guard (UI) | `COMPLETE_COOLDOWN_MS = 700`, `src/features/training/TrainingScreen.tsx:32`, :53 |
+| Save validation of days | `isOutcome` / `isTrainingDay`, `src/repositories/gameRepository.ts:79–92`; forced-rest check :174–175 |
+
+**What a race must not do:** run the day's planned session as well. Today `executeCurrentDay`
+always applies the planned session (`previewSession(state, day.session)`, :128). A race therefore
+needs its own path; see B7.
+
+### A5. Explanations (review item 5)
+
+- The effects of single inputs do **not** add up, because the model multiplies factors. In the two
+  worked examples (`results.md` §6), the single effects sum to −5:07 against a real gap of −4:33,
+  and to +2:11 against a real gap of +2:37. B6 is designed around this.
+- Attributes are shared between abilities: Endurance feeds runnable, climb and durability. Measuring
+  per **input** (per attribute) instead of per ability avoids double counting.
+
+### A6. Rewards and anti-farming (review item 6)
+
+All 80 coin values and 80 XP values were computed and checked (`results.md` §7): every category,
+band and multiplier.
+
+**Rounding trap found and avoided.** With decimal factors, Elite 2nd place XP is
+`Math.floor(180 × 0.7)` = 125 in JavaScript, because 180 × 0.7 = 125.99999999999999. The correct
+value is 126. Revision 2 stores multipliers and band factors as **whole percentages** and rounds once,
+with integers only.
+
+Also verified:
+
+- Band boundaries: 1, 2, 3, 4–10, 11+.
+- Level-difference multipliers: ≤0 → 100 %, 1 → 75 %, 2 → 40 %, ≥3 → 0 %.
+- Fee handling: the fee was paid once at entry; net = coins awarded − fee paid; never refunded.
+  Worked examples include a negative net (−530 coins for 30th in Summit Quest after a 600-coin
+  early entry).
+
+**Level snapshot.** M4.1 stores `levelAtEntry` (used for the fee). Revision 2 adds `levelAtStart`,
+taken when the race starts, before race XP is added. Anti-farming uses `levelAtStart`. A runner
+who entered early and levelled up before racing pays the early fee they agreed to but has rewards
+judged at their real level on race day.
+
+**XP follows the existing rules.** Race XP is added to `athlete.xp` like training XP. Level and
+attribute points stay derived from XP (`getLevel`, `getEarnedAttributePoints`), unchanged. Past
+level 5, XP keeps accumulating, as it does today.
+
+---
+
+## Part B — Revised specification (pending approval)
+
+### B1. Inputs
+
+The inputs are taken when the race starts, after due Fitness decay:
+
+- All six attributes, Fitness, Fatigue, and the level (for rewards only).
+- The race's distance, elevation gain, category and technicality.
+
+Level never makes the runner faster by itself. Equipment, strategy, weather, nutrition, cutoffs and
+DNF are not inputs.
+
+### B2. Course (`generateCourse`)
+
+- Distance `D_m = round(km × 1000)` in whole metres. Gain `G` in whole metres.
+- If `G = 0`: one runnable segment.
+- Otherwise, use `n = ceil(G / 600)` climbs and a climb share `s` of 0.20 (Open), 0.30 (Trail),
+  0.35 (Mountain) or 0.38 (Elite).
+- Climb total = descent total = `round(s × D_m)`. Runnable total = `D_m − 2 × climb total`.
+- Order: `runnable, (climb, descent, runnable) × n`.
+- Splits are whole metres; remainders go to the first parts. Gains are split the same way, and each
+  descent loses its climb's gain.
+- Validity: every length is above 0 and no segment averages more than 40 %. Otherwise the race is
+  invalid catalog data.
+- Effort-km of a segment: `length_km + gain / 100`.
+- Technicality (new catalog field, 0–3; D6):
 
 | Race | 001 | 002 | 003 | 004 | 005 | 006 | 007 | 008 | 009 | 010 | 011 | 012 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Technicality | 0 | 0 | 1 | 1 | 2 | 1 | 2 | 3 | 2 | 3 | 3 | 3 |
 
-### 3.3 Resulting courses
+### B3. Abilities (`abilities`, `segmentAbility`)
 
-| Race | Climbs | Climb km (each) | Avg. gradient | Runnable km | Effort-km |
-|---|---:|---:|---:|---:|---:|
-| RACE-001 Forest First Steps | 1 | 1.00 (1.00) | 12.0 % | 3.00 | 6.2 |
-| RACE-002 Riverside Trail | 1 | 1.60 (1.60) | 13.8 % | 4.80 | 10.2 |
-| RACE-003 Pine Loop Challenge | 1 | 2.00 (2.00) | 17.5 % | 6.00 | 13.5 |
-| RACE-004 Ridge Runner | 1 | 3.60 (3.60) | 15.3 % | 4.80 | 17.5 |
-| RACE-005 Stone Path Classic | 2 | 4.50 (2.25) | 16.7 % | 6.00 | 22.5 |
-| RACE-006 Wildwood Ascent | 2 | 5.40 (2.70) | 17.6 % | 7.20 | 27.5 |
-| RACE-007 Summit Quest | 3 | 7.70 (2.57) | 16.9 % | 6.60 | 35.0 |
-| RACE-008 Alpine Traverse | 3 | 9.80 (3.27) | 17.3 % | 8.40 | 45.0 |
-| RACE-009 Sky Ridge Ultra | 4 | 12.25 (3.06) | 18.0 % | 10.50 | 57.0 |
-| RACE-010 High Peaks Challenge | 5 | 15.96 (3.19) | 17.5 % | 10.08 | 70.0 |
-| RACE-011 Legends of the Crest | 6 | 20.90 (3.48) | 17.2 % | 13.20 | 91.0 |
-| RACE-012 Beyond the Skyline | 8 | 26.60 (3.33) | 18.0 % | 16.80 | 118.0 |
+- Runnable: `R = 0.75 Speed + 0.25 Endurance`.
+- Climb: `C = 0.70 Climbing + 0.30 Endurance`.
+- Technical descent: `T = 0.70 Technical + 0.30 Speed`.
+- Durability: `U = 0.60 Endurance + 0.40 Recovery`.
+- Segment ability:
+  - Runnable segment: `R`.
+  - Climb: `w C + (1 − w) R`, with `w = min(1, gradient / 0.20)`.
+  - Descent: `(t/3) T + (1 − t/3) R`.
 
-Alternative: hand-authored segment lists per race (more character, 12 lists to maintain). The
-generated model can be replaced by authored data later without changing the formulas.
-
-## 4. Abilities
-
-Terrain abilities are weighted averages of attributes (attribute scale 1–100):
-
-- **Runnable** `R = 0.75 Speed + 0.25 Endurance`
-- **Climb** `C = 0.70 Climbing + 0.30 Endurance`
-- **Technical descent** `T = 0.70 Technical + 0.30 Speed`
-- **Durability** `U = 0.60 Endurance + 0.40 Recovery`
-
-Ability used on each segment:
-
-- Runnable segment: `R`.
-- Climb: `w C + (1 − w) R`, with `w = min(1, gradient / 0.20)` — gentle climbs are partly runnable.
-- Descent: `(t / 3) T + (1 − t / 3) R`, with `t` = technicality — non-technical descents are run.
-
-## 5. Time model
-
-### 5.1 Segment time
+### B4. Time (`raceSeconds`)
 
 ```
-segmentMinutes = effortKm × BASE_PACE × abilityFactor × technicalFactor × slowdown × fitnessFactor × fatigueFactor × (1 + dayForm)
+segmentMinutes = effortKm × 6.0 × (20 / ability)^0.35 × technicalFactor × slowdown
+                 × fitnessFactor × fatigueFactor × (1 + dayForm)
+technicalFactor = 1 + 0.12 × t × (1 − Technical / 100)            (descents; 1 elsewhere)
+slowdown        = 1 + 0.25 × (effortKmBefore / 50) × (20 / U)
+fitnessFactor   = 1 + 0.2 × (50 − Fitness) / 50
+fatigueFactor   = 1 + 0.3 × Fatigue / 100                          (see D9 for variant V1)
 ```
 
-- `BASE_PACE` = 6.0 min per effort-km (an athlete with ability 20, Fitness 50, Fatigue 0, fresh).
-- `abilityFactor = (20 / ability) ^ 0.35` — diminishing returns: ability 12 → 1.20, 16 → 1.08,
-  20 → 1.00, 28 → 0.89, 100 → 0.57. Fair in today's real range (12–28) and bounded up to 100.
-- `technicalFactor` (descents only) `= 1 + 0.12 × t × (1 − Technical / 100)`; 1 elsewhere.
-- `slowdown = 1 + 0.25 × (effortKmBefore / 50) × (20 / U)` — grows with the effort-km already
-  covered before the segment; better durability slows down less. Matters most in ultras.
-- `fitnessFactor = 1 + 0.2 × (50 − Fitness) / 50` — Fitness 20 → 1.12, 50 → 1.00, 95 → 0.82.
-- `fatigueFactor = 1 + 0.3 × Fatigue / 100` — Fatigue 0 → 1.00, 50 → 1.15, 100 → 1.30.
+The finishing time is the sum of the segment times, computed in double precision and rounded once to
+whole seconds. The time is stored with the result, so it is never recomputed.
 
-Finishing time = sum of segment times, rounded to the nearest second.
+### B5. Field and position (`referenceAthlete`, `rivalSeconds`, `simulate`)
 
-### 5.2 Why these shapes
+- **Reference athlete** for recommended level `L`: every attribute `16 + (L − 1)/3`, Fitness
+  `min(90, 25 + 12(L − 1))`, Fatigue 20, no day form. It finishes **24th of 50** in every race: a
+  mid-field runner.
+- **Rivals:** 49, at `T_ref × (0.85 + 0.40 × ((i + 0.5)/49)^1.3)` for `i = 0…48`, rounded to whole
+  seconds.
+- **Position** = 1 + rivals strictly faster than the athlete. A tie goes to the athlete.
 
-- Fitness and Fatigue are the values the player manages week to week, so they move results the most
-  (Fitness 20 → 95 is about 27 % faster).
-- Attributes are small today (12–20 at start, at most +8 points by level 5), so the ability curve is
-  steep in that range: profiles get distinct terrain (§9.2) without making 100-point attributes absurd.
-- Fatigue matters: in Ridge Runner, Fatigue 80 instead of 0 drops an All-rounder from 13th to 39th.
+### B6. Explanation (`explain`)
 
-### 5.3 Field and position
+- **Reference:** the field reference athlete (B5), shown to the player as "a typical runner in this
+  field".
+- **Factors:** one per input — Fitness, Fatigue, each of the six attributes, and day form (if
+  approved). Abilities are never shown as factors, so a shared attribute is counted once, with all
+  of its uses together.
+- **Effect:** re-run the simulation with only that input set to the reference value. The effect is
+  the actual time minus that time (negative = helped).
+- **Shown:** the total gap to the typical runner, then the three largest effects by size, each at
+  least 0.5 % of the time. Helping and hurting factors are both eligible. Wording:
 
-- **Field size 50**: the athlete and 49 rivals (configurable).
-- **Reference athlete** for a race with recommended level `L`: every attribute `16 + (L − 1) / 3`,
-  Fitness `min(90, 25 + 12 (L − 1))`, Fatigue 20, no day form. Its time is `T_ref`.
-- Rival `i` (0–48): `T_ref × (0.85 + 0.40 × ((i + 0.5) / 49) ^ 1.3)` — winner 15 % faster than the
-  reference, a slower tail up to +25 %.
-- **Position** = 1 + number of rivals strictly faster than the athlete (a tie goes to the athlete).
-- Rivals are fixed per race: no names or rankings (Bible §11 is out of scope).
+  "**4:33 faster than a typical runner in this field.** Biggest influences, each measured on its own
+  (they don't add up): Fitness 70 (typical 49) — 11:04 faster; Speed 13 (typical 17) — 4:14 slower;
+  Fatigue 30 (typical 20) — 3:20 slower."
 
-### 5.4 Day form (owner decision — see §11, D1)
+- Reference values are shown rounded (16.67 → 17); the calculation uses exact values.
+- A factor with no effect is never shown: Technical on non-technical courses, and Consistency under
+  option A. Equipment and other non-inputs never appear. No sum and no percentage breakdown is shown.
 
-- **Option A — fully deterministic.** No day form; Consistency is not used yet.
-- **Option B — seeded day form (recommended).** `dayForm = (2u − 1) × 0.04 × (1 − Consistency / 100)`
-  where `u` in [0, 1) comes from a seeded generator (mulberry32) whose seed is a hash of
-  `raceId | entryId | enteredAt`. Consistency 16 → ±3.4 %. The value is saved with the result and
-  shown on the result screen, so the same saved entry always gives the same result and a reload
-  cannot re-roll it.
+### B7. Race day — smallest safe integration (proposal only; D2–D4)
 
-### 5.5 Explanation of the result
+1. **Refactor without behaviour change.** Move the shared tail of `executeCurrentDay` (forced-rest
+   count :138, calendar advance :140–152, decay reference :156) into a private helper
+   `advanceDay(state, ref, outcome, resetsDecay, now)`. `executeCurrentDay` becomes
+   `previewSession` + `advanceDay`. All existing training tests must pass unchanged, plus a new test
+   that compares outputs before and after the refactor on a set of states.
+2. **New `raceCurrentDay(state, ref, entryId, now)`** in `src/game-engine/races.ts`.
+   - **Guards:** `checkDay(ref)`; forced Rest → `forced-rest`; the entry exists and is `pending`;
+     the race exists.
+   - **Then:**
+     - Snapshot the inputs and `levelAtStart`.
+     - Simulate the race and compute the rewards (B8).
+     - Build the day outcome:
+       - Fatigue: `clamp(Fatigue + race fatigue) − Fatigue`, with the injury check and threshold of
+         `previewSession`.
+       - Fitness: 0, or the injury loss.
+       - XP: per D4.
+       - `raceEntryId`: the entry raced.
+     - Call `advanceDay(…, resetsDecay = true)`.
+     - Add the awarded coins.
+     - Mark the entry `finished` with its stored result.
 
-For each factor below, the simulation is re-run with only that input set to the race's reference
-athlete value; the difference in time is the factor's effect:
+     All of this happens in **one** returned state.
+3. **The planned session never runs.** `raceCurrentDay` never calls `previewSession(day.session)`.
+   The day keeps its planned `session` for history, but its outcome is the race outcome
+   (`raceEntryId`), and the UI shows "Race: name". No `'race'` session type is added, which keeps
+   `planSession`, the selector and the save validation unchanged.
+4. **Provider:** `raceDay(ref, entryId)` mirrors `executeDay`: decay first (`currentState`), then the
+   engine, then one `commit` (one save).
+5. **Saves (still schema v2):**
+   - A day outcome may carry `raceEntryId`, which must name a `finished` entry.
+   - A finished entry must carry a complete, valid result.
+   - Older saves have neither and load unchanged.
+6. **Applying results and rewards only once:**
+   - **Entry status:** only a `pending` entry can be raced, and the same state change makes it
+     `finished`.
+   - **Day guard:** a second request for the same day fails `checkDay` (`day-completed`).
+   - **UI:** the start button gets the same 700 ms cooldown as Training.
+   - **Reopening a result:** it reads the stored result and never re-simulates or re-awards.
+   - **Multi-tab:** last-write-wins remains the documented limitation. Each saved state still
+     contains the race applied at most once.
 
-Fitness · Fatigue · runnable ability (Speed/Endurance) · climb ability (Climbing/Endurance) ·
-descent ability (Technical/Speed) · durability (Endurance/Recovery) · day form (if approved).
+### B8. Rewards (`rewards`)
 
-The result screen lists the three largest effects (ignoring any under 0.5 % of the time), signed, for
-example "Fitness 72 (field 49): 9:12 faster". Equipment, strategy, weather and nutrition never appear
-because they are not in the calculation.
+- **Coins:** `floor(grossPrize × multiplierPct / 100)`.
+- **XP:** `floor(xpBase × bandPct × multiplierPct / 10000)`.
+  - `xpBase` (D5): Open 30, Trail 60, Mountain 100, Elite 180.
+  - `bandPct`: 100, 70, 50, 25, 10.
+- **Multiplier** from `levelAtStart − recommendedLevel`.
+- **Net:** `coinsAwarded − feePaid` (the fee was paid at entry, once).
+- **Race Fatigue** (D3): `round(6 + 0.6 × effort-km)`, from +10 (RACE-001) to +77 (RACE-012).
 
-### 5.6 Configuration (all values in one module, none in screens)
+### B9. Formula-to-code map (prototype)
 
-| Constant | Value | | Constant | Value |
-|---|---:|---|---|---:|
-| Category share Open / Trail / Mountain / Elite | 0.20 / 0.30 / 0.35 / 0.38 | | Base pace | 6.0 min/effort-km |
-| Max gain per climb | 600 m | | Ability reference / exponent | 20 / 0.35 |
-| Climb weight full at gradient | 20 % | | Technical penalty per level | 0.12 |
-| Slowdown rate / reference | 0.25 / 50 effort-km | | Fitness slope | 0.2 |
-| Fatigue slope | 0.3 | | Field size | 50 |
-| Rival spread | 0.85 + 0.40 q^1.3 | | Day form max (option B) | 4 % |
-| Reference Fitness | min(90, 25 + 12 (L − 1)) | | Reference attributes | 16 + (L − 1) / 3 |
+| Section | Function in `prototype.mjs` |
+|---|---|
+| B2 Course and rounding | `split`, `generateCourse`, `effortKm` |
+| B3 Abilities | `abilities`, `segmentAbility` |
+| B4 Time | `raceSeconds` |
+| B5 Field and position | `referenceAthlete`, `rivalSeconds`, `simulate` |
+| B6 Explanation | `explain` |
+| Day form (D1) | `fnv1a`, `mulberry32`, `dayForm` |
+| B8 Rewards | `getLevel`, `band`, `multiplierPct`, `rewards`, `raceFatigueGain` |
+| D9 Variant V1 | `raceSecondsV1` |
 
-## 6. Race day (owner decision — see §11, D2–D4)
+All constants are in the single object `C`. The production implementation would keep them in one
+configuration module.
 
-A race needs a cost in time, otherwise free Open races could be repeated without limit for coins.
-Proposal:
+---
 
-- **The race takes the current training day** (one race per day). It replaces that day's planned
-  session; the day is then completed and the week moves on as usual. A race cannot start during
-  forced Rest. The pending entry from M4.1 can be raced on any later day.
-- **Fatigue:** `+ round(6 + 0.6 × effortKm)`, capped at 100: Open 10–14, Trail 17–23,
-  Mountain 27–40, Elite 48–77.
-- **Injury:** the existing rule (Bible §4.7) applies after the race: if Fatigue ends above 95, the
-  athlete is injured (−15 Fitness, 5 forced Rest days). The result still counts. The screen warns
-  before the start, as Training does.
-- **Fitness:** no change from the race itself. It counts as activity: it resets the Fitness decay
-  reference, like any non-rest session.
-- **No training XP or attribute change**; race XP only (§7).
+## Part C — Proposed changes since revision 1
 
-Training formulas are not changed. Integration does need the training engine to accept a raced day
-(a day outcome linked to the race entry). Per §10.5 this is reported here for approval.
+1. Whole-metre course generation with an exact remainder rule, plus validity rules (B2).
+2. Integer reward arithmetic in whole percentages (fixes the Elite 2nd place XP case) (B8).
+3. `levelAtStart` snapshot for anti-farming (A6).
+4. Per-input explanations against the field reference, labelled as non-additive (B6).
+5. A concrete, minimal race-day integration plan (B7). Not implemented.
+6. A variant V1 for Consistency (D9). Not in the baseline numbers.
 
-## 7. Rewards (M4.3)
+## Part D — Unresolved questions
 
-- **Coins:** gross prize for the position band (Bible §10.8) × coin multiplier (Bible §10.9),
-  rounded down. Net coin change = coins awarded − entry fee (already paid at entry).
-- **XP — base values proposed (Bible §10.10 requires approval):** category base × band factor,
-  × XP multiplier, rounded down.
-  - Category base: Open 30, Trail 60, Mountain 100, Elite 180.
-  - Band factor (same ratios as the coin prizes): 1st 1.00, 2nd 0.70, 3rd 0.50, 4th–10th 0.25,
-    11th or lower 0.10.
+- **U1 — Consistency** (D9): with option A it does nothing, and with option B it only changes
+  variance. Accept that, or adopt V1?
+- **U2 — Injury on race day** (D4): the existing rule gives no XP for an injured session. Should a
+  race follow it exactly, or keep the race XP?
+- **U3 — Mountain and Elite reach:** unreachable at today's level cap and with no attribute growth
+  from training. This depends on future progression decisions, not on M4.2.
+- **U4 — Multi-tab play:** last-write-wins remains, as for training. Accept for M4, as today?
 
-| XP | 1st | 2nd | 3rd | 4th–10th | 11th+ |
-|---|---:|---:|---:|---:|---:|
-| Open | 30 | 21 | 15 | 7 | 3 |
-| Trail | 60 | 42 | 30 | 15 | 6 |
-| Mountain | 100 | 70 | 50 | 25 | 10 |
-| Elite | 180 | 126 | 90 | 45 | 18 |
-
-  For scale: the default training week gives 68 XP, and a Long run day gives 18 XP.
-- **Anti-farming** uses the athlete's level when the race starts; 3 or more levels above the
-  recommendation gives 0 XP and 0 prize coins, and the screen says the race was too easy.
-- The race XP goes through the existing XP field, so levels and attribute points follow the
-  existing progression rules unchanged.
-
-## 8. Persistence and integrity
-
-- Starting a race turns the `pending` entry into `finished` and stores the whole result:
-  - Time, position and field size, band.
-  - Gross prize, multipliers, coins and XP awarded, net coin change.
-  - Day form (if approved), the explanation factors.
-  - A snapshot of the inputs: attributes, Fitness, Fatigue, level.
-- Rewards are applied in the same state change, once. Reopening or reloading reads the stored result;
-  it never re-simulates or re-awards. Still schema v2 (additive fields).
-
-## 9. Balance check (prototype results, no day form)
-
-### 9.1 Positions out of 50
-
-| Race | New career (All-rounder, F20, Fa0) | F50, Fa30 | Best possible today (level 5, F95, Fa0, +8 points) |
-|---|---:|---:|---:|
-| RACE-001 | 19 | 16 | 1 |
-| RACE-004 | 32 | 29 | 1 |
-| RACE-006 | 39 | 35 | 1 |
-| RACE-007 | 50 | 50 | 10–12 |
-| RACE-009 | 50 | 50 | 15 |
-| RACE-012 | 50 | 50 | 19–22 |
-
-A new runner finishes mid-field in Open races. A well-managed athlete wins Open and Trail races.
-Mountain and Elite fields stay out of reach at today's level cap (5) and with no attribute growth from
-training: those races are long-term goals until progression and equipment grow.
-
-### 9.2 Profiles (Fitness 60, Fatigue 20)
-
-| Race | Climber | Sprinter | All-rounder | Endurance |
-|---|---:|---:|---:|---:|
-| RACE-001 (flat-ish 5 km) | 11 | **3** | 6 | 7 |
-| RACE-004 (12 km, 550 m) | 21 | 22 | **21** | 21 |
-| RACE-007 (22 km, 1,300 m, technical) | **41** | 45 | 42 | 42 |
-| RACE-009 (35 km ultra) | 45 | 50 | 46 | **45** |
-| RACE-012 (70 km, 4,800 m) | 18:31:01 | 19:52:39 | 18:43:05 | **18:13:40** |
-
-Each profile has terrain where it is best. The Sprinter wins fast short races, the Climber steep
-technical ones, and Endurance the long ultras. The All-rounder is never far behind.
-
-## 10. Test cases (to become automated tests, no day form)
-
-| # | Athlete | Race | Expected time | Expected position |
-|---|---|---|---:|---:|
-| 1 | All-rounder, F20, Fa0 (new career) | RACE-001 | 0:45:41 | 19 |
-| 2 | All-rounder, F80, Fa10 | RACE-001 | 0:36:58 | 1 |
-| 3 | Sprinter, F60, Fa20 | RACE-001 | 0:40:49 | 3 |
-| 4 | Climber, F60, Fa20 | RACE-001 | 0:42:46 | 11 |
-| 5 | All-rounder, F60, Fa0 | RACE-004 | 1:55:17 | 13 |
-| 6 | All-rounder, F60, Fa80 | RACE-004 | 2:22:57 | 39 |
-| 7 | Climber, F60, Fa20 | RACE-007 | 4:22:26 | 41 |
-| 8 | Sprinter, F60, Fa20 | RACE-007 | 4:32:16 | 45 |
-| 9 | Endurance, F60, Fa20 | RACE-012 | 18:13:40 | 50 |
-| 10 | Climber, F60, Fa20 | RACE-012 | 18:31:01 | 50 |
-
-Plus property tests:
-
-- Same inputs give the same result.
-- More Fitness never gives a slower time; more Fatigue never gives a faster one.
-- Raising any attribute never gives a slower time.
-- Every position band and level difference (≤0, 1, 2, ≥3) maps to the right rewards, rounded down.
-- A reload or reopened result changes nothing.
-- Training values and behaviour are unchanged (existing tests).
-- With option B: the same entry gives the same day form, and day form stays within ±4 % × (1 − Consistency/100).
-
-## 11. Decisions requested from the owner
+## Part E — Decision log (all pending owner approval)
 
 | # | Decision | Recommendation |
 |---|---|---|
-| D1 | Day form: A (fully deterministic) or B (seeded, ±3–4 %, narrowed by Consistency) | **B** |
-| D2 | A race takes the current training day (one race per day) | **Yes** |
-| D3 | Race Fatigue `round(6 + 0.6 × effortKm)`, Fitness change 0, counts as activity for decay | **Yes** |
-| D4 | The injury rule (Fatigue above 95) applies after a race; the result still counts | **Yes** |
-| D5 | Race XP base values (§7 table) | **Yes** |
-| D6 | Technicality values per race (§3.2) | **Yes** |
-| D7 | Field size 50 and rival spread (§5.3) | **Yes** |
-| D8 | The formulas and constants of §4–§5 | **Yes**, tuned only with owner approval |
+| D1 | Day form: A (none, fully deterministic) or B (seeded ±4 % × (1 − Consistency/100), saved with the result) | **B** — gives Consistency a role and makes repeat races feel alive while staying reproducible |
+| D2 | A race takes the current training day (one per day; not during forced Rest) | **Approve** — the only built-in limit on repeating free Open races for coins |
+| D3 | Race Fatigue `round(6 + 0.6 × effort-km)`; no Fitness change; counts as activity for decay | **Approve** |
+| D4 | Injury after a race: (a) keep race XP, or (b) follow the existing rule (no XP, −15 Fitness, 5 forced Rest days). Result and prize coins stand in both | **(b)** — consistent with the approved injury rule |
+| D5 | Race XP base: Open 30, Trail 60, Mountain 100, Elite 180 × band % × multiplier, rounded down | **Approve** |
+| D6 | Technicality per race (B2 table) | **Approve** |
+| D7 | Field of 50, rival spread, reference athlete (B5) | **Approve** |
+| D8 | Formulas and constants of B2–B5, changed only with owner approval | **Approve** |
+| D9 | Consistency: keep as day-form width only, or add variant V1 (Fatigue in the formula × (20/Consistency)^0.35) | **V1** — removes the Sprinter's 18 wasted points at a modest strength (+8 Consistency ≈ −0.8 % at Fatigue 20, −2.2 % at Fatigue 60) |
+| D10 | Per-input explanations against the typical runner, top 3, non-additive wording (B6) | **Approve** |
 
-After approval, M4.2 implements the simulation as a pure, tested module. M4.3 then adds race day,
-results, rewards and the result screen.
+If the owner approves, M4.2 implements the pure simulation module with these tests:
 
-## 12. Not included
+- `results.md` §3 (exact times and positions).
+- The property checks of §8.
+- The course checks of §2.
+
+M4.3 then adds race day (B7), rewards and the result screen. Training formulas stay unchanged
+throughout.
+
+## Part F — Not included
 
 Strategy and pacing choices, weather, nutrition, cutoffs and DNF, equipment effects, named rivals or
 rankings, seasons, attribute gains from racing, any change to training formulas, and backend

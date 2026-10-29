@@ -606,7 +606,7 @@ The equipment catalogue, prices, inventory rules, and bonus formulas remain to b
 
 ### 9.1 Currency
 
-The proposed starting balance is 100 coins.
+The proposed starting balance was 100 coins. **Owner decision (29 October 2026):** careers start with 0 coins (§10.17).
 
 Money is intended to create meaningful decisions about equipment purchases, race entry fees, and progression.
 
@@ -978,6 +978,8 @@ To be decided by the owner/PM before or during M4.1; not part of the PM text abo
 2. **No coin balance exists yet.** §9.1 proposes a starting balance of 100 coins, but the economy is not implemented. Existing careers have no coin field.
 3. **Milestone number:** `DEVELOPMENT.md` §11 already uses M4 for "PWA release candidate".
 4. **Entry before simulation:** in M4.1 there is no race result, so what a confirmed entry does until M4.2/M4.3 must be defined.
+
+**Owner decisions (29 October 2026):** (1) keep the level cap at 5 for now — no progression change in M4; (2) the starting balance is **0 coins**, for new careers and older saves (this replaces the 100 coins proposed in §9.1); (3) races are M4 and the later milestones were renumbered in `DEVELOPMENT.md` (PWA M5, native packaging M6, Strava/VTL M8); (4) a confirmed entry charges the fee once and is saved as **pending** until results exist.
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Document:** `DEVELOPMENT.md`  
 **Version:** 0.4.0  
-**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A implemented on the working branch, pending owner review  
+**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A merged into `main` (29 October 2026); M4 Race System — M4.1 (catalog and access) implemented on the working branch, pending owner review  
 **Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) (v1.2) · UI pass: [`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
@@ -594,10 +594,10 @@ Dashboard runner were later extended by Avatar creation Stage A (next section).
   shows the forced rest days left. The feedback message names the completed day and its effects;
   the next day is highlighted in the strip, and a new week is announced.
 
-### Avatar creation — Stage A (in progress)
+### Avatar creation — Stage A
 
-**Status:** PM brief "Avatar creation & progressive customization", Stage A only. Implemented on the
-working branch; not merged into `main`. Owner decisions (28 October 2026): the developer's
+**Status:** PM brief "Avatar creation & progressive customization", Stage A only. Merged into `main`
+on 29 October 2026 (`f2c7898`, owner authorization). Owner decisions (28 October 2026): the developer's
 recommendations were accepted except one — **shoes are equipment**, not part of the appearance.
 
 - **Style:** the painted illustrations stay on the profile cards only. The avatar is a separate SVG
@@ -624,10 +624,52 @@ recommendations were accepted except one — **shoes are equipment**, not part o
 - **Out of scope (unchanged):** shop, currency, unlocks, rewards, inventory, equipment effects,
   monetization.
 
+### M4 — Race System (M4.1 in progress)
+
+**Specification:** Game Design Bible §10 (v1.3, PM, 29 October 2026). Stages: M4.1 catalog and access;
+M4.2 simulation model proposal (owner approval required before any formula is coded); M4.3 results
+and rewards; M4.4 validation.
+
+**Owner decisions (29 October 2026):** starting balance **0 coins** (new careers and older saves);
+levels stay capped at 5, so Mountain (recommended 6–7) and Elite (10–12) races always use the
+early-entry fee and their rewards are never reduced by anti-farming; a confirmed entry **charges the
+fee once and is saved as pending** until results exist (M4.2/M4.3); races take the M4 number and the
+later milestones were renumbered (PWA M5, native packaging M6, Strava/VTL M8).
+
+**M4.1 — implemented on the working branch, not merged:**
+- **Configuration** (no values in screens): `src/domain/races/categories.ts` (category fees, prize
+  bands, gross prizes, anti-farming multipliers), `src/domain/races/races.ts` (12-race catalog with
+  stable ids `RACE-001`…`RACE-012`), `src/domain/economy/coins.ts` (`STARTING_COINS = 0`).
+- **Rules** (`src/domain/races/access.ts`): standard fee at or above the race's recommended level,
+  early-entry fee below it, Open always free, no level locks; shortfall; anti-farming multiplier by
+  `athleteLevel − recommendedLevel` (shown on Race Detail, applied to rewards in M4.3).
+- **Entry** (`src/game-engine/races.ts`, `enterRace`): checks the race, that it has no pending entry,
+  that the confirmed fee still applies and that the balance covers it; then deducts the fee once and
+  records a `pending` entry (`entry-N`, race id, entry type, fee paid, level at entry, time). A
+  repeated confirmation (double tap, reload) is rejected as `already-entered`. Entering changes no
+  athlete, training or decay value.
+- **Screens:** Race Hub at `/races` (Races tab, and a Races card on the Dashboard) with level, coin
+  balance and the 12 races grouped Open/Trail/Mountain/Elite, each with distance, D+, recommended level
+  and the fee that applies ("Early entry · N coins" below level, "Entered" once entered). Race Detail
+  at `/races/RACE-00N`: course facts, both fees with "Your fee", gross prizes by position, the
+  anti-farming rule and the athlete's current multiplier, and entry with an explicit confirmation
+  (fee, balance, balance after entry). Without enough coins the button is inactive and the shortfall
+  is shown.
+- **Saves:** new top-level `coins` and `raceEntries`; still schema v2. Careers saved before them load
+  with 0 coins and no entries, without being rewritten on load. Negative/fractional coins, unknown
+  race ids or entry types, duplicate entry ids or two pending entries for one race are invalid data.
+- **Training:** formulas and behaviour unchanged. One integration fix: completing a day rebuilt the
+  game state from its own fields and would have dropped coins and entries; it now keeps every other
+  field (`src/game-engine/training.ts`, tested).
+- **Limitations:** with 0 starting coins and no prizes until M4.3, only Open races can be entered in
+  normal play; paid entry is testable by editing the save (see README). Multi-tab play is still
+  last-write-wins.
+
 > **Note:** the milestones below are the original plan. Their names, order and scope are to be
-> confirmed by the PM. M3–M6 keep their original numbers. The original "Persistence and account"
+> confirmed by the PM. M3 keeps its original number. The original "Persistence and account"
 > milestone, first planned as M2, was renumbered to M7 to avoid conflicting with the delivered M2;
-> its number does not set its order.
+> on 29 October 2026 the original M4–M6 became M5, M6 and M8 because M4 is now the Race System
+> (owner decision). Numbers do not set the order.
 
 ### M7 — Persistence and account
 
@@ -655,7 +697,7 @@ Acceptance criteria:
 - A repeatable test checklist is documented.
 - Balance values are centralized and tunable.
 
-### M4 — PWA release candidate
+### M5 — PWA release candidate
 
 **Goal:** provide an installable web experience.
 
@@ -666,7 +708,7 @@ Acceptance criteria:
 - Tested on real Android browser/device where available.
 - iOS Safari behavior documented and tested where available.
 
-### M5 — Native packaging assessment
+### M6 — Native packaging assessment
 
 **Goal:** decide whether to package with Capacitor for app stores.
 
@@ -676,7 +718,7 @@ Acceptance criteria:
 - Native plugin needs identified.
 - No commitment to app-store submission until installation, persistence, navigation and privacy behavior are validated.
 
-### M6 — Strava / VTL integrations
+### M8 — Strava / VTL integrations
 
 Each integration receives a separate scope, permission review, technical spike and acceptance criteria. Do not start before core gameplay is stable.
 

@@ -218,7 +218,7 @@ describe('DashboardScreen — Fitness decay', () => {
 })
 
 describe('placeholder screens', () => {
-  it.each(['/career', '/equipment', '/races'])('%s remains a placeholder', (path) => {
+  it.each(['/career', '/equipment'])('%s remains a placeholder', (path) => {
     seedCareer()
     renderApp(path)
     expect(screen.getByRole('heading', { name: 'Planned for a later milestone' })).toBeInTheDocument()

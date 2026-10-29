@@ -3,6 +3,7 @@ import type { AttributeId, ProfileId } from '../../domain/athlete/athlete'
 import type { SessionType } from '../../domain/training/sessions'
 import type { AllocationError } from '../../game-engine/attributes'
 import type { AthleteIdentity, GameState } from '../../game-engine/gameState'
+import type { RaceEntryError } from '../../game-engine/races'
 import type { DayRef, ExecutionResult, TrainingError } from '../../game-engine/training'
 import type { IncompatibleReason } from '../../repositories/gameRepository'
 
@@ -36,6 +37,8 @@ export interface GameContextValue {
   planSession(ref: DayRef, session: SessionType): TrainingError | null
   executeDay(ref: DayRef): TrainingError | null
   allocateAttributePoint(attribute: AttributeId, expectedSpent: number): AllocationError | null
+  /** Pays `confirmedFee` once and records a pending entry. */
+  enterRace(raceId: string, confirmedFee: number): RaceEntryError | null
 }
 
 export const GameContext = createContext<GameContextValue | null>(null)

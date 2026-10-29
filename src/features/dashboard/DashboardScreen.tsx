@@ -12,6 +12,7 @@ import {
 } from '../../domain/athlete/athlete'
 import { getLevelProgress } from '../../domain/athlete/levels'
 import { PROFILES } from '../../domain/athlete/profiles'
+import { formatCoins } from '../../domain/economy/coins'
 import { TRAINING_SESSIONS } from '../../domain/training/sessions'
 import { weekdayLong, weekdayShort } from '../../domain/training/weekdays'
 import { getUnspentAttributePoints } from '../../game-engine/attributes'
@@ -33,6 +34,7 @@ export function DashboardScreen() {
   const effects = previewSession(state, today.session)
   const summary = summarizeWeek(state)
   const fatigueHigh = athlete.fatigue >= HIGH_FATIGUE
+  const pendingRaces = state.raceEntries.filter((entry) => entry.status === 'pending').length
 
   return (
     <section className={styles.screen} aria-labelledby="dashboard-title">
@@ -152,6 +154,16 @@ export function DashboardScreen() {
           </p>
           <Link to="/training" className={`${button.button} ${button.primary}`}>
             Go to training
+          </Link>
+        </Card>
+
+        <Card title="Races">
+          <p className={styles.muted}>
+            <strong>{formatCoins(state.coins)}</strong>
+            {pendingRaces > 0 && ` · ${pendingRaces} ${pendingRaces === 1 ? 'entry' : 'entries'} pending`}
+          </p>
+          <Link to="/races" className={`${button.button} ${button.secondary}`}>
+            Race Hub
           </Link>
         </Card>
 

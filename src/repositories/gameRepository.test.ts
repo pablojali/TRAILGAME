@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { defaultAppearance } from '../domain/athlete/appearance'
 import type { GameState } from '../game-engine/gameState'
 import { allocateAttributePoint } from '../game-engine/attributes'
+import { enterRace } from '../game-engine/races'
 import { execute, newGame, T0, withAthlete } from '../test/gameFixtures'
 import { M1_SAVE } from '../test/legacySaves'
 import { createLocalStorageGameRepository, LEGACY_DEFAULT_SEX, SAVE_KEY, SCHEMA_VERSION } from './gameRepository'
@@ -14,6 +15,16 @@ function memoryStorage(initial: Record<string, string> = {}) {
     setItem: (key: string, value: string) => void data.set(key, value),
     removeItem: (key: string) => void data.delete(key),
   }
+}
+
+const ENTRY = {
+  id: 'entry-1',
+  raceId: 'RACE-001',
+  entryType: 'free',
+  feePaid: 0,
+  levelAtEntry: 1,
+  enteredAt: 0,
+  status: 'pending',
 }
 
 function progressedState(days: number): GameState {
@@ -87,6 +98,44 @@ describe('localStorage game repository', () => {
       state: { ...state, athlete: { ...state.athlete, sex: 'male', appearance: defaultAppearance('male') } },
     })
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
+  })
+
+  it('loads a career saved before races existed with 0 coins and no entries, without rewriting it', () => {
+    const state = progressedState(2)
+    const withoutRaces: Partial<GameState> = { ...state }
+    delete withoutRaces.coins
+    delete withoutRaces.raceEntries
+    const raw = saveOf(withoutRaces)
+    const storage = memoryStorage({ [SAVE_KEY]: raw })
+    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({
+      status: 'loaded',
+      state: { ...state, coins: 0, raceEntries: [] },
+    })
+    expect(storage.data.get(SAVE_KEY)).toBe(raw)
+  })
+
+  it('round-trips coins and race entries', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const entered = enterRace({ ...withAthlete(newGame(), { xp: 250 }), coins: 300 }, 'RACE-004', 100, T0)
+    if (!entered.ok) throw new Error(entered.error)
+    repo.save(entered.state)
+    expect(repo.load(T0)).toEqual({ status: 'loaded', state: entered.state })
+  })
+
+  it.each([
+    ['negative coins', { coins: -1 }],
+    ['fractional coins', { coins: 1.5 }],
+    ['entries that are not a list', { raceEntries: {} }],
+    ['an unknown race', { raceEntries: [{ ...ENTRY, raceId: 'RACE-999' }] }],
+    ['an unknown entry type', { raceEntries: [{ ...ENTRY, entryType: 'vip' }] }],
+    ['a duplicated entry id', { raceEntries: [ENTRY, { ...ENTRY, raceId: 'RACE-002' }] }],
+    ['two pending entries for one race', { raceEntries: [ENTRY, { ...ENTRY, id: 'entry-2' }] }],
+  ])('rejects %s as invalid data', (_, overrides) => {
+    const raw = saveOf({ ...newGame(), ...overrides })
+    expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)).toEqual({
+      status: 'incompatible',
+      reason: 'malformed',
+    })
   })
 
   it('round-trips a chosen appearance', () => {

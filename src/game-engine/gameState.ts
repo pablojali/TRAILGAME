@@ -1,6 +1,8 @@
 import { defaultAppearance, type Appearance } from '../domain/athlete/appearance'
 import type { Athlete, ProfileId, Sex } from '../domain/athlete/athlete'
 import { PROFILES } from '../domain/athlete/profiles'
+import { STARTING_COINS } from '../domain/economy/coins'
+import type { EntryType } from '../domain/races/access'
 import type { SessionType } from '../domain/training/sessions'
 
 export const DAYS_PER_WEEK = 7
@@ -45,6 +47,27 @@ export interface GameState {
    * Those days are already planned as Rest and cannot be changed.
    */
   forcedRestDays: number
+  /** Whole coins, never negative. */
+  coins: number
+  /** Race entries, oldest first. */
+  raceEntries: RaceEntry[]
+}
+
+/**
+ * A confirmed race entry. The fee was paid once, when it was created. In M4.1 every entry is
+ * `pending`: results arrive with the approved race simulation (M4.2/M4.3).
+ */
+export interface RaceEntry {
+  /** Unique within the career, e.g. `entry-3`. */
+  id: string
+  raceId: string
+  entryType: EntryType
+  feePaid: number
+  /** Athlete level when the entry was confirmed. */
+  levelAtEntry: number
+  /** Epoch ms. */
+  enteredAt: number
+  status: 'pending'
 }
 
 /** Deterministic plan used for the first week and every following week. */
@@ -98,6 +121,8 @@ export function createInitialGameState(
     week: createWeek(1),
     fitnessDecayReference: now,
     forcedRestDays: 0,
+    coins: STARTING_COINS,
+    raceEntries: [],
   }
 }
 

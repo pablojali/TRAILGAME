@@ -7,7 +7,7 @@ See [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the technical specification and
 
 **Current state:** M2 — Athlete Progression is accepted. UI Improvements v1 (runner creation,
 Dashboard, Training) and the post-M2 Rest and injury rules are on the working branch, pending review.
-Dashboard, Training and Attributes are functional; Equipment, Races and Career are placeholders.
+Dashboard, Training, Attributes and Races (catalog and entry, M4.1) are functional; Equipment and Career are placeholders.
 Progress is saved in the browser's localStorage only.
 
 ## Requirements
@@ -83,6 +83,17 @@ milestone that needs them.
   an equipment model exists. Creation artwork goes in `assets/runner/creation/{sex}/{profile}.webp` (or `.png`); profiles
   without an image show a labelled placeholder. Climber already has both images.
 
+## Races (M4.1)
+
+- Race configuration (no values in screens): `src/domain/races/categories.ts` (fees, prizes,
+  anti-farming multipliers) and `src/domain/races/races.ts` (the 12 races). Starting coins:
+  `src/domain/economy/coins.ts` (0).
+- Entry: standard fee at or above the race's recommended level, early-entry fee below it, Open races
+  free, no level locks. The fee is charged once, on confirmation, and the entry stays pending until
+  race results exist (M4.2/M4.3, after the owner approves the simulation model).
+- Coins and entries are saved in `trailgame.save` (`coins`, `raceEntries`); older careers load with
+  0 coins and no entries.
+
 ## Adding runner creation artwork
 
 1. Put the original illustration in `assets/runner/` (white or light plain background, runner facing
@@ -124,6 +135,14 @@ milestone that needs them.
 9. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
    tab. **Exit** keeps the save. **Restart Career** → tick the box → choose a profile → new career.
 10. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
+11. Races: the **Races** tab (or **Race Hub** on the Dashboard) shows Level, coins (0) and 12 races in
+    Open, Trail, Mountain and Elite; at level 1 Trail and above show "Early entry". Open
+    **Forest First Steps** → **Enter race** → the confirmation shows fee, balance and balance after
+    entry → **Confirm free entry** → "Result pending". Reload: still entered, the button is gone.
+12. Paid entry (test only): in dev tools set the saved `state.coins` to 300 and `state.athlete.xp`
+    to 250 (level 3), reload, open **Ridge Runner**: "Your fee" is the 100-coin standard fee. Enter
+    and pay: the balance becomes 200, once, even with a double tap. With `state.coins` at 40 the
+    button is inactive and shows "you need 60 coins more". **Cancel** charges nothing.
 
 ## Deployment — Cloudflare Pages
 

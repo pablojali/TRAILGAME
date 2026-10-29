@@ -1,0 +1,222 @@
+.balance {
+  display: flex;
+  gap: var(--space-2);
+  color: var(--accent-secondary);
+  font-weight: 800;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.groupTitle {
+  font-size: var(--font-size-md);
+  font-weight: 800;
+}
+
+.raceList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.raceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: var(--touch-target);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.raceCard:hover {
+  border-color: var(--accent);
+}
+
+.raceCard:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.raceName {
+  font-weight: 800;
+}
+
+.raceMeta {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.raceTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.tag {
+  padding: 1px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.tagEarly {
+  border-color: var(--accent-secondary);
+  color: var(--accent-secondary);
+}
+
+.tagEntered {
+  border-color: var(--brand-text);
+  color: var(--brand-text);
+}
+
+.back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.facts dt,
+.confirm dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.facts dd,
+.confirm dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.fees {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fees li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+}
+
+.fees .feeApplies {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.feeAmount {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.appliesTag {
+  color: var(--accent);
+  font-size: var(--font-size-xs);
+}
+
+.prizes {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.prizes th,
+.prizes td {
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.prizes td,
+.prizes thead th:last-child {
+  text-align: right;
+}
+
+.prizes thead th {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+}
+
+.prizes tbody th {
+  font-weight: 600;
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.confirm div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.warning {
+  color: var(--accent-secondary);
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.grow {
+  flex: 1;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

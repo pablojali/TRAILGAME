@@ -158,7 +158,7 @@ export function executeCurrentDay(
   return {
     ok: true,
     value: {
-      state: { athlete, week, fitnessDecayReference, forcedRestDays },
+      state: { ...state, athlete, week, fitnessDecayReference, forcedRestDays },
       executed: { ...ref, session: day.session },
       outcome,
       levelBefore,

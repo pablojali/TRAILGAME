@@ -343,3 +343,17 @@ describe('reward tables (Game Design Bible §10.8–§10.9, D5) — every band a
     }
   })
 })
+
+describe('race day with equipment', () => {
+  it('applies and stores the equipped items, and explains them', () => {
+    const owned = { ...withAthlete(newGame(), { fitness: 60, fatigue: 20 }), coins: 500, ownedEquipment: ['starter-shoes', 'poles', 'hydration-backpack'], equipment: ['poles', 'hydration-backpack'] }
+    const entered = enterRace(owned, 'RACE-001', 0, T0)
+    if (!entered.ok) throw new Error(entered.error)
+    const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
+    if (!raced.ok) throw new Error(raced.error)
+    const result = raced.value.entry.result
+    expect(result.equipment).toEqual(['poles', 'hydration-backpack'])
+    const without = simulateRace(getRace('RACE-001')!, { attributes: owned.athlete.attributes, fitness: 60, fatigue: 20 }, result.dayForm)
+    expect(result.timeS).toBeLessThan(without.timeS)
+  })
+})

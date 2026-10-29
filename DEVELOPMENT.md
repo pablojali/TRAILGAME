@@ -563,7 +563,7 @@ On the working branch, not merged.
     equipped, one per slot.
   - Only the starter shoes have artwork; the other items show an icon and are not drawn on the
     avatar yet.
-- **Equipment race effects — PROPOSAL, pending owner approval (not implemented).** Each item helps
+- **Equipment race effects — approved and implemented (owner, 29 October 2026).** Each item helps
   where it makes sense. Below, the time change and position for an All-rounder at Fitness 60 and
   Fatigue 20:
 
@@ -574,8 +574,12 @@ On the working branch, not merged.
   | Hydration backpack | slowdown over distance −20 % | −0.3 % | −0.7 % | −1.7 % | −2.2 % | −5.2 % |
   | All three | | −1.7 % (#6→#3) | −3.7 % (#27→#23) | −6.1 % (#47→#40) | −7.4 % | −10.5 % |
 
-  If approved, the equipped items become race inputs. "Equipment" would appear in the result
-  explanation only when it changed the time.
+  - The effects are stored on each item (`raceEffect` in `src/domain/equipment/items.ts`) and
+    applied by `raceSeconds`. Several items multiply.
+  - The equipped items are saved with each race result.
+  - "Equipment (…)" appears in the result explanation only when it changed the time.
+  - The field's typical runner has no equipment. Training is never affected.
+  - The prototype reproduces this table (`results.md` §10) and checks the effects against `src/`.
 - **Balance check after these changes** (one-off 16-week simulation, All-rounder, real game code):
 
   | Policy | Result |

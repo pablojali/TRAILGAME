@@ -7,6 +7,7 @@ import { Screen } from '../../components/Screen'
 import { ATTRIBUTE_LABELS, isAttributeId } from '../../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
+import { getEquipmentItem } from '../../domain/equipment/items'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
 import { INJURY_REST_DAYS } from '../../domain/training/injury'
@@ -109,7 +110,11 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
   )
 }
 
-function factorLabel(factor: ExplanationFactor): string {
+function factorLabel(factor: ExplanationFactor, equipment: readonly string[] = []): string {
+  if (factor.id === 'equipment') {
+    const names = equipment.map((id) => getEquipmentItem(id)?.label.toLowerCase()).filter(Boolean)
+    return `Equipment (${names.join(', ')})`
+  }
   if (factor.id === 'day-form') {
     const percent = Math.abs(factor.value * 100).toFixed(1)
     return `Day form ${factor.value < 0 ? '−' : '+'}${percent}% (${factor.value < 0 ? 'a good day' : 'an off day'})`
@@ -136,7 +141,7 @@ function Performance({ result }: { result: RaceResult }) {
           <ul className={styles.factors}>
             {result.factors.map((factor) => (
               <li key={factor.id}>
-                <span>{factorLabel(factor)}</span>
+                <span>{factorLabel(factor, result.equipment)}</span>
                 <span className={factor.effectS < 0 ? styles.helped : styles.hurt}>
                   {durationText(factor.effectS)} {factor.effectS < 0 ? 'faster' : 'slower'}
                 </span>

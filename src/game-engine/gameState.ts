@@ -120,6 +120,8 @@ export interface RaceResult {
   referenceTimeS: number
   gapS: number
   factors: ExplanationFactor[]
+  /** Equipped items at the start (their race effects applied). Missing in older results: none. */
+  equipment?: string[]
   /** The 49 rivals' times in whole seconds, fastest first. Missing in results saved before it existed. */
   rivalTimesS?: number[]
 }

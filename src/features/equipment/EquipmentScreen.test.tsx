@@ -44,6 +44,10 @@ describe('Equipment', () => {
     renderApp('/equipment')
     expect(screen.getByText('120 coins')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Shop' })).toBeInTheDocument()
+    // Each item says what it does in races.
+    expect(screen.getByText('Races: climbs 4% faster.')).toBeInTheDocument()
+    expect(screen.getByText('Races: technical descents cost half as much time.')).toBeInTheDocument()
+    expect(screen.getByText('Races: 20% less slowdown over long distances.')).toBeInTheDocument()
     // Not enough for the trail shoes (200): the button is inactive and says why.
     const shoes = screen.getByRole('button', { name: 'Buy trail shoes' })
     expect(shoes).toHaveAttribute('aria-disabled', 'true')

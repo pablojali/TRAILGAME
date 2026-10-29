@@ -98,6 +98,11 @@
   stroke-linejoin: round;
 }
 
+.effect {
+  color: var(--brand-text);
+  font-weight: 600;
+}
+
 .price {
   color: var(--accent-secondary);
   font-weight: 800;

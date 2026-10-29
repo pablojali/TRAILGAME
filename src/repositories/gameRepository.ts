@@ -98,7 +98,7 @@ function isTrainingDay(value: unknown, index: number, currentDayIndex: number): 
 
 const ENTRY_TYPES: readonly unknown[] = ['free', 'standard', 'early']
 
-const FACTOR_IDS: readonly unknown[] = ['fitness', 'fatigue', ...ATTRIBUTE_IDS, 'day-form']
+const FACTOR_IDS: readonly unknown[] = ['fitness', 'fatigue', ...ATTRIBUTE_IDS, 'day-form', 'equipment']
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
@@ -147,6 +147,8 @@ function isRaceResult(value: unknown, feePaid: number): value is RaceResult {
     isWholeNumber(value.gapS) &&
     Array.isArray(value.factors) &&
     value.factors.every(isFactor) &&
+    (value.equipment === undefined ||
+      (Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === 'string' && getEquipmentItem(id)))) &&
     (value.rivalTimesS === undefined ||
       (Array.isArray(value.rivalTimesS) &&
         value.rivalTimesS.length === value.fieldSize - 1 &&

@@ -575,7 +575,7 @@ The proposed starting equipment is:
 
 Equipment should eventually have meaningful gameplay effects rather than serving only as decoration.
 
-**Shop (owner decisions, 29 October 2026):** runners own the starter shoes and can buy a hydration backpack (150 coins), poles (100) and trail shoes (200). Items are worn on the avatar. Race effects are proposed in `DEVELOPMENT.md` and need owner approval; until then items have no gameplay effect.
+**Shop (owner decisions, 29 October 2026):** runners own the starter shoes and can buy a hydration backpack (150 coins), poles (100) and trail shoes (200). Items are worn on the avatar. **Race effects (approved, 29 October 2026):** poles make climbs 4% faster, trail shoes halve the technical-descent penalty, and the hydration backpack reduces the slowdown over distance by 20%. Equipment never affects training.
 
 ### 8.2 Equipment categories
 

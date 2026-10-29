@@ -185,7 +185,8 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
     **Take off**) and the **Shop** (backpack 150, poles 100, trail shoes 200). With 25 coins every
     **Buy** is inactive with "You need … more". Set `state.coins` to 150 and reload: **Buy poles** →
     the confirmation shows the balance before → after → **Pay 100 coins** charges once. Poles move
-    to **Your equipment** and can be equipped.
+    to **Your equipment** and can be equipped. Each item shows its race effect, and an equipped item
+    can appear as "Equipment (…)" in a race result's explanation.
 
 ## Deployment — Cloudflare Pages
 

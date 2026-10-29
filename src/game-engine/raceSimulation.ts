@@ -1,5 +1,6 @@
 import { ATTRIBUTE_IDS, type AttributeId, type Attributes } from '../domain/athlete/athlete'
 import type { Race } from '../domain/races/races'
+import { getRaceEffect } from '../domain/equipment/items'
 import { RACE_SIMULATION as C } from '../domain/races/simulationConfig'
 
 /**
@@ -28,6 +29,8 @@ export interface RaceAthleteInput {
   fitness: number
   /** 0–100 */
   fatigue: number
+  /** Equipped item ids; their race effects apply (owner approval, 29 October 2026). */
+  equipment?: readonly string[]
 }
 
 export interface RaceSimulationResult {
@@ -126,21 +129,27 @@ export function raceSeconds(course: readonly CourseSegment[], athlete: RaceAthle
   const fatigueScale = Math.pow(C.abilityReference / a.consistency, C.abilityExponent)
   const fatigueFactor = 1 + (C.fatigueSlope * athlete.fatigue * fatigueScale) / 100
   const durabilityScore = durability(a)
+  const gear = getRaceEffect(athlete.equipment ?? [])
   let minutes = 0
   let effortBefore = 0
   for (const s of course) {
     const e = effortKm(s)
     const abilityFactor = Math.pow(C.abilityReference / segmentAbility(s, a), C.abilityExponent)
     const technicalFactor =
-      s.type === 'descent' ? 1 + C.technicalPenaltyPerLevel * s.technicality * (1 - a.technical / 100) : 1
+      s.type === 'descent'
+        ? 1 + C.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * (1 - a.technical / 100)
+        : 1
     const slowdown =
-      1 + C.slowdownRate * (effortBefore / C.slowdownReferenceEffortKm) * (C.abilityReference / durabilityScore)
+      1 +
+      C.slowdownRate * gear.slowdown * (effortBefore / C.slowdownReferenceEffortKm) * (C.abilityReference / durabilityScore)
+    const climbFactor = s.type === 'climb' ? gear.climb : 1
     minutes +=
       e *
       C.basePaceMinPerEffortKm *
       abilityFactor *
       technicalFactor *
       slowdown *
+      climbFactor *
       fitnessFactor *
       fatigueFactor *
       (1 + dayForm)
@@ -204,7 +213,7 @@ export function getDayForm(raceId: string, entryId: string, enteredAt: number, c
   return (2 * u - 1) * C.dayFormMax * (1 - consistency / 100)
 }
 
-export type ExplanationFactorId = 'fitness' | 'fatigue' | AttributeId | 'day-form'
+export type ExplanationFactorId = 'fitness' | 'fatigue' | AttributeId | 'day-form' | 'equipment'
 
 export interface ExplanationFactor {
   id: ExplanationFactorId
@@ -252,6 +261,15 @@ export function explainRace(race: Race, athlete: RaceAthleteInput, dayForm = 0):
       value: athlete.attributes[id],
       reference: reference.attributes[id],
       effectS: Math.round(actual - swapped),
+    })
+  }
+  if (athlete.equipment?.length) {
+    // The typical runner has no equipment: measured as the time without it.
+    candidates.push({
+      id: 'equipment',
+      value: athlete.equipment.length,
+      reference: 0,
+      effectS: Math.round(actual - raceSeconds(course, { ...athlete, equipment: [] }, dayForm)),
     })
   }
   if (dayForm !== 0) {

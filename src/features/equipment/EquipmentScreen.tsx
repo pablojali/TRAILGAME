@@ -50,7 +50,7 @@ export function EquipmentScreen() {
   return (
     <Screen
       title="Equipment"
-      description="Buy gear and choose what your runner wears. Equipment has no effect on training or races yet."
+      description="Buy gear and choose what your runner wears. Equipped items help in races; they never change training."
     >
       <p className={styles.balance}>{formatCoins(state.coins)}</p>
 
@@ -80,6 +80,7 @@ export function EquipmentScreen() {
                     <span className={styles.itemText}>
                       <strong>{item.label}</strong>
                       <span className={styles.muted}>{item.description}</span>
+                      {item.effectText && <span className={styles.effect}>{item.effectText}</span>}
                       <span className={styles.muted}>{equipped ? 'Equipped' : 'Not equipped'}</span>
                     </span>
                     <button
@@ -139,6 +140,7 @@ function ShopItem({ item, onBought }: { item: EquipmentItem; onBought(text: stri
       <span className={styles.itemText}>
         <strong>{item.label}</strong>
         <span className={styles.muted}>{item.description}</span>
+        {item.effectText && <span className={styles.effect}>{item.effectText}</span>}
         <span className={styles.price}>{formatCoins(item.price)}</span>
         {shortfall > 0 && (
           <span id={shortfallId} className={styles.warning}>

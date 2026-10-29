@@ -11,6 +11,7 @@ import {
   InvalidCourseError,
   raceSeconds,
   referenceAthlete,
+  rivalTimes,
   simulateRace,
   splitEvenly,
   type RaceAthleteInput,
@@ -199,5 +200,49 @@ describe('result explanation (D10)', () => {
       { id: 'day-form', value: -0.03, reference: 0, effectS: expect.any(Number) },
     ])
     expect(explanation.factors[0]!.effectS).toBeLessThan(0)
+  })
+})
+
+describe('equipment race effects (owner approval, 29 October 2026)', () => {
+  const base = athlete('all-rounder', 60, 20)
+  const change = (id: string, equipment: string[]) => {
+    const course = generateCourse(race(id))
+    return raceSeconds(course, { ...base, equipment }) / raceSeconds(course, base) - 1
+  }
+
+  it.each<[string[], string, number]>([
+    // Values from the approved proposal (DEVELOPMENT.md), All-rounder at Fitness 60, Fatigue 20.
+    [['poles'], 'RACE-001', -0.014],
+    [['poles'], 'RACE-004', -0.02],
+    [['poles'], 'RACE-012', -0.023],
+    [['trail-shoes'], 'RACE-004', -0.011],
+    [['trail-shoes'], 'RACE-012', -0.033],
+    [['hydration-backpack'], 'RACE-004', -0.007],
+    [['hydration-backpack'], 'RACE-012', -0.052],
+    [['poles', 'trail-shoes', 'hydration-backpack'], 'RACE-001', -0.017],
+    [['poles', 'trail-shoes', 'hydration-backpack'], 'RACE-004', -0.037],
+    [['poles', 'trail-shoes', 'hydration-backpack'], 'RACE-012', -0.105],
+  ])('%j in %s: %d', (equipment, id, expected) => {
+    expect(change(id, equipment)).toBeCloseTo(expected, 3)
+  })
+
+  it('helps only where it makes sense, and the starter shoes do nothing', () => {
+    // No technical descents in Forest First Steps: trail shoes change nothing there.
+    expect(change('RACE-001', ['trail-shoes'])).toBe(0)
+    expect(change('RACE-012', ['starter-shoes'])).toBe(0)
+  })
+
+  it('does not change the field: the typical runner has no equipment', () => {
+    expect(rivalTimes(race('RACE-004'))).toEqual(rivalTimes(race('RACE-004')))
+    expect(referenceAthlete(11).equipment).toBeUndefined()
+  })
+
+  it('appears in the explanation only when it changed the time', () => {
+    const all = ['poles', 'trail-shoes', 'hydration-backpack']
+    const ultra = explainRace(race('RACE-012'), { ...referenceAthlete(50), equipment: all })
+    expect(ultra.factors[0]).toMatchObject({ id: 'equipment', value: 3, reference: 0 })
+    expect(ultra.factors[0]!.effectS).toBeLessThan(0)
+    const starter = explainRace(race('RACE-001'), { ...referenceAthlete(1), equipment: ['starter-shoes'] })
+    expect(starter.factors.map((f) => f.id)).not.toContain('equipment')
   })
 })

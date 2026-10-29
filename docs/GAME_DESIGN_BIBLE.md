@@ -902,6 +902,8 @@ All screens must follow existing UI conventions, use English UI copy, and be res
 
 **M4.3 — Results and rewards**
 
+*Implemented on 29 October 2026 per decisions D2–D5 and D10 (see `DEVELOPMENT.md` §11).*
+
 - Implement the approved result structure and result screen.
 - Integrate the existing XP system.
 - Apply configurable gross coin prizes and anti-farming multipliers.

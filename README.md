@@ -7,7 +7,7 @@ See [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the technical specification and
 
 **Current state:** M2 — Athlete Progression is accepted. UI Improvements v1 (runner creation,
 Dashboard, Training) and the post-M2 Rest and injury rules are on the working branch, pending review.
-Dashboard, Training, Attributes and Races (catalog and entry, M4.1) are functional; Equipment and Career are placeholders.
+Dashboard, Training, Attributes and Races (catalog, entry, simulation, race day and results; M4.1–M4.3) are functional; Equipment and Career are placeholders.
 Progress is saved in the browser's localStorage only.
 
 ## Requirements
@@ -90,8 +90,10 @@ milestone that needs them.
   `src/domain/economy/coins.ts` (0).
 - Entry: standard fee at or above the race's recommended level, early-entry fee below it, Open races
   free, no level locks. The fee is charged once, on confirmation, and the entry stays pending until
-  race results exist (M4.3). The race simulation itself is in `src/game-engine/raceSimulation.ts`
-  (M4.2; constants in `src/domain/races/simulationConfig.ts`); it is not connected to the screens yet.
+  it is raced. Racing takes the current training day instead of the planned session, adds race
+  Fatigue, can injure (same rule as training) and awards XP and coins with the anti-farming
+  multiplier, once. The simulation is in `src/game-engine/raceSimulation.ts` (constants in
+  `src/domain/races/simulationConfig.ts`); race day and rewards are in `src/game-engine/races.ts`.
 - Coins and entries are saved in `trailgame.save` (`coins`, `raceEntries`); older careers load with
   0 coins and no entries.
 
@@ -139,7 +141,24 @@ milestone that needs them.
 11. Races: the **Races** tab (or **Race Hub** on the Dashboard) shows Level, coins (0) and 12 races in
     Open, Trail, Mountain and Elite; at level 1 Trail and above show "Early entry". Open
     **Forest First Steps** → **Enter race** → the confirmation shows fee, balance and balance after
-    entry → **Confirm free entry** → "Result pending". Reload: still entered, the button is gone.
+    entry → **Confirm free entry**. Reload: still entered, and **Enter race** is gone.
+13. Race day: on the entered race, the panel says the race takes today's training day (e.g.
+    "Monday's Easy run is not done") and shows Fatigue before → after. **Start race** (a double tap
+    races once) opens the result:
+    - Position of 50, time and prize band.
+    - "What shaped your time": the gap to a typical runner, then up to 3 influences, each measured
+      on its own, and the day form.
+    - Rewards: entry fee, gross prize, multiplier, coins, XP and net coin change.
+    - Condition.
+
+    Reload the result: nothing changes (same coins and XP). Training shows Monday as
+    "Race: Forest First Steps" with **View result**; Tuesday is today. The race page lists it under
+    **Your results** and can be entered again.
+14. Race injury and anti-farming (test only): set `state.athlete.fatigue` to 90 and
+    `state.athlete.xp` to 250, reload, enter **Forest First Steps**. The panel warns about the
+    injury and the button reads **Start race anyway — injury**. The result shows "0 (injured)" XP,
+    "Rewards reduced to 40%" (level 3 in a level-1 race) and 5 forced rest days. During forced rest
+    the race panel says racing is locked.
 12. Paid entry (test only): in dev tools set the saved `state.coins` to 300 and `state.athlete.xp`
     to 250 (level 3), reload, open **Ridge Runner**: "Your fee" is the 100-coin standard fee. Enter
     and pay: the balance becomes 200, once, even with a double tap. With `state.coins` at 40 the

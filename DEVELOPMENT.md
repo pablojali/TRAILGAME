@@ -2,7 +2,7 @@
 
 **Document:** `DEVELOPMENT.md`  
 **Version:** 0.4.0  
-**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A merged into `main` (29 October 2026); M4 Race System — M4.1 (catalog and access) and M4.2 (simulation model) implemented on the working branch, pending owner review  
+**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A merged into `main` (29 October 2026); M4 Race System — M4.1 (catalog and access), M4.2 (simulation model) and M4.3 (results and rewards) implemented on the working branch, pending owner review  
 **Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) (v1.2) · UI pass: [`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
@@ -624,7 +624,7 @@ recommendations were accepted except one — **shoes are equipment**, not part o
 - **Out of scope (unchanged):** shop, currency, unlocks, rewards, inventory, equipment effects,
   monetization.
 
-### M4 — Race System (M4.1 and M4.2 implemented, M4.3 next)
+### M4 — Race System (M4.1–M4.3 implemented, M4.4 validation next)
 
 **Specification:** Game Design Bible §10 (v1.3, PM, 29 October 2026). Stages: M4.1 catalog and access;
 M4.2 simulation model proposal (owner approval required before any formula is coded); M4.3 results
@@ -681,11 +681,61 @@ later milestones were renumbered (PWA M5, native packaging M6, Strava/VTL M8).
   - A one-off cross-check: 46,513 comparisons of production against the reference prototype
     (`docs/race-simulation/prototype.mjs`), with no difference.
   - The prototype's `--check` mode confirms its data and constants match `src/`.
-- **Not used yet:** nothing calls the simulation. Pending entries stay pending until M4.3 adds race
-  day (B7), race Fatigue (D3), injury (D4), XP and coin rewards (D5, B8), result storage and the
-  result screen. Training code and formulas are unchanged.
-- **Limitations:** with 0 starting coins and no prizes until M4.3, only Open races can be entered in
-  normal play; paid entry is testable by editing the save (see README). Multi-tab play is still
+- **Connection:** M4.3 (below) connects the simulation to the game.
+
+**M4.3 — Results and rewards: implemented on the working branch, not merged.**
+
+- **Race day** (`raceCurrentDay`, `src/game-engine/races.ts`; D2–D4). It races a pending entry on
+  the current training day.
+  - **Guards:** the day must be current (the same `checkDay` as training), there must be no forced
+    Rest, and the entry must exist and be pending.
+  - **Inputs:** a snapshot of attributes, Fitness, Fatigue and `levelAtStart`, plus the day form
+    (`getDayForm`).
+  - **The race:** `simulateRace` and `explainRace`. Race Fatigue is `round(6 + 0.6 × effort-km)`.
+  - **Injury:** the existing rule. Above 95 Fatigue: no XP, −15 Fitness, 5 forced Rest days; the
+    result and prize coins still count.
+  - **Day completion:** the day is completed with a race outcome (`raceEntryId`) through
+    `completeCurrentDay`, the shared helper extracted from `executeCurrentDay`. The planned session
+    is never executed. The race resets the Fitness decay reference.
+- **Training refactor:** the end of `executeCurrentDay` (forced Rest count, calendar advance, decay
+  reference) moved into `completeCurrentDay` with no behaviour change. The existing tests pass
+  unchanged, and a one-off comparison of the old and new code over 9,408 executions found no
+  difference. Training formulas are unchanged.
+- **Rewards** (`getRaceRewards`; D5, Bible §10.8–§10.9):
+  - Coins: `floor(gross × multiplier% / 100)`.
+  - XP: `floor(base × band% × multiplier% / 10000)`, with base Open 30, Trail 60, Mountain 100,
+    Elite 180 (`RACE_XP_BASE` and `RACE_XP_BAND_PCT` in `categories.ts`).
+  - The multiplier uses the level when the race starts.
+  - Net coin change: coins awarded − the fee paid at entry.
+  - XP goes into the existing `athlete.xp`, so levels and attribute points follow the existing rules.
+- **Applied once:** results, rewards, the calendar and the entry's `finished` status change in one
+  state change and one save.
+  - A repeated request fails: `day-completed` for the same day, `already-finished` for a finished
+    entry.
+  - The **Start race** button navigates away on success, so a double tap races once (checked in the
+    browser).
+  - The result screen only reads the stored result.
+- **Saves (still schema v2):**
+  - Finished entries store the full result: inputs, day form, time, position, rewards and
+    explanation.
+  - Day outcomes may carry `raceEntryId`, which must name a finished entry.
+  - Inconsistent results are invalid data: net coins not matching the fee, a missing result, a
+    position outside the field, or a race day without its entry.
+- **Screens:**
+  - Race Detail, for a pending entry: the race day panel (the day it takes, Fatigue before → after,
+    injury warning, **Start race**). Below the race: **Your results**.
+  - New Race Result screen at `/races/results/:entryId`:
+    - Position, time and band.
+    - "What shaped your time": the gap to the typical runner, up to 3 single effects labelled
+      "they don't add up", and the day form.
+    - Rewards: fee, gross prize, multiplier with the reduced or too-easy explanation, coins, XP and
+      net.
+    - Condition and injury.
+  - Training shows a race day with a flag, "Race: name" and a link to the result.
+- **Not included:** strategy, weather, cutoffs, DNF, equipment effects, rankings and backend
+  persistence (out of scope, Bible §10.14). Multi-tab play is still last-write-wins.
+- **Limitations:** careers start with 0 coins, so only Open races can be entered at first. Since
+  M4.3, Open prizes (10–100 coins) let players earn the fees for paid races. Multi-tab play is still
   last-write-wins.
 
 > **Note:** the milestones below are the original plan. Their names, order and scope are to be

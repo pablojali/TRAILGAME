@@ -4,7 +4,7 @@ import type { SessionType } from '../../domain/training/sessions'
 import { allocateAttributePoint } from '../../game-engine/attributes'
 import { applyFitnessDecay } from '../../game-engine/fitnessDecay'
 import { createInitialGameState, type AthleteIdentity, type GameState } from '../../game-engine/gameState'
-import { enterRace } from '../../game-engine/races'
+import { enterRace, raceCurrentDay } from '../../game-engine/races'
 import * as engine from '../../game-engine/training'
 import type { DayRef, ExecutionResult } from '../../game-engine/training'
 import { createLocalStorageGameRepository, type GameRepository } from '../../repositories/gameRepository'
@@ -166,6 +166,20 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
     [commit, currentState],
   )
 
+  const race = useCallback(
+    (ref: DayRef, entryId: string) => {
+      const state = currentState()
+      if (!state) return { ok: false as const, error: 'wrong-week' as const }
+      const result = raceCurrentDay(state, ref, entryId, clockRef.current())
+      if (!result.ok) return result
+      commit({ kind: 'playing', state: result.value.state })
+      // The last training feedback no longer describes the latest day.
+      setLastExecution(null)
+      return result
+    },
+    [commit, currentState],
+  )
+
   const value = useMemo<GameContextValue>(
     () => ({
       phase,
@@ -180,6 +194,7 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
       executeDay,
       allocateAttributePoint: allocate,
       enterRace: enter,
+      raceDay: race,
     }),
     [
       phase,
@@ -193,6 +208,7 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
       executeDay,
       allocate,
       enter,
+      race,
     ],
   )
 

@@ -1,6 +1,8 @@
 import type { SessionType } from '../../domain/training/sessions'
 
-const PATHS: Record<SessionType, string> = {
+const PATHS: Record<SessionType | 'race', string> = {
+  // Finish flag: a race took the day.
+  race: 'M5 21V4M5 4h12l-2.5 4 2.5 4H5',
   // Gentle wave.
   'easy-run': 'M3 14c3-4 6-4 9 0s6 4 9 0',
   // Rising bars.
@@ -17,8 +19,8 @@ const PATHS: Record<SessionType, string> = {
   rest: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z',
 }
 
-/** Decorative icon for a session type; always pair it with the session name. */
-export function SessionIcon({ session, size = 24 }: { session: SessionType; size?: number }) {
+/** Decorative icon for a session type (or a race day); always pair it with the name. */
+export function SessionIcon({ session, size = 24 }: { session: SessionType | 'race'; size?: number }) {
   return (
     <svg
       width={size}

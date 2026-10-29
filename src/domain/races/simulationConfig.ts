@@ -40,4 +40,7 @@ export const RACE_SIMULATION = {
   explanationMinShare: 0.005,
   /** Number of explanation factors shown. */
   explanationCount: 3,
+  /** Fatigue added by a race (D3): round(base + perEffortKm × effort-km). */
+  raceFatigueBase: 6,
+  raceFatiguePerEffortKm: 0.6,
 } as const

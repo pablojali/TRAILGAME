@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { defaultAppearance } from '../domain/athlete/appearance'
 import type { GameState } from '../game-engine/gameState'
 import { allocateAttributePoint } from '../game-engine/attributes'
-import { enterRace } from '../game-engine/races'
+import { enterRace, raceCurrentDay } from '../game-engine/races'
 import { execute, newGame, T0, withAthlete } from '../test/gameFixtures'
 import { M1_SAVE } from '../test/legacySaves'
 import { createLocalStorageGameRepository, LEGACY_DEFAULT_SEX, SAVE_KEY, SCHEMA_VERSION } from './gameRepository'
@@ -136,6 +136,45 @@ describe('localStorage game repository', () => {
       status: 'incompatible',
       reason: 'malformed',
     })
+  })
+
+  it('round-trips a raced day with its finished entry and result', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const entered = enterRace(newGame(), 'RACE-001', 0, T0)
+    if (!entered.ok) throw new Error(entered.error)
+    const raced = raceCurrentDay(entered.state, { week: 1, dayIndex: 0 }, entered.entry.id, T0 + 1000)
+    if (!raced.ok) throw new Error(raced.error)
+    repo.save(raced.value.state)
+    expect(repo.load(T0 + 1000)).toEqual({ status: 'loaded', state: raced.value.state })
+  })
+
+  it('rejects inconsistent race results', () => {
+    const entered = enterRace(newGame(), 'RACE-001', 0, T0)
+    if (!entered.ok) throw new Error(entered.error)
+    const raced = raceCurrentDay(entered.state, { week: 1, dayIndex: 0 }, entered.entry.id, T0 + 1000)
+    if (!raced.ok) throw new Error(raced.error)
+    const state = raced.value.state
+    const finished = state.raceEntries[0]!
+    if (finished.status !== 'finished') throw new Error('not finished')
+    const variants: unknown[] = [
+      // Net coins that do not match the fee paid.
+      { ...state, raceEntries: [{ ...finished, result: { ...finished.result, netCoins: finished.result.netCoins + 1 } }] },
+      // A finished entry without its result.
+      { ...state, raceEntries: [{ ...finished, result: undefined }] },
+      // A race day pointing to a pending entry.
+      { ...state, raceEntries: [{ ...finished, status: 'pending', result: undefined }] },
+      // A race day pointing to an entry that does not exist.
+      { ...state, raceEntries: [] },
+      // A position outside the field.
+      { ...state, raceEntries: [{ ...finished, result: { ...finished.result, position: 51 } }] },
+    ]
+    for (const variant of variants) {
+      const raw = saveOf(variant)
+      expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)).toEqual({
+        status: 'incompatible',
+        reason: 'malformed',
+      })
+    }
   })
 
   it('round-trips a chosen appearance', () => {

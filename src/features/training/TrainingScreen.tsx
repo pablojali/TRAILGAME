@@ -6,10 +6,27 @@ import { formatDelta } from '../../components/format'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
 import { isSessionType, SESSION_TYPES, TRAINING_SESSIONS, type SessionType } from '../../domain/training/sessions'
 import { weekdayLong, weekdayShort } from '../../domain/training/weekdays'
-import { getDayStatus, type DayOutcome, type DayStatus, type GameState } from '../../game-engine/gameState'
+import {
+  getDayStatus,
+  type DayOutcome,
+  type DayStatus,
+  type FinishedRaceEntry,
+  type GameState,
+  type TrainingDay,
+} from '../../game-engine/gameState'
+import { getRace, type Race } from '../../domain/races/races'
+import { getEntry } from '../../game-engine/races'
 import { previewSession, type DayRef, type ExecutionResult, type TrainingError } from '../../game-engine/training'
+import { ordinal, raceTimeText } from '../races/raceText'
 import { SessionIcon } from './SessionIcon'
 import styles from './TrainingScreen.module.css'
+
+/** The race a completed day was used for, if any. */
+function dayRace(state: GameState, day: TrainingDay): { race: Race; entry: FinishedRaceEntry } | null {
+  const entry = day.outcome?.raceEntryId ? getEntry(state, day.outcome.raceEntryId) : undefined
+  const race = entry && getRace(entry.raceId)
+  return entry?.status === 'finished' && race ? { race, entry } : null
+}
 
 const STATUS_LABELS: Record<DayStatus, string> = {
   completed: 'Completed',
@@ -72,6 +89,7 @@ export function TrainingScreen() {
         {week.days.map((day, index) => {
           const dayStatus = getDayStatus(week, index)
           const forced = index >= week.currentDayIndex && index < week.currentDayIndex + state.forcedRestDays
+          const raced = dayRace(state, day)
           return (
             <li key={day.day}>
               <button
@@ -80,7 +98,7 @@ export function TrainingScreen() {
                 aria-pressed={index === selectedIndex}
                 aria-current={dayStatus === 'current' ? 'date' : undefined}
                 aria-controls="day-detail"
-                aria-label={`${weekdayLong(day.day)}, ${TRAINING_SESSIONS[day.session].label}, ${
+                aria-label={`${weekdayLong(day.day)}, ${raced ? `Race: ${raced.race.name}` : TRAINING_SESSIONS[day.session].label}, ${
                   day.outcome?.injured ? 'injured' : STATUS_LABELS[dayStatus].toLowerCase()
                 }${forced ? ', forced rest' : ''}`}
                 onClick={() => {
@@ -89,7 +107,7 @@ export function TrainingScreen() {
                 }}
               >
                 <span className={styles.dayName}>{weekdayShort(day.day)}</span>
-                <SessionIcon session={day.session} size={22} />
+                <SessionIcon session={raced ? 'race' : day.session} size={22} />
                 <span className={styles.dayMark} aria-hidden="true">
                   {day.outcome ? (day.outcome.injured ? '!' : '✓') : forced ? '+' : dayStatus === 'current' ? '•' : ''}
                 </span>
@@ -142,6 +160,7 @@ function DayDetail({ state, index, error, cooldown, onPlan, onComplete }: DayDet
   const status = getDayStatus(week, index)
   const session = TRAINING_SESSIONS[day.session]
   const selectId = useId()
+  const raced = dayRace(state, day)
 
   return (
     <section id="day-detail" className={styles.detail} aria-labelledby="day-detail-title">
@@ -151,8 +170,8 @@ function DayDetail({ state, index, error, cooldown, onPlan, onComplete }: DayDet
           id="day-detail-title"
           className={status === 'current' ? styles.srOnly : styles.detailTitle}
         >
-          <SessionIcon session={day.session} size={26} />
-          <span>{session.label}</span>
+          <SessionIcon session={raced ? 'race' : day.session} size={26} />
+          <span>{raced ? `Race: ${raced.race.name}` : session.label}</span>
         </h2>
         <span className={styles.detailWhen}>
           {weekdayLong(day.day)} · {STATUS_LABELS[status]}
@@ -170,7 +189,15 @@ function DayDetail({ state, index, error, cooldown, onPlan, onComplete }: DayDet
         />
       ) : status === 'completed' && day.outcome ? (
         <>
-          <p className={styles.description}>{session.description}</p>
+          {raced ? (
+            <p className={styles.description}>
+              Raced instead of {session.label}: {ordinal(raced.entry.result.position)} of{' '}
+              {raced.entry.result.fieldSize} in {raceTimeText(raced.entry.result.timeS)}.{' '}
+              <Link to={`/races/results/${raced.entry.id}`}>View result</Link>
+            </p>
+          ) : (
+            <p className={styles.description}>{session.description}</p>
+          )}
           <p className={styles.summary}>
             <strong>Result:</strong> {effectsText(day.outcome)}
           </p>

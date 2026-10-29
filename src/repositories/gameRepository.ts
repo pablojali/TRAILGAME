@@ -10,6 +10,7 @@ import {
 } from '../domain/athlete/athlete'
 import { parseAppearance } from '../domain/athlete/appearance'
 import { STARTING_COINS } from '../domain/economy/coins'
+import { PRIZE_BANDS } from '../domain/races/categories'
 import { isRaceId } from '../domain/races/races'
 import { getEarnedAttributePoints } from '../domain/athlete/levels'
 import { isProfileId, PROFILE_ATTRIBUTE_TOTAL } from '../domain/athlete/profiles'
@@ -20,6 +21,7 @@ import {
   type DayOutcome,
   type GameState,
   type RaceEntry,
+  type RaceResult,
   type TrainingDay,
 } from '../game-engine/gameState'
 
@@ -82,7 +84,8 @@ function isOutcome(value: unknown): value is DayOutcome {
     isInt(value.xpGained, 0) &&
     isInt(value.fitnessChange, -STAT_MAX, STAT_MAX) &&
     isInt(value.fatigueChange, -STAT_MAX, STAT_MAX) &&
-    (value.injured === undefined || typeof value.injured === 'boolean')
+    (value.injured === undefined || typeof value.injured === 'boolean') &&
+    (value.raceEntryId === undefined || (typeof value.raceEntryId === 'string' && value.raceEntryId.length > 0))
   )
 }
 
@@ -94,19 +97,73 @@ function isTrainingDay(value: unknown, index: number, currentDayIndex: number): 
 
 const ENTRY_TYPES: readonly unknown[] = ['free', 'standard', 'early']
 
-function isRaceEntry(value: unknown): value is RaceEntry {
+const FACTOR_IDS: readonly unknown[] = ['fitness', 'fatigue', ...ATTRIBUTE_IDS, 'day-form']
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isWholeNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value)
+}
+
+function isFactor(value: unknown): boolean {
   return (
     isRecord(value) &&
-    typeof value.id === 'string' &&
-    value.id.length > 0 &&
-    isRaceId(value.raceId) &&
-    ENTRY_TYPES.includes(value.entryType) &&
-    isInt(value.feePaid, 0) &&
-    isInt(value.levelAtEntry, 1) &&
-    typeof value.enteredAt === 'number' &&
-    Number.isFinite(value.enteredAt) &&
-    value.status === 'pending'
+    FACTOR_IDS.includes(value.id) &&
+    isFiniteNumber(value.value) &&
+    isFiniteNumber(value.reference) &&
+    isWholeNumber(value.effectS)
   )
+}
+
+/** A stored race result; its net coins must match the fee paid. */
+function isRaceResult(value: unknown, feePaid: number): value is RaceResult {
+  return (
+    isRecord(value) &&
+    isFiniteNumber(value.startedAt) &&
+    isInt(value.week, 1) &&
+    isInt(value.day, 1, DAYS_PER_WEEK) &&
+    isInt(value.levelAtStart, 1) &&
+    parseAttributes(value.attributes) !== null &&
+    isStat(value.fitness) &&
+    isStat(value.fatigue) &&
+    isFiniteNumber(value.dayForm) &&
+    Math.abs(value.dayForm) <= 1 &&
+    isInt(value.timeS, 1) &&
+    isInt(value.fieldSize, 1) &&
+    isInt(value.position, 1, value.fieldSize) &&
+    isInt(value.band, 0, PRIZE_BANDS.length - 1) &&
+    isInt(value.grossPrize, 0) &&
+    isInt(value.multiplierPct, 0, 100) &&
+    isInt(value.coinsAwarded, 0) &&
+    isInt(value.xpAwarded, 0) &&
+    value.netCoins === value.coinsAwarded - feePaid &&
+    isInt(value.fatigueChange, -STAT_MAX, STAT_MAX) &&
+    isInt(value.fitnessChange, -STAT_MAX, STAT_MAX) &&
+    typeof value.injured === 'boolean' &&
+    isInt(value.referenceTimeS, 1) &&
+    isWholeNumber(value.gapS) &&
+    Array.isArray(value.factors) &&
+    value.factors.every(isFactor)
+  )
+}
+
+function isRaceEntry(value: unknown): value is RaceEntry {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    value.id.length === 0 ||
+    !isRaceId(value.raceId) ||
+    !ENTRY_TYPES.includes(value.entryType) ||
+    !isInt(value.feePaid, 0) ||
+    !isInt(value.levelAtEntry, 1) ||
+    !isFiniteNumber(value.enteredAt)
+  ) {
+    return false
+  }
+  if (value.status === 'pending') return value.result === undefined
+  return value.status === 'finished' && isRaceResult(value.result, value.feePaid)
 }
 
 /** Race entries with unique ids and at most one pending entry per race, or null. */
@@ -116,7 +173,7 @@ function parseRaceEntries(value: unknown): RaceEntry[] | null {
   if (new Set(entries.map((e) => e.id)).size !== entries.length) return null
   const pending = entries.filter((e) => e.status === 'pending').map((e) => e.raceId)
   if (new Set(pending).size !== pending.length) return null
-  return entries.map((e) => ({ ...e }))
+  return entries.map((e) => structuredClone(e))
 }
 
 function parseAttributes(value: unknown): Attributes | null {
@@ -179,6 +236,10 @@ export function parseGameState(value: unknown, now: number): GameState | null {
   if (!isInt(coins, 0)) return null
   const raceEntries = parseRaceEntries(value.raceEntries === undefined ? [] : value.raceEntries)
   if (!raceEntries) return null
+  // A race day must point to the finished entry it raced.
+  const finishedIds = new Set(raceEntries.filter((e) => e.status === 'finished').map((e) => e.id))
+  const raceDays = (week.days as TrainingDay[]).filter((day) => day.outcome?.raceEntryId !== undefined)
+  if (!raceDays.every((day) => finishedIds.has(day.outcome!.raceEntryId!))) return null
 
   const reference = value.fitnessDecayReference
   return {

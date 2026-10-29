@@ -47,6 +47,12 @@ export const GROSS_PRIZES: Record<RaceCategory, readonly number[]> = {
   elite: [1500, 1050, 750, 375, 150],
 }
 
+/** Race XP before multipliers (owner decision D5): XP = floor(base × band % × multiplier %). */
+export const RACE_XP_BASE: Record<RaceCategory, number> = { open: 30, trail: 60, mountain: 100, elite: 180 }
+
+/** Race XP per band, in whole percent of the base (same order as `PRIZE_BANDS`). */
+export const RACE_XP_BAND_PCT: readonly number[] = [100, 70, 50, 25, 10]
+
 /**
  * Anti-farming multipliers for race XP and gross coin prizes, by
  * `levelDifference = athleteLevel - raceRecommendedLevel`. The last entry applies to every larger

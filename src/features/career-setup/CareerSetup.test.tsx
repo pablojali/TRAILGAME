@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import { defaultAppearance } from '../../domain/athlete/appearance'
 import type { ProfileId, Sex } from '../../domain/athlete/athlete'
 import { PROFILE_IDS, PROFILES } from '../../domain/athlete/profiles'
 import { SAVE_KEY } from '../../repositories/gameRepository'
@@ -22,11 +23,18 @@ function selectedSlide() {
   return slides().find((s) => s.getAttribute('aria-current') === 'true')!
 }
 
+/** Profile step → appearance step, keeping the default appearance. */
+async function chooseAndContinue(user: User) {
+  await user.click(chooseButton())
+  await user.click(screen.getByRole('button', { name: 'Continue' }))
+}
+
 /** Runs the whole creation flow with the given choices. */
 async function createCareer(user: User, profile: ProfileId, sex: Sex, name: string) {
   await user.click(screen.getByRole('radio', { name: sex === 'male' ? 'Male' : 'Female' }))
   await user.click(screen.getByRole('button', { name: `Show ${PROFILES[profile].label}` }))
   await user.click(screen.getByRole('button', { name: `Choose ${PROFILES[profile].label}` }))
+  await user.click(screen.getByRole('button', { name: 'Continue' }))
   await user.type(screen.getByLabelText('Runner name'), name)
   await user.click(screen.getByRole('button', { name: 'Start career' }))
 }
@@ -125,26 +133,109 @@ describe('career creation — profile step', () => {
   })
 })
 
+describe('career creation — appearance step', () => {
+  function avatar() {
+    return screen.getByRole('img', { name: /^Avatar preview/ })
+  }
+
+  it('opens after choosing a profile, with the same sex choice, a preview and focus on the heading', async () => {
+    const user = userEvent.setup()
+    renderApp('/')
+    await user.click(screen.getByRole('radio', { name: 'Male' }))
+    await user.click(chooseButton())
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Customize your runner' })).toHaveFocus()
+    expect(screen.getByText('New career · Step 2 of 3')).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Male' })).toBeChecked()
+    expect(avatar()).toHaveAccessibleName('Avatar preview: male, short, skin tone 2, basic kit')
+    expect(screen.getByRole('tab', { name: 'Hair' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getAllByRole('radio', { name: /Short|Buzz cut|Curly/ })).toHaveLength(3)
+    expect(localStorage.getItem(SAVE_KEY)).toBeNull()
+  })
+
+  it('changes hair, skin and sex on the preview; hair keeps its position when the sex changes', async () => {
+    const user = userEvent.setup()
+    renderApp('/')
+    await user.click(chooseButton())
+    await user.click(screen.getByRole('radio', { name: 'Braid' }))
+    await user.click(screen.getByRole('tab', { name: 'Skin' }))
+    expect(screen.getAllByRole('radio', { name: /Skin tone/ })).toHaveLength(4)
+    // The placeholder silhouette cannot show the tone, so the preview says so.
+    expect(screen.getByText('Skin tone shows with the final art.')).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Skin tone 4' }))
+    expect(avatar()).toHaveAccessibleName('Avatar preview: female, braid, skin tone 4, basic kit')
+
+    await user.click(screen.getByRole('radio', { name: 'Male' }))
+    expect(avatar()).toHaveAccessibleName('Avatar preview: male, curly, skin tone 4, basic kit')
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByRole('radio', { name: 'Male' })).toBeChecked()
+  })
+
+  it('offers only the basic kit as outfit, and no shoes', async () => {
+    const user = userEvent.setup()
+    renderApp('/')
+    await user.click(chooseButton())
+    await user.click(screen.getByRole('tab', { name: 'Outfit' }))
+    expect(screen.getByRole('radio', { name: 'Basic kit' })).toBeChecked()
+    expect(screen.getAllByRole('radio', { name: /kit/ })).toHaveLength(1)
+    expect(screen.queryByText(/shoe/i)).not.toBeInTheDocument()
+  })
+
+  it('switches tabs with the arrow keys', async () => {
+    const user = userEvent.setup()
+    renderApp('/')
+    await user.click(chooseButton())
+    screen.getByRole('tab', { name: 'Hair' }).focus()
+    await user.keyboard('{ArrowRight}')
+    expect(screen.getByRole('tab', { name: 'Skin' })).toHaveFocus()
+    expect(screen.getByRole('tab', { name: 'Skin' })).toHaveAttribute('aria-selected', 'true')
+    await user.keyboard('{ArrowLeft}{ArrowLeft}')
+    expect(screen.getByRole('tab', { name: 'Outfit' })).toHaveFocus()
+  })
+
+  it('saves the chosen appearance with the new career', async () => {
+    const user = userEvent.setup()
+    renderApp('/')
+    await user.click(screen.getByRole('radio', { name: 'Male' }))
+    await user.click(chooseButton())
+    await user.click(screen.getByRole('radio', { name: 'Buzz cut' }))
+    await user.click(screen.getByRole('tab', { name: 'Skin' }))
+    await user.click(screen.getByRole('radio', { name: 'Skin tone 1' }))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(screen.getByRole('img')).toHaveAccessibleName('Your runner: Climber, male')
+    await user.type(screen.getByLabelText('Runner name'), 'Leo')
+    await user.click(screen.getByRole('button', { name: 'Start career' }))
+    expect(readSave()!.state.athlete.appearance).toEqual({ hair: 'buzz', skin: 'tone-1', outfit: 'basic' })
+  })
+})
+
 describe('career creation — name step', () => {
-  it('opens after choosing a profile, with a preview and focus on the heading', async () => {
+  it('opens after the appearance step, with a preview and focus on the heading', async () => {
     const user = userEvent.setup()
     renderApp('/')
     await user.click(screen.getByRole('radio', { name: 'Male' }))
     await user.click(screen.getByRole('button', { name: 'Show Sprinter' }))
     await user.click(screen.getByRole('button', { name: 'Choose Sprinter' }))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
 
     expect(screen.getByRole('heading', { level: 1, name: 'Name your runner' })).toHaveFocus()
+    expect(screen.getByText('New career · Step 3 of 3')).toBeInTheDocument()
     expect(screen.getByText('Sprinter · Male')).toBeInTheDocument()
-    expect(screen.getByRole('img')).toHaveAccessibleName('Sprinter, male runner (placeholder art)')
+    expect(screen.getByRole('img')).toHaveAccessibleName('Your runner: Sprinter, male')
     expect(localStorage.getItem(SAVE_KEY)).toBeNull()
   })
 
-  it('Back returns to the profile step with the same choices', async () => {
+  it('Back returns step by step with the same choices', async () => {
     const user = userEvent.setup()
     renderApp('/')
     await user.click(screen.getByRole('radio', { name: 'Male' }))
     await user.click(screen.getByRole('button', { name: 'Show All-rounder' }))
     await user.click(screen.getByRole('button', { name: 'Choose All-rounder' }))
+    await user.click(screen.getByRole('radio', { name: 'Curly' }))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByRole('heading', { level: 1, name: 'Customize your runner' })).toHaveFocus()
+    expect(screen.getByRole('radio', { name: 'Curly' })).toBeChecked()
     await user.click(screen.getByRole('button', { name: 'Back' }))
 
     expect(screen.getByRole('heading', { level: 1, name: 'Choose your athlete' })).toHaveFocus()
@@ -155,7 +246,7 @@ describe('career creation — name step', () => {
   it.each(['', '   '])('rejects the empty name %j and saves nothing', async (name) => {
     const user = userEvent.setup()
     renderApp('/')
-    await user.click(chooseButton())
+    await chooseAndContinue(user)
     if (name) await user.type(screen.getByLabelText('Runner name'), name)
     await user.click(screen.getByRole('button', { name: 'Start career' }))
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a name for your runner.')
@@ -166,7 +257,7 @@ describe('career creation — name step', () => {
   it('limits the name to 16 characters and trims spaces', async () => {
     const user = userEvent.setup()
     renderApp('/')
-    await user.click(chooseButton())
+    await chooseAndContinue(user)
     const input = screen.getByLabelText('Runner name')
     expect(input).toHaveAttribute('maxLength', '16')
     expect(input).toHaveAccessibleDescription('1–16 characters.')
@@ -190,6 +281,7 @@ describe('career creation — name step', () => {
     expect(save.state.athlete).toEqual({
       name: 'Alex',
       sex,
+      appearance: defaultAppearance(sex),
       profile,
       xp: 0,
       fitness: 20,
@@ -272,7 +364,7 @@ describe('incompatible save', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Choose your athlete' })).toBeInTheDocument()
     expect(localStorage.getItem(SAVE_KEY)).toBe(M1_SAVE)
 
-    await user.click(chooseButton())
+    await chooseAndContinue(user)
     expect(screen.getByText(/will replace your previous saved career/)).toBeInTheDocument()
     expect(localStorage.getItem(SAVE_KEY)).toBe(M1_SAVE)
 

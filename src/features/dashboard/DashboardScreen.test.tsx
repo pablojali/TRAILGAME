@@ -53,10 +53,23 @@ describe('DashboardScreen — first screen', () => {
     seedCareer(newGame('sprinter', T0, { name: 'Leo', sex: 'male' }))
     renderApp('/')
     const runner = screen.getByRole('img', { name: /runner/ })
-    expect(runner).toHaveAccessibleName('Leo, male runner, no equipment (placeholder art)')
+    expect(runner).toHaveAccessibleName('Leo, male runner, no equipment')
     // Creation illustrations are labelled with the profile; the Dashboard never shows them.
     expect(screen.queryByRole('img', { name: /Sprinter, male runner/ })).not.toBeInTheDocument()
-    expect(runner.querySelector('[data-layer="body-placeholder"]')).not.toBeNull()
+    expect(runner.querySelector('img')).toBeNull()
+  })
+
+  it('draws the saved appearance on the avatar, without shoes', () => {
+    seedCareer(
+      newGame('sprinter', T0, { name: 'Leo', sex: 'male', appearance: { hair: 'buzz', skin: 'tone-3', outfit: 'basic' } }),
+    )
+    renderApp('/')
+    const avatar = screen.getByRole('img', { name: /^Leo/ }).querySelector('svg')!
+    expect(avatar).toHaveAttribute('data-hair', 'buzz')
+    expect(avatar).toHaveAttribute('data-skin', 'tone-3')
+    expect(avatar).toHaveAttribute('data-outfit', 'basic')
+    expect(avatar.querySelector('[data-layer="feet"]')).not.toBeNull()
+    expect(avatar.querySelector('[data-layer*="shoe"]')).toBeNull()
   })
 
   it('derives every value from the saved game state', () => {

@@ -8,6 +8,7 @@ import {
   type Attributes,
   type Sex,
 } from '../domain/athlete/athlete'
+import { parseAppearance } from '../domain/athlete/appearance'
 import { getEarnedAttributePoints } from '../domain/athlete/levels'
 import { isProfileId, PROFILE_ATTRIBUTE_TOTAL } from '../domain/athlete/profiles'
 import { INJURY_REST_DAYS } from '../domain/training/injury'
@@ -143,6 +144,8 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     athlete: {
       name: athlete.name,
       sex,
+      // Missing: a career saved before appearance existed. Never rejects a save (cosmetic only).
+      appearance: parseAppearance(athlete.appearance, sex),
       profile: athlete.profile,
       xp: athlete.xp,
       fitness: athlete.fitness,

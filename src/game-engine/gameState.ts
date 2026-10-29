@@ -1,3 +1,4 @@
+import { defaultAppearance, type Appearance } from '../domain/athlete/appearance'
 import type { Athlete, ProfileId, Sex } from '../domain/athlete/athlete'
 import { PROFILES } from '../domain/athlete/profiles'
 import type { SessionType } from '../domain/training/sessions'
@@ -69,6 +70,8 @@ export function createWeek(number: number): TrainingWeek {
 export interface AthleteIdentity {
   name: string
   sex: Sex
+  /** Defaults to the default appearance for `sex`. */
+  appearance?: Appearance
 }
 
 /**
@@ -84,6 +87,7 @@ export function createInitialGameState(
     athlete: {
       name: identity.name,
       sex: identity.sex,
+      appearance: identity.appearance ?? defaultAppearance(identity.sex),
       profile,
       xp: 0,
       fitness: 20,

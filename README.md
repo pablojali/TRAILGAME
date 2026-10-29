@@ -154,6 +154,10 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
     Open, Trail, Mountain and Elite; at level 1 Trail and above show "Early entry". Open
     **Forest First Steps** → **Enter race** → the confirmation shows fee, balance and balance after
     entry → **Confirm free entry**. Reload: still entered, and **Enter race** is gone.
+12. Paid entry (test only): in dev tools set the saved `state.coins` to 300 and `state.athlete.xp`
+    to 250 (level 3), reload, open **Ridge Runner**: "Your fee" is the 100-coin standard fee. Enter
+    and pay: the balance becomes 200, once, even with a double tap. With `state.coins` at 40 the
+    button is inactive and shows "you need 60 coins more". **Cancel** charges nothing.
 13. Race day: races are run on **Sundays only**, one per week.
     - After entering on any weekday, the race page says "Race day: Sunday, week N", and Training
       shows Sunday with a flag as "Race: …".
@@ -176,10 +180,6 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
     injury and the button reads **Start race anyway — injury**. The result shows "0 (injured)" XP,
     "Rewards reduced to 40%" (level 3 in a level-1 race) and 5 forced rest days. During forced rest
     the race panel says racing is locked.
-12. Paid entry (test only): in dev tools set the saved `state.coins` to 300 and `state.athlete.xp`
-    to 250 (level 3), reload, open **Ridge Runner**: "Your fee" is the 100-coin standard fee. Enter
-    and pay: the balance becomes 200, once, even with a double tap. With `state.coins` at 40 the
-    button is inactive and shows "you need 60 coins more". **Cancel** charges nothing.
 
 ## Deployment — Cloudflare Pages
 

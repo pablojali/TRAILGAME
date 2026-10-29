@@ -2,7 +2,8 @@
 /**
  * M4.2 race simulation — reference prototype (proposal only, NOT production code).
  *
- * Implements exactly the formulas of docs/RACE_SIMULATION_PROPOSAL.md (revision 2) and prints every
+ * Implements exactly the formulas of docs/RACE_SIMULATION_PROPOSAL.md (revision 2, approved with
+ * D1–D10 on 29 October 2026, including variant V1) and prints every
  * table used there, plus the verification checks requested by the PM. No dependencies.
  *
  *   node docs/race-simulation/prototype.mjs            # prints results (Markdown) to stdout
@@ -85,6 +86,8 @@ export const C = {
   rivalSpread: 0.4,
   rivalExponent: 1.3,
   referenceFatigue: 20,
+  /** D9 (V1): approved 29 October 2026. Set to false only to reproduce revision 2 numbers. */
+  consistencySoftensFatigue: true,
   dayFormMax: 0.04,
   raceFatigueBase: 6,
   raceFatiguePerEffortKm: 0.6,
@@ -171,7 +174,9 @@ export function segmentAbility(segment, a) {
 export function raceSeconds(course, athlete, dayForm = 0) {
   const a = athlete.attributes
   const fitnessFactor = 1 + (C.fitnessSlope * (50 - athlete.fitness)) / 50
-  const fatigueFactor = 1 + (C.fatigueSlope * athlete.fatigue) / 100
+  // D9 (V1, approved): Consistency softens the effect of Fatigue.
+  const fatigueScale = C.consistencySoftensFatigue ? Math.pow(C.abilityReference / a.consistency, C.abilityExponent) : 1
+  const fatigueFactor = 1 + (C.fatigueSlope * athlete.fatigue * fatigueScale) / 100
   const durability = abilities.durability(a)
   let minutes = 0
   let effortBefore = 0
@@ -338,6 +343,9 @@ async function compareWithRepository() {
     const multOk = JSON.stringify(repoCategories.REWARD_MULTIPLIERS.map((m) => Math.round(m.coins * 100))) === JSON.stringify(MULTIPLIER_PCT) && repoCategories.REWARD_MULTIPLIERS.every((m) => m.xp === m.coins)
     const profilesOk = Object.entries(PROFILES).every(([k, v]) => JSON.stringify(repoProfiles[k].attributes) === JSON.stringify(v))
     const levelsOk = JSON.stringify(repoLevels.map((l) => l.minXp)) === JSON.stringify(LEVEL_THRESHOLDS)
+    const technicalityOk = repoRaces.every((r) => r.technicality === TECHNICALITY[r.id])
+    const repoSim = (await import(new URL('src/domain/races/simulationConfig.ts', root))).RACE_SIMULATION
+    const constantsOk = Object.entries(repoSim).every(([k, v]) => k.startsWith('explanation') || JSON.stringify(v) === JSON.stringify(C[k]))
     p('| Data | Matches `src/` |')
     p('|---|---|')
     p(`| Race catalog (12 races) | ${check(racesOk, 'catalog copy')} |`)
@@ -346,6 +354,8 @@ async function compareWithRepository() {
     p(`| Anti-farming multipliers | ${check(multOk, 'multipliers copy')} |`)
     p(`| Profile attributes | ${check(profilesOk, 'profiles copy')} |`)
     p(`| Level thresholds | ${check(levelsOk, 'levels copy')} |`)
+    p(`| Race technicality (D6) | ${check(technicalityOk, 'technicality copy')} |`)
+    p(`| Simulation constants (\`simulationConfig.ts\`) | ${check(constantsOk, 'constants copy')} |`)
   } catch (error) {
     p(`Repository comparison skipped (${error.message.split('\n')[0]}). Run inside the repository with Node 22.18 or later.`)
   }
@@ -442,9 +452,9 @@ const REVISION_1 = [
 function reportTestCases() {
   p('## 3. Test cases')
   p()
-  p('No day form. Revision 1 values are those published in the first proposal. They used fractional segment lengths; revision 2 uses whole metres.')
+  p('No day form; V1 included (approved model). "Before V1" values are those published in revisions 1 and 2. The only change is the approved variant V1.')
   p()
-  p('| # | Athlete | Race | Time | Position | Revision 1 | Difference |')
+  p('| # | Athlete | Race | Time | Position | Before V1 | Difference |')
   p('|---|---|---|---:|---:|---|---|')
   TEST_CASES.forEach(([label, id, a], i) => {
     const r = simulate(race(id), a)
@@ -640,7 +650,7 @@ function reportProperties() {
   results.push(['Day form (option B) stays within ±4% × (1 − Consistency/100)', forms.every((f) => Math.abs(f) <= C.dayFormMax * 0.84)])
   results.push(['Day form is the same for the same entry', dayForm('RACE-004', 'entry-1', 1767254400000, 16) === dayForm('RACE-004', 'entry-1', 1767254400000, 16)])
   results.push(['Day form is centred (mean of 2,000 entries within ±0.2%)', Math.abs(forms.reduce((s, x) => s + x, 0) / forms.length) < 0.002])
-  results.push(['Consistency changes nothing without day form (option A)', simulate(race('RACE-004'), athlete('all-rounder', 50, 20, { consistency: 1 })).timeS === simulate(race('RACE-004'), athlete('all-rounder', 50, 20, { consistency: 100 })).timeS])
+  results.push(['With V1, more Consistency never gives a slower time, and it changes nothing at Fatigue 0', simulate(race('RACE-004'), athlete('all-rounder', 50, 20, { consistency: 30 })).timeS < simulate(race('RACE-004'), athlete('all-rounder', 50, 20, { consistency: 10 })).timeS && simulate(race('RACE-004'), athlete('all-rounder', 50, 0, { consistency: 1 })).timeS === simulate(race('RACE-004'), athlete('all-rounder', 50, 0, { consistency: 100 })).timeS])
   p('| Property | Result |')
   p('|---|---|')
   for (const [label, ok] of results) p(`| ${label} | ${check(ok, label)} |`)
@@ -649,57 +659,29 @@ function reportProperties() {
   p()
 }
 
-/** Proposed variant V1 (not in the baseline): Consistency softens the effect of Fatigue. */
-function raceSecondsV1(course, athlete) {
-  const scale = Math.pow(C.abilityReference / athlete.attributes.consistency, C.abilityExponent)
-  const effective = { ...athlete, fatigue: athlete.fatigue * scale }
-  return raceSeconds(course, effective)
-}
-
-function reportVariants() {
-  p('## 9. Findings on Consistency and a proposed variant (not in the baseline)')
+function reportApprovedV1() {
+  p('## 9. Effect of the approved variant V1 (D9)')
   p()
-  p('Without day form, Consistency has no effect on time, so its points are wasted. Useful points per profile (total 96 minus Consistency):')
+  p('V1 is part of every table above. Useful points per profile before V1 (Consistency had no effect without day form):')
   p()
-  p('| Profile | Consistency | Useful points |')
+  p('| Profile | Consistency | Useful points before V1 |')
   p('|---|---:|---:|')
   for (const [k, a] of Object.entries(PROFILES)) p(`| ${PROFILE_LABELS[k]} | ${a.consistency} | ${96 - a.consistency} |`)
   p()
-  p('The Sprinter loses the most (18 points wasted). **Variant V1** (proposed, pending): the Fatigue used in the time formula is multiplied by `(20 / Consistency) ^ 0.35`, so a consistent runner copes better with fatigue (Consistency 16 → ×1.081, 20 → ×1.000, 28 → ×0.889). Profiles at Fitness 60 and Fatigue 20, with V1:')
-  p()
-  p(`| Race | ${Object.values(PROFILE_LABELS).join(' | ')} | Spread |`)
-  p('|---|---|---|---|---|---:|')
-  for (const r of RACES) {
-    const course = generateCourse(r)
-    // The field is rebuilt with V1 too, so athlete and rivals use the same formula.
-    const ref = raceSecondsV1(course, referenceAthlete(r.recommendedLevel))
-    const n = C.fieldSize - 1
-    const rivals = Array.from({ length: n }, (_, i) => Math.round(ref * (C.rivalFastest + C.rivalSpread * Math.pow((i + 0.5) / n, C.rivalExponent))))
-    const res = Object.keys(PROFILES).map((k) => {
-      const t = Math.round(raceSecondsV1(course, athlete(k, 60, 20)))
-      return { t, pos: 1 + rivals.filter((x) => x < t).length }
-    })
-    const best = Math.min(...res.map((x) => x.t))
-    const worst = Math.max(...res.map((x) => x.t))
-    p(`| ${r.id} | ${res.map((x) => `${x.t === best ? '**' : ''}${hms(x.t)} #${x.pos}${x.t === best ? '**' : ''}`).join(' | ')} | ${((worst / best - 1) * 100).toFixed(1)}% |`)
-  }
-  p()
   const base = athlete('all-rounder', 50, 20)
-  p('With V1, +8 Consistency on the baseline All-rounder (Fatigue 20) gives: ' + ['RACE-001', 'RACE-004', 'RACE-007', 'RACE-012'].map((id) => {
+  p('+8 Consistency on the baseline All-rounder: ' + ['RACE-001', 'RACE-004', 'RACE-007', 'RACE-012'].map((id) => {
     const course = generateCourse(race(id))
-    return `${id} ${pct1(raceSecondsV1(course, { ...base, attributes: { ...base.attributes, consistency: 24 } }) / raceSecondsV1(course, base) - 1)}`
-  }).join(', ') + ' — about as much as +8 Technical or Recovery in a medium race, and more as Fatigue rises (at Fatigue 60: ' + ['RACE-004'].map((id) => {
-    const course = generateCourse(race(id))
+    return `${id} ${pct1(raceSeconds(course, { ...base, attributes: { ...base.attributes, consistency: 24 } }) / raceSeconds(course, base) - 1)}`
+  }).join(', ') + ' at Fatigue 20; ' + (() => {
+    const course = generateCourse(race('RACE-004'))
     const b60 = { ...base, fatigue: 60 }
-    return `${id} ${pct1(raceSecondsV1(course, { ...b60, attributes: { ...b60.attributes, consistency: 24 } }) / raceSecondsV1(course, b60) - 1)}`
-  }).join('') + ').')
-  p()
-  p('V1 does not touch Fatigue itself or any training rule: it only changes how much the stored Fatigue slows the runner in a race. The field is rebuilt with V1 as well, so its reference times grow slightly: the reference runner has Consistency 16–19.7 and Fatigue 20.')
+    return `RACE-004 ${pct1(raceSeconds(course, { ...b60, attributes: { ...b60.attributes, consistency: 24 } }) / raceSeconds(course, b60) - 1)}`
+  })() + ' at Fatigue 60.')
   p()
 }
 
 async function main() {
-  p('# M4.2 race simulation — prototype results (revision 2)')
+  p('# M4.2 race simulation — prototype results (approved model)')
   p()
   p('Generated by `node docs/race-simulation/prototype.mjs`. Do not edit by hand.')
   p()
@@ -712,7 +694,7 @@ async function main() {
   reportExplanations()
   reportRewards()
   reportProperties()
-  reportVariants()
+  reportApprovedV1()
   p(`**Checks: ${failures.length === 0 ? 'all passed' : `${failures.length} failed — ${failures.join('; ')}`}.**`)
   console.log(out.join('\n'))
   if (process.argv.includes('--check') && failures.length > 0) process.exit(1)

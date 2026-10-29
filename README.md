@@ -90,7 +90,8 @@ milestone that needs them.
   `src/domain/economy/coins.ts` (0).
 - Entry: standard fee at or above the race's recommended level, early-entry fee below it, Open races
   free, no level locks. The fee is charged once, on confirmation, and the entry stays pending until
-  race results exist (M4.2/M4.3, after the owner approves the simulation model).
+  race results exist (M4.3). The race simulation itself is in `src/game-engine/raceSimulation.ts`
+  (M4.2; constants in `src/domain/races/simulationConfig.ts`); it is not connected to the screens yet.
 - Coins and entries are saved in `trailgame.save` (`coins`, `raceEntries`); older careers load with
   0 coins and no entries.
 

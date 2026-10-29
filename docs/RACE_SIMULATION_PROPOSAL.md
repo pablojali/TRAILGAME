@@ -1,8 +1,14 @@
-# M4.2 — Race Simulation Model: Proposal (revision 2)
+# M4.2 — Race Simulation Model (revision 2, approved)
 
-**Status:** Proposal for owner approval. **Not approved. Nothing in this document is implemented**,
-and no production code, training code or formula was changed to prepare it (Game Design Bible §10.5,
-§10.13). All decisions D1–D10 are **pending owner approval**.
+**Status:** **Approved by the owner on 29 October 2026: D1–D10 as recommended** (B for D1, (b) for
+D4, V1 for D9). Implemented as the pure simulation module of M4.2 (`src/game-engine/raceSimulation.ts`,
+constants in `src/domain/races/simulationConfig.ts`). Race day, rewards and the result screen (B7,
+B8) are M4.3 and not implemented yet.
+
+**Approved values differ from the tables below.** With V1 (D9) now part of the formula, times and
+positions change slightly. Example: case 6 of A1 becomes 2:25:12 and 40th instead of 2:22:57 and
+39th. Part A records the review as it was. The **current reference values are in
+[`results.md`](./race-simulation/results.md)**: §3 compares every test case with its pre-V1 value.
 **Author:** Claude Code (developer). Revision 1: 29 October 2026. Revision 2: 29 October 2026, after
 the PM review "M4.2 review — changes required before owner approval".
 
@@ -366,9 +372,9 @@ whole seconds. The time is stored with the result, so it is never recomputed.
 | B4 Time | `raceSeconds` |
 | B5 Field and position | `referenceAthlete`, `rivalSeconds`, `simulate` |
 | B6 Explanation | `explain` |
-| Day form (D1) | `fnv1a`, `mulberry32`, `dayForm` |
+| Day form (D1) | `fnv1a`, `mulberry32`, `dayForm` (production: `getDayForm`) |
 | B8 Rewards | `getLevel`, `band`, `multiplierPct`, `rewards`, `raceFatigueGain` |
-| D9 Variant V1 | `raceSecondsV1` |
+| D9 Variant V1 (approved) | inside `raceSeconds` (`C.consistencySoftensFatigue`) |
 
 All constants are in the single object `C`. The production implementation would keep them in one
 configuration module.
@@ -394,7 +400,7 @@ configuration module.
   from training. This depends on future progression decisions, not on M4.2.
 - **U4 — Multi-tab play:** last-write-wins remains, as for training. Accept for M4, as today?
 
-## Part E — Decision log (all pending owner approval)
+## Part E — Decision log (approved by the owner on 29 October 2026, as recommended)
 
 | # | Decision | Recommendation |
 |---|---|---|

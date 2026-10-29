@@ -2,7 +2,7 @@
 
 **Document:** `DEVELOPMENT.md`  
 **Version:** 0.4.0  
-**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A merged into `main` (29 October 2026); M4 Race System — M4.1 (catalog and access) implemented on the working branch, pending owner review  
+**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A merged into `main` (29 October 2026); M4 Race System — M4.1 (catalog and access) and M4.2 (simulation model) implemented on the working branch, pending owner review  
 **Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) (v1.2) · UI pass: [`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
@@ -624,7 +624,7 @@ recommendations were accepted except one — **shoes are equipment**, not part o
 - **Out of scope (unchanged):** shop, currency, unlocks, rewards, inventory, equipment effects,
   monetization.
 
-### M4 — Race System (M4.1 in progress)
+### M4 — Race System (M4.1 and M4.2 implemented, M4.3 next)
 
 **Specification:** Game Design Bible §10 (v1.3, PM, 29 October 2026). Stages: M4.1 catalog and access;
 M4.2 simulation model proposal (owner approval required before any formula is coded); M4.3 results
@@ -661,11 +661,29 @@ later milestones were renumbered (PWA M5, native packaging M6, Strava/VTL M8).
 - **Training:** formulas and behaviour unchanged. One integration fix: completing a day rebuilt the
   game state from its own fields and would have dropped coins and entries; it now keeps every other
   field (`src/game-engine/training.ts`, tested).
-- **M4.2:** simulation model proposal written in
-  [`docs/RACE_SIMULATION_PROPOSAL.md`](./docs/RACE_SIMULATION_PROPOSAL.md) (29 October 2026),
-  revised after the PM review (revision 2, with a reproducible prototype in
-  [`docs/race-simulation/`](./docs/race-simulation/)); awaiting owner approval (decisions D1–D10).
-  Nothing of it is implemented.
+
+**M4.2 — Race simulation model: implemented on the working branch, not merged.**
+
+- **Approval:** model in [`docs/RACE_SIMULATION_PROPOSAL.md`](./docs/RACE_SIMULATION_PROPOSAL.md),
+  revision 2 after the PM review. The owner approved D1–D10 as recommended on 29 October 2026.
+- **Code:**
+  - `src/game-engine/raceSimulation.ts`, a pure module:
+    - `generateCourse` (whole-metre segments).
+    - `raceSeconds` (time formula, including variant V1).
+    - `referenceAthlete` and `rivalTimes` (field of 50).
+    - `simulateRace` (time and position).
+    - `getDayForm` (seeded day form, D1).
+    - `explainRace` (top-3 single effects against the typical runner, D10).
+  - `src/domain/races/simulationConfig.ts`: every constant.
+  - New catalog field `technicality` (D6) in `src/domain/races/races.ts`.
+- **Verification:**
+  - Unit tests: courses, the 10 reference cases, properties, day form and explanations.
+  - A one-off cross-check: 46,513 comparisons of production against the reference prototype
+    (`docs/race-simulation/prototype.mjs`), with no difference.
+  - The prototype's `--check` mode confirms its data and constants match `src/`.
+- **Not used yet:** nothing calls the simulation. Pending entries stay pending until M4.3 adds race
+  day (B7), race Fatigue (D3), injury (D4), XP and coin rewards (D5, B8), result storage and the
+  result screen. Training code and formulas are unchanged.
 - **Limitations:** with 0 starting coins and no prizes until M4.3, only Open races can be entered in
   normal play; paid entry is testable by editing the save (see README). Multi-tab play is still
   last-write-wins.

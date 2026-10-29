@@ -894,7 +894,7 @@ All screens must follow existing UI conventions, use English UI copy, and be res
 
 **M4.2 — Race simulation model (owner approval required)**
 
-*Proposal submitted: [`RACE_SIMULATION_PROPOSAL.md`](./RACE_SIMULATION_PROPOSAL.md) (29 October 2026), pending approval.*
+*Model approved by the owner on 29 October 2026 (decisions D1–D10): [`RACE_SIMULATION_PROPOSAL.md`](./RACE_SIMULATION_PROPOSAL.md). Simulation module implemented; race day, results and rewards follow in M4.3.*
 
 - Prepare a separate proposal for the simulation model, including segment types, input variables, formulas, determinism or randomness, result generation, and test cases.
 - Do not implement the simulation until the owner approves the model.
@@ -1197,7 +1197,7 @@ The following systems require additional design before implementation:
 - Full equipment catalogue and bonuses.
 - Economy and pricing.
 - Race catalogue — specified in §10 (M4).
-- Race simulation and strategy — simulation model pending owner approval (M4.2); strategy not specified.
+- Race simulation and strategy — simulation model approved and implemented (M4.2, §10.13); strategy not specified.
 - Rivals and rankings.
 - Season lifecycle and rewards.
 - Profile switching at season end.

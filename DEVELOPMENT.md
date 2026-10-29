@@ -527,6 +527,17 @@ Delivered scope:
   exists; Reset demo deletes the career and returns to profile selection.
   (D3 was later superseded by UI Improvements v1: the navigation is now hidden in the setup flow.)
 
+### Recovery bonus on Rest (owner decision, 29 October 2026)
+
+After the M4.4 balance finding the owner kept the training values ("in real life you balance
+training and recovery; be smart") and added one rule (`src/domain/training/recovery.ts`):
+- **Rule:** Rest recovers 2 more Fatigue for every 3 Recovery points above the profile's starting
+  Recovery. It applies to planned and forced Rest days.
+- **Where it shows:** the Training planned effects and the Attributes screen.
+- **Reach:** Recovery only grows by spending attribute points (2 per level), so by level 5 the bonus
+  is at most −4 (Rest −12) with all 8 points in Recovery.
+- **Unchanged:** other session values and the injury rule.
+
 ### Gameplay changes after M2 (owner decisions, 28 October 2026)
 
 Requested by the owner during UI Improvements v1; implemented in a separate commit.

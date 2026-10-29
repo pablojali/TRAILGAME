@@ -298,6 +298,8 @@ Use conventional rounding to the nearest integer, with half values rounded up.
 
 Fitness gains must be capped at 100.
 
+**Recovery bonus on Rest (owner decision, 29 October 2026):** Rest reduces Fatigue by 8, plus 2 more for every 3 Recovery points above the profile's starting Recovery (for example, Climber 14 → 17: −10; 20: −12). This applies to forced Rest days too. Training and recovery must be balanced by the player.
+
 **Revision 1.2:** each Rest day reduces Fitness by 2 (owner decision, 28 October 2026). Rest still grants no XP and still does not reset the inactivity reference (§4.5).
 
 The new values intentionally make Fitness progression slower than in the original M1 prototype.

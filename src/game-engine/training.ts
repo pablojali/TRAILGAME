@@ -5,6 +5,7 @@ import {
   INJURY_FITNESS_LOSS,
   INJURY_REST_DAYS,
 } from '../domain/training/injury'
+import { getRestFatigueDelta } from '../domain/training/recovery'
 import { isSessionType, TRAINING_SESSIONS, type SessionType } from '../domain/training/sessions'
 import {
   createWeek,
@@ -64,7 +65,9 @@ export function clampStat(value: number): number {
 export function previewSession(state: GameState, session: SessionType): DayOutcome {
   const rules = TRAINING_SESSIONS[session]
   const { fitness, fatigue } = state.athlete
-  const fatigueChange = clampStat(fatigue + rules.fatigueDelta) - fatigue
+  // Rest recovers more with Recovery gained above the profile's start (owner decision).
+  const fatigueDelta = session === 'rest' ? getRestFatigueDelta(state.athlete) : rules.fatigueDelta
+  const fatigueChange = clampStat(fatigue + fatigueDelta) - fatigue
   if (session !== 'rest' && fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD) {
     return {
       xpGained: 0,

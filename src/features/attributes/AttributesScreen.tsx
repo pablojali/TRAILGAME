@@ -11,6 +11,9 @@ import {
   type AttributeId,
 } from '../../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
+import { PROFILES } from '../../domain/athlete/profiles'
+import { getRestFatigueDelta, RECOVERY_BONUS_FATIGUE, RECOVERY_BONUS_STEP } from '../../domain/training/recovery'
+import { formatDelta } from '../../components/format'
 import { getUnspentAttributePoints, type AllocationError } from '../../game-engine/attributes'
 import styles from './AttributesScreen.module.css'
 
@@ -31,6 +34,7 @@ export function AttributesScreen() {
   const unspent = getUnspentAttributePoints(athlete)
   const allMaxed = ATTRIBUTE_IDS.every((id) => athlete.attributes[id] >= ATTRIBUTE_MAX)
   const [message, setMessage] = useState('')
+  const startRecovery = PROFILES[athlete.profile].attributes.recovery
 
   function add(attribute: AttributeId) {
     const label = ATTRIBUTE_LABELS[attribute]
@@ -91,6 +95,10 @@ export function AttributesScreen() {
         </ul>
         <p role="status" className={styles.muted}>
           {message}
+        </p>
+        <p className={styles.muted}>
+          Recovery: every {RECOVERY_BONUS_STEP} points above your starting {startRecovery} make Rest recover{' '}
+          {RECOVERY_BONUS_FATIGUE} more Fatigue. Rest now: Fatigue {formatDelta(getRestFatigueDelta(athlete))}.
         </p>
       </Card>
 

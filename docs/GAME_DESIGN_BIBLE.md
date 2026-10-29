@@ -577,6 +577,17 @@ Equipment should eventually have meaningful gameplay effects rather than serving
 
 **Shop (owner decisions, 29 October 2026):** runners own the starter shoes and can buy a hydration backpack (150 coins), poles (100) and trail shoes (200). Items are worn on the avatar. **Race effects (approved, 29 October 2026):** poles make climbs 4% faster, trail shoes halve the technical-descent penalty, and the hydration backpack reduces the slowdown over distance by 20%. Equipment never affects training.
 
+**Equipment rules (owner, 29 October 2026):**
+
+1. Equipment bonuses are independent race bonuses. They grant no attribute points, do not count
+   toward attribute limits, and do not change base attributes, levels or training formulas.
+2. An item's effects apply only while it is equipped (backpack, poles and shoes alike).
+3. Equipping another item in the same slot stops the previous item's bonus and starts the new one.
+4. Bought items stay in the inventory when not equipped.
+5. The shop must offer strategic choices, not a ladder where the most expensive item is always best.
+   Every item should cost time somewhere. A proposal for this is in `DEVELOPMENT.md`, pending
+   approval.
+
 ### 8.2 Equipment categories
 
 Future categories may include:

@@ -592,6 +592,45 @@ On the working branch, not merged.
   Racing every week still piles up Fatigue: a race adds 10–14 and takes the Sunday rest. Racing
   every 2–3 weeks with a careful plan is sustainable; that choice is left to the player.
 
+### Equipment rules and strategic shop (owner, 29 October 2026)
+
+**Rules 1–4 are met and now pinned by tests** (`src/game-engine/equipmentRules.test.ts`):
+1. **Independent bonuses:** effects are race multipliers, never attribute points. Attributes, spent
+   points, levels and training stay identical with any equipment, before and after a race.
+2. **Only while equipped:** the simulation reads `state.equipment` when the race starts.
+3. **One per slot:** equipping another item replaces the previous one, and its bonus stops.
+4. **Inventory:** bought items stay in `ownedEquipment` when unequipped.
+
+**Rule 5 is not met yet: the current shop is a ladder.**
+- No item has a downside, so wearing everything is always best.
+- The trail shoes beat the starter shoes on every course.
+
+**Proposal — trade-offs, pending owner approval (not implemented):**
+
+| Item | Price | Helps | Costs |
+|---|---:|---|---|
+| Poles | 100 | climbs −4 % | runnable sections +4 % (carrying them) |
+| Hydration backpack | 150 | slowdown over distance −20 % | +1 % everywhere (weight) |
+| Trail shoes | 200 | technical-descent penalty halved | runnable sections +1.5 % |
+| **New: Racing flats** (shoes) | 120 | runnable sections −3 % | technical-descent penalty ×1.5 |
+
+Effect on an All-rounder at Fitness 60 and Fatigue 20 (one-off calculation with the real course and
+time formulas):
+
+| Item | 001 | 002 | 003 | 004 | 005 | 006 | 007 | 008 | 009 | 010 | 011 | 012 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Poles | +0.5 % | +0.4 % | +0.2 % | −0.9 % | −1.0 % | −1.1 % | −1.5 % | −1.5 % | −1.6 % | −1.8 % | −1.8 % | −1.8 % |
+| Hydration backpack | +0.7 % | +0.5 % | +0.4 % | +0.3 % | −0.1 % | −0.3 % | −0.8 % | −1.2 % | −1.8 % | −2.4 % | −3.2 % | −4.2 % |
+| Trail shoes | +0.7 % | +0.7 % | −0.1 % | −0.6 % | −1.6 % | −0.6 % | −1.9 % | −2.9 % | −1.9 % | −3.1 % | −3.1 % | −3.1 % |
+| Racing flats | −1.5 % | −1.4 % | −0.6 % | +0.2 % | +1.2 % | +0.2 % | +1.6 % | +2.7 % | +1.6 % | +2.9 % | +2.9 % | +2.9 % |
+
+The best loadout depends on the course; no single purchase is always right:
+- **Open races (001–003):** racing flats only (−1.5 %). Poles, backpack and trail shoes cost time.
+- **Ridge Runner (004):** trail shoes + poles (−1.5 %). The backpack still costs time.
+- **Longer and technical races (005–012):** trail shoes + poles + backpack (−2 % to −9 %).
+
+Racing flats need their own artwork; until then they show an icon.
+
 ### Recovery bonus on Rest (owner decision, 29 October 2026)
 
 After the M4.4 balance finding the owner kept the training values ("in real life you balance

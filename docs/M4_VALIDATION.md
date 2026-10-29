@@ -118,6 +118,10 @@ income is 7–10 coins a week. The first Trail entry (100 coins) takes about 12 
 Recommendation: decide option 1 first, because it fixes the root cause in training; then re-run this
 check before adjusting races or prizes.
 
+**Owner decision (29 October 2026):** keep the values ("in real life you balance training and
+recovery; be smart"), merge M4, and add a Recovery bonus on Rest: −2 more Fatigue for every 3
+Recovery points above the profile's start. See `DEVELOPMENT.md`.
+
 ## Part E — Configuration (all values in one place each)
 
 | What | File | Values |

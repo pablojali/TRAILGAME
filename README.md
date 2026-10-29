@@ -75,7 +75,7 @@ milestone that needs them.
   never deletes data: M1 (v1) saves, unknown versions and damaged data show a blocking screen with
   **Restart Career** and **Exit**.
 - **Reset demo** (Dashboard) deletes the career and returns to profile selection.
-- Rest reduces Fatigue by 8 and Fitness by 2. Completing a session that leaves Fatigue above 95 injures the runner:
+- Rest reduces Fatigue by 8 (plus 2 for every 3 Recovery points above the profile's starting value) and Fitness by 2. Completing a session that leaves Fatigue above 95 injures the runner:
   no XP, −15 Fitness and 5 forced Rest days (`src/domain/training/injury.ts`).
 - The runner's name, sex and appearance (hairstyle, skin tone, outfit) are cosmetic. Careers saved
   before the `sex` field existed load as `male`; careers saved before `appearance` existed load with

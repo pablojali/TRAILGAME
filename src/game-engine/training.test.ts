@@ -287,3 +287,21 @@ describe('summarizeWeek', () => {
     expect(summarizeWeek(state)).toEqual({ completedDays: 2, totalDays: 7, xpGained: 25 })
   })
 })
+
+describe('Rest with the Recovery bonus (owner decision)', () => {
+  it('recovers 2 more Fatigue per 3 Recovery points above the start, on planned and forced Rest days', () => {
+    // All-rounder starts with Recovery 16; 22 is 6 above: −8 − 4 = −12.
+    const state = withAthlete(newGame(), { fatigue: 50, fitness: 40 })
+    const trained = { ...state, athlete: { ...state.athlete, attributes: { ...state.athlete.attributes, recovery: 22 } } }
+    const rested = execute(withSession(trained, 'rest'))
+    expect(rested.outcome).toEqual({ xpGained: 0, fitnessChange: -2, fatigueChange: -12 })
+    // Starting Recovery: unchanged −8.
+    expect(execute(withSession(state, 'rest')).outcome.fatigueChange).toBe(-8)
+    // Forced Rest after an injury uses the bonus too.
+    const injured = execute({ ...trained, athlete: { ...trained.athlete, fatigue: 95 } }).state
+    expect(injured.forcedRestDays).toBe(5)
+    expect(execute(injured).outcome.fatigueChange).toBe(-12)
+    // Fatigue never goes below 0.
+    expect(execute(withSession({ ...trained, athlete: { ...trained.athlete, fatigue: 5 } }, 'rest')).outcome.fatigueChange).toBe(-5)
+  })
+})

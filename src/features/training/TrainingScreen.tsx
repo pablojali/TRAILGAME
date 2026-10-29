@@ -4,6 +4,7 @@ import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { formatDelta } from '../../components/format'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
+import { getRestFatigueDelta } from '../../domain/training/recovery'
 import { isSessionType, SESSION_TYPES, TRAINING_SESSIONS, type SessionType } from '../../domain/training/sessions'
 import { weekdayLong, weekdayShort } from '../../domain/training/weekdays'
 import {
@@ -65,9 +66,11 @@ function effectsText(outcome: DayOutcome) {
 }
 
 /** Base effects of a planned session (the real result depends on the athlete on that day). */
-function plannedEffects(session: SessionType): DayOutcome {
+/** A future day's planned effects, before clamping (Rest includes the athlete's Recovery bonus). */
+function plannedEffects(state: GameState, session: SessionType): DayOutcome {
   const rules = TRAINING_SESSIONS[session]
-  return { xpGained: rules.xp, fitnessChange: rules.fitnessDelta, fatigueChange: rules.fatigueDelta }
+  const fatigueChange = session === 'rest' ? getRestFatigueDelta(state.athlete) : rules.fatigueDelta
+  return { xpGained: rules.xp, fitnessChange: rules.fitnessDelta, fatigueChange }
 }
 
 export function TrainingScreen() {
@@ -233,7 +236,7 @@ function DayDetail({ state, index, error, cooldown, onPlan, onComplete }: DayDet
         <>
           <p className={styles.description}>{session.description}</p>
           <p className={styles.summary}>
-            <strong>Planned:</strong> {effectsText(plannedEffects(day.session))}
+            <strong>Planned:</strong> {effectsText(plannedEffects(state, day.session))}
           </p>
           <p className={styles.hint}>Only today’s session can be changed or completed.</p>
         </>

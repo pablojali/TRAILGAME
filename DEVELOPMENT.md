@@ -779,6 +779,13 @@ later milestones were renumbered (PWA M5, native packaging M6, Strava/VTL M8).
       net.
     - Condition and injury.
   - Training shows a race day with a flag, "Race: name" and a link to the result.
+  - **Full results** (owner request, 29 October 2026): on the result screen, "Full results ·
+    50 runners" opens with one click.
+    - A table of all 50 finishers: position, runner, time, gap to the winner and gross prize, with
+      lines between prize bands and the athlete's row highlighted.
+    - Rivals are "Rival 1–49": named rivals belong to Bible §11, not specified yet.
+    - Rival times are stored with each result (`rivalTimesS`), so the table always matches the
+      stored position. Results saved before this use the same deterministic formula.
 - **Not included:** strategy, weather, cutoffs, DNF, equipment effects, rankings and backend
   persistence (out of scope, Bible §10.14). Multi-tab play is still last-write-wins.
 - **Limitations:** careers start with 0 coins, so only Open races can be entered at first. Since

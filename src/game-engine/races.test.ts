@@ -9,11 +9,12 @@ import {
   getPrizeBand,
   getRaceFatigue,
   getRaceRewards,
+  getStandings,
   previewRaceDay,
   raceCurrentDay,
 } from './races'
 import { getRaceWeek, getScheduledEntry, isRaceDayToday } from './raceSchedule'
-import { simulateRace } from './raceSimulation'
+import { rivalTimes, simulateRace } from './raceSimulation'
 import { executeCurrentDay, planSession } from './training'
 
 /** Level 3 needs 250 XP. */
@@ -271,5 +272,32 @@ describe('race rewards', () => {
 
   it('uses the approved race Fatigue', () => {
     expect(RACES.map((r) => getRaceFatigue(r))).toEqual([10, 12, 14, 17, 20, 23, 27, 33, 40, 48, 61, 77])
+  })
+})
+
+describe('full results', () => {
+  it('lists all 50 runners in time order with the athlete at the stored position', () => {
+    const entered = enterRace(newGame(), 'RACE-001', 0, T0)
+    if (!entered.ok) throw new Error(entered.error)
+    const result = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
+    if (!result.ok) throw new Error(result.error)
+    const stored = result.value.entry.result
+    expect(stored.rivalTimesS).toEqual(rivalTimes(getRace('RACE-001')!))
+    const rows = getStandings(getRace('RACE-001')!, stored)
+    expect(rows).toHaveLength(50)
+    expect(rows.map((r) => r.position)).toEqual(Array.from({ length: 50 }, (_, i) => i + 1))
+    expect(rows.every((r, i) => i === 0 || r.timeS >= rows[i - 1]!.timeS)).toBe(true)
+    expect(rows[stored.position - 1]).toEqual({ position: stored.position, runner: 'you', timeS: stored.timeS })
+    expect(rows.filter((r) => r.runner === 'you')).toHaveLength(1)
+  })
+
+  it('places the athlete before rivals with the same time, and rebuilds older results', () => {
+    const race = getRace('RACE-001')!
+    const rivals = rivalTimes(race)
+    const tie = rivals[4]!
+    const base = { position: 5, timeS: tie } as Parameters<typeof getStandings>[1]
+    const rows = getStandings(race, base)
+    expect(rows[4]).toEqual({ position: 5, runner: 'you', timeS: tie })
+    expect(rows[5]).toEqual({ position: 6, runner: 5, timeS: tie })
   })
 })

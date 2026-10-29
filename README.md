@@ -169,6 +169,7 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
     - Position of 50, time and prize band.
     - "What shaped your time": the gap to a typical runner, then up to 3 influences, each measured
       on its own, and the day form.
+    - **Full results · 50 runners**: one click shows all finishers, with your row highlighted.
     - Rewards: entry fee, gross prize, multiplier, coins, XP and net coin change.
     - Condition.
 

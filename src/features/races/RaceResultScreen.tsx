@@ -7,12 +7,12 @@ import { Screen } from '../../components/Screen'
 import { ATTRIBUTE_LABELS, isAttributeId } from '../../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
-import { PRIZE_BANDS, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
+import { GROSS_PRIZES, PRIZE_BANDS, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
 import { INJURY_REST_DAYS } from '../../domain/training/injury'
 import { weekdayLong } from '../../domain/training/weekdays'
 import type { FinishedRaceEntry, RaceResult } from '../../game-engine/gameState'
-import { getEntry } from '../../game-engine/races'
+import { getEntry, getStandings } from '../../game-engine/races'
 import type { ExplanationFactor } from '../../game-engine/raceSimulation'
 import { durationText, ordinal, raceTimeText, signedCoins } from './raceText'
 import styles from './Races.module.css'
@@ -50,6 +50,7 @@ export function RaceResultScreen() {
 
 function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
   const { result } = entry
+  const athleteName = useCareer().state.athlete.name
   const location = useLocation()
   const levelsGained = (location.state as { levelsGained?: number } | null)?.levelsGained ?? 0
 
@@ -74,6 +75,8 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
       <Card title="What shaped your time">
         <Performance result={result} />
       </Card>
+
+      <Standings race={race} entry={entry} name={athleteName} />
 
       <Card title="Rewards">
         <Rewards race={race} entry={entry} />
@@ -202,5 +205,49 @@ function Rewards({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
         </p>
       )}
     </>
+  )
+}
+
+/** All 50 finishers, one click away (collapsed by default). */
+function Standings({ race, entry, name }: { race: Race; entry: FinishedRaceEntry; name: string }) {
+  const rows = getStandings(race, entry.result)
+  const winner = rows[0]!.timeS
+  const prizes = GROSS_PRIZES[race.category]
+  return (
+    <details className={styles.standings}>
+      <summary className={styles.standingsSummary}>Full results · {rows.length} runners</summary>
+      <table className={styles.standingsTable}>
+        <caption className={styles.srOnly}>Full results of {race.name}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Pos.</th>
+            <th scope="col">Runner</th>
+            <th scope="col">Time</th>
+            <th scope="col">Gap</th>
+            <th scope="col">Prize</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const band = PRIZE_BANDS.findIndex((b) => row.position >= b.from && (b.to === null || row.position <= b.to))
+            const firstOfBand = PRIZE_BANDS[band]!.from === row.position
+            return (
+              <tr
+                key={row.position}
+                className={`${row.runner === 'you' ? styles.youRow : ''} ${firstOfBand && row.position > 1 ? styles.bandStart : ''}`}
+                aria-current={row.runner === 'you' ? 'true' : undefined}
+              >
+                <td>{row.position}</td>
+                <th scope="row">{row.runner === 'you' ? `${name} (you)` : `Rival ${row.runner}`}</th>
+                <td>{raceTimeText(row.timeS)}</td>
+                <td>{row.position === 1 ? '—' : `+${durationText(row.timeS - winner)}`}</td>
+                <td>{prizes[band]}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <p className={styles.muted}>Prizes are gross coins by position, before the reward multiplier.</p>
+    </details>
   )
 }

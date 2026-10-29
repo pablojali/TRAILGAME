@@ -6,7 +6,7 @@ import { RACE_SIMULATION } from '../domain/races/simulationConfig'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS } from '../domain/training/injury'
 import type { DayOutcome, FinishedRaceEntry, GameState, PendingRaceEntry, RaceEntry, RaceResult } from './gameState'
 import { getScheduledEntry, RACE_DAY_INDEX } from './raceSchedule'
-import { courseEffortKm, explainRace, generateCourse, getDayForm, simulateRace } from './raceSimulation'
+import { courseEffortKm, explainRace, generateCourse, getDayForm, rivalTimes, simulateRace } from './raceSimulation'
 import { checkDay, clampStat, completeCurrentDay, type DayRef, type TrainingError } from './training'
 
 export type RaceEntryError =
@@ -203,6 +203,7 @@ export function raceCurrentDay(
     referenceTimeS: explanation.referenceTimeS,
     gapS: explanation.gapS,
     factors: explanation.factors,
+    rivalTimesS: rivalTimes(race),
   }
   const finished: FinishedRaceEntry = { ...entry, status: 'finished', result }
 
@@ -225,4 +226,23 @@ export function raceCurrentDay(
       weekCompleted: advanced.weekCompleted,
     },
   }
+}
+
+export interface StandingRow {
+  position: number
+  /** `you` for the athlete; otherwise the rival's number in the field (1 = fastest rival). */
+  runner: 'you' | number
+  timeS: number
+}
+
+/**
+ * The full results: the athlete at their stored position among the rivals. Uses the rival times
+ * stored with the result, or the same deterministic formula for results saved before they were stored.
+ */
+export function getStandings(race: Race, result: RaceResult): StandingRow[] {
+  const rivals = result.rivalTimesS ?? rivalTimes(race)
+  const rows: StandingRow[] = rivals.map((timeS, i) => ({ position: 0, runner: i + 1, timeS }))
+  // Ties go to the athlete, as in the simulation: they are placed before rivals with the same time.
+  rows.splice(result.position - 1, 0, { position: 0, runner: 'you', timeS: result.timeS })
+  return rows.map((row, i) => ({ ...row, position: i + 1 }))
 }

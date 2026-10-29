@@ -210,6 +210,17 @@ describe('Race day and results', () => {
     expect(rewards.getByText('XP awarded').nextSibling).toHaveTextContent(`${result.xpAwarded} XP`)
     expect(rewards.getByText('Net coin change').nextSibling).toHaveTextContent(`+${result.coinsAwarded} coins`)
     expect(screen.getByText(/Week 1, Sunday/)).toBeInTheDocument()
+
+    // Full results, one click away.
+    const summary = screen.getByText('Full results · 50 runners')
+    expect(summary.closest('details')).not.toHaveAttribute('open')
+    await user.click(summary)
+    expect(summary.closest('details')).toHaveAttribute('open')
+    const table = within(screen.getByRole('table', { name: 'Full results of Forest First Steps' }))
+    expect(table.getAllByRole('row')).toHaveLength(51)
+    const you = table.getByRole('rowheader', { name: 'Demo Runner (you)' }).closest('tr')!
+    expect(you).toHaveAttribute('aria-current', 'true')
+    expect(within(you).getAllByRole('cell')[0]).toHaveTextContent(String(result.position))
     expect(save).toMatchObject({ coins: result.coinsAwarded, athlete: { xp: result.xpAwarded, fatigue: 10 } })
     expect(save.week).toMatchObject({ number: 2, currentDayIndex: 0 })
     first.unmount()

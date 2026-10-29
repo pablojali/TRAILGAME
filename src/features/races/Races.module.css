@@ -338,3 +338,82 @@
   flex-wrap: wrap;
   gap: var(--space-3);
 }
+
+/* Full results: collapsed until the player opens them. */
+.standings {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.standingsSummary {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.standingsSummary:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-lg);
+}
+
+.standings[open] .standingsSummary {
+  border-bottom: 1px solid var(--border);
+}
+
+.standings > p {
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.standingsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.standingsTable th,
+.standingsTable td {
+  padding: 6px var(--space-2);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.standingsTable th:nth-child(2),
+.standingsTable tbody th {
+  width: 100%;
+  text-align: left;
+  font-weight: 600;
+  white-space: normal;
+}
+
+.standingsTable thead th {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+}
+
+.standingsTable tbody td:first-child {
+  color: var(--text-muted);
+}
+
+/* A line where the next prize band starts. */
+.bandStart td,
+.bandStart th {
+  border-top: 1px solid var(--border);
+}
+
+.youRow {
+  background: rgb(240 124 42 / 0.16);
+}
+
+.youRow th,
+.youRow td {
+  color: var(--text);
+  font-weight: 800;
+}

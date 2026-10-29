@@ -146,7 +146,11 @@ function isRaceResult(value: unknown, feePaid: number): value is RaceResult {
     isInt(value.referenceTimeS, 1) &&
     isWholeNumber(value.gapS) &&
     Array.isArray(value.factors) &&
-    value.factors.every(isFactor)
+    value.factors.every(isFactor) &&
+    (value.rivalTimesS === undefined ||
+      (Array.isArray(value.rivalTimesS) &&
+        value.rivalTimesS.length === value.fieldSize - 1 &&
+        value.rivalTimesS.every((t) => isInt(t, 1))))
   )
 }
 

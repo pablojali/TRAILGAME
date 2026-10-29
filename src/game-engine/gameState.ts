@@ -117,6 +117,8 @@ export interface RaceResult {
   referenceTimeS: number
   gapS: number
   factors: ExplanationFactor[]
+  /** The 49 rivals' times in whole seconds, fastest first. Missing in results saved before it existed. */
+  rivalTimesS?: number[]
 }
 
 /** Deterministic plan used for the first week and every following week. */

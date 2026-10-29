@@ -301,3 +301,45 @@ describe('full results', () => {
     expect(rows[5]).toEqual({ position: 6, runner: 5, timeS: tie })
   })
 })
+
+describe('reward tables (Game Design Bible §10.8–§10.9, D5) — every band and level difference', () => {
+  // Expected values written out from the specification, not computed by the code under test.
+  // Columns: level difference ≤0 (100 %), 1 (75 %), 2 (40 %), ≥3 (0 %).
+  const COINS: Record<string, number[][]> = {
+    'RACE-001': [[100, 75, 40, 0], [70, 52, 28, 0], [50, 37, 20, 0], [25, 18, 10, 0], [10, 7, 4, 0]],
+    'RACE-004': [[300, 225, 120, 0], [210, 157, 84, 0], [150, 112, 60, 0], [75, 56, 30, 0], [30, 22, 12, 0]],
+    'RACE-007': [[700, 525, 280, 0], [490, 367, 196, 0], [350, 262, 140, 0], [175, 131, 70, 0], [70, 52, 28, 0]],
+    'RACE-010': [[1500, 1125, 600, 0], [1050, 787, 420, 0], [750, 562, 300, 0], [375, 281, 150, 0], [150, 112, 60, 0]],
+  }
+  const XP: Record<string, number[][]> = {
+    'RACE-001': [[30, 22, 12, 0], [21, 15, 8, 0], [15, 11, 6, 0], [7, 5, 3, 0], [3, 2, 1, 0]],
+    'RACE-004': [[60, 45, 24, 0], [42, 31, 16, 0], [30, 22, 12, 0], [15, 11, 6, 0], [6, 4, 2, 0]],
+    'RACE-007': [[100, 75, 40, 0], [70, 52, 28, 0], [50, 37, 20, 0], [25, 18, 10, 0], [10, 7, 4, 0]],
+    'RACE-010': [[180, 135, 72, 0], [126, 94, 50, 0], [90, 67, 36, 0], [45, 33, 18, 0], [18, 13, 7, 0]],
+  }
+  // One position per band, both ends of 4th–10th and the last place.
+  const POSITIONS = [[1], [2], [3], [4, 10], [11, 50]]
+
+  it.each(Object.keys(COINS))('%s: coins and XP for every band and level difference, rounded down', (id) => {
+    const race = getRace(id)!
+    for (let band = 0; band < 5; band++) {
+      for (const position of POSITIONS[band]!) {
+        for (let d = 0; d < 4; d++) {
+          // Level difference d (and also -2 for "0 or below" in the first column).
+          for (const difference of d === 0 ? [0, -2] : d === 3 ? [3, 5] : [d]) {
+            const level = race.recommendedLevel + difference
+            const rewards = getRaceRewards(race, position, level)
+            expect([id, position, difference, rewards.coinsAwarded, rewards.xp]).toEqual([
+              id,
+              position,
+              difference,
+              COINS[id]![band]![d],
+              XP[id]![band]![d],
+            ])
+            expect(rewards.grossPrize).toBe(COINS[id]![band]![0])
+          }
+        }
+      }
+    }
+  })
+})

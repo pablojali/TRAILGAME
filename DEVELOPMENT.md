@@ -2,7 +2,7 @@
 
 **Document:** `DEVELOPMENT.md`  
 **Version:** 0.4.0  
-**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A merged into `main` (29 October 2026); M4 Race System — M4.1 (catalog and access), M4.2 (simulation model) and M4.3 (results and rewards) implemented on the working branch, pending owner review  
+**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A merged into `main` (29 October 2026); M4 Race System — M4.1–M4.3 implemented and M4.4 validated on the working branch (`docs/M4_VALIDATION.md`), pending owner review  
 **Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) (v1.2) · UI pass: [`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
@@ -659,7 +659,15 @@ Replaces the silhouette and the Stage A placeholder options above. On the workin
   - Cosmetic only: no effect on training or races (tested). The race simulation does not read
     equipment.
 
-### M4 — Race System (M4.1–M4.3 implemented, M4.4 validation next)
+### M4 — Race System (M4.1–M4.4 done on the working branch, pending owner approval)
+
+**M4.4 validation:** [`docs/M4_VALIDATION.md`](./docs/M4_VALIDATION.md) (29 October 2026).
+- Every test in the Bible §10.13 list and every §10.15 acceptance criterion is met, with
+  evidence.
+- Browser QA at 4 sizes.
+- **Balance finding:** under the current training values there is no sustainable way to gain
+  Fitness, and weekly races amplify it. Options are listed for the owner; nothing was rebalanced.
+- M4 is not marked complete until the owner approves.
 
 **Specification:** Game Design Bible §10 (v1.3, PM, 29 October 2026). Stages: M4.1 catalog and access;
 M4.2 simulation model proposal (owner approval required before any formula is coded); M4.3 results

@@ -4,7 +4,7 @@ import { Avatar } from '../../components/avatar/Avatar'
 import button from '../../components/Button.module.css'
 import { Screen } from '../../components/Screen'
 import { formatCoins } from '../../domain/economy/coins'
-import { EQUIPMENT_ITEMS, type EquipmentItem, type EquipmentSlot } from '../../domain/equipment/items'
+import { EQUIPMENT_ITEMS, itemName, type EquipmentItem, type EquipmentSlot } from '../../domain/equipment/items'
 import { isEquipped, type BuyError } from '../../game-engine/equipment'
 import styles from './EquipmentScreen.module.css'
 
@@ -78,7 +78,7 @@ export function EquipmentScreen() {
                       <ItemArt item={item} />
                     </span>
                     <span className={styles.itemText}>
-                      <strong>{item.label}</strong>
+                      <strong>{itemName(item)}</strong>
                       <span className={styles.muted}>{item.description}</span>
                       {item.effectText && <span className={styles.effect}>{item.effectText}</span>}
                       <span className={styles.muted}>{equipped ? 'Equipped' : 'Not equipped'}</span>
@@ -89,12 +89,12 @@ export function EquipmentScreen() {
                       onClick={() => {
                         const error = setItemEquipped(item.id, !equipped)
                         setMessage(
-                          error ? 'That item cannot be changed.' : `${item.label} ${equipped ? 'taken off' : 'equipped'}.`,
+                          error ? 'That item cannot be changed.' : `${itemName(item)} ${equipped ? 'taken off' : 'equipped'}.`,
                         )
                       }}
                     >
                       {equipped ? 'Take off' : 'Equip'}
-                      <span className={styles.srOnly}> {item.label.toLowerCase()}</span>
+                      <span className={styles.srOnly}> {itemName(item).toLowerCase()}</span>
                     </button>
                   </li>
                 )
@@ -138,7 +138,7 @@ function ShopItem({ item, onBought }: { item: EquipmentItem; onBought(text: stri
         <ItemArt item={item} />
       </span>
       <span className={styles.itemText}>
-        <strong>{item.label}</strong>
+        <strong>{itemName(item)}</strong>
         <span className={styles.muted}>{item.description}</span>
         {item.effectText && <span className={styles.effect}>{item.effectText}</span>}
         <span className={styles.price}>{formatCoins(item.price)}</span>
@@ -172,7 +172,7 @@ function ShopItem({ item, onBought }: { item: EquipmentItem; onBought(text: stri
                 setError(BUY_ERRORS[failure])
                 return
               }
-              onBought(`${item.label} bought for ${formatCoins(item.price)}.`)
+              onBought(`${itemName(item)} bought for ${formatCoins(item.price)}.`)
             }}
           >
             Pay {formatCoins(item.price)}
@@ -190,7 +190,7 @@ function ShopItem({ item, onBought }: { item: EquipmentItem; onBought(text: stri
             setConfirming(true)
           }}
         >
-          Buy<span className={styles.srOnly}> {item.label.toLowerCase()}</span>
+          Buy<span className={styles.srOnly}> {itemName(item).toLowerCase()}</span>
         </button>
       )}
     </li>

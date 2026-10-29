@@ -40,27 +40,29 @@ describe('Equipment', () => {
 
   it('buys from the shop with a confirmation, then the item can be equipped', async () => {
     const user = userEvent.setup()
-    seedCareer({ ...newGame(), coins: 120 })
+    seedCareer({ ...newGame(), coins: 60 })
     renderApp('/equipment')
-    expect(screen.getByText('120 coins')).toBeInTheDocument()
+    expect(screen.getByText('60 coins')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Shop' })).toBeInTheDocument()
-    // Each item says what it does in races.
-    expect(screen.getByText('Races: climbs 4% faster.')).toBeInTheDocument()
-    expect(screen.getByText('Races: technical descents cost half as much time.')).toBeInTheDocument()
-    expect(screen.getByText('Races: 20% less slowdown over long distances.')).toBeInTheDocument()
-    // Not enough for the trail shoes (200): the button is inactive and says why.
-    const shoes = screen.getByRole('button', { name: 'Buy trail shoes' })
-    expect(shoes).toHaveAttribute('aria-disabled', 'true')
-    expect(shoes).toHaveAccessibleDescription('You need 80 coins more.')
+    // Each item says what it does in races, with its level.
+    expect(screen.getByText('Races: Climbing +2, Endurance +1, but flats 3% slower.')).toBeInTheDocument()
+    expect(screen.getByText('Races: Speed +3, descents 2% faster, but technical descents 30% harder.')).toBeInTheDocument()
+    expect(screen.getByText('Races: Endurance +3, 15% less wear over distance.')).toBeInTheDocument()
+    expect(screen.getByText('Poles · Lvl 2')).toBeInTheDocument()
+    // Not enough for the backpack lvl 2 (90): the button is inactive and says why.
+    const pack = screen.getByRole('button', { name: 'Buy hydration backpack · lvl 2' })
+    expect(pack).toHaveAttribute('aria-disabled', 'true')
+    expect(pack).toHaveAccessibleDescription('You need 30 coins more.')
 
-    await user.click(screen.getByRole('button', { name: 'Buy poles' }))
-    expect(screen.getByText('Balance 120 coins → 20 coins.')).toBeInTheDocument()
-    expect(readSave()!.state.coins).toBe(120)
-    await user.dblClick(screen.getByRole('button', { name: 'Pay 100 coins' }))
-    expect(readSave()!.state).toMatchObject({ coins: 20, ownedEquipment: ['starter-shoes', 'poles'], equipment: [] })
-    expect(screen.getByText('Poles bought for 100 coins.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Buy poles · lvl 2' }))
+    expect(screen.getByText('Balance 60 coins → 10 coins.')).toBeInTheDocument()
+    expect(readSave()!.state.coins).toBe(60)
+    await user.dblClick(screen.getByRole('button', { name: 'Pay 50 coins' }))
+    expect(readSave()!.state).toMatchObject({ coins: 10, ownedEquipment: ['starter-shoes', 'poles-2'], equipment: [] })
+    expect(screen.getByText('Poles · Lvl 2 bought for 50 coins.')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Equip poles' }))
-    expect(readSave()!.state.equipment).toEqual(['poles'])
+    await user.click(screen.getByRole('button', { name: 'Equip poles · lvl 2' }))
+    expect(readSave()!.state.equipment).toEqual(['poles-2'])
   })
+
 })

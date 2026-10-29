@@ -12,7 +12,7 @@ import { simulateRace } from './raceSimulation'
 /** A career that owns every item, with the given items equipped. */
 function geared(equipped: string[]): GameState {
   let state: GameState = { ...withAthlete(newGame(), { fitness: 60, fatigue: 20 }), coins: 1000 }
-  for (const [id, price] of [['trail-shoes', 200], ['hydration-backpack', 150], ['poles', 100]] as const) {
+  for (const [id, price] of [['trail-shoes', 70], ['hydration-backpack', 30], ['poles', 25]] as const) {
     const r = buyItem(state, id, price)
     if (!r.ok) throw new Error(r.error)
     state = r.state
@@ -36,6 +36,7 @@ describe('equipment rules (owner, 29 October 2026)', () => {
     expect(state.athlete).toEqual(plain.athlete)
     expect(getEarnedAttributePoints(state.athlete.xp)).toBe(getEarnedAttributePoints(plain.athlete.xp))
 
+    // The attribute bonuses apply in the race only: base attributes are unchanged after it.
     const entered = enterRace(state, 'RACE-008', 300, T0)
     if (!entered.ok) throw new Error(entered.error)
     const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
@@ -58,7 +59,9 @@ describe('equipment rules (owner, 29 October 2026)', () => {
     const swapped = setItemEquipped(trail, 'starter-shoes', true)
     if (!swapped.ok) throw new Error(swapped.error)
     expect(swapped.state.equipment).toEqual(['starter-shoes'])
-    expect(getRaceEffect(swapped.state.equipment)).toEqual({ climb: 1, technicalPenalty: 1, slowdown: 1 })
+    const neutral = getRaceEffect([])
+    expect(getRaceEffect(swapped.state.equipment)).toEqual(neutral)
+    expect(Object.values(neutral.attributes).every((v) => v === 0)).toBe(true)
     expect(raceTime(swapped.state, 'RACE-008')).toBe(raceTime(geared([]), 'RACE-008'))
   })
 

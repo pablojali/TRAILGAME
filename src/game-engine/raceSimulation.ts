@@ -123,13 +123,16 @@ function segmentAbility(segment: CourseSegment, a: Attributes): number {
 
 /** Finishing time in seconds, before rounding. `dayForm` is a fraction; 0 means none. */
 export function raceSeconds(course: readonly CourseSegment[], athlete: RaceAthleteInput, dayForm = 0): number {
-  const a = athlete.attributes
+  // Equipment bonuses are added for the race only; the athlete's attributes are not changed.
+  const gear = getRaceEffect(athlete.equipment ?? [])
+  const a = Object.fromEntries(
+    ATTRIBUTE_IDS.map((id) => [id, athlete.attributes[id] + gear.attributes[id]]),
+  ) as Attributes
   const fitnessFactor = 1 + (C.fitnessSlope * (50 - athlete.fitness)) / 50
   // D9 (variant V1): Consistency softens the effect of Fatigue.
   const fatigueScale = Math.pow(C.abilityReference / a.consistency, C.abilityExponent)
   const fatigueFactor = 1 + (C.fatigueSlope * athlete.fatigue * fatigueScale) / 100
   const durabilityScore = durability(a)
-  const gear = getRaceEffect(athlete.equipment ?? [])
   let minutes = 0
   let effortBefore = 0
   for (const s of course) {
@@ -142,14 +145,14 @@ export function raceSeconds(course: readonly CourseSegment[], athlete: RaceAthle
     const slowdown =
       1 +
       C.slowdownRate * gear.slowdown * (effortBefore / C.slowdownReferenceEffortKm) * (C.abilityReference / durabilityScore)
-    const climbFactor = s.type === 'climb' ? gear.climb : 1
+    const gearFactor = s.type === 'climb' ? gear.climb : s.type === 'descent' ? gear.descent : gear.runnable
     minutes +=
       e *
       C.basePaceMinPerEffortKm *
       abilityFactor *
       technicalFactor *
       slowdown *
-      climbFactor *
+      gearFactor *
       fitnessFactor *
       fatigueFactor *
       (1 + dayForm)

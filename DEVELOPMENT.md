@@ -605,31 +605,42 @@ On the working branch, not merged.
 - No item has a downside, so wearing everything is always best.
 - The trail shoes beat the starter shoes on every course.
 
-**Proposal — trade-offs, pending owner approval (not implemented):**
+**Owner's catalog (29 October 2026), implemented.** It replaces the trade-off proposal and the
+first items:
+- **Two kinds of effect:** attribute bonuses that apply in the race only (rule 1), plus time
+  multipliers. Both are defined per item in `src/domain/equipment/items.ts`.
+- **Items bought before:** they keep their id and become Poles lvl 1, Hydration backpack lvl 1
+  and Technical trail shoes lvl 2. There is no refund (owner decision) and no save migration.
 
-| Item | Price | Helps | Costs |
-|---|---:|---|---|
-| Poles | 100 | climbs −4 % | runnable sections +4 % (carrying them) |
-| Hydration backpack | 150 | slowdown over distance −20 % | +1 % everywhere (weight) |
-| Trail shoes | 200 | technical-descent penalty halved | runnable sections +1.5 % |
-| **New: Racing flats** (shoes) | 120 | runnable sections −3 % | technical-descent penalty ×1.5 |
+| Item | Price | Race effect |
+|---|---:|---|
+| Trail shoes lvl 1 | 35 | Speed +1, Technical +1 |
+| Technical trail shoes lvl 2 | 70 | Technical +4, technical-descent penalty −30 % |
+| Light trail shoes lvl 2 | 70 | Speed +3, descents −2 %, technical-descent penalty +30 % |
+| Poles lvl 1 | 25 | Climbing +2, Endurance +1, flats +3 % |
+| Poles lvl 2 | 50 | Climbing +3, Endurance +2, flats +1 % |
+| Hydration backpack lvl 1 | 30 | Endurance +2, wear over distance −10 % |
+| Hydration backpack lvl 2 | 90 | Endurance +3, wear over distance −15 % |
 
-Effect on an All-rounder at Fitness 60 and Fatigue 20 (one-off calculation with the real course and
-time formulas):
+Effects per race and the best loadout are in `docs/race-simulation/results.md` §10; the prototype
+checks every item's effect against `src/`.
 
-| Item | 001 | 002 | 003 | 004 | 005 | 006 | 007 | 008 | 009 | 010 | 011 | 012 |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Poles | +0.5 % | +0.4 % | +0.2 % | −0.9 % | −1.0 % | −1.1 % | −1.5 % | −1.5 % | −1.6 % | −1.8 % | −1.8 % | −1.8 % |
-| Hydration backpack | +0.7 % | +0.5 % | +0.4 % | +0.3 % | −0.1 % | −0.3 % | −0.8 % | −1.2 % | −1.8 % | −2.4 % | −3.2 % | −4.2 % |
-| Trail shoes | +0.7 % | +0.7 % | −0.1 % | −0.6 % | −1.6 % | −0.6 % | −1.9 % | −2.9 % | −1.9 % | −3.1 % | −3.1 % | −3.1 % |
-| Racing flats | −1.5 % | −1.4 % | −0.6 % | +0.2 % | +1.2 % | +0.2 % | +1.6 % | +2.7 % | +1.6 % | +2.9 % | +2.9 % | +2.9 % |
+**Findings (All-rounder, Fitness 60, Fatigue 20):**
+1. **The shoes are a real choice:**
+   - The light shoes are best on runnable courses (−3.9 % in RACE-001, almost nothing in ultras).
+   - The technical shoes are best on technical courses (−3.6 % in RACE-012, nothing in RACE-001).
+2. **Poles and backpack:** the attribute bonuses outweigh the flats cost, so they help almost
+   everywhere.
+   - Only Poles lvl 1 costs time in the flattest race (+0.2 % in RACE-001).
+   - Level 2 is better than level 1 in its slot, as decided ("an upgrade").
+3. **The full loadout is strong:**
+   - −7 % in Open races (6th → 1st in Forest First Steps) up to −14 % in the longest ultra.
+   - At these prices (25–90 coins) it is affordable early.
 
-The best loadout depends on the course; no single purchase is always right:
-- **Open races (001–003):** racing flats only (−1.5 %). Poles, backpack and trail shoes cost time.
-- **Ridge Runner (004):** trail shoes + poles (−1.5 %). The backpack still costs time.
-- **Longer and technical races (005–012):** trail shoes + poles + backpack (−2 % to −9 %).
-
-Racing flats need their own artwork; until then they show an icon.
+Possible adjustments if wanted:
+- smaller attribute bonuses;
+- larger flats costs;
+- a level requirement for lvl 2 items.
 
 ### Recovery bonus on Rest (owner decision, 29 October 2026)
 

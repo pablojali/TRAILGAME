@@ -1,7 +1,7 @@
 import { Avatar } from '../../components/avatar/Avatar'
 import type { Appearance } from '../../domain/athlete/appearance'
 import { SEX_LABELS, type Sex } from '../../domain/athlete/athlete'
-import { getEquipmentItem } from '../../domain/equipment/items'
+import { getEquipmentItem, itemName } from '../../domain/equipment/items'
 import styles from './DashboardRunner.module.css'
 
 interface DashboardRunnerProps {
@@ -14,7 +14,7 @@ interface DashboardRunnerProps {
 
 /** Dashboard runner: the athlete's avatar with what is equipped. Never the creation illustrations. */
 export function DashboardRunner({ name, sex, appearance, equipment }: DashboardRunnerProps) {
-  const worn = equipment.map((id) => getEquipmentItem(id)?.label.toLowerCase()).filter(Boolean)
+  const worn = equipment.map((id) => getEquipmentItem(id)).filter((item) => item !== undefined).map((item) => itemName(item).toLowerCase())
   const description = `${name}, ${SEX_LABELS[sex].toLowerCase()} runner, ${worn.length ? `wearing ${worn.join(', ')}` : 'no equipment'}`
 
   return (

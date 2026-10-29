@@ -211,23 +211,32 @@ describe('equipment race effects (owner approval, 29 October 2026)', () => {
   }
 
   it.each<[string[], string, number]>([
-    // Values from the approved proposal (DEVELOPMENT.md), All-rounder at Fitness 60, Fatigue 20.
-    [['poles'], 'RACE-001', -0.014],
-    [['poles'], 'RACE-004', -0.02],
-    [['poles'], 'RACE-012', -0.023],
-    [['trail-shoes'], 'RACE-004', -0.011],
-    [['trail-shoes'], 'RACE-012', -0.033],
-    [['hydration-backpack'], 'RACE-004', -0.007],
-    [['hydration-backpack'], 'RACE-012', -0.052],
-    [['poles', 'trail-shoes', 'hydration-backpack'], 'RACE-001', -0.017],
-    [['poles', 'trail-shoes', 'hydration-backpack'], 'RACE-004', -0.037],
-    [['poles', 'trail-shoes', 'hydration-backpack'], 'RACE-012', -0.105],
+    // Owner's catalog (29 October 2026), All-rounder at Fitness 60, Fatigue 20; see results.md §10.
+    [['poles'], 'RACE-001', 0.0022],
+    [['poles'], 'RACE-004', -0.0095],
+    [['poles'], 'RACE-012', -0.0246],
+    [['poles-2'], 'RACE-001', -0.0162],
+    [['trail-shoes-basic'], 'RACE-004', -0.0105],
+    [['trail-shoes'], 'RACE-004', -0.0114],
+    [['trail-shoes'], 'RACE-012', -0.0362],
+    [['trail-shoes-light'], 'RACE-001', -0.0389],
+    [['trail-shoes-light'], 'RACE-012', -0.0008],
+    [['hydration-backpack'], 'RACE-004', -0.0163],
+    [['hydration-backpack'], 'RACE-012', -0.0506],
+    [['hydration-backpack-2'], 'RACE-012', -0.0734],
+    [['trail-shoes-light', 'poles-2', 'hydration-backpack-2'], 'RACE-001', -0.0695],
+    [['trail-shoes', 'poles-2', 'hydration-backpack-2'], 'RACE-012', -0.144],
   ])('%j in %s: %d', (equipment, id, expected) => {
-    expect(change(id, equipment)).toBeCloseTo(expected, 3)
+    expect(change(id, equipment)).toBeCloseTo(expected, 4)
+  })
+
+  it('makes the shoes a choice of terrain: light shoes for runnable courses, technical shoes for technical ones', () => {
+    expect(change('RACE-001', ['trail-shoes-light'])).toBeLessThan(change('RACE-001', ['trail-shoes']))
+    expect(change('RACE-012', ['trail-shoes'])).toBeLessThan(change('RACE-012', ['trail-shoes-light']))
   })
 
   it('helps only where it makes sense, and the starter shoes do nothing', () => {
-    // No technical descents in Forest First Steps: trail shoes change nothing there.
+    // No technical descents in Forest First Steps: the technical shoes' bonuses change nothing there.
     expect(change('RACE-001', ['trail-shoes'])).toBe(0)
     expect(change('RACE-012', ['starter-shoes'])).toBe(0)
   })
@@ -238,7 +247,7 @@ describe('equipment race effects (owner approval, 29 October 2026)', () => {
   })
 
   it('appears in the explanation only when it changed the time', () => {
-    const all = ['poles', 'trail-shoes', 'hydration-backpack']
+    const all = ['poles-2', 'trail-shoes', 'hydration-backpack-2']
     const ultra = explainRace(race('RACE-012'), { ...referenceAthlete(50), equipment: all })
     expect(ultra.factors[0]).toMatchObject({ id: 'equipment', value: 3, reference: 0 })
     expect(ultra.factors[0]!.effectS).toBeLessThan(0)

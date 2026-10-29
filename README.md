@@ -182,9 +182,10 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
     "Rewards reduced to 40%" (level 3 in a level-1 race) and 5 forced rest days. During forced rest
     the race panel says racing is locked.
 15. Shop: **Equipment** shows the balance, **Your equipment** (starter shoes: **Equip** /
-    **Take off**) and the **Shop** (backpack 150, poles 100, trail shoes 200). With 25 coins every
-    **Buy** is inactive with "You need … more". Set `state.coins` to 150 and reload: **Buy poles** →
-    the confirmation shows the balance before → after → **Pay 100 coins** charges once. Poles move
+    **Take off**) and the **Shop** (7 items, 25–90 coins, lvl 1 and lvl 2). With 25 coins only
+    Poles lvl 1 can be bought; the others say "You need … more". Set `state.coins` to 150 and
+    reload: **Buy** Poles lvl 2 → the confirmation shows the balance before → after → **Pay 50
+    coins** charges once. Poles move
     to **Your equipment** and can be equipped. Each item shows its race effect, and an equipped item
     can appear as "Equipment (…)" in a race result's explanation.
 

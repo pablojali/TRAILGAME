@@ -5,11 +5,15 @@ import { buyItem, isEquipped, setItemEquipped } from './equipment'
 
 describe('equipment', () => {
   it('starts with the starter shoes owned but not equipped (owner decision)', () => {
-    expect(EQUIPMENT_ITEMS.map((i) => [i.id, i.slot, i.price])).toEqual([
-      ['starter-shoes', 'shoes', 0],
-      ['trail-shoes', 'shoes', 200],
-      ['hydration-backpack', 'pack', 150],
-      ['poles', 'poles', 100],
+    expect(EQUIPMENT_ITEMS.map((i) => [i.id, i.slot, i.level ?? null, i.price])).toEqual([
+      ['starter-shoes', 'shoes', null, 0],
+      ['trail-shoes-basic', 'shoes', 1, 35],
+      ['trail-shoes', 'shoes', 2, 70],
+      ['trail-shoes-light', 'shoes', 2, 70],
+      ['poles', 'poles', 1, 25],
+      ['poles-2', 'poles', 2, 50],
+      ['hydration-backpack', 'pack', 1, 30],
+      ['hydration-backpack-2', 'pack', 2, 90],
     ])
     expect(OWNED_FROM_START).toEqual(['starter-shoes'])
     expect(newGame()).toMatchObject({ equipment: [], ownedEquipment: ['starter-shoes'] })
@@ -44,16 +48,16 @@ describe('equipment', () => {
 
 describe('shop', () => {
   it('buys an item once, charging its price, without equipping it', () => {
-    const state = { ...newGame(), coins: 160 }
-    const bought = buyItem(state, 'poles', 100)
+    const state = { ...newGame(), coins: 60 }
+    const bought = buyItem(state, 'poles-2', 50)
     if (!bought.ok) throw new Error(bought.error)
-    expect(bought.state).toMatchObject({ coins: 60, ownedEquipment: ['starter-shoes', 'poles'], equipment: [] })
-    expect(buyItem(bought.state, 'poles', 100)).toEqual({ ok: false, error: 'already-owned' })
+    expect(bought.state).toMatchObject({ coins: 10, ownedEquipment: ['starter-shoes', 'poles-2'], equipment: [] })
+    expect(buyItem(bought.state, 'poles-2', 50)).toEqual({ ok: false, error: 'already-owned' })
   })
 
   it('refuses without enough coins, a changed price or an unknown item', () => {
-    expect(buyItem(newGame(), 'trail-shoes', 200)).toEqual({ ok: false, error: 'insufficient-coins' })
-    expect(buyItem({ ...newGame(), coins: 500 }, 'trail-shoes', 150)).toEqual({ ok: false, error: 'price-changed' })
+    expect(buyItem(newGame(), 'trail-shoes', 70)).toEqual({ ok: false, error: 'insufficient-coins' })
+    expect(buyItem({ ...newGame(), coins: 500 }, 'trail-shoes', 200)).toEqual({ ok: false, error: 'price-changed' })
     expect(buyItem(newGame(), 'jetpack', 0)).toEqual({ ok: false, error: 'unknown-item' })
   })
 
@@ -61,16 +65,18 @@ describe('shop', () => {
     expect(setItemEquipped(newGame(), 'trail-shoes', true)).toEqual({ ok: false, error: 'not-owned' })
     const rich = { ...newGame(), coins: 500 }
     let state = rich
-    for (const [id, price] of [['trail-shoes', 200], ['poles', 100]] as const) {
+    for (const [id, price] of [['trail-shoes', 70], ['poles', 25], ['poles-2', 50]] as const) {
       const r = buyItem(state, id, price)
       if (!r.ok) throw new Error(r.error)
       state = r.state
     }
-    for (const id of ['starter-shoes', 'poles', 'trail-shoes']) {
+    for (const id of ['starter-shoes', 'poles', 'trail-shoes', 'poles-2']) {
       const r = setItemEquipped(state, id, true)
       if (!r.ok) throw new Error(r.error)
       state = r.state
     }
-    expect(state.equipment).toEqual(['poles', 'trail-shoes'])
+    // Poles lvl 2 replaced poles lvl 1 in the same slot; lvl 1 stays owned.
+    expect(state.equipment).toEqual(['trail-shoes', 'poles-2'])
+    expect(state.ownedEquipment).toContain('poles')
   })
 })

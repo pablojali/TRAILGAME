@@ -46,9 +46,9 @@ describe('TrainingScreen — week strip and day detail', () => {
     expect(strip().map((b) => b.getAttribute('aria-label'))).toEqual([
       'Monday, Easy run, today',
       'Tuesday, Intervals, planned',
-      'Wednesday, Strength, planned',
-      'Thursday, Rest, planned',
-      'Friday, Hills, planned',
+      'Wednesday, Rest, planned',
+      'Thursday, Hills, planned',
+      'Friday, Rest, planned',
       'Saturday, Long run, planned',
       'Sunday, Rest, planned',
     ])
@@ -75,10 +75,10 @@ describe('TrainingScreen — week strip and day detail', () => {
   it('shows another day directly when its tab is tapped, without actions', async () => {
     const user = userEvent.setup()
     renderApp('/training')
-    await user.click(strip()[4]!)
-    expect(strip()[4]).toHaveAttribute('aria-pressed', 'true')
+    await user.click(strip()[3]!)
+    expect(strip()[3]).toHaveAttribute('aria-pressed', 'true')
     expect(within(detail()).getByRole('heading', { level: 2, name: 'Hills' })).toBeInTheDocument()
-    expect(detail()).toHaveTextContent('Friday · Planned')
+    expect(detail()).toHaveTextContent('Thursday · Planned')
     expect(detail()).toHaveTextContent('Repeated climbs and descents.')
     expect(detail()).toHaveTextContent('Planned: XP +14 · Fitness +3 · Fatigue +12')
     expect(detail()).toHaveTextContent('Only today’s session can be changed or completed.')
@@ -180,7 +180,7 @@ describe('TrainingScreen — completing sessions', () => {
     expect(feedback()).toHaveTextContent('Week 1 complete. Week 2 has started: Monday, Easy run.')
     expect(screen.getByRole('list', { name: 'Week 2 plan' })).toBeInTheDocument()
     expect(strip().filter((b) => b.getAttribute('aria-label')!.endsWith('completed'))).toHaveLength(0)
-    expect(readSave()!.state.athlete).toMatchObject({ xp: 68, fitness: 29 })
+    expect(readSave()!.state.athlete).toMatchObject({ xp: 57, fitness: 25 })
   })
 
   it('persists edits and executions across a reload', async () => {

@@ -7,9 +7,9 @@ import { ordinal } from './raceText'
 import { newGame, onSunday, withAthlete } from '../../test/gameFixtures'
 import { readSave, renderApp, seedCareer } from '../../test/renderApp'
 
-/** A level-3 career (250 XP) with the given coins. */
-function level3(coins: number): GameState {
-  return { ...withAthlete(newGame(), { xp: 250 }), coins }
+/** A level-11 career (3,250 XP, Ridge Runner's recommended level) with the given coins. */
+function level11(coins: number): GameState {
+  return { ...withAthlete(newGame(), { xp: 3_250 }), coins }
 }
 
 function card(name: string) {
@@ -22,7 +22,7 @@ describe('Race Hub', () => {
     renderApp('/races')
     expect(screen.getByRole('heading', { level: 1, name: 'Races' })).toBeInTheDocument()
     expect(screen.getByText('Level 1')).toBeInTheDocument()
-    expect(screen.getByText('0 coins')).toBeInTheDocument()
+    expect(screen.getByText('25 coins')).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
       'Open',
       'Trail',
@@ -31,18 +31,18 @@ describe('Race Hub', () => {
     ])
     expect(screen.getAllByRole('link', { name: /km/ })).toHaveLength(12)
     expect(card('Ridge Runner')).toHaveAccessibleName(
-      'Ridge Runner 12 km · 550 m D+ · Rec. Lv 3 Early entry · 250 coins',
+      'Ridge Runner 12 km · 550 m D+ · Rec. Lv 11 Early entry · 125 coins',
     )
   })
 
   it('shows free Open races, standard fees at level and Early entry below it, never locked', () => {
-    seedCareer(level3(0))
+    seedCareer(level11(0))
     renderApp('/races')
     expect(within(card('Forest First Steps')).getByText('Free')).toBeInTheDocument()
     expect(within(card('Pine Loop Challenge')).getByText('Free')).toBeInTheDocument()
-    expect(within(card('Ridge Runner')).getByText('100 coins')).toBeInTheDocument()
-    expect(within(card('Wildwood Ascent')).getByText('Early entry · 250 coins')).toBeInTheDocument()
-    expect(within(card('Beyond the Skyline')).getByText('Early entry · 1,400 coins')).toBeInTheDocument()
+    expect(within(card('Ridge Runner')).getByText('50 coins')).toBeInTheDocument()
+    expect(within(card('Wildwood Ascent')).getByText('Early entry · 125 coins')).toBeInTheDocument()
+    expect(within(card('Beyond the Skyline')).getByText('Early entry · 700 coins')).toBeInTheDocument()
     expect(card('Beyond the Skyline')).toHaveAttribute('href', '/races/RACE-012')
   })
 
@@ -57,7 +57,7 @@ describe('Race Hub', () => {
 
 describe('Race Detail', () => {
   it('shows the course, both fees with the applicable one, and potential prizes', () => {
-    seedCareer(level3(0))
+    seedCareer(level11(0))
     renderApp('/races/RACE-007')
     expect(screen.getByRole('heading', { level: 1, name: 'Summit Quest' })).toBeInTheDocument()
     expect(screen.getByText('Mountain race')).toBeInTheDocument()
@@ -65,8 +65,8 @@ describe('Race Detail', () => {
     expect(screen.getByText('1,300 m')).toBeInTheDocument()
     expect(screen.getByText('Steep climbs, rocky descents')).toBeInTheDocument()
     const fees = within(screen.getByRole('heading', { name: 'Entry fee' }).closest('article')!).getAllByRole('listitem')
-    expect(fees[0]).toHaveTextContent('Standard (level 6 or higher)250 coins')
-    expect(fees[1]).toHaveTextContent('Early entry (below level 6)600 coinsYour fee')
+    expect(fees[0]).toHaveTextContent('Standard (level 21 or higher)125 coins')
+    expect(fees[1]).toHaveTextContent('Early entry (below level 21)300 coinsYour fee')
     const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1)
     expect(rows.map((r) => r.textContent)).toEqual([
       '1st700 coins',
@@ -80,7 +80,7 @@ describe('Race Detail', () => {
   })
 
   it('explains reduced and zero rewards for easy races', () => {
-    seedCareer(withAthlete(newGame(), { xp: 450 })) // level 4
+    seedCareer(withAthlete(newGame(), { xp: 3_850 })) // level 12
     const view = renderApp('/races/RACE-004')
     expect(screen.getByText('At your level: 75% of prizes and XP.')).toBeInTheDocument()
     view.unmount()
@@ -90,11 +90,11 @@ describe('Race Detail', () => {
 
   it('blocks entry without enough coins and shows the shortfall', async () => {
     const user = userEvent.setup()
-    seedCareer(level3(40))
+    seedCareer(level11(40))
     renderApp('/races/RACE-004')
     const enter = screen.getByRole('button', { name: 'Enter race' })
     expect(enter).toHaveAttribute('aria-disabled', 'true')
-    expect(enter).toHaveAccessibleDescription('Not enough coins: you need 60 coins more (balance 40 coins).')
+    expect(enter).toHaveAccessibleDescription('Not enough coins: you need 10 coins more (balance 40 coins).')
     await user.click(enter)
     expect(screen.queryByRole('heading', { name: 'Confirm entry' })).not.toBeInTheDocument()
     expect(readSave()!.state.coins).toBe(40)
@@ -106,7 +106,7 @@ describe('Race Detail', () => {
     const first = renderApp('/races/RACE-001')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     expect(screen.getByRole('heading', { name: 'Confirm entry to Forest First Steps' })).toHaveFocus()
-    expect(screen.getByText('Balance after entry').nextSibling).toHaveTextContent('0 coins')
+    expect(screen.getByText('Balance after entry').nextSibling).toHaveTextContent('25 coins')
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     expect(screen.getByText('Entry confirmed. Entry fee paid: free entry.')).toHaveAttribute('role', 'status')
     expect(screen.getByText(/Race day: Sunday, week 1\./)).toBeInTheDocument()
@@ -122,32 +122,32 @@ describe('Race Detail', () => {
 
   it('shows fee, balance and remaining balance, and deducts the fee only on confirm, once', async () => {
     const user = userEvent.setup()
-    seedCareer(level3(300))
+    seedCareer(level11(300))
     renderApp('/races/RACE-004')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
-    expect(screen.getByText('Entry fee', { selector: 'dt' }).nextSibling).toHaveTextContent('100 coins')
+    expect(screen.getByText('Entry fee', { selector: 'dt' }).nextSibling).toHaveTextContent('50 coins')
     expect(screen.getByText('Your balance').nextSibling).toHaveTextContent('300 coins')
-    expect(screen.getByText('Balance after entry').nextSibling).toHaveTextContent('200 coins')
+    expect(screen.getByText('Balance after entry').nextSibling).toHaveTextContent('250 coins')
     expect(readSave()!.state.coins).toBe(300)
 
-    const pay = screen.getByRole('button', { name: 'Pay 100 coins and enter' })
+    const pay = screen.getByRole('button', { name: 'Pay 50 coins and enter' })
     await user.dblClick(pay)
-    expect(readSave()!.state.coins).toBe(200)
-    expect(readSave()!.state.raceEntries).toMatchObject([{ raceId: 'RACE-004', feePaid: 100, entryType: 'standard' }])
+    expect(readSave()!.state.coins).toBe(250)
+    expect(readSave()!.state.raceEntries).toMatchObject([{ raceId: 'RACE-004', feePaid: 50, entryType: 'standard' }])
   })
 
   it('charges the early-entry fee below the recommended level', async () => {
     const user = userEvent.setup()
-    seedCareer(level3(1500))
+    seedCareer(level11(1500))
     renderApp('/races/RACE-010')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
-    await user.click(screen.getByRole('button', { name: 'Pay 1,400 coins and enter' }))
-    expect(readSave()!.state).toMatchObject({ coins: 100, raceEntries: [{ entryType: 'early', feePaid: 1400 }] })
+    await user.click(screen.getByRole('button', { name: 'Pay 700 coins and enter' }))
+    expect(readSave()!.state).toMatchObject({ coins: 800, raceEntries: [{ entryType: 'early', feePaid: 700 }] })
   })
 
   it('Cancel charges nothing', async () => {
     const user = userEvent.setup()
-    seedCareer(level3(300))
+    seedCareer(level11(300))
     renderApp('/races/RACE-004')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -221,7 +221,7 @@ describe('Race day and results', () => {
     const you = table.getByRole('rowheader', { name: 'Demo Runner (you)' }).closest('tr')!
     expect(you).toHaveAttribute('aria-current', 'true')
     expect(within(you).getAllByRole('cell')[0]).toHaveTextContent(String(result.position))
-    expect(save).toMatchObject({ coins: result.coinsAwarded, athlete: { xp: result.xpAwarded, fatigue: 10 } })
+    expect(save).toMatchObject({ coins: 25 + result.coinsAwarded, athlete: { xp: result.xpAwarded, fatigue: 10 } })
     expect(save.week).toMatchObject({ number: 2, currentDayIndex: 0 })
     first.unmount()
 

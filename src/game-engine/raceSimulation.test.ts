@@ -86,10 +86,10 @@ describe('race simulation — approved test cases (docs/race-simulation/results.
     ['All-rounder F80 Fa10', 'RACE-001', athlete('all-rounder', 80, 10), '0:37:04', 1],
     ['Sprinter F60 Fa20', 'RACE-001', athlete('sprinter', 60, 20), '0:40:54', 3],
     ['Climber F60 Fa20', 'RACE-001', athlete('climber', 60, 20), '0:43:01', 11],
-    ['All-rounder F60 Fa0', 'RACE-004', athlete('all-rounder', 60, 0), '1:55:17', 13],
-    ['All-rounder F60 Fa80', 'RACE-004', athlete('all-rounder', 60, 80), '2:25:12', 40],
-    ['Climber F60 Fa20', 'RACE-007', athlete('climber', 60, 20), '4:24:01', 41],
-    ['Sprinter F60 Fa20', 'RACE-007', athlete('sprinter', 60, 20), '4:32:51', 45],
+    ['All-rounder F60 Fa0', 'RACE-004', athlete('all-rounder', 60, 0), '1:55:17', 20],
+    ['All-rounder F60 Fa80', 'RACE-004', athlete('all-rounder', 60, 80), '2:25:12', 47],
+    ['Climber F60 Fa20', 'RACE-007', athlete('climber', 60, 20), '4:24:01', 47],
+    ['Sprinter F60 Fa20', 'RACE-007', athlete('sprinter', 60, 20), '4:32:51', 50],
     ['Endurance F60 Fa20', 'RACE-012', athlete('endurance', 60, 20), '18:18:42', 50],
     ['Climber F60 Fa20', 'RACE-012', athlete('climber', 60, 20), '18:37:41', 50],
   ])('%s in %s: %s, position %i', (_, id, input, time, position) => {
@@ -177,14 +177,14 @@ describe('day form (D1)', () => {
 describe('result explanation (D10)', () => {
   it('lists the three largest single effects against the typical runner, largest first', () => {
     const explanation = explainRace(race('RACE-004'), athlete('climber', 70, 30))
-    expect(explanation.referenceTimeS).toBe(2 * 3600 + 6 * 60 + 16)
+    expect(explanation.referenceTimeS).toBe(1 * 3600 + 59 * 60 + 37)
     expect(explanation.gapS).toBe(simulateRace(race('RACE-004'), athlete('climber', 70, 30)).timeS - explanation.referenceTimeS)
     expect(explanation.factors.map((f) => [f.id, f.value, f.effectS])).toEqual([
-      ['fitness', 70, -670],
-      ['speed', 13, 256],
+      ['fitness', 70, -721],
+      ['speed', 13, 415],
       ['fatigue', 30, 221],
     ])
-    expect(explanation.factors[0]!.reference).toBe(49)
+    expect(explanation.factors[0]!.reference).toBeCloseTo(47.41, 2)
   })
 
   it('never lists an input that had no effect', () => {

@@ -19,17 +19,17 @@
 
 export const RACES = [
   { id: 'RACE-001', name: 'Forest First Steps', category: 'open', distanceKm: 5, elevationGainM: 120, recommendedLevel: 1 },
-  { id: 'RACE-002', name: 'Riverside Trail', category: 'open', distanceKm: 8, elevationGainM: 220, recommendedLevel: 1 },
-  { id: 'RACE-003', name: 'Pine Loop Challenge', category: 'open', distanceKm: 10, elevationGainM: 350, recommendedLevel: 2 },
-  { id: 'RACE-004', name: 'Ridge Runner', category: 'trail', distanceKm: 12, elevationGainM: 550, recommendedLevel: 3 },
-  { id: 'RACE-005', name: 'Stone Path Classic', category: 'trail', distanceKm: 15, elevationGainM: 750, recommendedLevel: 3 },
-  { id: 'RACE-006', name: 'Wildwood Ascent', category: 'trail', distanceKm: 18, elevationGainM: 950, recommendedLevel: 4 },
-  { id: 'RACE-007', name: 'Summit Quest', category: 'mountain', distanceKm: 22, elevationGainM: 1300, recommendedLevel: 6 },
-  { id: 'RACE-008', name: 'Alpine Traverse', category: 'mountain', distanceKm: 28, elevationGainM: 1700, recommendedLevel: 6 },
-  { id: 'RACE-009', name: 'Sky Ridge Ultra', category: 'mountain', distanceKm: 35, elevationGainM: 2200, recommendedLevel: 7 },
-  { id: 'RACE-010', name: 'High Peaks Challenge', category: 'elite', distanceKm: 42, elevationGainM: 2800, recommendedLevel: 10 },
-  { id: 'RACE-011', name: 'Legends of the Crest', category: 'elite', distanceKm: 55, elevationGainM: 3600, recommendedLevel: 10 },
-  { id: 'RACE-012', name: 'Beyond the Skyline', category: 'elite', distanceKm: 70, elevationGainM: 4800, recommendedLevel: 12 },
+  { id: 'RACE-002', name: 'Riverside Trail', category: 'open', distanceKm: 8, elevationGainM: 220, recommendedLevel: 4 },
+  { id: 'RACE-003', name: 'Pine Loop Challenge', category: 'open', distanceKm: 10, elevationGainM: 350, recommendedLevel: 8 },
+  { id: 'RACE-004', name: 'Ridge Runner', category: 'trail', distanceKm: 12, elevationGainM: 550, recommendedLevel: 11 },
+  { id: 'RACE-005', name: 'Stone Path Classic', category: 'trail', distanceKm: 15, elevationGainM: 750, recommendedLevel: 14 },
+  { id: 'RACE-006', name: 'Wildwood Ascent', category: 'trail', distanceKm: 18, elevationGainM: 950, recommendedLevel: 18 },
+  { id: 'RACE-007', name: 'Summit Quest', category: 'mountain', distanceKm: 22, elevationGainM: 1300, recommendedLevel: 21 },
+  { id: 'RACE-008', name: 'Alpine Traverse', category: 'mountain', distanceKm: 28, elevationGainM: 1700, recommendedLevel: 25 },
+  { id: 'RACE-009', name: 'Sky Ridge Ultra', category: 'mountain', distanceKm: 35, elevationGainM: 2200, recommendedLevel: 28 },
+  { id: 'RACE-010', name: 'High Peaks Challenge', category: 'elite', distanceKm: 42, elevationGainM: 2800, recommendedLevel: 31 },
+  { id: 'RACE-011', name: 'Legends of the Crest', category: 'elite', distanceKm: 55, elevationGainM: 3600, recommendedLevel: 40 },
+  { id: 'RACE-012', name: 'Beyond the Skyline', category: 'elite', distanceKm: 70, elevationGainM: 4800, recommendedLevel: 50 },
 ]
 
 /** Proposed new catalog field (§3.2 of the proposal). */
@@ -49,9 +49,9 @@ const ATTRS = ['endurance', 'climbing', 'speed', 'technical', 'recovery', 'consi
 
 export const CATEGORY_FEES = {
   open: { standard: 0, early: 0 },
-  trail: { standard: 100, early: 250 },
-  mountain: { standard: 250, early: 600 },
-  elite: { standard: 600, early: 1400 },
+  trail: { standard: 50, early: 125 },
+  mountain: { standard: 125, early: 300 },
+  elite: { standard: 300, early: 700 },
 }
 export const GROSS_PRIZES = {
   open: [100, 70, 50, 25, 10],
@@ -62,7 +62,8 @@ export const GROSS_PRIZES = {
 const BAND_LABELS = ['1st', '2nd', '3rd', '4th–10th', '11th or lower']
 /** Anti-farming multipliers in whole percent, by level difference 0 (or below), 1, 2, 3+. */
 export const MULTIPLIER_PCT = [100, 75, 40, 0]
-export const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700]
+/** Levels 1–50: each level costs 50 XP more than the one before. */
+export const LEVEL_THRESHOLDS = Array.from({ length: 50 }, (_, i) => 100 * i + 25 * i * (i - 1))
 
 // ---------------------------------------------------------------------------------------------
 // Constants (§5.6 of the proposal)
@@ -195,7 +196,7 @@ export function referenceAthlete(level) {
   const v = 16 + (level - 1) / 3
   return {
     attributes: Object.fromEntries(ATTRS.map((k) => [k, v])),
-    fitness: Math.min(90, 25 + 12 * (level - 1)),
+    fitness: Math.min(90, 25 + (65 * (level - 1)) / 29),
     fatigue: C.referenceFatigue,
   }
 }

@@ -19,6 +19,17 @@
   height: 100%;
 }
 
+.balance {
+  color: var(--accent-secondary);
+  font-weight: 800;
+}
+
+.columns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .owned {
   display: flex;
   flex-direction: column;
@@ -74,6 +85,45 @@
   gap: 2px;
   min-width: 0;
   font-size: var(--font-size-sm);
+}
+
+.icon {
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.price {
+  color: var(--accent-secondary);
+  font-weight: 800;
+}
+
+.warning {
+  color: var(--accent-secondary);
+  font-weight: 600;
+}
+
+.confirmActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* While confirming a purchase, the actions take their own full-width row. */
+.confirming {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.confirming .confirmActions {
+  grid-column: 1 / -1;
+}
+
+.confirming .confirmActions > * {
+  flex: 1;
 }
 
 .muted {

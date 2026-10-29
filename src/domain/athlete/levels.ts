@@ -1,14 +1,15 @@
+/** Highest level (owner decision, 29 October 2026; was 5). */
+export const MAX_LEVEL = 50
+
 /**
- * Level thresholds by cumulative XP, ascending. To add a level, append an entry.
- * Level 1: 0–99, Level 2: 100–249, Level 3: 250–449, Level 4: 450–699, Level 5: 700+.
+ * Level thresholds by cumulative XP, ascending. Each level costs 50 XP more than the one before
+ * (the original curve, continued to level 50): Level 2 at 100, 3 at 250, 4 at 450, 5 at 700,
+ * 10 at 2,700, 20 at 10,450, 30 at 23,200, 50 at 63,700.
  */
-export const LEVEL_THRESHOLDS: readonly { level: number; minXp: number }[] = [
-  { level: 1, minXp: 0 },
-  { level: 2, minXp: 100 },
-  { level: 3, minXp: 250 },
-  { level: 4, minXp: 450 },
-  { level: 5, minXp: 700 },
-]
+export const LEVEL_THRESHOLDS: readonly { level: number; minXp: number }[] = Array.from(
+  { length: MAX_LEVEL },
+  (_, i) => ({ level: i + 1, minXp: 100 * i + 25 * i * (i - 1) }),
+)
 
 /** Attribute points awarded for each level gained. */
 export const ATTRIBUTE_POINTS_PER_LEVEL = 2

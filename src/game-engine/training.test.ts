@@ -7,8 +7,8 @@ import { currentRef, execute, newGame, T0, TEST_IDENTITY, withAthlete, withSessi
 import { executeCurrentDay, planSession, previewSession, summarizeWeek } from './training'
 
 const HOUR = 60 * 60 * 1000
-/** Default plan: 9 + 16 + 11 + 0 + 14 + 18 + 0. */
-const WEEK_XP = 68
+/** Default plan: 9 + 16 + 0 + 14 + 0 + 18 + 0. */
+const WEEK_XP = 57
 
 describe('createInitialGameState', () => {
   it.each(PROFILE_IDS)('creates a %s career with the approved initial state', (profile) => {
@@ -56,8 +56,8 @@ describe('createInitialGameState', () => {
     expect(PROFILES.climber.attributes.climbing).toBe(20)
   })
 
-  it('keeps the approved weekly plan without Trail technique', () => {
-    expect(DEFAULT_WEEK_PLAN).toEqual(['easy-run', 'intervals', 'strength', 'rest', 'hills', 'long-run', 'rest'])
+  it('keeps the approved weekly plan: 4 training days and 3 rest days, without Trail technique', () => {
+    expect(DEFAULT_WEEK_PLAN).toEqual(['easy-run', 'intervals', 'rest', 'hills', 'rest', 'long-run', 'rest'])
     expect(DEFAULT_WEEK_PLAN).not.toContain('trail-technique')
   })
 })
@@ -68,8 +68,8 @@ describe('executeCurrentDay', () => {
     ['intervals', 16, 23, 14],
     ['hills', 14, 23, 12],
     ['long-run', 18, 23, 16],
-    ['strength', 11, 22, 8],
-    ['trail-technique', 11, 22, 6],
+    ['strength', 11, 22, 4],
+    ['trail-technique', 11, 22, 3],
     ['rest', 0, 18, 0],
   ])('applies %s: XP %i, fitness %i, fatigue %i', (session, xp, fitness, fatigue) => {
     const result = execute(withSession(newGame(), session))
@@ -190,8 +190,8 @@ describe('executeCurrentDay', () => {
     expect(state.week.days.map((d) => d.session)).toEqual(DEFAULT_WEEK_PLAN)
     expect(state.week.days.every((d) => d.outcome === null)).toBe(true)
     expect(state.athlete.xp).toBe(WEEK_XP)
-    // Default plan: +2 +3 +2 −2 +3 +3 −2.
-    expect(state.athlete.fitness).toBe(20 + 9)
+    // Default plan: +2 +3 −2 +3 −2 +3 −2.
+    expect(state.athlete.fitness).toBe(20 + 5)
   })
 
   it('accumulates XP across weeks and never decreases it', () => {
@@ -204,8 +204,8 @@ describe('executeCurrentDay', () => {
     }
     expect(state.week.number).toBe(3)
     expect(state.athlete.xp).toBe(WEEK_XP * 2)
-    // Default plan: +39 Fatigue per week with Rest at −8.
-    expect(state.athlete.fatigue).toBe(78)
+    // Default plan: +23 Fatigue per week (5 + 14 − 8 + 12 − 8 + 16 − 8).
+    expect(state.athlete.fatigue).toBe(46)
   })
 
   describe('fitness decay reference', () => {

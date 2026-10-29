@@ -239,11 +239,13 @@ The initial training plan is:
 |---|---|
 | Monday | Easy Run |
 | Tuesday | Intervals |
-| Wednesday | Strength |
-| Thursday | Rest |
-| Friday | Hills |
+| Wednesday | Rest |
+| Thursday | Hills |
+| Friday | Rest |
 | Saturday | Long Run |
-| Sunday | Rest |
+| Sunday | Rest (race day when entered) |
+
+**Owner decision (29 October 2026):** 4 training days and 3 rest days (was 5 and 2; Wednesday was Strength). Strength now adds +4 Fatigue (was +8) and Trail Technique +3 (was +6).
 
 This is the initial demo plan, not a complete personalized training-plan generator.
 
@@ -451,6 +453,8 @@ The first three thresholds are carried forward from the M1 implementation. The L
 
 Future thresholds should be defined through a progression curve rather than arbitrary isolated values.
 
+**Owner decision (29 October 2026): levels go to 50**, continuing the same curve: each level costs 50 XP more than the previous one (Level 2 at 100, 5 at 700, 10 at 2,700, 20 at 10,450, 30 at 23,200, 50 at 63,700). Levels 1–5 are unchanged, so existing careers keep their level.
+
 Because training XP is reduced by 10%, the time required to level up will increase. This is intentional, but the complete progression curve must be tested to ensure early progression remains rewarding.
 
 ### 6.3 Level-up rewards
@@ -571,6 +575,8 @@ The proposed starting equipment is:
 
 Equipment should eventually have meaningful gameplay effects rather than serving only as decoration.
 
+**Shop (owner decisions, 29 October 2026):** runners own the starter shoes and can buy a hydration backpack (150 coins), poles (100) and trail shoes (200). Items are worn on the avatar. Race effects are proposed in `DEVELOPMENT.md` and need owner approval; until then items have no gameplay effect.
+
 ### 8.2 Equipment categories
 
 Future categories may include:
@@ -610,7 +616,7 @@ The equipment catalogue, prices, inventory rules, and bonus formulas remain to b
 
 ### 9.1 Currency
 
-The proposed starting balance was 100 coins. **Owner decision (29 October 2026):** careers start with 0 coins (§10.17).
+The proposed starting balance was 100 coins. **Owner decisions (29 October 2026):** careers first started with 0 coins (§10.17); later the same day the starting balance became **25 coins**, and a shop sells equipment (§8): hydration backpack 150, poles 100, trail shoes 200 coins.
 
 Money is intended to create meaningful decisions about equipment purchases, race entry fees, and progression.
 
@@ -986,6 +992,8 @@ To be decided by the owner/PM before or during M4.1; not part of the PM text abo
 2. **No coin balance exists yet.** §9.1 proposes a starting balance of 100 coins, but the economy is not implemented. Existing careers have no coin field.
 3. **Milestone number:** `DEVELOPMENT.md` §11 already uses M4 for "PWA release candidate".
 4. **Entry before simulation:** in M4.1 there is no race result, so what a confirmed entry does until M4.2/M4.3 must be defined.
+
+**Later owner decisions (29 October 2026):** recommended levels per category Open 1–10, Trail 11–20, Mountain 21–30, Elite 31–50 (races at 1/4/8, 11/14/18, 21/25/28, 31/40/50), levels up to 50, and every entry fee halved (Trail 50/125, Mountain 125/300, Elite 300/700). The field's typical runner reaches Fitness 90 at level 30. These supersede point (1) below and the fee table in §10.3.
 
 **Owner decisions (29 October 2026):** (1) keep the level cap at 5 for now — no progression change in M4; (2) the starting balance is **0 coins**, for new careers and older saves (this replaces the 100 coins proposed in §9.1); (3) races are M4 and the later milestones were renumbered in `DEVELOPMENT.md` (PWA M5, native packaging M6, Strava/VTL M8); (4) a confirmed entry charges the fee once and is saved as **pending** until results exist.
 

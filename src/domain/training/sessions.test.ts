@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { isSessionType, SESSION_TYPES, TRAINING_SESSIONS } from './sessions'
 
 describe('TRAINING_SESSIONS', () => {
-  it('matches the approved M2 values, with Rest at −2 Fitness and −8 Fatigue (owner decisions)', () => {
+  it('matches the approved values: M2, Rest −2/−8, Strength +4 and Trail technique +3 Fatigue (owner decisions)', () => {
     const table = SESSION_TYPES.map((id) => {
       const s = TRAINING_SESSIONS[id]
       return [s.label, s.xp, s.fitnessDelta, s.fatigueDelta]
@@ -12,8 +12,8 @@ describe('TRAINING_SESSIONS', () => {
       ['Intervals', 16, 3, 14],
       ['Hills', 14, 3, 12],
       ['Long run', 18, 3, 16],
-      ['Strength', 11, 2, 8],
-      ['Trail technique', 11, 2, 6],
+      ['Strength', 11, 2, 4],
+      ['Trail technique', 11, 2, 3],
       ['Rest', 0, -2, -8],
     ])
   })

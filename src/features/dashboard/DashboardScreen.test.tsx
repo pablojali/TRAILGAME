@@ -108,10 +108,10 @@ describe('DashboardScreen — first screen', () => {
     expect(screen.getByText('25 XP earned this week')).toBeInTheDocument()
   })
 
-  it('shows level 5 as the maximum level', () => {
-    seedCareer(withAthlete(newGame(), { xp: 700 }))
+  it('shows level 50 as the maximum level', () => {
+    seedCareer(withAthlete(newGame(), { xp: 63_700 }))
     renderApp('/')
-    expect(stat('Level')).toBe('5')
+    expect(stat('Level')).toBe('50')
     expect(screen.getByText('Max level')).toBeInTheDocument()
     expect(screen.queryByRole('meter', { name: /Progress to Level/ })).not.toBeInTheDocument()
   })

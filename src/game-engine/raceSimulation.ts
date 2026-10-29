@@ -154,7 +154,8 @@ export function referenceAthlete(recommendedLevel: number): RaceAthleteInput {
   const value = 16 + (recommendedLevel - 1) / 3
   return {
     attributes: Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, value])) as Attributes,
-    fitness: Math.min(90, 25 + 12 * (recommendedLevel - 1)),
+    // Reaches Fitness 90 at level 30 (owner decision, 29 October 2026, for levels up to 50).
+    fitness: Math.min(90, 25 + (65 * (recommendedLevel - 1)) / 29),
     fatigue: C.referenceFatigue,
   }
 }

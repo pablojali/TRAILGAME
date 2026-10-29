@@ -83,9 +83,9 @@ describe('injury rule', () => {
     expect(state.week.days.map((d) => d.session)).toEqual([
       'rest',
       'rest',
-      'strength',
       'rest',
       'hills',
+      'rest',
       'long-run',
       'rest',
     ])
@@ -113,11 +113,12 @@ describe('injury rule', () => {
     ])
   })
 
-  it('the unchanged default plan injures on Tuesday of week 3', () => {
+  it('the unchanged default plan (4 training, 3 rest days) adds 23 Fatigue a week and injures on Saturday of week 4', () => {
     let state = newGame()
-    for (let i = 0; i < 14; i++) state = execute(state).state
-    expect(state.athlete.fatigue).toBe(78)
-    state = execute(state).state // Monday, Easy run: 83
-    expect(previewSession(state, 'intervals').injured).toBe(true)
+    for (let i = 0; i < 21; i++) state = execute(state).state
+    expect(state.athlete.fatigue).toBe(69)
+    for (let i = 0; i < 5; i++) state = execute(state).state // Monday–Friday: 84
+    expect(state.athlete.fatigue).toBe(84)
+    expect(previewSession(state, 'long-run').injured).toBe(true)
   })
 })

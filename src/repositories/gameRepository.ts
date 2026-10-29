@@ -10,7 +10,7 @@ import {
 } from '../domain/athlete/athlete'
 import { parseAppearance } from '../domain/athlete/appearance'
 import { STARTING_COINS } from '../domain/economy/coins'
-import { getEquipmentItem } from '../domain/equipment/items'
+import { getEquipmentItem, OWNED_FROM_START } from '../domain/equipment/items'
 import { PRIZE_BANDS } from '../domain/races/categories'
 import { isRaceId } from '../domain/races/races'
 import { getEarnedAttributePoints } from '../domain/athlete/levels'
@@ -248,6 +248,17 @@ export function parseGameState(value: unknown, now: number): GameState | null {
   }
   const slots = (equipment as string[]).map((id) => getEquipmentItem(id)!.slot)
   if (new Set(slots).size !== slots.length) return null
+  // Missing: a career saved before the shop existed (it owns the starting equipment).
+  const ownedEquipment = value.ownedEquipment === undefined ? [...OWNED_FROM_START] : value.ownedEquipment
+  if (
+    !Array.isArray(ownedEquipment) ||
+    !ownedEquipment.every((id) => typeof id === 'string' && getEquipmentItem(id)) ||
+    new Set(ownedEquipment).size !== ownedEquipment.length ||
+    !OWNED_FROM_START.every((id) => ownedEquipment.includes(id)) ||
+    !(equipment as string[]).every((id) => ownedEquipment.includes(id))
+  ) {
+    return null
+  }
 
   // A race day must point to the finished entry it raced.
   const finishedIds = new Set(raceEntries.filter((e) => e.status === 'finished').map((e) => e.id))
@@ -282,6 +293,7 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     coins,
     raceEntries,
     equipment: [...(equipment as string[])],
+    ownedEquipment: [...(ownedEquipment as string[])],
   }
 }
 

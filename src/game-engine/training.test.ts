@@ -37,9 +37,9 @@ describe('createInitialGameState', () => {
       const male = createInitialGameState(profile, T0, {
         name: 'B',
         sex: 'male',
-        appearance: { hair: 'curly', skin: 'tone-4', outfit: 'basic' },
+        appearance: { hair: 'natural', skin: 'tone-4', outfit: 'white-tshirt' },
       })
-      expect(male.athlete.appearance).toEqual({ hair: 'curly', skin: 'tone-4', outfit: 'basic' })
+      expect(male.athlete.appearance).toEqual({ hair: 'natural', skin: 'tone-4', outfit: 'white-tshirt' })
       const strip = (s: typeof female) => ({
         ...s,
         athlete: { ...s.athlete, sex: null, name: null, appearance: null },

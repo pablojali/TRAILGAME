@@ -1,6 +1,9 @@
 import { defaultAppearance, type Appearance } from '../domain/athlete/appearance'
-import type { Athlete, ProfileId, Sex } from '../domain/athlete/athlete'
+import type { Athlete, Attributes, ProfileId, Sex } from '../domain/athlete/athlete'
 import { PROFILES } from '../domain/athlete/profiles'
+import { STARTING_COINS } from '../domain/economy/coins'
+import type { EntryType } from '../domain/races/access'
+import type { ExplanationFactor } from './raceSimulation'
 import type { SessionType } from '../domain/training/sessions'
 
 export const DAYS_PER_WEEK = 7
@@ -12,6 +15,8 @@ export interface DayOutcome {
   fatigueChange: number
   /** True if the session caused an injury. */
   injured?: boolean
+  /** Set when the day was a race instead of the planned session: the finished entry's id. */
+  raceEntryId?: string
 }
 
 export interface TrainingDay {
@@ -45,6 +50,75 @@ export interface GameState {
    * Those days are already planned as Rest and cannot be changed.
    */
   forcedRestDays: number
+  /** Whole coins, never negative. */
+  coins: number
+  /** Race entries, oldest first. */
+  raceEntries: RaceEntry[]
+  /** Equipped item ids, at most one per slot. Cosmetic for now (Game Design Bible §8). */
+  equipment: string[]
+}
+
+/**
+ * A confirmed race entry. The fee was paid once, when it was created. A `pending` entry is raced on
+ * a later day; racing makes it `finished` and stores its result, in the same state change.
+ */
+export type RaceEntry = PendingRaceEntry | FinishedRaceEntry
+
+interface RaceEntryBase {
+  /** Unique within the career, e.g. `entry-3`. */
+  id: string
+  raceId: string
+  entryType: EntryType
+  feePaid: number
+  /** Athlete level when the entry was confirmed (sets the fee). */
+  levelAtEntry: number
+  /** Epoch ms. */
+  enteredAt: number
+}
+
+export interface PendingRaceEntry extends RaceEntryBase {
+  status: 'pending'
+}
+
+export interface FinishedRaceEntry extends RaceEntryBase {
+  status: 'finished'
+  result: RaceResult
+}
+
+/** Everything needed to show a finished race again without re-simulating or re-awarding it. */
+export interface RaceResult {
+  /** Epoch ms. */
+  startedAt: number
+  /** Week and day of the training calendar the race took. */
+  week: number
+  day: number
+  /** Athlete level when the race started (sets the reward multiplier). */
+  levelAtStart: number
+  /** Inputs as they were at the start. */
+  attributes: Attributes
+  fitness: number
+  fatigue: number
+  dayForm: number
+  timeS: number
+  position: number
+  fieldSize: number
+  /** Index into `PRIZE_BANDS`. */
+  band: number
+  grossPrize: number
+  /** Whole percent (100, 75, 40 or 0). */
+  multiplierPct: number
+  coinsAwarded: number
+  xpAwarded: number
+  /** coinsAwarded − feePaid. */
+  netCoins: number
+  fatigueChange: number
+  fitnessChange: number
+  injured: boolean
+  referenceTimeS: number
+  gapS: number
+  factors: ExplanationFactor[]
+  /** The 49 rivals' times in whole seconds, fastest first. Missing in results saved before it existed. */
+  rivalTimesS?: number[]
 }
 
 /** Deterministic plan used for the first week and every following week. */
@@ -98,6 +172,9 @@ export function createInitialGameState(
     week: createWeek(1),
     fitnessDecayReference: now,
     forcedRestDays: 0,
+    coins: STARTING_COINS,
+    raceEntries: [],
+    equipment: [],
   }
 }
 

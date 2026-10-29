@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router'
 import { useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
-import { Avatar, SkinToneChip } from '../../components/avatar/Avatar'
+import { Avatar } from '../../components/avatar/Avatar'
 import {
+  appearanceForSex,
   defaultAppearance,
-  hairForSex,
   HAIR_STYLE_LABELS,
   HAIR_STYLES,
   OUTFIT_LABELS,
@@ -70,7 +70,7 @@ export function CareerCreationScreen({ replacing }: CareerCreationScreenProps) {
 
   function changeSex(next: Sex) {
     setSex(next)
-    setAppearance((current) => ({ ...current, hair: hairForSex(current.hair, next) }))
+    setAppearance((current) => appearanceForSex(current, next))
   }
 
   if (step === 'profile') {
@@ -305,13 +305,18 @@ function ProfileStep({ headingRef, sex, onSexChange, index, onIndexChange, onCho
   )
 }
 
-type AppearanceTab = 'hair' | 'skin' | 'outfit'
+type AppearanceTab = 'skin' | 'hair' | 'outfit'
 
 const APPEARANCE_TABS: readonly { id: AppearanceTab; label: string }[] = [
-  { id: 'hair', label: 'Hair' },
   { id: 'skin', label: 'Skin' },
-  { id: 'outfit', label: 'Outfit' },
+  { id: 'hair', label: 'Hair' },
+  { id: 'outfit', label: 'Clothing' },
 ]
+
+/** Shown under the options of a tab, when it needs explaining. */
+const TAB_NOTES: Partial<Record<AppearanceTab, string>> = {
+  hair: 'Each runner’s hair is drawn with the body. More hairstyles come with new artwork.',
+}
 
 interface AppearanceStepProps {
   headingRef: RefObject<HTMLHeadingElement | null>
@@ -332,7 +337,7 @@ function AppearanceStep({
   onBack,
   onContinue,
 }: AppearanceStepProps) {
-  const [tab, setTab] = useState<AppearanceTab>('hair')
+  const [tab, setTab] = useState<AppearanceTab>('skin')
   const tabRefs = useRef<Partial<Record<AppearanceTab, HTMLButtonElement | null>>>({})
   const baseId = useId()
 
@@ -356,7 +361,7 @@ function AppearanceStep({
           caption: true,
         }))
       : tab === 'skin'
-        ? SKIN_TONES.map((skin) => ({
+        ? SKIN_TONES[sex].map((skin) => ({
             value: skin,
             label: SKIN_TONE_LABELS[skin],
             swatch: { ...appearance, skin },
@@ -396,7 +401,6 @@ function AppearanceStep({
         <div className={styles.previewStage}>
           <Avatar sex={sex} appearance={appearance} label={previewLabel} />
         </div>
-        <p className={styles.previewNote}>Skin tone shows with the final art.</p>
       </div>
 
       <div className={styles.tabs} role="tablist" aria-label="Appearance" onKeyDown={onTabKeyDown}>
@@ -436,17 +440,14 @@ function AppearanceStep({
                   className={styles.srOnlyInput}
                 />
                 <span className={styles.swatchArt}>
-                  {tab === 'skin' ? (
-                    <SkinToneChip skin={option.swatch.skin} />
-                  ) : (
-                    <Avatar sex={sex} appearance={option.swatch} crop={option.crop} />
-                  )}
+                  <Avatar sex={sex} appearance={option.swatch} crop={option.crop} />
                 </span>
                 <span className={option.caption ? styles.swatchCaption : styles.srOnly}>{option.label}</span>
               </label>
             )
           })}
         </fieldset>
+        {TAB_NOTES[tab] && <p className={styles.tabNote}>{TAB_NOTES[tab]}</p>}
       </div>
 
       <div className={styles.actions}>

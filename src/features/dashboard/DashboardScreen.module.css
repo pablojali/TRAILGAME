@@ -31,18 +31,8 @@
   min-height: 400px;
 }
 
-.identity {
-  text-align: center;
-}
-
-.identityName {
-  font-size: var(--font-size-lg);
-  font-weight: 800;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
 .when {
+  text-align: center;
   color: var(--accent-secondary);
   font-size: var(--font-size-xs);
   font-weight: 700;
@@ -55,8 +45,56 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 96px) minmax(0, 1fr) minmax(0, 96px);
+  grid-template-rows: minmax(0, 1fr);
   align-items: center;
   gap: var(--space-2);
+}
+
+/* Spans the whole stage, under the side cards, so the runner can use the full height. */
+.center {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Video-game style name plate over the runner's head. */
+.nameplate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.8);
+}
+
+.nameplateName {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.nameplateRole {
+  color: var(--accent-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.left {
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 1;
+}
+
+.right {
+  grid-column: 3;
+  grid-row: 1;
+  z-index: 1;
 }
 
 /* Narrow, semi-transparent side cards. Minimum text size 12px. */

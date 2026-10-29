@@ -36,3 +36,20 @@ export function withSession(state: GameState, session: SessionType): GameState {
 export function withAthlete(state: GameState, overrides: Partial<GameState['athlete']>): GameState {
   return { ...state, athlete: { ...state.athlete, ...overrides } }
 }
+
+/**
+ * Moves the career to Sunday (race day) of the current week, marking Monday–Saturday as completed
+ * with no effect, so athlete values stay as given.
+ */
+export function onSunday(state: GameState): GameState {
+  return {
+    ...state,
+    week: {
+      ...state.week,
+      currentDayIndex: 6,
+      days: state.week.days.map((day, index) =>
+        index < 6 ? { ...day, outcome: day.outcome ?? { xpGained: 0, fitnessChange: 0, fatigueChange: 0 } } : day,
+      ),
+    },
+  }
+}

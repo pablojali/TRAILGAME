@@ -2,7 +2,7 @@
 
 **Document:** `DEVELOPMENT.md`  
 **Version:** 0.4.0  
-**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A implemented on the working branch, pending owner review  
+**Status:** Active — M0, M1 and M2 (Athlete Progression) accepted and merged into `main`; UI Improvements v1 and the post-M2 gameplay changes merged into `main` (28 October 2026); Avatar creation Stage A merged into `main` (29 October 2026); M4 Race System — M4.1–M4.3 implemented and M4.4 validated on the working branch (`docs/M4_VALIDATION.md`), pending owner review  
 **Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) (v1.2) · UI pass: [`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
@@ -594,13 +594,13 @@ Dashboard runner were later extended by Avatar creation Stage A (next section).
   shows the forced rest days left. The feedback message names the completed day and its effects;
   the next day is highlighted in the strip, and a new week is announced.
 
-### Avatar creation — Stage A (in progress)
+### Avatar creation — Stage A
 
-**Status:** PM brief "Avatar creation & progressive customization", Stage A only. Implemented on the
-working branch; not merged into `main`. Owner decisions (28 October 2026): the developer's
+**Status:** PM brief "Avatar creation & progressive customization", Stage A only. Merged into `main`
+on 29 October 2026 (`f2c7898`, owner authorization). Owner decisions (28 October 2026): the developer's
 recommendations were accepted except one — **shoes are equipment**, not part of the appearance.
 
-- **Style:** the painted illustrations stay on the profile cards only. The avatar is a separate SVG
+- **Style (superseded on 29 October 2026 by the owner's layered artwork, next section):** the painted illustrations stay on the profile cards only. The avatar is a separate SVG
   drawing — standing, three-quarter view facing right — in `src/components/avatar/Avatar.tsx`, reused
   by creation and the Dashboard. After owner review (the first coloured drawing was rejected), it is
   a **black silhouette placeholder** with a light rim (owner decision, 28 October 2026) until final
@@ -624,10 +624,187 @@ recommendations were accepted except one — **shoes are equipment**, not part o
 - **Out of scope (unchanged):** shop, currency, unlocks, rewards, inventory, equipment effects,
   monetization.
 
+### Dashboard name plate (owner decision, 29 October 2026)
+
+The runner fills the first screen's height behind the semi-transparent side cards, with no empty
+space above it. A video-game style name plate over the head shows the name and "Profile (Lv N)".
+
+### Avatar artwork and cosmetic equipment (owner decisions, 29 October 2026)
+
+Replaces the silhouette and the Stage A placeholder options above. On the working branch, not merged.
+
+- **Artwork:** the owner's layered images: 4 men and 3 women in `assets/runner/bodies`, a white
+  T-shirt in `clothing` and starter shoes in `footwear`, all on one 1024 × 1536 canvas.
+  - `scripts/prepare_avatar_art.py` converts them to WebP layers on a 640 × 960 canvas in
+    `assets/runner/avatar/` (about 300 kB in total, from 4.4 MB). It also removes a leftover white
+    patch next to the neck of `woman_03`.
+  - The originals are not modified.
+  - The avatar (`src/components/avatar/Avatar.tsx`) stacks body → shoes → top. It is used in creation
+    and on the Dashboard; the painted Climber illustrations stay on the profile cards.
+- **Options** ("keep hair + skin", owner decision): each body has its face, hair and skin painted in.
+  - **Skin** chooses the body: tones 1–3 for women and 1–4 for men, lightest first by measured skin
+    lightness (`female-1` = woman_03, `female-2` = woman_02, `female-3` = woman_01; `male-1` =
+    mens_04, `male-2` = mens_03, `male-3` = mens_02, `male-4` = male_01).
+  - **Hair** has one option, "As drawn", with a note that more hairstyles need hair artwork.
+  - **Clothing:** "No shirt" (default, as drawn) or "White T-shirt" (owner decision), for both sexes.
+  - Switching sex keeps a valid tone: men's tone 4 becomes tone 3 for women.
+- **Saves:** older or Stage A appearance values (hairstyles, `basic`) fall back field by field to the
+  defaults (as drawn, tone 2, no shirt) and never reject a career.
+- **Shoes = equipment** (owner decision):
+  - The avatar shows no shoes by default: men in socks, women barefoot.
+  - Every runner owns the **Starter shoes** (Bible §8.1); they start unequipped.
+  - The Equipment screen lists them with **Equip** / **Take off**. The equipped shoes are drawn on
+    the avatar in creation previews and on the Dashboard.
+  - Saved as `equipment` (equipped item ids, one per slot; older saves: none).
+  - Cosmetic only: no effect on training or races (tested). The race simulation does not read
+    equipment.
+
+### M4 — Race System (M4.1–M4.4 done on the working branch, pending owner approval)
+
+**M4.4 validation:** [`docs/M4_VALIDATION.md`](./docs/M4_VALIDATION.md) (29 October 2026).
+- Every test in the Bible §10.13 list and every §10.15 acceptance criterion is met, with
+  evidence.
+- Browser QA at 4 sizes.
+- **Balance finding:** under the current training values there is no sustainable way to gain
+  Fitness, and weekly races amplify it. Options are listed for the owner; nothing was rebalanced.
+- M4 is not marked complete until the owner approves.
+
+**Specification:** Game Design Bible §10 (v1.3, PM, 29 October 2026). Stages: M4.1 catalog and access;
+M4.2 simulation model proposal (owner approval required before any formula is coded); M4.3 results
+and rewards; M4.4 validation.
+
+**Owner decisions (29 October 2026):** starting balance **0 coins** (new careers and older saves);
+levels stay capped at 5, so Mountain (recommended 6–7) and Elite (10–12) races always use the
+early-entry fee and their rewards are never reduced by anti-farming; a confirmed entry **charges the
+fee once and is saved as pending** until results exist (M4.2/M4.3); races take the M4 number and the
+later milestones were renumbered (PWA M5, native packaging M6, Strava/VTL M8).
+
+**M4.1 — implemented on the working branch, not merged:**
+- **Configuration** (no values in screens): `src/domain/races/categories.ts` (category fees, prize
+  bands, gross prizes, anti-farming multipliers), `src/domain/races/races.ts` (12-race catalog with
+  stable ids `RACE-001`…`RACE-012`), `src/domain/economy/coins.ts` (`STARTING_COINS = 0`).
+- **Rules** (`src/domain/races/access.ts`): standard fee at or above the race's recommended level,
+  early-entry fee below it, Open always free, no level locks; shortfall; anti-farming multiplier by
+  `athleteLevel − recommendedLevel` (shown on Race Detail, applied to rewards in M4.3).
+- **Entry** (`src/game-engine/races.ts`, `enterRace`): checks the race, that it has no pending entry,
+  that the confirmed fee still applies and that the balance covers it; then deducts the fee once and
+  records a `pending` entry (`entry-N`, race id, entry type, fee paid, level at entry, time). A
+  repeated confirmation (double tap, reload) is rejected as `already-entered`. Entering changes no
+  athlete, training or decay value.
+- **Screens:** Race Hub at `/races` (Races tab, and a Races card on the Dashboard) with level, coin
+  balance and the 12 races grouped Open/Trail/Mountain/Elite, each with distance, D+, recommended level
+  and the fee that applies ("Early entry · N coins" below level, "Entered" once entered). Race Detail
+  at `/races/RACE-00N`: course facts, both fees with "Your fee", gross prizes by position, the
+  anti-farming rule and the athlete's current multiplier, and entry with an explicit confirmation
+  (fee, balance, balance after entry). Without enough coins the button is inactive and the shortfall
+  is shown.
+- **Saves:** new top-level `coins` and `raceEntries`; still schema v2. Careers saved before them load
+  with 0 coins and no entries, without being rewritten on load. Negative/fractional coins, unknown
+  race ids or entry types, duplicate entry ids or two pending entries for one race are invalid data.
+- **Training:** formulas and behaviour unchanged. One integration fix: completing a day rebuilt the
+  game state from its own fields and would have dropped coins and entries; it now keeps every other
+  field (`src/game-engine/training.ts`, tested).
+
+**M4.2 — Race simulation model: implemented on the working branch, not merged.**
+
+- **Approval:** model in [`docs/RACE_SIMULATION_PROPOSAL.md`](./docs/RACE_SIMULATION_PROPOSAL.md),
+  revision 2 after the PM review. The owner approved D1–D10 as recommended on 29 October 2026.
+- **Code:**
+  - `src/game-engine/raceSimulation.ts`, a pure module:
+    - `generateCourse` (whole-metre segments).
+    - `raceSeconds` (time formula, including variant V1).
+    - `referenceAthlete` and `rivalTimes` (field of 50).
+    - `simulateRace` (time and position).
+    - `getDayForm` (seeded day form, D1).
+    - `explainRace` (top-3 single effects against the typical runner, D10).
+  - `src/domain/races/simulationConfig.ts`: every constant.
+  - New catalog field `technicality` (D6) in `src/domain/races/races.ts`.
+- **Verification:**
+  - Unit tests: courses, the 10 reference cases, properties, day form and explanations.
+  - A one-off cross-check: 46,513 comparisons of production against the reference prototype
+    (`docs/race-simulation/prototype.mjs`), with no difference.
+  - The prototype's `--check` mode confirms its data and constants match `src/`.
+- **Connection:** M4.3 (below) connects the simulation to the game.
+
+**M4.3 — Results and rewards: implemented on the working branch, not merged.**
+
+- **Sundays only** (owner decision, 29 October 2026, refining D2). Races are run on the last day of
+  the training week, one per week (`src/game-engine/raceSchedule.ts`).
+  - Entering puts the race on the coming Sunday, replacing that day's session. A second entry is
+    refused (`race-scheduled`) until it is run.
+  - On race Sunday the day cannot be trained or re-planned (`race-day`): it is completed by running
+    the race, from Training or the race page.
+  - If Sunday is a forced Rest day, the race moves to the next Sunday and the entry and fee are kept
+    (developer assumption, not specified by the owner).
+  - The race ends the week, so its outcome is not visible in the next week's calendar; the result
+    stays under the race's **Your results**.
+  - Older saves with several pending entries (from testing) run them on successive Sundays, oldest
+    first.
+- **Race day** (`raceCurrentDay`, `src/game-engine/races.ts`; D2–D4). It races a pending entry on
+  the current training day.
+  - **Guards:** the day must be current (the same `checkDay` as training), there must be no forced
+    Rest, and the entry must exist and be pending.
+  - **Inputs:** a snapshot of attributes, Fitness, Fatigue and `levelAtStart`, plus the day form
+    (`getDayForm`).
+  - **The race:** `simulateRace` and `explainRace`. Race Fatigue is `round(6 + 0.6 × effort-km)`.
+  - **Injury:** the existing rule. Above 95 Fatigue: no XP, −15 Fitness, 5 forced Rest days; the
+    result and prize coins still count.
+  - **Day completion:** the day is completed with a race outcome (`raceEntryId`) through
+    `completeCurrentDay`, the shared helper extracted from `executeCurrentDay`. The planned session
+    is never executed. The race resets the Fitness decay reference.
+- **Training refactor:** the end of `executeCurrentDay` (forced Rest count, calendar advance, decay
+  reference) moved into `completeCurrentDay` with no behaviour change. The existing tests pass
+  unchanged, and a one-off comparison of the old and new code over 9,408 executions found no
+  difference. Training formulas are unchanged.
+- **Rewards** (`getRaceRewards`; D5, Bible §10.8–§10.9):
+  - Coins: `floor(gross × multiplier% / 100)`.
+  - XP: `floor(base × band% × multiplier% / 10000)`, with base Open 30, Trail 60, Mountain 100,
+    Elite 180 (`RACE_XP_BASE` and `RACE_XP_BAND_PCT` in `categories.ts`).
+  - The multiplier uses the level when the race starts.
+  - Net coin change: coins awarded − the fee paid at entry.
+  - XP goes into the existing `athlete.xp`, so levels and attribute points follow the existing rules.
+- **Applied once:** results, rewards, the calendar and the entry's `finished` status change in one
+  state change and one save.
+  - A repeated request fails: `day-completed` for the same day, `already-finished` for a finished
+    entry.
+  - The **Start race** button navigates away on success, so a double tap races once (checked in the
+    browser).
+  - The result screen only reads the stored result.
+- **Saves (still schema v2):**
+  - Finished entries store the full result: inputs, day form, time, position, rewards and
+    explanation.
+  - Day outcomes may carry `raceEntryId`, which must name a finished entry.
+  - Inconsistent results are invalid data: net coins not matching the fee, a missing result, a
+    position outside the field, or a race day without its entry.
+- **Screens:**
+  - Race Detail, for a pending entry: the race day panel (the day it takes, Fatigue before → after,
+    injury warning, **Start race**). Below the race: **Your results**.
+  - New Race Result screen at `/races/results/:entryId`:
+    - Position, time and band.
+    - "What shaped your time": the gap to the typical runner, up to 3 single effects labelled
+      "they don't add up", and the day form.
+    - Rewards: fee, gross prize, multiplier with the reduced or too-easy explanation, coins, XP and
+      net.
+    - Condition and injury.
+  - Training shows a race day with a flag, "Race: name" and a link to the result.
+  - **Full results** (owner request, 29 October 2026): on the result screen, "Full results ·
+    50 runners" opens with one click.
+    - A table of all 50 finishers: position, runner, time, gap to the winner and gross prize, with
+      lines between prize bands and the athlete's row highlighted.
+    - Rivals are "Rival 1–49": named rivals belong to Bible §11, not specified yet.
+    - Rival times are stored with each result (`rivalTimesS`), so the table always matches the
+      stored position. Results saved before this use the same deterministic formula.
+- **Not included:** strategy, weather, cutoffs, DNF, equipment effects, rankings and backend
+  persistence (out of scope, Bible §10.14). Multi-tab play is still last-write-wins.
+- **Limitations:** careers start with 0 coins, so only Open races can be entered at first. Since
+  M4.3, Open prizes (10–100 coins) let players earn the fees for paid races. Multi-tab play is still
+  last-write-wins.
+
 > **Note:** the milestones below are the original plan. Their names, order and scope are to be
-> confirmed by the PM. M3–M6 keep their original numbers. The original "Persistence and account"
+> confirmed by the PM. M3 keeps its original number. The original "Persistence and account"
 > milestone, first planned as M2, was renumbered to M7 to avoid conflicting with the delivered M2;
-> its number does not set its order.
+> on 29 October 2026 the original M4–M6 became M5, M6 and M8 because M4 is now the Race System
+> (owner decision). Numbers do not set the order.
 
 ### M7 — Persistence and account
 
@@ -655,7 +832,7 @@ Acceptance criteria:
 - A repeatable test checklist is documented.
 - Balance values are centralized and tunable.
 
-### M4 — PWA release candidate
+### M5 — PWA release candidate
 
 **Goal:** provide an installable web experience.
 
@@ -666,7 +843,7 @@ Acceptance criteria:
 - Tested on real Android browser/device where available.
 - iOS Safari behavior documented and tested where available.
 
-### M5 — Native packaging assessment
+### M6 — Native packaging assessment
 
 **Goal:** decide whether to package with Capacitor for app stores.
 
@@ -676,7 +853,7 @@ Acceptance criteria:
 - Native plugin needs identified.
 - No commitment to app-store submission until installation, persistence, navigation and privacy behavior are validated.
 
-### M6 — Strava / VTL integrations
+### M8 — Strava / VTL integrations
 
 Each integration receives a separate scope, permission review, technical spike and acceptance criteria. Do not start before core gameplay is stable.
 

@@ -12,11 +12,14 @@ import {
 } from '../../domain/athlete/athlete'
 import { getLevelProgress } from '../../domain/athlete/levels'
 import { PROFILES } from '../../domain/athlete/profiles'
+import { formatCoins } from '../../domain/economy/coins'
 import { TRAINING_SESSIONS } from '../../domain/training/sessions'
 import { weekdayLong, weekdayShort } from '../../domain/training/weekdays'
 import { getUnspentAttributePoints } from '../../game-engine/attributes'
 import { getCurrentDay, getDayStatus } from '../../game-engine/gameState'
 import { previewSession, summarizeWeek } from '../../game-engine/training'
+import { getRace } from '../../domain/races/races'
+import { getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedule'
 import { DashboardRunner } from './DashboardRunner'
 import styles from './DashboardScreen.module.css'
 
@@ -33,6 +36,9 @@ export function DashboardScreen() {
   const effects = previewSession(state, today.session)
   const summary = summarizeWeek(state)
   const fatigueHigh = athlete.fatigue >= HIGH_FATIGUE
+  const pendingRaces = state.raceEntries.filter((entry) => entry.status === 'pending').length
+  const scheduled = getScheduledEntry(state)
+  const todayRace = isRaceDayToday(state) && scheduled ? getRace(scheduled.raceId) : undefined
 
   return (
     <section className={styles.screen} aria-labelledby="dashboard-title">
@@ -43,14 +49,9 @@ export function DashboardScreen() {
 
       {/* First screen: the runner with attributes on the left and condition on the right. */}
       <div className={styles.hero}>
-        <div className={styles.identity}>
-          <h2 className={styles.identityName}>
-            {athlete.name} - {PROFILES[athlete.profile].label} · Lv {progress.level}
-          </h2>
-          <p className={styles.when}>
-            Week {week.number} · {weekdayLong(today.day)}
-          </p>
-        </div>
+        <p className={styles.when}>
+          Week {week.number} · {weekdayLong(today.day)}
+        </p>
 
         <div className={styles.stage}>
           <section className={`${styles.side} ${styles.left}`} aria-label="Attributes">
@@ -78,7 +79,22 @@ export function DashboardScreen() {
             </ul>
           </section>
 
-          <DashboardRunner name={athlete.name} sex={athlete.sex} appearance={athlete.appearance} />
+          {/* The runner fills the stage height behind the side cards, with a name plate over the head. */}
+          <div className={styles.center}>
+            <h2 className={styles.nameplate}>
+              <span className={styles.nameplateName}>{athlete.name}</span>
+              <span className={styles.srOnly}> - </span>
+              <span className={styles.nameplateRole}>
+                {PROFILES[athlete.profile].label} (Lv {progress.level})
+              </span>
+            </h2>
+            <DashboardRunner
+              name={athlete.name}
+              sex={athlete.sex}
+              appearance={athlete.appearance}
+              equipment={state.equipment}
+            />
+          </div>
 
           <section className={`${styles.side} ${styles.right}`} aria-label="Condition">
             <dl className={styles.sideList}>
@@ -144,14 +160,36 @@ export function DashboardScreen() {
         </Card>
 
         <Card title={`Today · ${weekdayShort(today.day)}`}>
-          <p className={styles.session}>{todaySession.label}</p>
-          <p className={`${styles.muted} ${styles.effects}`}>
-            <span>XP {formatDelta(effects.xpGained)}</span> ·{' '}
-            <span>Fitness {formatDelta(effects.fitnessChange)}</span> ·{' '}
-            <span>Fatigue {formatDelta(effects.fatigueChange)}</span>
+          {todayRace ? (
+            <>
+              <p className={styles.session}>Race: {todayRace.name}</p>
+              <p className={styles.muted}>Race day: the race takes today’s training day.</p>
+              <Link to={`/races/${todayRace.id}`} className={`${button.button} ${button.primary}`}>
+                Go to race
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className={styles.session}>{todaySession.label}</p>
+              <p className={`${styles.muted} ${styles.effects}`}>
+                <span>XP {formatDelta(effects.xpGained)}</span> ·{' '}
+                <span>Fitness {formatDelta(effects.fitnessChange)}</span> ·{' '}
+                <span>Fatigue {formatDelta(effects.fatigueChange)}</span>
+              </p>
+              <Link to="/training" className={`${button.button} ${button.primary}`}>
+                Go to training
+              </Link>
+            </>
+          )}
+        </Card>
+
+        <Card title="Races">
+          <p className={styles.muted}>
+            <strong>{formatCoins(state.coins)}</strong>
+            {pendingRaces > 0 && ` · race on Sunday`}
           </p>
-          <Link to="/training" className={`${button.button} ${button.primary}`}>
-            Go to training
+          <Link to="/races" className={`${button.button} ${button.secondary}`}>
+            Race Hub
           </Link>
         </Card>
 

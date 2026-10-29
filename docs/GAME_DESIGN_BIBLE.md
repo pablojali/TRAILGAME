@@ -77,7 +77,9 @@ The player must confirm the selected profile before starting the career.
 
 **Cosmetic identity (1.2):** before confirming, the player also chooses the runner's sex (Female or Male) and, as a final step, the runner's name (required, 1–16 characters). Both are saved with the career. Sex only changes the runner's artwork; it never affects attributes, starting values or any other gameplay value, and it cannot be changed after the career is created.
 
-**Appearance (Avatar Stage A, owner decisions 28 October 2026):** between profile and name, the player customizes the runner's avatar: hairstyle (3 per sex), skin tone (4) and outfit (basic kit only: white top, dark shorts). Appearance is cosmetic and saved with the career; it never affects gameplay. Until final artwork exists the avatar is a black silhouette placeholder. Shoes are **equipment**, not appearance: the avatar shows shoes only when an equipment model says they are equipped.
+**Appearance (Avatar Stage A, owner decisions 28 October 2026):** between profile and name, the player customizes the runner's avatar: hairstyle (3 per sex), skin tone (4) and outfit (basic kit only: white top, dark shorts). Appearance is cosmetic and saved with the career; it never affects gameplay. Shoes are **equipment**, not appearance: the avatar shows shoes only when they are equipped.
+
+**Avatar artwork (owner decisions, 29 October 2026):** the avatar uses the owner's layered artwork. **Skin** selects one of the bodies (3 women, 4 men; face and hair painted in). **Hair** shows the hair drawn on the body until hair artwork exists. **Clothing** is no shirt (default) or a white T-shirt. The Starter shoes (§8.1) are owned from the start and equipped from the Equipment screen; they are cosmetic until equipment effects are specified.
 
 ### 2.2 Initial athlete state
 
@@ -606,7 +608,7 @@ The equipment catalogue, prices, inventory rules, and bonus formulas remain to b
 
 ### 9.1 Currency
 
-The proposed starting balance is 100 coins.
+The proposed starting balance was 100 coins. **Owner decision (29 October 2026):** careers start with 0 coins (§10.17).
 
 Money is intended to create meaningful decisions about equipment purchases, race entry fees, and progression.
 
@@ -894,11 +896,15 @@ All screens must follow existing UI conventions, use English UI copy, and be res
 
 **M4.2 — Race simulation model (owner approval required)**
 
+*Model approved by the owner on 29 October 2026 (decisions D1–D10): [`RACE_SIMULATION_PROPOSAL.md`](./RACE_SIMULATION_PROPOSAL.md). Simulation module implemented; race day, results and rewards follow in M4.3.*
+
 - Prepare a separate proposal for the simulation model, including segment types, input variables, formulas, determinism or randomness, result generation, and test cases.
 - Do not implement the simulation until the owner approves the model.
 - After approval, integrate it with existing athlete state without changing training formulas.
 
 **M4.3 — Results and rewards**
+
+*Implemented on 29 October 2026 per decisions D2–D5 and D10 (see `DEVELOPMENT.md` §11). Owner decision, same day: races are run on **Sundays only**, one per week; entering puts the race on the coming Sunday in place of that day's session.*
 
 - Implement the approved result structure and result screen.
 - Integrate the existing XP system.
@@ -978,6 +984,8 @@ To be decided by the owner/PM before or during M4.1; not part of the PM text abo
 2. **No coin balance exists yet.** §9.1 proposes a starting balance of 100 coins, but the economy is not implemented. Existing careers have no coin field.
 3. **Milestone number:** `DEVELOPMENT.md` §11 already uses M4 for "PWA release candidate".
 4. **Entry before simulation:** in M4.1 there is no race result, so what a confirmed entry does until M4.2/M4.3 must be defined.
+
+**Owner decisions (29 October 2026):** (1) keep the level cap at 5 for now — no progression change in M4; (2) the starting balance is **0 coins**, for new careers and older saves (this replaces the 100 coins proposed in §9.1); (3) races are M4 and the later milestones were renumbered in `DEVELOPMENT.md` (PWA M5, native packaging M6, Strava/VTL M8); (4) a confirmed entry charges the fee once and is saved as **pending** until results exist.
 
 ---
 
@@ -1193,7 +1201,7 @@ The following systems require additional design before implementation:
 - Full equipment catalogue and bonuses.
 - Economy and pricing.
 - Race catalogue — specified in §10 (M4).
-- Race simulation and strategy — simulation model pending owner approval (M4.2); strategy not specified.
+- Race simulation and strategy — simulation model approved and implemented (M4.2, §10.13); strategy not specified.
 - Rivals and rankings.
 - Season lifecycle and rewards.
 - Profile switching at season end.

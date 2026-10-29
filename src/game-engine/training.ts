@@ -14,6 +14,7 @@ import {
   type GameState,
   type TrainingWeek,
 } from './gameState'
+import { isRaceDayToday } from './raceSchedule'
 
 export type TrainingError =
   /** The day was already executed. */
@@ -25,6 +26,8 @@ export type TrainingError =
   | 'unknown-session'
   /** The current day is a forced Rest day after an injury. */
   | 'forced-rest'
+  /** Today is a race Sunday: the day is completed by running the race, not a session. */
+  | 'race-day'
 
 export type TrainingResult<T> = { ok: true; value: T } | { ok: false; error: TrainingError }
 
@@ -87,7 +90,7 @@ function forceRest(week: TrainingWeek, fromIndex: number, count: number): Traini
   }
 }
 
-function checkDay(state: GameState, ref: DayRef): TrainingError | null {
+export function checkDay(state: GameState, ref: DayRef): TrainingError | null {
   if (ref.week !== state.week.number) return 'wrong-week'
   if (ref.dayIndex < state.week.currentDayIndex) return 'day-completed'
   if (ref.dayIndex !== state.week.currentDayIndex) return 'day-not-current'
@@ -104,6 +107,7 @@ export function planSession(
   const error = checkDay(state, ref)
   if (error) return { ok: false, error }
   if (state.forcedRestDays > 0) return { ok: false, error: 'forced-rest' }
+  if (isRaceDayToday(state)) return { ok: false, error: 'race-day' }
 
   const days = state.week.days.map((day, index) =>
     index === ref.dayIndex ? { ...day, session } : day,
@@ -123,9 +127,41 @@ export function executeCurrentDay(
 ): TrainingResult<ExecutionResult> {
   const error = checkDay(state, ref)
   if (error) return { ok: false, error }
+  if (isRaceDayToday(state)) return { ok: false, error: 'race-day' }
 
   const day = getCurrentDay(state.week)
   const outcome = previewSession(state, day.session)
+  const levelBefore = getLevel(state.athlete.xp)
+  const advanced = completeCurrentDay(state, outcome, day.session !== 'rest', now)
+  const levelAfter = getLevel(advanced.state.athlete.xp)
+
+  return {
+    ok: true,
+    value: {
+      state: advanced.state,
+      executed: { ...ref, session: day.session },
+      outcome,
+      levelBefore,
+      levelAfter,
+      attributePointsAwarded: (levelAfter - levelBefore) * ATTRIBUTE_POINTS_PER_LEVEL,
+      weekCompleted: advanced.weekCompleted,
+      injured: outcome.injured === true,
+    },
+  }
+}
+
+/**
+ * Applies an outcome to the current day and moves the calendar on: XP, Fitness and Fatigue change
+ * by the outcome, forced Rest days are counted down (or set by a new injury), the next day becomes
+ * current (a new week after day 7), and the Fitness decay reference is reset if `resetsDecay`.
+ * Shared by training and race days, so both complete a day the same way. Callers check the day first.
+ */
+export function completeCurrentDay(
+  state: GameState,
+  outcome: DayOutcome,
+  resetsDecay: boolean,
+  now: number,
+): { state: GameState; weekCompleted: boolean } {
   const injured = outcome.injured === true
   const athlete = {
     ...state.athlete,
@@ -137,7 +173,8 @@ export function executeCurrentDay(
   // A forced Rest day uses up one day of the injury; a new injury forces the following days.
   const forcedRestDays = injured ? INJURY_REST_DAYS : Math.max(0, state.forcedRestDays - 1)
 
-  const nextDayIndex = state.week.currentDayIndex + 1
+  const dayIndex = state.week.currentDayIndex
+  const nextDayIndex = dayIndex + 1
   const weekCompleted = nextDayIndex >= DAYS_PER_WEEK
   const week = weekCompleted
     ? forceRest(createWeek(state.week.number + 1), 0, forcedRestDays)
@@ -145,28 +182,17 @@ export function executeCurrentDay(
         {
           ...state.week,
           currentDayIndex: nextDayIndex,
-          days: state.week.days.map((d, index) => (index === ref.dayIndex ? { ...d, outcome } : d)),
+          days: state.week.days.map((d, index) => (index === dayIndex ? { ...d, outcome } : d)),
         },
         nextDayIndex,
         forcedRestDays,
       )
 
-  const levelBefore = getLevel(state.athlete.xp)
-  const levelAfter = getLevel(athlete.xp)
-  const fitnessDecayReference = day.session === 'rest' ? state.fitnessDecayReference : now
+  const fitnessDecayReference = resetsDecay ? now : state.fitnessDecayReference
 
   return {
-    ok: true,
-    value: {
-      state: { athlete, week, fitnessDecayReference, forcedRestDays },
-      executed: { ...ref, session: day.session },
-      outcome,
-      levelBefore,
-      levelAfter,
-      attributePointsAwarded: (levelAfter - levelBefore) * ATTRIBUTE_POINTS_PER_LEVEL,
-      weekCompleted,
-      injured,
-    },
+    state: { ...state, athlete, week, fitnessDecayReference, forcedRestDays },
+    weekCompleted,
   }
 }
 

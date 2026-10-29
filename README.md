@@ -7,7 +7,7 @@ See [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the technical specification and
 
 **Current state:** M2 — Athlete Progression is accepted. UI Improvements v1 (runner creation,
 Dashboard, Training) and the post-M2 Rest and injury rules are on the working branch, pending review.
-Dashboard, Training and Attributes are functional; Equipment, Races and Career are placeholders.
+Dashboard, Training, Attributes and Races (catalog, entry, simulation, race day and results; M4.1–M4.3) are functional; Equipment and Career are placeholders.
 Progress is saved in the browser's localStorage only.
 
 ## Requirements
@@ -83,6 +83,27 @@ milestone that needs them.
   an equipment model exists. Creation artwork goes in `assets/runner/creation/{sex}/{profile}.webp` (or `.png`); profiles
   without an image show a labelled placeholder. Climber already has both images.
 
+## Races (M4.1)
+
+- Race configuration (no values in screens): `src/domain/races/categories.ts` (fees, prizes,
+  anti-farming multipliers) and `src/domain/races/races.ts` (the 12 races). Starting coins:
+  `src/domain/economy/coins.ts` (0).
+- Entry: standard fee at or above the race's recommended level, early-entry fee below it, Open races
+  free, no level locks. The fee is charged once, on confirmation, and the entry stays pending until
+  it is raced. Racing takes the current training day instead of the planned session, adds race
+  Fatigue, can injure (same rule as training) and awards XP and coins with the anti-farming
+  multiplier, once. The simulation is in `src/game-engine/raceSimulation.ts` (constants in
+  `src/domain/races/simulationConfig.ts`); race day and rewards are in `src/game-engine/races.ts`.
+- Coins and entries are saved in `trailgame.save` (`coins`, `raceEntries`); older careers load with
+  0 coins and no entries.
+
+## Avatar artwork
+
+Originals are in `assets/runner/bodies`, `clothing` and `footwear` (same 1024 × 1536 transparent
+canvas). After changing or adding one, update the mapping in `scripts/prepare_avatar_art.py` and run
+it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game layers to
+`assets/runner/avatar/`.
+
 ## Adding runner creation artwork
 
 1. Put the original illustration in `assets/runner/` (white or light plain background, runner facing
@@ -103,11 +124,16 @@ milestone that needs them.
 
 1. First visit: every tab shows **Choose your athlete**, with no bottom navigation and no page
    scroll. Switch Female/Male (all runner images change), swipe or use the dots to compare the
-   profiles, then **Choose …**. Customize the avatar (a black silhouette placeholder) (Hair, Skin, Outfit tabs; the Female/Male
-   choice is the same as on step 1), **Continue**, and enter a name (1–16 characters). Nothing is
-   saved until **Start career**; the name then appears on the Dashboard.
-2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner's avatar (as customized,
-   no equipment, no shoes), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
+   profiles, then **Choose …**. Customize the avatar:
+   - **Skin** picks the body: 3 for women, 4 for men. The Female/Male choice is the same as on
+     step 1.
+   - **Hair:** "As drawn".
+   - **Clothing:** no shirt or white T-shirt.
+
+   Then **Continue** and enter a name (1–16 characters). Nothing is saved until **Start career**;
+   the name then appears on the Dashboard.
+2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner's avatar (as
+   customized; men in socks and women barefoot until shoes are equipped in **Equipment**), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
    attribute points, Today, the week and Reset demo are below it.
 3. Training: the Mon–Sun strip is on top and the selected day's full detail below it, without
    scrolling or popups. Tap a day's tab to see its detail; today's detail has the session selector,
@@ -124,6 +150,37 @@ milestone that needs them.
 9. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
    tab. **Exit** keeps the save. **Restart Career** → tick the box → choose a profile → new career.
 10. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
+11. Races: the **Races** tab (or **Race Hub** on the Dashboard) shows Level, coins (0) and 12 races in
+    Open, Trail, Mountain and Elite; at level 1 Trail and above show "Early entry". Open
+    **Forest First Steps** → **Enter race** → the confirmation shows fee, balance and balance after
+    entry → **Confirm free entry**. Reload: still entered, and **Enter race** is gone.
+12. Paid entry (test only): in dev tools set the saved `state.coins` to 300 and `state.athlete.xp`
+    to 250 (level 3), reload, open **Ridge Runner**: "Your fee" is the 100-coin standard fee. Enter
+    and pay: the balance becomes 200, once, even with a double tap. With `state.coins` at 40 the
+    button is inactive and shows "you need 60 coins more". **Cancel** charges nothing.
+13. Race day: races are run on **Sundays only**, one per week.
+    - After entering on any weekday, the race page says "Race day: Sunday, week N", and Training
+      shows Sunday with a flag as "Race: …".
+    - Another race cannot be entered until it is run.
+    - Train Monday to Saturday as usual. On Sunday, Training (or the race page) shows the race panel:
+      the race takes the day, with Fatigue before → after. The Dashboard's Today card says
+      "Race: …".
+    - **Start race** (a double tap races once) opens the result:
+    - Position of 50, time and prize band.
+    - "What shaped your time": the gap to a typical runner, then up to 3 influences, each measured
+      on its own, and the day form.
+    - **Full results · 50 runners**: one click shows all finishers, with your row highlighted.
+    - Rewards: entry fee, gross prize, multiplier, coins, XP and net coin change.
+    - Condition.
+
+    Reload the result: nothing changes (same coins and XP). The race ends the week: Monday of the
+    next week is today. The race page lists it under **Your results** and can be entered again. If
+    Sunday is a forced rest day (injury), the race moves to the next Sunday and the entry is kept.
+14. Race injury and anti-farming (test only): on a Sunday, set `state.athlete.fatigue` to 90 and
+    `state.athlete.xp` to 250, reload, enter **Forest First Steps**. The panel warns about the
+    injury and the button reads **Start race anyway — injury**. The result shows "0 (injured)" XP,
+    "Rewards reduced to 40%" (level 3 in a level-1 race) and 5 forced rest days. During forced rest
+    the race panel says racing is locked.
 
 ## Deployment — Cloudflare Pages
 

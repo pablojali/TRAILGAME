@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { defaultAppearance } from '../domain/athlete/appearance'
 import type { GameState } from '../game-engine/gameState'
 import { allocateAttributePoint } from '../game-engine/attributes'
-import { execute, newGame, T0, withAthlete } from '../test/gameFixtures'
+import { enterRace, raceCurrentDay } from '../game-engine/races'
+import { execute, newGame, onSunday, T0, withAthlete } from '../test/gameFixtures'
 import { M1_SAVE } from '../test/legacySaves'
 import { createLocalStorageGameRepository, LEGACY_DEFAULT_SEX, SAVE_KEY, SCHEMA_VERSION } from './gameRepository'
 
@@ -14,6 +15,16 @@ function memoryStorage(initial: Record<string, string> = {}) {
     setItem: (key: string, value: string) => void data.set(key, value),
     removeItem: (key: string) => void data.delete(key),
   }
+}
+
+const ENTRY = {
+  id: 'entry-1',
+  raceId: 'RACE-001',
+  entryType: 'free',
+  feePaid: 0,
+  levelAtEntry: 1,
+  enteredAt: 0,
+  status: 'pending',
 }
 
 function progressedState(days: number): GameState {
@@ -89,12 +100,101 @@ describe('localStorage game repository', () => {
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
+  it('loads a career saved before races existed with 0 coins and no entries, without rewriting it', () => {
+    const state = progressedState(2)
+    const withoutRaces: Partial<GameState> = { ...state }
+    delete withoutRaces.coins
+    delete withoutRaces.raceEntries
+    const raw = saveOf(withoutRaces)
+    const storage = memoryStorage({ [SAVE_KEY]: raw })
+    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({
+      status: 'loaded',
+      state: { ...state, coins: 0, raceEntries: [] },
+    })
+    expect(storage.data.get(SAVE_KEY)).toBe(raw)
+  })
+
+  it('round-trips coins and race entries', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const entered = enterRace({ ...withAthlete(newGame(), { xp: 250 }), coins: 300 }, 'RACE-004', 100, T0)
+    if (!entered.ok) throw new Error(entered.error)
+    repo.save(entered.state)
+    expect(repo.load(T0)).toEqual({ status: 'loaded', state: entered.state })
+  })
+
+  it.each([
+    ['negative coins', { coins: -1 }],
+    ['fractional coins', { coins: 1.5 }],
+    ['entries that are not a list', { raceEntries: {} }],
+    ['an unknown race', { raceEntries: [{ ...ENTRY, raceId: 'RACE-999' }] }],
+    ['an unknown entry type', { raceEntries: [{ ...ENTRY, entryType: 'vip' }] }],
+    ['a duplicated entry id', { raceEntries: [ENTRY, { ...ENTRY, raceId: 'RACE-002' }] }],
+    ['two pending entries for one race', { raceEntries: [ENTRY, { ...ENTRY, id: 'entry-2' }] }],
+  ])('rejects %s as invalid data', (_, overrides) => {
+    const raw = saveOf({ ...newGame(), ...overrides })
+    expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)).toEqual({
+      status: 'incompatible',
+      reason: 'malformed',
+    })
+  })
+
+  it('round-trips a raced day with its finished entry and result', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const entered = enterRace(newGame(), 'RACE-001', 0, T0)
+    if (!entered.ok) throw new Error(entered.error)
+    const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0 + 1000)
+    if (!raced.ok) throw new Error(raced.error)
+    repo.save(raced.value.state)
+    expect(repo.load(T0 + 1000)).toEqual({ status: 'loaded', state: raced.value.state })
+  })
+
+  it('rejects inconsistent race results', () => {
+    const entered = enterRace(newGame(), 'RACE-001', 0, T0)
+    if (!entered.ok) throw new Error(entered.error)
+    const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0 + 1000)
+    if (!raced.ok) throw new Error(raced.error)
+    // The race ended the week; put a race-day outcome in the current week to test its link too.
+    const after = raced.value.state
+    const state = {
+      ...after,
+      week: {
+        ...after.week,
+        currentDayIndex: 1,
+        days: after.week.days.map((d, i) =>
+          i === 0 ? { ...d, outcome: { xpGained: 0, fitnessChange: 0, fatigueChange: 10, raceEntryId: 'entry-1' } } : d,
+        ),
+      },
+    }
+    expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(state) })).load(T0).status).toBe('loaded')
+    const finished = state.raceEntries[0]!
+    if (finished.status !== 'finished') throw new Error('not finished')
+    const variants: unknown[] = [
+      // Net coins that do not match the fee paid.
+      { ...state, raceEntries: [{ ...finished, result: { ...finished.result, netCoins: finished.result.netCoins + 1 } }] },
+      // A finished entry without its result.
+      { ...state, raceEntries: [{ ...finished, result: undefined }] },
+      // A race day pointing to a pending entry.
+      { ...state, raceEntries: [{ ...finished, status: 'pending', result: undefined }] },
+      // A race day pointing to an entry that does not exist.
+      { ...state, raceEntries: [] },
+      // A position outside the field.
+      { ...state, raceEntries: [{ ...finished, result: { ...finished.result, position: 51 } }] },
+    ]
+    for (const variant of variants) {
+      const raw = saveOf(variant)
+      expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)).toEqual({
+        status: 'incompatible',
+        reason: 'malformed',
+      })
+    }
+  })
+
   it('round-trips a chosen appearance', () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = newGame('climber', T0, {
       name: 'Ana',
       sex: 'female',
-      appearance: { hair: 'braid', skin: 'tone-3', outfit: 'basic' },
+      appearance: { hair: 'natural', skin: 'tone-3', outfit: 'white-tshirt' },
     })
     repo.save(state)
     expect(repo.load(T0)).toEqual({ status: 'loaded', state })
@@ -103,15 +203,38 @@ describe('localStorage game repository', () => {
   it.each([
     ['not an object', 'braid'],
     ['unknown values', { hair: 'mohawk', skin: 'blue', outfit: 'tuxedo' }],
-    ['a hairstyle of the other sex', { hair: 'curly', skin: 'tone-1', outfit: 'basic' }],
+    ['Stage A placeholder values', { hair: 'curly', skin: 'tone-2', outfit: 'basic' }],
   ])('never rejects a career for an invalid appearance (%s): it uses the defaults', (_, appearance) => {
     const state = newGame()
     const raw = saveOf({ ...state, athlete: { ...state.athlete, appearance } })
     const result = createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)
     expect(result.status).toBe('loaded')
     const loaded = result.status === 'loaded' ? result.state.athlete.appearance : null
-    expect(loaded?.outfit).toBe('basic')
-    expect(loaded?.hair).toBe('ponytail')
+    expect(loaded).toEqual({ hair: 'natural', skin: 'tone-2', outfit: 'none' })
+  })
+
+  it('loads a career saved before equipment existed with nothing equipped, without rewriting it', () => {
+    const state = progressedState(2)
+    const withoutEquipment: Partial<GameState> = { ...state }
+    delete withoutEquipment.equipment
+    const raw = saveOf(withoutEquipment)
+    const storage = memoryStorage({ [SAVE_KEY]: raw })
+    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({ status: 'loaded', state: { ...state, equipment: [] } })
+    expect(storage.data.get(SAVE_KEY)).toBe(raw)
+  })
+
+  it('round-trips equipped items and rejects unknown or duplicated ones', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const state = { ...newGame(), equipment: ['starter-shoes'] }
+    repo.save(state)
+    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    for (const equipment of [['jetpack'], ['starter-shoes', 'starter-shoes'], 'starter-shoes']) {
+      const raw = saveOf({ ...newGame(), equipment })
+      expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)).toEqual({
+        status: 'incompatible',
+        reason: 'malformed',
+      })
+    }
   })
 
   it('round-trips an injury: forced Rest days and the injured outcome', () => {

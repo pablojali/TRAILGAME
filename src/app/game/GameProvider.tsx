@@ -4,6 +4,7 @@ import type { SessionType } from '../../domain/training/sessions'
 import { allocateAttributePoint } from '../../game-engine/attributes'
 import { applyFitnessDecay } from '../../game-engine/fitnessDecay'
 import { createInitialGameState, type AthleteIdentity, type GameState } from '../../game-engine/gameState'
+import { setItemEquipped } from '../../game-engine/equipment'
 import { enterRace, raceCurrentDay } from '../../game-engine/races'
 import * as engine from '../../game-engine/training'
 import type { DayRef, ExecutionResult } from '../../game-engine/training'
@@ -180,6 +181,18 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
     [commit, currentState],
   )
 
+  const equip = useCallback(
+    (itemId: string, equipped: boolean) => {
+      const state = currentState()
+      if (!state) return 'unknown-item' as const
+      const result = setItemEquipped(state, itemId, equipped)
+      if (!result.ok) return result.error
+      commit({ kind: 'playing', state: result.state })
+      return null
+    },
+    [commit, currentState],
+  )
+
   const value = useMemo<GameContextValue>(
     () => ({
       phase,
@@ -195,6 +208,7 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
       allocateAttributePoint: allocate,
       enterRace: enter,
       raceDay: race,
+      setItemEquipped: equip,
     }),
     [
       phase,
@@ -209,6 +223,7 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
       allocate,
       enter,
       race,
+      equip,
     ],
   )
 

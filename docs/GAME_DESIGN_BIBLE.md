@@ -77,7 +77,9 @@ The player must confirm the selected profile before starting the career.
 
 **Cosmetic identity (1.2):** before confirming, the player also chooses the runner's sex (Female or Male) and, as a final step, the runner's name (required, 1–16 characters). Both are saved with the career. Sex only changes the runner's artwork; it never affects attributes, starting values or any other gameplay value, and it cannot be changed after the career is created.
 
-**Appearance (Avatar Stage A, owner decisions 28 October 2026):** between profile and name, the player customizes the runner's avatar: hairstyle (3 per sex), skin tone (4) and outfit (basic kit only: white top, dark shorts). Appearance is cosmetic and saved with the career; it never affects gameplay. Until final artwork exists the avatar is a black silhouette placeholder. Shoes are **equipment**, not appearance: the avatar shows shoes only when an equipment model says they are equipped.
+**Appearance (Avatar Stage A, owner decisions 28 October 2026):** between profile and name, the player customizes the runner's avatar: hairstyle (3 per sex), skin tone (4) and outfit (basic kit only: white top, dark shorts). Appearance is cosmetic and saved with the career; it never affects gameplay. Shoes are **equipment**, not appearance: the avatar shows shoes only when they are equipped.
+
+**Avatar artwork (owner decisions, 29 October 2026):** the avatar uses the owner's layered artwork. **Skin** selects one of the bodies (3 women, 4 men; face and hair painted in). **Hair** shows the hair drawn on the body until hair artwork exists. **Clothing** is no shirt (default) or a white T-shirt. The Starter shoes (§8.1) are owned from the start and equipped from the Equipment screen; they are cosmetic until equipment effects are specified.
 
 ### 2.2 Initial athlete state
 

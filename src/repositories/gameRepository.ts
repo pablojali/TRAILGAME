@@ -10,6 +10,7 @@ import {
 } from '../domain/athlete/athlete'
 import { parseAppearance } from '../domain/athlete/appearance'
 import { STARTING_COINS } from '../domain/economy/coins'
+import { getEquipmentItem } from '../domain/equipment/items'
 import { PRIZE_BANDS } from '../domain/races/categories'
 import { isRaceId } from '../domain/races/races'
 import { getEarnedAttributePoints } from '../domain/athlete/levels'
@@ -236,6 +237,14 @@ export function parseGameState(value: unknown, now: number): GameState | null {
   if (!isInt(coins, 0)) return null
   const raceEntries = parseRaceEntries(value.raceEntries === undefined ? [] : value.raceEntries)
   if (!raceEntries) return null
+  // Missing: a career saved before equipment existed (nothing equipped). Known items, one per slot.
+  const equipment = value.equipment === undefined ? [] : value.equipment
+  if (!Array.isArray(equipment) || !equipment.every((id) => typeof id === 'string' && getEquipmentItem(id))) {
+    return null
+  }
+  const slots = (equipment as string[]).map((id) => getEquipmentItem(id)!.slot)
+  if (new Set(slots).size !== slots.length) return null
+
   // A race day must point to the finished entry it raced.
   const finishedIds = new Set(raceEntries.filter((e) => e.status === 'finished').map((e) => e.id))
   const raceDays = (week.days as TrainingDay[]).filter((day) => day.outcome?.raceEntryId !== undefined)
@@ -268,6 +277,7 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     forcedRestDays,
     coins,
     raceEntries,
+    equipment: [...(equipment as string[])],
   }
 }
 

@@ -54,6 +54,8 @@ export interface GameState {
   coins: number
   /** Race entries, oldest first. */
   raceEntries: RaceEntry[]
+  /** Equipped item ids, at most one per slot. Cosmetic for now (Game Design Bible §8). */
+  equipment: string[]
 }
 
 /**
@@ -170,6 +172,7 @@ export function createInitialGameState(
     forcedRestDays: 0,
     coins: STARTING_COINS,
     raceEntries: [],
+    equipment: [],
   }
 }
 

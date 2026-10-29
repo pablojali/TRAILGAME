@@ -182,7 +182,7 @@ describe('localStorage game repository', () => {
     const state = newGame('climber', T0, {
       name: 'Ana',
       sex: 'female',
-      appearance: { hair: 'braid', skin: 'tone-3', outfit: 'basic' },
+      appearance: { hair: 'natural', skin: 'tone-3', outfit: 'white-tshirt' },
     })
     repo.save(state)
     expect(repo.load(T0)).toEqual({ status: 'loaded', state })
@@ -191,15 +191,38 @@ describe('localStorage game repository', () => {
   it.each([
     ['not an object', 'braid'],
     ['unknown values', { hair: 'mohawk', skin: 'blue', outfit: 'tuxedo' }],
-    ['a hairstyle of the other sex', { hair: 'curly', skin: 'tone-1', outfit: 'basic' }],
+    ['Stage A placeholder values', { hair: 'curly', skin: 'tone-2', outfit: 'basic' }],
   ])('never rejects a career for an invalid appearance (%s): it uses the defaults', (_, appearance) => {
     const state = newGame()
     const raw = saveOf({ ...state, athlete: { ...state.athlete, appearance } })
     const result = createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)
     expect(result.status).toBe('loaded')
     const loaded = result.status === 'loaded' ? result.state.athlete.appearance : null
-    expect(loaded?.outfit).toBe('basic')
-    expect(loaded?.hair).toBe('ponytail')
+    expect(loaded).toEqual({ hair: 'natural', skin: 'tone-2', outfit: 'none' })
+  })
+
+  it('loads a career saved before equipment existed with nothing equipped, without rewriting it', () => {
+    const state = progressedState(2)
+    const withoutEquipment: Partial<GameState> = { ...state }
+    delete withoutEquipment.equipment
+    const raw = saveOf(withoutEquipment)
+    const storage = memoryStorage({ [SAVE_KEY]: raw })
+    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({ status: 'loaded', state: { ...state, equipment: [] } })
+    expect(storage.data.get(SAVE_KEY)).toBe(raw)
+  })
+
+  it('round-trips equipped items and rejects unknown or duplicated ones', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const state = { ...newGame(), equipment: ['starter-shoes'] }
+    repo.save(state)
+    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    for (const equipment of [['jetpack'], ['starter-shoes', 'starter-shoes'], 'starter-shoes']) {
+      const raw = saveOf({ ...newGame(), equipment })
+      expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)).toEqual({
+        status: 'incompatible',
+        reason: 'malformed',
+      })
+    }
   })
 
   it('round-trips an injury: forced Rest days and the injured outcome', () => {

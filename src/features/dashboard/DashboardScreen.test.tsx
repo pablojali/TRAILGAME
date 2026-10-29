@@ -56,20 +56,24 @@ describe('DashboardScreen — first screen', () => {
     expect(runner).toHaveAccessibleName('Leo, male runner, no equipment')
     // Creation illustrations are labelled with the profile; the Dashboard never shows them.
     expect(screen.queryByRole('img', { name: /Sprinter, male runner/ })).not.toBeInTheDocument()
-    expect(runner.querySelector('img')).toBeNull()
   })
 
-  it('draws the saved appearance on the avatar, without shoes', () => {
+  it('draws the saved appearance as layers: body by sex and tone, chosen top, no shoes until equipped', () => {
     seedCareer(
-      newGame('sprinter', T0, { name: 'Leo', sex: 'male', appearance: { hair: 'buzz', skin: 'tone-3', outfit: 'basic' } }),
+      newGame('sprinter', T0, { name: 'Leo', sex: 'male', appearance: { hair: 'natural', skin: 'tone-3', outfit: 'white-tshirt' } }),
     )
-    renderApp('/')
-    const avatar = screen.getByRole('img', { name: /^Leo/ }).querySelector('svg')!
-    expect(avatar).toHaveAttribute('data-hair', 'buzz')
+    const view = renderApp('/')
+    const runner = screen.getByRole('img', { name: 'Leo, male runner, no equipment' })
+    const avatar = runner.querySelector('svg')!
     expect(avatar).toHaveAttribute('data-skin', 'tone-3')
-    expect(avatar).toHaveAttribute('data-outfit', 'basic')
-    expect(avatar.querySelector('[data-layer="feet"]')).not.toBeNull()
-    expect(avatar.querySelector('[data-layer*="shoe"]')).toBeNull()
+    expect([...avatar.querySelectorAll('image')].map((i) => i.getAttribute('data-layer'))).toEqual(['body', 'white-tshirt'])
+    expect(avatar.querySelector('[data-layer="body"]')!.getAttribute('href')).toMatch(/male-3/)
+    view.unmount()
+
+    seedCareer({ ...newGame('sprinter', T0, { name: 'Leo', sex: 'male' }), equipment: ['starter-shoes'] })
+    renderApp('/')
+    const shod = screen.getByRole('img', { name: 'Leo, male runner, wearing starter shoes' }).querySelector('svg')!
+    expect([...shod.querySelectorAll('image')].map((i) => i.getAttribute('data-layer'))).toEqual(['body', 'starter-shoes'])
   })
 
   it('derives every value from the saved game state', () => {
@@ -218,7 +222,7 @@ describe('DashboardScreen — Fitness decay', () => {
 })
 
 describe('placeholder screens', () => {
-  it.each(['/career', '/equipment'])('%s remains a placeholder', (path) => {
+  it.each(['/career'])('%s remains a placeholder', (path) => {
     seedCareer()
     renderApp(path)
     expect(screen.getByRole('heading', { name: 'Planned for a later milestone' })).toBeInTheDocument()

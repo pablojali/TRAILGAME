@@ -97,6 +97,13 @@ milestone that needs them.
 - Coins and entries are saved in `trailgame.save` (`coins`, `raceEntries`); older careers load with
   0 coins and no entries.
 
+## Avatar artwork
+
+Originals are in `assets/runner/bodies`, `clothing` and `footwear` (same 1024 × 1536 transparent
+canvas). After changing or adding one, update the mapping in `scripts/prepare_avatar_art.py` and run
+it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game layers to
+`assets/runner/avatar/`.
+
 ## Adding runner creation artwork
 
 1. Put the original illustration in `assets/runner/` (white or light plain background, runner facing
@@ -117,11 +124,16 @@ milestone that needs them.
 
 1. First visit: every tab shows **Choose your athlete**, with no bottom navigation and no page
    scroll. Switch Female/Male (all runner images change), swipe or use the dots to compare the
-   profiles, then **Choose …**. Customize the avatar (a black silhouette placeholder) (Hair, Skin, Outfit tabs; the Female/Male
-   choice is the same as on step 1), **Continue**, and enter a name (1–16 characters). Nothing is
-   saved until **Start career**; the name then appears on the Dashboard.
-2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner's avatar (as customized,
-   no equipment, no shoes), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
+   profiles, then **Choose …**. Customize the avatar:
+   - **Skin** picks the body: 3 for women, 4 for men. The Female/Male choice is the same as on
+     step 1.
+   - **Hair:** "As drawn".
+   - **Clothing:** no shirt or white T-shirt.
+
+   Then **Continue** and enter a name (1–16 characters). Nothing is saved until **Start career**;
+   the name then appears on the Dashboard.
+2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner's avatar (as
+   customized; men in socks and women barefoot until shoes are equipped in **Equipment**), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
    attribute points, Today, the week and Reset demo are below it.
 3. Training: the Mon–Sun strip is on top and the selected day's full detail below it, without
    scrolling or popups. Tap a day's tab to see its detail; today's detail has the session selector,

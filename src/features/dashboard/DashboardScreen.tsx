@@ -80,7 +80,7 @@ export function DashboardScreen() {
             </ul>
           </section>
 
-          <DashboardRunner name={athlete.name} sex={athlete.sex} appearance={athlete.appearance} />
+          <DashboardRunner name={athlete.name} sex={athlete.sex} appearance={athlete.appearance} equipment={state.equipment} />
 
           <section className={`${styles.side} ${styles.right}`} aria-label="Condition">
             <dl className={styles.sideList}>

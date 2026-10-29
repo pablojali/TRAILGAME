@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 import type { AttributeId, ProfileId } from '../../domain/athlete/athlete'
 import type { SessionType } from '../../domain/training/sessions'
 import type { AllocationError } from '../../game-engine/attributes'
+import type { EquipError } from '../../game-engine/equipment'
 import type { AthleteIdentity, GameState } from '../../game-engine/gameState'
 import type { RaceDayError, RaceDayResult, RaceEntryError } from '../../game-engine/races'
 import type { DayRef, ExecutionResult, TrainingError } from '../../game-engine/training'
@@ -39,6 +40,8 @@ export interface GameContextValue {
   allocateAttributePoint(attribute: AttributeId, expectedSpent: number): AllocationError | null
   /** Pays `confirmedFee` once and records a pending entry. */
   enterRace(raceId: string, confirmedFee: number): RaceEntryError | null
+  /** Puts an owned item on (replacing the same slot) or takes it off. Cosmetic for now. */
+  setItemEquipped(itemId: string, equipped: boolean): EquipError | null
   /** Races a pending entry on the current day, once. Returns the result or the reason it failed. */
   raceDay(ref: DayRef, entryId: string): { ok: true; value: RaceDayResult } | { ok: false; error: RaceDayError }
 }

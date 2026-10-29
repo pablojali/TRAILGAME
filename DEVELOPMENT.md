@@ -600,7 +600,7 @@ Dashboard runner were later extended by Avatar creation Stage A (next section).
 on 29 October 2026 (`f2c7898`, owner authorization). Owner decisions (28 October 2026): the developer's
 recommendations were accepted except one — **shoes are equipment**, not part of the appearance.
 
-- **Style:** the painted illustrations stay on the profile cards only. The avatar is a separate SVG
+- **Style (superseded on 29 October 2026 by the owner's layered artwork, next section):** the painted illustrations stay on the profile cards only. The avatar is a separate SVG
   drawing — standing, three-quarter view facing right — in `src/components/avatar/Avatar.tsx`, reused
   by creation and the Dashboard. After owner review (the first coloured drawing was rejected), it is
   a **black silhouette placeholder** with a light rim (owner decision, 28 October 2026) until final
@@ -623,6 +623,36 @@ recommendations were accepted except one — **shoes are equipment**, not part o
   never make a career fail to load. `sex` keeps its meaning. Appearance has no gameplay effect (tested).
 - **Out of scope (unchanged):** shop, currency, unlocks, rewards, inventory, equipment effects,
   monetization.
+
+### Avatar artwork and cosmetic equipment (owner decisions, 29 October 2026)
+
+Replaces the silhouette and the Stage A placeholder options above. On the working branch, not merged.
+
+- **Artwork:** the owner's layered images: 4 men and 3 women in `assets/runner/bodies`, a white
+  T-shirt in `clothing` and starter shoes in `footwear`, all on one 1024 × 1536 canvas.
+  - `scripts/prepare_avatar_art.py` converts them to WebP layers on a 640 × 960 canvas in
+    `assets/runner/avatar/` (about 300 kB in total, from 4.4 MB). It also removes a leftover white
+    patch next to the neck of `woman_03`.
+  - The originals are not modified.
+  - The avatar (`src/components/avatar/Avatar.tsx`) stacks body → shoes → top. It is used in creation
+    and on the Dashboard; the painted Climber illustrations stay on the profile cards.
+- **Options** ("keep hair + skin", owner decision): each body has its face, hair and skin painted in.
+  - **Skin** chooses the body: tones 1–3 for women and 1–4 for men, lightest first by measured skin
+    lightness (`female-1` = woman_03, `female-2` = woman_02, `female-3` = woman_01; `male-1` =
+    mens_04, `male-2` = mens_03, `male-3` = mens_02, `male-4` = male_01).
+  - **Hair** has one option, "As drawn", with a note that more hairstyles need hair artwork.
+  - **Clothing:** "No shirt" (default, as drawn) or "White T-shirt" (owner decision), for both sexes.
+  - Switching sex keeps a valid tone: men's tone 4 becomes tone 3 for women.
+- **Saves:** older or Stage A appearance values (hairstyles, `basic`) fall back field by field to the
+  defaults (as drawn, tone 2, no shirt) and never reject a career.
+- **Shoes = equipment** (owner decision):
+  - The avatar shows no shoes by default: men in socks, women barefoot.
+  - Every runner owns the **Starter shoes** (Bible §8.1); they start unequipped.
+  - The Equipment screen lists them with **Equip** / **Take off**. The equipped shoes are drawn on
+    the avatar in creation previews and on the Dashboard.
+  - Saved as `equipment` (equipped item ids, one per slot; older saves: none).
+  - Cosmetic only: no effect on training or races (tested). The race simulation does not read
+    equipment.
 
 ### M4 — Race System (M4.1–M4.3 implemented, M4.4 validation next)
 

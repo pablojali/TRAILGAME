@@ -14,6 +14,7 @@ import {
   type GameState,
   type TrainingWeek,
 } from './gameState'
+import { isRaceDayToday } from './raceSchedule'
 
 export type TrainingError =
   /** The day was already executed. */
@@ -25,6 +26,8 @@ export type TrainingError =
   | 'unknown-session'
   /** The current day is a forced Rest day after an injury. */
   | 'forced-rest'
+  /** Today is a race Sunday: the day is completed by running the race, not a session. */
+  | 'race-day'
 
 export type TrainingResult<T> = { ok: true; value: T } | { ok: false; error: TrainingError }
 
@@ -104,6 +107,7 @@ export function planSession(
   const error = checkDay(state, ref)
   if (error) return { ok: false, error }
   if (state.forcedRestDays > 0) return { ok: false, error: 'forced-rest' }
+  if (isRaceDayToday(state)) return { ok: false, error: 'race-day' }
 
   const days = state.week.days.map((day, index) =>
     index === ref.dayIndex ? { ...day, session } : day,
@@ -123,6 +127,7 @@ export function executeCurrentDay(
 ): TrainingResult<ExecutionResult> {
   const error = checkDay(state, ref)
   if (error) return { ok: false, error }
+  if (isRaceDayToday(state)) return { ok: false, error: 'race-day' }
 
   const day = getCurrentDay(state.week)
   const outcome = previewSession(state, day.session)

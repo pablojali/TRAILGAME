@@ -1,18 +1,18 @@
 .runner {
   position: relative;
-  margin: 0;
+  flex: 1;
   min-height: 0;
-  height: 100%;
-  border-radius: var(--radius-lg);
-  /* Soft glow so a dark runner stands out on the dark UI. */
+  /* The avatar canvas crop (360 × 920), so the runner fills the box exactly. */
+  aspect-ratio: 360 / 920;
+  max-width: 100%;
+  margin: 0;
+  /* Soft glow so the runner stands out on the dark UI. */
   background: radial-gradient(ellipse at 50% 55%, rgb(240 124 42 / 0.16), transparent 70%);
 }
 
-/* All layers share the same canvas and alignment. */
 .layer {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
 }

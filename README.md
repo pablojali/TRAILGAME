@@ -154,19 +154,24 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
     Open, Trail, Mountain and Elite; at level 1 Trail and above show "Early entry". Open
     **Forest First Steps** → **Enter race** → the confirmation shows fee, balance and balance after
     entry → **Confirm free entry**. Reload: still entered, and **Enter race** is gone.
-13. Race day: on the entered race, the panel says the race takes today's training day (e.g.
-    "Monday's Easy run is not done") and shows Fatigue before → after. **Start race** (a double tap
-    races once) opens the result:
+13. Race day: races are run on **Sundays only**, one per week.
+    - After entering on any weekday, the race page says "Race day: Sunday, week N", and Training
+      shows Sunday with a flag as "Race: …".
+    - Another race cannot be entered until it is run.
+    - Train Monday to Saturday as usual. On Sunday, Training (or the race page) shows the race panel:
+      the race takes the day, with Fatigue before → after. The Dashboard's Today card says
+      "Race: …".
+    - **Start race** (a double tap races once) opens the result:
     - Position of 50, time and prize band.
     - "What shaped your time": the gap to a typical runner, then up to 3 influences, each measured
       on its own, and the day form.
     - Rewards: entry fee, gross prize, multiplier, coins, XP and net coin change.
     - Condition.
 
-    Reload the result: nothing changes (same coins and XP). Training shows Monday as
-    "Race: Forest First Steps" with **View result**; Tuesday is today. The race page lists it under
-    **Your results** and can be entered again.
-14. Race injury and anti-farming (test only): set `state.athlete.fatigue` to 90 and
+    Reload the result: nothing changes (same coins and XP). The race ends the week: Monday of the
+    next week is today. The race page lists it under **Your results** and can be entered again. If
+    Sunday is a forced rest day (injury), the race moves to the next Sunday and the entry is kept.
+14. Race injury and anti-farming (test only): on a Sunday, set `state.athlete.fatigue` to 90 and
     `state.athlete.xp` to 250, reload, enter **Forest First Steps**. The panel warns about the
     injury and the button reads **Start race anyway — injury**. The result shows "0 (injured)" XP,
     "Rewards reduced to 40%" (level 3 in a level-1 race) and 5 forced rest days. During forced rest

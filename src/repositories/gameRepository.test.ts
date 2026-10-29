@@ -3,7 +3,7 @@ import { defaultAppearance } from '../domain/athlete/appearance'
 import type { GameState } from '../game-engine/gameState'
 import { allocateAttributePoint } from '../game-engine/attributes'
 import { enterRace, raceCurrentDay } from '../game-engine/races'
-import { execute, newGame, T0, withAthlete } from '../test/gameFixtures'
+import { execute, newGame, onSunday, T0, withAthlete } from '../test/gameFixtures'
 import { M1_SAVE } from '../test/legacySaves'
 import { createLocalStorageGameRepository, LEGACY_DEFAULT_SEX, SAVE_KEY, SCHEMA_VERSION } from './gameRepository'
 
@@ -142,7 +142,7 @@ describe('localStorage game repository', () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const entered = enterRace(newGame(), 'RACE-001', 0, T0)
     if (!entered.ok) throw new Error(entered.error)
-    const raced = raceCurrentDay(entered.state, { week: 1, dayIndex: 0 }, entered.entry.id, T0 + 1000)
+    const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0 + 1000)
     if (!raced.ok) throw new Error(raced.error)
     repo.save(raced.value.state)
     expect(repo.load(T0 + 1000)).toEqual({ status: 'loaded', state: raced.value.state })
@@ -151,9 +151,21 @@ describe('localStorage game repository', () => {
   it('rejects inconsistent race results', () => {
     const entered = enterRace(newGame(), 'RACE-001', 0, T0)
     if (!entered.ok) throw new Error(entered.error)
-    const raced = raceCurrentDay(entered.state, { week: 1, dayIndex: 0 }, entered.entry.id, T0 + 1000)
+    const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0 + 1000)
     if (!raced.ok) throw new Error(raced.error)
-    const state = raced.value.state
+    // The race ended the week; put a race-day outcome in the current week to test its link too.
+    const after = raced.value.state
+    const state = {
+      ...after,
+      week: {
+        ...after.week,
+        currentDayIndex: 1,
+        days: after.week.days.map((d, i) =>
+          i === 0 ? { ...d, outcome: { xpGained: 0, fitnessChange: 0, fatigueChange: 10, raceEntryId: 'entry-1' } } : d,
+        ),
+      },
+    }
+    expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(state) })).load(T0).status).toBe('loaded')
     const finished = state.raceEntries[0]!
     if (finished.status !== 'finished') throw new Error('not finished')
     const variants: unknown[] = [

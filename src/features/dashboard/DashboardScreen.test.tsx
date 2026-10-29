@@ -23,7 +23,7 @@ function attributeValues() {
 }
 
 function identity() {
-  return screen.getByRole('heading', { level: 2, name: / - .* · Lv \d/ }).textContent
+  return screen.getByRole('heading', { level: 2, name: / - .* \(Lv \d\)/ }).textContent
 }
 
 describe('DashboardScreen — first screen', () => {
@@ -31,7 +31,7 @@ describe('DashboardScreen — first screen', () => {
     seedCareer(newGame('climber'))
     renderApp('/')
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
-    expect(identity()).toBe('Demo Runner - Climber · Lv 1')
+    expect(identity()).toBe('Demo Runner - Climber (Lv 1)')
     expect(screen.getByText('Week 1 · Monday')).toBeInTheDocument()
     expect(attributeValues()).toEqual([
       'Endurance 16',
@@ -92,7 +92,7 @@ describe('DashboardScreen — first screen', () => {
     seedCareer(state)
     renderApp('/')
 
-    expect(identity()).toBe('Marta - Sprinter · Lv 3')
+    expect(identity()).toBe('Marta - Sprinter (Lv 3)')
     expect(screen.getByText('Week 3 · Wednesday')).toBeInTheDocument()
     expect(stat('Level')).toBe('3')
     expect(stat('XP')).toBe('260')

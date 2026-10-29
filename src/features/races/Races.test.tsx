@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import type { GameState } from '../../game-engine/gameState'
 import { enterRace } from '../../game-engine/races'
 import { ordinal } from './raceText'
-import { newGame, withAthlete } from '../../test/gameFixtures'
+import { newGame, onSunday, withAthlete } from '../../test/gameFixtures'
 import { readSave, renderApp, seedCareer } from '../../test/renderApp'
 
 /** A level-3 career (250 XP) with the given coins. */
@@ -109,7 +109,8 @@ describe('Race Detail', () => {
     expect(screen.getByText('Balance after entry').nextSibling).toHaveTextContent('0 coins')
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     expect(screen.getByText('Entry confirmed. Entry fee paid: free entry.')).toHaveAttribute('role', 'status')
-    expect(screen.getByRole('button', { name: 'Start race' })).toBeInTheDocument()
+    expect(screen.getByText(/Race day: Sunday, week 1\./)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Start race/ })).not.toBeInTheDocument()
     expect(readSave()!.state.raceEntries).toHaveLength(1)
     first.unmount()
 
@@ -163,19 +164,32 @@ describe('Race Detail', () => {
 })
 
 describe('Race day and results', () => {
-  async function enterAndStart(user: ReturnType<typeof userEvent.setup>, raceId = 'RACE-001') {
+  async function enterAndStart(user: ReturnType<typeof userEvent.setup>) {
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: /^Confirm free entry|^Pay / }))
-    expect(screen.getByText(/Racing takes today’s training day: Monday’s Easy run is not done/)).toBeInTheDocument()
+    expect(screen.getByText(/The race takes today’s training day: Sunday’s Rest is not done/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Start race/ }))
-    expect(raceId).toBeTruthy()
   }
 
-  it('runs a race once, shows the result with rewards and explanation, and keeps it after a reload', async () => {
+  it('enters for this week’s Sunday and allows one race per week', async () => {
     const user = userEvent.setup()
     seedCareer()
+    renderApp('/races/RACE-001')
+    expect(screen.getByText(/this one would be on Sunday of week 1/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Enter race' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
+    expect(screen.getByText('Race day: Sunday, week 1.')).toBeInTheDocument()
+    expect(screen.getByText(/Today is Monday\. Train until then/)).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: '← All races' }))
+    await user.click(screen.getByRole('link', { name: /^Riverside Trail/ }))
+    expect(screen.getByText(/already entered in Forest First Steps on Sunday/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Enter race' })).not.toBeInTheDocument()
+  })
+
+  it('runs a race once on Sunday, shows the result with rewards and explanation, and keeps it after a reload', async () => {
+    const user = userEvent.setup()
+    seedCareer(onSunday(newGame()))
     const first = renderApp('/races/RACE-001')
-    expect(screen.queryByText(/Racing takes/)).not.toBeInTheDocument()
     await enterAndStart(user)
 
     const save = readSave()!.state
@@ -195,7 +209,9 @@ describe('Race day and results', () => {
     expect(rewards.getByText('Coins awarded').nextSibling).toHaveTextContent(`${result.coinsAwarded} coins`)
     expect(rewards.getByText('XP awarded').nextSibling).toHaveTextContent(`${result.xpAwarded} XP`)
     expect(rewards.getByText('Net coin change').nextSibling).toHaveTextContent(`+${result.coinsAwarded} coins`)
+    expect(screen.getByText(/Week 1, Sunday/)).toBeInTheDocument()
     expect(save).toMatchObject({ coins: result.coinsAwarded, athlete: { xp: result.xpAwarded, fatigue: 10 } })
+    expect(save.week).toMatchObject({ number: 2, currentDayIndex: 0 })
     first.unmount()
 
     // Reopening the result never awards again.
@@ -204,28 +220,41 @@ describe('Race day and results', () => {
     expect(readSave()!.state).toEqual(save)
   })
 
-  it('shows the race on the Training calendar and in the race’s results, and allows a new entry', async () => {
+  it('shows the race on Sunday in Training and runs it from there', async () => {
     const user = userEvent.setup()
-    seedCareer()
-    const view = renderApp('/races/RACE-001')
-    await enterAndStart(user)
-    view.unmount()
+    const entered = enterRace(newGame(), 'RACE-001', 0, 0)
+    if (!entered.ok) throw new Error(entered.error)
+    seedCareer(entered.state)
+    const monday = renderApp('/training')
+    await user.click(screen.getByRole('button', { name: /^Sunday, Race: Forest First Steps, planned/ }))
+    expect(screen.getByText(/Race day: Forest First Steps replaces this day’s session/)).toBeInTheDocument()
+    monday.unmount()
 
-    renderApp('/training')
-    const monday = screen.getByRole('button', { name: /^Monday, Race: Forest First Steps, completed/ })
-    await user.click(monday)
-    expect(screen.getByText(/Raced instead of Easy run/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'View result' })).toHaveAttribute('href', '/races/results/entry-1')
-    await user.click(screen.getByRole('link', { name: 'Races' }))
+    seedCareer(onSunday(entered.state))
+    const sunday = renderApp('/training')
+    expect(screen.getByRole('heading', { name: 'Race: Forest First Steps' })).toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Start race' }))
+    expect(sunday.router.state.location.pathname).toBe('/races/results/entry-1')
+    await user.click(screen.getByRole('link', { name: 'Back to races' }))
     await user.click(screen.getByRole('link', { name: /^Forest First Steps/ }))
     expect(screen.getByRole('heading', { name: 'Your results' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Enter race' })).toBeInTheDocument()
   })
 
+  it('shows race day on the Dashboard on Sunday', () => {
+    const entered = enterRace(newGame(), 'RACE-001', 0, 0)
+    if (!entered.ok) throw new Error(entered.error)
+    seedCareer(onSunday(entered.state))
+    renderApp('/')
+    expect(screen.getByText('Race: Forest First Steps')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Go to race' })).toHaveAttribute('href', '/races/RACE-001')
+  })
+
   it('warns before an injuring race and explains reduced rewards', async () => {
     const user = userEvent.setup()
     // Level 3 (2 above Forest First Steps) and Fatigue 90: +10 race Fatigue reaches 100.
-    seedCareer(withAthlete(newGame(), { xp: 250, fatigue: 90 }))
+    seedCareer(onSunday(withAthlete(newGame(), { xp: 250, fatigue: 90 })))
     renderApp('/races/RACE-001')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
@@ -237,13 +266,19 @@ describe('Race day and results', () => {
     expect(readSave()!.state.forcedRestDays).toBe(5)
   })
 
-  it('locks racing during forced rest', async () => {
+  it('moves the race to the next Sunday when Sunday is a forced rest day', async () => {
     const user = userEvent.setup()
-    seedCareer({ ...newGame(), forcedRestDays: 2, week: { ...newGame().week, days: newGame().week.days.map((d, i) => (i < 2 ? { ...d, session: 'rest' } : d)) } })
+    const sunday = onSunday(newGame())
+    seedCareer({
+      ...sunday,
+      forcedRestDays: 1,
+      week: { ...sunday.week, days: sunday.week.days.map((d, i) => (i === 6 ? { ...d, session: 'rest' as const } : d)) },
+    })
     renderApp('/races/RACE-001')
+    expect(screen.getByText(/this one would be on Sunday of week 2/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
-    expect(screen.getByText(/Injured: 2 forced rest days left/)).toBeInTheDocument()
+    expect(screen.getByText(/Sunday is a forced rest day, so the race moves to Sunday of week 2/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Start race/ })).not.toBeInTheDocument()
   })
 

@@ -904,7 +904,7 @@ All screens must follow existing UI conventions, use English UI copy, and be res
 
 **M4.3 — Results and rewards**
 
-*Implemented on 29 October 2026 per decisions D2–D5 and D10 (see `DEVELOPMENT.md` §11).*
+*Implemented on 29 October 2026 per decisions D2–D5 and D10 (see `DEVELOPMENT.md` §11). Owner decision, same day: races are run on **Sundays only**, one per week; entering puts the race on the coming Sunday in place of that day's session.*
 
 - Implement the approved result structure and result screen.
 - Integrate the existing XP system.

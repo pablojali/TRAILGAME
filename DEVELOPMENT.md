@@ -624,6 +624,11 @@ recommendations were accepted except one — **shoes are equipment**, not part o
 - **Out of scope (unchanged):** shop, currency, unlocks, rewards, inventory, equipment effects,
   monetization.
 
+### Dashboard name plate (owner decision, 29 October 2026)
+
+The runner fills the first screen's height behind the semi-transparent side cards, with no empty
+space above it. A video-game style name plate over the head shows the name and "Profile (Lv N)".
+
 ### Avatar artwork and cosmetic equipment (owner decisions, 29 October 2026)
 
 Replaces the silhouette and the Stage A placeholder options above. On the working branch, not merged.
@@ -715,6 +720,18 @@ later milestones were renumbered (PWA M5, native packaging M6, Strava/VTL M8).
 
 **M4.3 — Results and rewards: implemented on the working branch, not merged.**
 
+- **Sundays only** (owner decision, 29 October 2026, refining D2). Races are run on the last day of
+  the training week, one per week (`src/game-engine/raceSchedule.ts`).
+  - Entering puts the race on the coming Sunday, replacing that day's session. A second entry is
+    refused (`race-scheduled`) until it is run.
+  - On race Sunday the day cannot be trained or re-planned (`race-day`): it is completed by running
+    the race, from Training or the race page.
+  - If Sunday is a forced Rest day, the race moves to the next Sunday and the entry and fee are kept
+    (developer assumption, not specified by the owner).
+  - The race ends the week, so its outcome is not visible in the next week's calendar; the result
+    stays under the race's **Your results**.
+  - Older saves with several pending entries (from testing) run them on successive Sundays, oldest
+    first.
 - **Race day** (`raceCurrentDay`, `src/game-engine/races.ts`; D2–D4). It races a pending entry on
   the current training day.
   - **Guards:** the day must be current (the same `checkDay` as training), there must be no forced

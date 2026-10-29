@@ -5,6 +5,7 @@ import { getRace, type Race } from '../domain/races/races'
 import { RACE_SIMULATION } from '../domain/races/simulationConfig'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS } from '../domain/training/injury'
 import type { DayOutcome, FinishedRaceEntry, GameState, PendingRaceEntry, RaceEntry, RaceResult } from './gameState'
+import { getScheduledEntry, RACE_DAY_INDEX } from './raceSchedule'
 import { courseEffortKm, explainRace, generateCourse, getDayForm, simulateRace } from './raceSimulation'
 import { checkDay, clampStat, completeCurrentDay, type DayRef, type TrainingError } from './training'
 
@@ -15,6 +16,8 @@ export type RaceEntryError =
   | 'insufficient-coins'
   /** The fee the player confirmed is not the fee that applies now (e.g. the level changed). */
   | 'fee-changed'
+  /** Another race is already scheduled for the coming Sunday (one race per week). */
+  | 'race-scheduled'
 
 export type RaceEntryResult = { ok: true; state: GameState; entry: RaceEntry } | { ok: false; error: RaceEntryError }
 
@@ -43,6 +46,7 @@ export function enterRace(state: GameState, raceId: string, confirmedFee: number
   const race = getRace(raceId)
   if (!race) return { ok: false, error: 'unknown-race' }
   if (getPendingEntry(state, raceId)) return { ok: false, error: 'already-entered' }
+  if (getScheduledEntry(state)) return { ok: false, error: 'race-scheduled' }
   const level = getLevel(state.athlete.xp)
   const { type, fee } = getEntryFee(race, level)
   if (fee !== confirmedFee) return { ok: false, error: 'fee-changed' }
@@ -117,6 +121,10 @@ export type RaceDayError =
   /** The entry was already raced: its result and rewards exist. */
   | 'already-finished'
   | 'unknown-race'
+  /** Races are run on Sundays only. */
+  | 'not-race-day'
+  /** Another pending entry is raced first. */
+  | 'not-scheduled'
 
 export interface RaceDayResult {
   state: GameState
@@ -128,7 +136,7 @@ export interface RaceDayResult {
 }
 
 /**
- * Runs a pending race on the current training day (owner decisions D1–D5), exactly once.
+ * Runs the scheduled race on race Sunday (owner decisions D1–D5; Sundays only), exactly once.
  * The planned session is not executed: the day's outcome is the race. Rewards, Fatigue, a possible
  * injury, the calendar and the entry's result are all applied in one returned state, so the race
  * cannot be applied twice: the entry is no longer pending and the day is no longer current.
@@ -145,6 +153,8 @@ export function raceCurrentDay(
   const entry = getEntry(state, entryId)
   if (!entry) return { ok: false, error: 'unknown-entry' }
   if (entry.status !== 'pending') return { ok: false, error: 'already-finished' }
+  if (state.week.currentDayIndex !== RACE_DAY_INDEX) return { ok: false, error: 'not-race-day' }
+  if (getScheduledEntry(state)?.id !== entry.id) return { ok: false, error: 'not-scheduled' }
   const race = getRace(entry.raceId)
   if (!race) return { ok: false, error: 'unknown-race' }
 

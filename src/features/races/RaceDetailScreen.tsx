@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
@@ -9,18 +9,10 @@ import { formatCoins } from '../../domain/economy/coins'
 import { getEntryFee, getGrossPrizes, getRewardMultiplier, getShortfall } from '../../domain/races/access'
 import { PRIZE_BANDS, RACE_CATEGORY_CONFIG, REWARD_MULTIPLIERS } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
-import { formatDelta } from '../../components/format'
-import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
-import { TRAINING_SESSIONS } from '../../domain/training/sessions'
-import { weekdayLong, weekdayShort } from '../../domain/training/weekdays'
-import { getCurrentDay } from '../../game-engine/gameState'
-import {
-  getFinishedEntries,
-  getPendingEntry,
-  previewRaceDay,
-  type RaceDayError,
-  type RaceEntryError,
-} from '../../game-engine/races'
+import { weekdayShort } from '../../domain/training/weekdays'
+import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
+import { getFinishedEntries, getPendingEntry, type RaceEntryError } from '../../game-engine/races'
+import { RaceDayPanel } from './RaceDayPanel'
 import { courseText, feeText, ordinal, percentText, raceTimeText } from './raceText'
 import styles from './Races.module.css'
 
@@ -29,6 +21,7 @@ const ERRORS: Record<RaceEntryError, string> = {
   'already-entered': 'You have already entered this race.',
   'insufficient-coins': 'You do not have enough coins for this entry.',
   'fee-changed': 'The entry fee changed. Check the new fee and confirm again.',
+  'race-scheduled': 'You already have a race this Sunday. Races are one per week.',
 }
 
 export function RaceDetailScreen() {
@@ -134,82 +127,6 @@ function RaceDetail({ race }: { race: Race }) {
   )
 }
 
-const RACE_DAY_ERRORS: Record<RaceDayError, string> = {
-  'day-completed': 'Today was already completed. Check the current day and try again.',
-  'day-not-current': 'Races take the current day only.',
-  'wrong-week': 'The week changed. Check the current day and try again.',
-  'unknown-session': 'Something went wrong. Try again.',
-  'forced-rest': 'Your runner is injured: racing is locked during forced rest days.',
-  'unknown-entry': 'This entry no longer exists.',
-  'already-finished': 'This race was already run. Its result is saved.',
-  'unknown-race': 'This race does not exist.',
-}
-
-/** Racing a pending entry: it takes today's training day (D2) and is applied once. */
-function RaceDayPanel({ race, entryId }: { race: Race; entryId: string }) {
-  const { state, raceDay } = useCareer()
-  const navigate = useNavigate()
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const { week, athlete } = state
-  const today = getCurrentDay(week)
-  const ref = { week: week.number, dayIndex: week.currentDayIndex }
-  const preview = previewRaceDay(state, race)
-  const fatigueAfter = athlete.fatigue + preview.fatigueChange
-
-  if (state.forcedRestDays > 0) {
-    return (
-      <p className={styles.warning}>
-        Injured: {state.forcedRestDays} forced rest {state.forcedRestDays === 1 ? 'day' : 'days'} left. You can race
-        after them.
-      </p>
-    )
-  }
-
-  return (
-    <>
-      <p>
-        Racing takes today’s training day: {weekdayLong(today.day)}’s {TRAINING_SESSIONS[today.session].label} is
-        not done.
-      </p>
-      <p className={styles.muted}>
-        Fatigue {athlete.fatigue} → {fatigueAfter} ({formatDelta(preview.fatigueChange)}). A race counts as training
-        for Fitness decay.
-      </p>
-      {preview.injured && (
-        <p className={styles.warning} role="note">
-          Injury warning: Fatigue would reach {fatigueAfter} (above {INJURY_FATIGUE_THRESHOLD}). Racing anyway: no
-          XP, −{INJURY_FITNESS_LOSS} Fitness, {INJURY_REST_DAYS} forced rest days. Your result and prize still count.
-        </p>
-      )}
-      {error && (
-        <p role="alert" className={styles.warning}>
-          {error}
-        </p>
-      )}
-      <button
-        type="button"
-        className={`${button.button} ${preview.injured ? button.danger : button.primary} ${button.block}`}
-        aria-disabled={busy || undefined}
-        onClick={() => {
-          if (busy) return
-          const result = raceDay(ref, entryId)
-          if (!result.ok) {
-            setError(RACE_DAY_ERRORS[result.error])
-            return
-          }
-          setBusy(true)
-          navigate(`/races/results/${entryId}`, {
-            state: { levelsGained: result.value.levelAfter - result.value.levelBefore },
-          })
-        }}
-      >
-        {preview.injured ? 'Start race anyway — injury' : 'Start race'}
-      </button>
-    </>
-  )
-}
-
 /** Earlier results of this race, newest first. */
 function PastResults({ race }: { race: Race }) {
   const { state } = useCareer()
@@ -279,9 +196,28 @@ function EntryPanel({ race }: { race: Race }) {
     )
   }
 
+  const scheduled = getScheduledEntry(state)
+  const scheduledRace = scheduled && getRace(scheduled.raceId)
+  if (scheduled && scheduledRace) {
+    return (
+      <Card title="Enter this race">
+        <p className={styles.warning}>
+          You are already entered in {scheduledRace.name} on Sunday. Races are run on Sundays, one per week.
+        </p>
+        <Link to={`/races/${scheduledRace.id}`} className={`${button.button} ${button.secondary}`}>
+          Go to {scheduledRace.name}
+        </Link>
+      </Card>
+    )
+  }
+
   if (!confirming) {
     return (
       <Card title="Enter this race">
+        <p className={styles.muted}>
+          Races are run on Sundays: this one would be on Sunday of week {getRaceWeek(state)}, instead of that
+          day’s session.
+        </p>
         <p>
           {feeText(fee)}
           {fee.type === 'early' && <span className={styles.muted}> (your level is below {race.recommendedLevel})</span>}

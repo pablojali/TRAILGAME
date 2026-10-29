@@ -57,7 +57,7 @@ export const TRAINING_SESSIONS: Record<SessionType, SessionDefinition> = {
     description: 'Gym and conditioning work.',
     xp: 11,
     fitnessDelta: 2,
-    fatigueDelta: 8,
+    fatigueDelta: 4,
   },
   'trail-technique': {
     id: 'trail-technique',
@@ -65,7 +65,7 @@ export const TRAINING_SESSIONS: Record<SessionType, SessionDefinition> = {
     description: 'Footwork on rough and technical ground.',
     xp: 11,
     fitnessDelta: 2,
-    fatigueDelta: 6,
+    fatigueDelta: 3,
   },
   rest: {
     id: 'rest',

@@ -527,6 +527,71 @@ Delivered scope:
   exists; Reset demo deletes the career and returns to profile selection.
   (D3 was later superseded by UI Improvements v1: the navigation is now hidden in the setup flow.)
 
+### Training, levels, races and shop changes (owner decisions, 29 October 2026, after M4)
+
+On the working branch, not merged.
+
+- **Training:**
+  - Default week of 4 training days and 3 rest days: Easy, Intervals, Rest, Hills, Rest, Long run,
+    Rest. Sunday is also race day.
+  - Strength now adds +4 Fatigue (was +8) and Trail technique +3 (was +6). Other values are
+    unchanged.
+  - The default plan now adds +57 XP, +5 Fitness and +23 Fatigue a week (was +68, +9 and +39).
+    Followed without changes it reaches injury risk on Saturday of week 4 (was Tuesday of week 3).
+- **Levels to 50** (`MAX_LEVEL`, `src/domain/athlete/levels.ts`):
+  - Same curve, each level costing 50 XP more: 10 at 2,700, 20 at 10,450, 30 at 23,200, 50 at
+    63,700.
+  - Levels 1–5 are unchanged, so no saved career changes level.
+  - Attribute points stay 2 per level (98 at level 50).
+- **Races:**
+  - Recommended levels: Open 1/4/8, Trail 11/14/18, Mountain 21/25/28, Elite 31/40/50. Category
+    levels are 1/11/21/31.
+  - Fees halved: Trail 50/125, Mountain 125/300, Elite 300/700.
+  - The field's typical runner now reaches Fitness 90 at level 30
+    (`min(90, 25 + 65 × (L − 1) / 29)`; was level 7) and keeps its attributes formula. The approved
+    model is otherwise unchanged.
+  - The prototype and `docs/race-simulation/results.md` are regenerated. Reference times are
+    unchanged; positions in races recommended above level 1 change because the fields changed.
+- **Coins:** new careers and careers saved before coins existed start with **25**. Existing
+  balances are not changed.
+- **Shop** (`src/domain/equipment/items.ts`, `buyItem`):
+  - Items: hydration backpack 150, poles 100 and trail shoes 200 coins. The starter shoes are owned
+    from the start.
+  - Buying needs a confirmation (price and balance after), charges once and never goes below 0.
+    Items without enough coins show the shortfall.
+  - Owned items are saved in `ownedEquipment` (older saves own the starter shoes) and can be
+    equipped, one per slot.
+  - Only the starter shoes have artwork; the other items show an icon and are not drawn on the
+    avatar yet.
+- **Equipment race effects — approved and implemented (owner, 29 October 2026).** Each item helps
+  where it makes sense. Below, the time change and position for an All-rounder at Fitness 60 and
+  Fatigue 20:
+
+  | Item | Effect | RACE-001 | RACE-004 | RACE-007 | RACE-008 | RACE-012 |
+  |---|---|---:|---:|---:|---:|---:|
+  | Poles | climbs −4 % | −1.4 % (#6→#4) | −2.0 % (#27→#25) | −2.2 % | −2.2 % | −2.3 % |
+  | Trail shoes | technical-descent penalty halved | 0 % | −1.1 % | −2.2 % | −3.2 % | −3.3 % |
+  | Hydration backpack | slowdown over distance −20 % | −0.3 % | −0.7 % | −1.7 % | −2.2 % | −5.2 % |
+  | All three | | −1.7 % (#6→#3) | −3.7 % (#27→#23) | −6.1 % (#47→#40) | −7.4 % | −10.5 % |
+
+  - The effects are stored on each item (`raceEffect` in `src/domain/equipment/items.ts`) and
+    applied by `raceSeconds`. Several items multiply.
+  - The equipped items are saved with each race result.
+  - "Equipment (…)" appears in the result explanation only when it changed the time.
+  - The field's typical runner has no equipment. Training is never affected.
+  - The prototype reproduces this table (`results.md` §10) and checks the effects against `src/`.
+- **Balance check after these changes** (one-off 16-week simulation, All-rounder, real game code):
+
+  | Policy | Result |
+  |---|---|
+  | Default plan, no races | 6 injuries; Fitness 5 |
+  | Careful (rest when Fatigue would pass 75), no races | No injuries; Fitness 20 → 30 (before these changes it fell to 3) |
+  | Default plan + a race every Sunday | 10 injuries; Fitness 0 |
+  | Careful + a race every Sunday | No injuries; Fitness falls to 4; 164 coins |
+
+  Racing every week still piles up Fatigue: a race adds 10–14 and takes the Sunday rest. Racing
+  every 2–3 weeks with a careful plan is sustainable; that choice is left to the player.
+
 ### Recovery bonus on Rest (owner decision, 29 October 2026)
 
 After the M4.4 balance finding the owner kept the training values ("in real life you balance

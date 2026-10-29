@@ -160,7 +160,12 @@ export function raceCurrentDay(
 
   const { athlete } = state
   const levelAtStart = getLevel(athlete.xp)
-  const input = { attributes: { ...athlete.attributes }, fitness: athlete.fitness, fatigue: athlete.fatigue }
+  const input = {
+    attributes: { ...athlete.attributes },
+    fitness: athlete.fitness,
+    fatigue: athlete.fatigue,
+    equipment: [...state.equipment],
+  }
   const dayForm = getDayForm(race.id, entry.id, entry.enteredAt, athlete.attributes.consistency)
   const simulation = simulateRace(race, input, dayForm)
   const explanation = explainRace(race, input, dayForm)
@@ -187,6 +192,7 @@ export function raceCurrentDay(
     attributes: input.attributes,
     fitness: input.fitness,
     fatigue: input.fatigue,
+    equipment: input.equipment,
     dayForm,
     timeS: simulation.timeS,
     position: simulation.position,

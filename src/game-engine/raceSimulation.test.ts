@@ -11,6 +11,7 @@ import {
   InvalidCourseError,
   raceSeconds,
   referenceAthlete,
+  rivalTimes,
   simulateRace,
   splitEvenly,
   type RaceAthleteInput,
@@ -86,10 +87,10 @@ describe('race simulation — approved test cases (docs/race-simulation/results.
     ['All-rounder F80 Fa10', 'RACE-001', athlete('all-rounder', 80, 10), '0:37:04', 1],
     ['Sprinter F60 Fa20', 'RACE-001', athlete('sprinter', 60, 20), '0:40:54', 3],
     ['Climber F60 Fa20', 'RACE-001', athlete('climber', 60, 20), '0:43:01', 11],
-    ['All-rounder F60 Fa0', 'RACE-004', athlete('all-rounder', 60, 0), '1:55:17', 13],
-    ['All-rounder F60 Fa80', 'RACE-004', athlete('all-rounder', 60, 80), '2:25:12', 40],
-    ['Climber F60 Fa20', 'RACE-007', athlete('climber', 60, 20), '4:24:01', 41],
-    ['Sprinter F60 Fa20', 'RACE-007', athlete('sprinter', 60, 20), '4:32:51', 45],
+    ['All-rounder F60 Fa0', 'RACE-004', athlete('all-rounder', 60, 0), '1:55:17', 20],
+    ['All-rounder F60 Fa80', 'RACE-004', athlete('all-rounder', 60, 80), '2:25:12', 47],
+    ['Climber F60 Fa20', 'RACE-007', athlete('climber', 60, 20), '4:24:01', 47],
+    ['Sprinter F60 Fa20', 'RACE-007', athlete('sprinter', 60, 20), '4:32:51', 50],
     ['Endurance F60 Fa20', 'RACE-012', athlete('endurance', 60, 20), '18:18:42', 50],
     ['Climber F60 Fa20', 'RACE-012', athlete('climber', 60, 20), '18:37:41', 50],
   ])('%s in %s: %s, position %i', (_, id, input, time, position) => {
@@ -177,14 +178,14 @@ describe('day form (D1)', () => {
 describe('result explanation (D10)', () => {
   it('lists the three largest single effects against the typical runner, largest first', () => {
     const explanation = explainRace(race('RACE-004'), athlete('climber', 70, 30))
-    expect(explanation.referenceTimeS).toBe(2 * 3600 + 6 * 60 + 16)
+    expect(explanation.referenceTimeS).toBe(1 * 3600 + 59 * 60 + 37)
     expect(explanation.gapS).toBe(simulateRace(race('RACE-004'), athlete('climber', 70, 30)).timeS - explanation.referenceTimeS)
     expect(explanation.factors.map((f) => [f.id, f.value, f.effectS])).toEqual([
-      ['fitness', 70, -670],
-      ['speed', 13, 256],
+      ['fitness', 70, -721],
+      ['speed', 13, 415],
       ['fatigue', 30, 221],
     ])
-    expect(explanation.factors[0]!.reference).toBe(49)
+    expect(explanation.factors[0]!.reference).toBeCloseTo(47.41, 2)
   })
 
   it('never lists an input that had no effect', () => {
@@ -199,5 +200,49 @@ describe('result explanation (D10)', () => {
       { id: 'day-form', value: -0.03, reference: 0, effectS: expect.any(Number) },
     ])
     expect(explanation.factors[0]!.effectS).toBeLessThan(0)
+  })
+})
+
+describe('equipment race effects (owner approval, 29 October 2026)', () => {
+  const base = athlete('all-rounder', 60, 20)
+  const change = (id: string, equipment: string[]) => {
+    const course = generateCourse(race(id))
+    return raceSeconds(course, { ...base, equipment }) / raceSeconds(course, base) - 1
+  }
+
+  it.each<[string[], string, number]>([
+    // Values from the approved proposal (DEVELOPMENT.md), All-rounder at Fitness 60, Fatigue 20.
+    [['poles'], 'RACE-001', -0.014],
+    [['poles'], 'RACE-004', -0.02],
+    [['poles'], 'RACE-012', -0.023],
+    [['trail-shoes'], 'RACE-004', -0.011],
+    [['trail-shoes'], 'RACE-012', -0.033],
+    [['hydration-backpack'], 'RACE-004', -0.007],
+    [['hydration-backpack'], 'RACE-012', -0.052],
+    [['poles', 'trail-shoes', 'hydration-backpack'], 'RACE-001', -0.017],
+    [['poles', 'trail-shoes', 'hydration-backpack'], 'RACE-004', -0.037],
+    [['poles', 'trail-shoes', 'hydration-backpack'], 'RACE-012', -0.105],
+  ])('%j in %s: %d', (equipment, id, expected) => {
+    expect(change(id, equipment)).toBeCloseTo(expected, 3)
+  })
+
+  it('helps only where it makes sense, and the starter shoes do nothing', () => {
+    // No technical descents in Forest First Steps: trail shoes change nothing there.
+    expect(change('RACE-001', ['trail-shoes'])).toBe(0)
+    expect(change('RACE-012', ['starter-shoes'])).toBe(0)
+  })
+
+  it('does not change the field: the typical runner has no equipment', () => {
+    expect(rivalTimes(race('RACE-004'))).toEqual(rivalTimes(race('RACE-004')))
+    expect(referenceAthlete(11).equipment).toBeUndefined()
+  })
+
+  it('appears in the explanation only when it changed the time', () => {
+    const all = ['poles', 'trail-shoes', 'hydration-backpack']
+    const ultra = explainRace(race('RACE-012'), { ...referenceAthlete(50), equipment: all })
+    expect(ultra.factors[0]).toMatchObject({ id: 'equipment', value: 3, reference: 0 })
+    expect(ultra.factors[0]!.effectS).toBeLessThan(0)
+    const starter = explainRace(race('RACE-001'), { ...referenceAthlete(1), equipment: ['starter-shoes'] })
+    expect(starter.factors.map((f) => f.id)).not.toContain('equipment')
   })
 })

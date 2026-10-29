@@ -37,4 +37,30 @@ describe('Equipment', () => {
     expect(readSave()!.state.equipment).toEqual([])
     expect(screen.getByText('Starter shoes taken off.')).toHaveAttribute('role', 'status')
   })
+
+  it('buys from the shop with a confirmation, then the item can be equipped', async () => {
+    const user = userEvent.setup()
+    seedCareer({ ...newGame(), coins: 120 })
+    renderApp('/equipment')
+    expect(screen.getByText('120 coins')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Shop' })).toBeInTheDocument()
+    // Each item says what it does in races.
+    expect(screen.getByText('Races: climbs 4% faster.')).toBeInTheDocument()
+    expect(screen.getByText('Races: technical descents cost half as much time.')).toBeInTheDocument()
+    expect(screen.getByText('Races: 20% less slowdown over long distances.')).toBeInTheDocument()
+    // Not enough for the trail shoes (200): the button is inactive and says why.
+    const shoes = screen.getByRole('button', { name: 'Buy trail shoes' })
+    expect(shoes).toHaveAttribute('aria-disabled', 'true')
+    expect(shoes).toHaveAccessibleDescription('You need 80 coins more.')
+
+    await user.click(screen.getByRole('button', { name: 'Buy poles' }))
+    expect(screen.getByText('Balance 120 coins → 20 coins.')).toBeInTheDocument()
+    expect(readSave()!.state.coins).toBe(120)
+    await user.dblClick(screen.getByRole('button', { name: 'Pay 100 coins' }))
+    expect(readSave()!.state).toMatchObject({ coins: 20, ownedEquipment: ['starter-shoes', 'poles'], equipment: [] })
+    expect(screen.getByText('Poles bought for 100 coins.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Equip poles' }))
+    expect(readSave()!.state.equipment).toEqual(['poles'])
+  })
 })

@@ -100,7 +100,7 @@ describe('localStorage game repository', () => {
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
-  it('loads a career saved before races existed with 0 coins and no entries, without rewriting it', () => {
+  it('loads a career saved before races existed with the starting 25 coins and no entries, without rewriting it', () => {
     const state = progressedState(2)
     const withoutRaces: Partial<GameState> = { ...state }
     delete withoutRaces.coins
@@ -109,14 +109,15 @@ describe('localStorage game repository', () => {
     const storage = memoryStorage({ [SAVE_KEY]: raw })
     expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({
       status: 'loaded',
-      state: { ...state, coins: 0, raceEntries: [] },
+      state: { ...state, coins: 25, raceEntries: [] },
     })
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
   it('round-trips coins and race entries', () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
-    const entered = enterRace({ ...withAthlete(newGame(), { xp: 250 }), coins: 300 }, 'RACE-004', 100, T0)
+    // Level 11: Ridge Runner's standard fee (50).
+    const entered = enterRace({ ...withAthlete(newGame(), { xp: 3_250 }), coins: 300 }, 'RACE-004', 50, T0)
     if (!entered.ok) throw new Error(entered.error)
     repo.save(entered.state)
     expect(repo.load(T0)).toEqual({ status: 'loaded', state: entered.state })
@@ -223,6 +224,27 @@ describe('localStorage game repository', () => {
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
+  it('loads a career saved before the shop existed owning the starter shoes, and rejects inconsistent ownership', () => {
+    const state = progressedState(1)
+    const withoutOwned: Partial<GameState> = { ...state }
+    delete withoutOwned.ownedEquipment
+    expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(withoutOwned) })).load(T0)).toEqual({
+      status: 'loaded',
+      state: { ...state, ownedEquipment: ['starter-shoes'] },
+    })
+    for (const variant of [
+      { ...newGame(), ownedEquipment: ['poles'] }, // starting equipment missing
+      { ...newGame(), ownedEquipment: ['starter-shoes', 'starter-shoes'] },
+      { ...newGame(), ownedEquipment: ['starter-shoes', 'jetpack'] },
+      { ...newGame(), equipment: ['poles'] }, // equipped but not owned
+    ]) {
+      expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(variant) })).load(T0)).toEqual({
+        status: 'incompatible',
+        reason: 'malformed',
+      })
+    }
+  })
+
   it('round-trips equipped items and rejects unknown or duplicated ones', () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = { ...newGame(), equipment: ['starter-shoes'] }
@@ -296,8 +318,8 @@ describe('localStorage game repository', () => {
     ['an invalid sex', saveOf({ ...valid, athlete: { ...valid.athlete, sex: 'other' } })],
     ['too many forced Rest days', saveOf({ ...valid, forcedRestDays: 6 })],
     ['negative forced Rest days', saveOf({ ...valid, forcedRestDays: -1 })],
-    // Day 3 of the fixture is Strength, so it cannot be a forced Rest day.
-    ['a forced Rest day planned as training', saveOf({ ...valid, forcedRestDays: 1 })],
+    // Day 4 of the fixture is Hills, so it cannot be a forced Rest day.
+    ['a forced Rest day planned as training', saveOf({ ...valid, forcedRestDays: 2 })],
     [
       'a non-boolean injury flag',
       saveOf({

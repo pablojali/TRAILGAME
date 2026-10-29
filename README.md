@@ -7,7 +7,7 @@ See [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the technical specification and
 
 **Current state:** M2 — Athlete Progression is accepted. UI Improvements v1 (runner creation,
 Dashboard, Training) and the post-M2 Rest and injury rules are on the working branch, pending review.
-Dashboard, Training, Attributes and Races (catalog, entry, simulation, race day and results; M4.1–M4.3) are functional; Equipment and Career are placeholders.
+Dashboard, Training, Attributes, Races (M4) and Equipment (shop and avatar) are functional; Career is a placeholder.
 Progress is saved in the browser's localStorage only.
 
 ## Requirements
@@ -150,14 +150,14 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
 9. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
    tab. **Exit** keeps the save. **Restart Career** → tick the box → choose a profile → new career.
 10. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
-11. Races: the **Races** tab (or **Race Hub** on the Dashboard) shows Level, coins (0) and 12 races in
+11. Races: the **Races** tab (or **Race Hub** on the Dashboard) shows Level, coins (25) and 12 races in
     Open, Trail, Mountain and Elite; at level 1 Trail and above show "Early entry". Open
     **Forest First Steps** → **Enter race** → the confirmation shows fee, balance and balance after
     entry → **Confirm free entry**. Reload: still entered, and **Enter race** is gone.
 12. Paid entry (test only): in dev tools set the saved `state.coins` to 300 and `state.athlete.xp`
-    to 250 (level 3), reload, open **Ridge Runner**: "Your fee" is the 100-coin standard fee. Enter
-    and pay: the balance becomes 200, once, even with a double tap. With `state.coins` at 40 the
-    button is inactive and shows "you need 60 coins more". **Cancel** charges nothing.
+    to 3250 (level 11), reload, open **Ridge Runner**: "Your fee" is the 50-coin standard fee. Enter
+    and pay: the balance becomes 250, once, even with a double tap. With `state.coins` at 40 the
+    button is inactive and shows "you need 10 coins more". **Cancel** charges nothing.
 13. Race day: races are run on **Sundays only**, one per week.
     - After entering on any weekday, the race page says "Race day: Sunday, week N", and Training
       shows Sunday with a flag as "Race: …".
@@ -181,6 +181,12 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
     injury and the button reads **Start race anyway — injury**. The result shows "0 (injured)" XP,
     "Rewards reduced to 40%" (level 3 in a level-1 race) and 5 forced rest days. During forced rest
     the race panel says racing is locked.
+15. Shop: **Equipment** shows the balance, **Your equipment** (starter shoes: **Equip** /
+    **Take off**) and the **Shop** (backpack 150, poles 100, trail shoes 200). With 25 coins every
+    **Buy** is inactive with "You need … more". Set `state.coins` to 150 and reload: **Buy poles** →
+    the confirmation shows the balance before → after → **Pay 100 coins** charges once. Poles move
+    to **Your equipment** and can be equipped. Each item shows its race effect, and an equipped item
+    can appear as "Equipment (…)" in a race result's explanation.
 
 ## Deployment — Cloudflare Pages
 

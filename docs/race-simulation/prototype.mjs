@@ -19,17 +19,17 @@
 
 export const RACES = [
   { id: 'RACE-001', name: 'Forest First Steps', category: 'open', distanceKm: 5, elevationGainM: 120, recommendedLevel: 1 },
-  { id: 'RACE-002', name: 'Riverside Trail', category: 'open', distanceKm: 8, elevationGainM: 220, recommendedLevel: 1 },
-  { id: 'RACE-003', name: 'Pine Loop Challenge', category: 'open', distanceKm: 10, elevationGainM: 350, recommendedLevel: 2 },
-  { id: 'RACE-004', name: 'Ridge Runner', category: 'trail', distanceKm: 12, elevationGainM: 550, recommendedLevel: 3 },
-  { id: 'RACE-005', name: 'Stone Path Classic', category: 'trail', distanceKm: 15, elevationGainM: 750, recommendedLevel: 3 },
-  { id: 'RACE-006', name: 'Wildwood Ascent', category: 'trail', distanceKm: 18, elevationGainM: 950, recommendedLevel: 4 },
-  { id: 'RACE-007', name: 'Summit Quest', category: 'mountain', distanceKm: 22, elevationGainM: 1300, recommendedLevel: 6 },
-  { id: 'RACE-008', name: 'Alpine Traverse', category: 'mountain', distanceKm: 28, elevationGainM: 1700, recommendedLevel: 6 },
-  { id: 'RACE-009', name: 'Sky Ridge Ultra', category: 'mountain', distanceKm: 35, elevationGainM: 2200, recommendedLevel: 7 },
-  { id: 'RACE-010', name: 'High Peaks Challenge', category: 'elite', distanceKm: 42, elevationGainM: 2800, recommendedLevel: 10 },
-  { id: 'RACE-011', name: 'Legends of the Crest', category: 'elite', distanceKm: 55, elevationGainM: 3600, recommendedLevel: 10 },
-  { id: 'RACE-012', name: 'Beyond the Skyline', category: 'elite', distanceKm: 70, elevationGainM: 4800, recommendedLevel: 12 },
+  { id: 'RACE-002', name: 'Riverside Trail', category: 'open', distanceKm: 8, elevationGainM: 220, recommendedLevel: 4 },
+  { id: 'RACE-003', name: 'Pine Loop Challenge', category: 'open', distanceKm: 10, elevationGainM: 350, recommendedLevel: 8 },
+  { id: 'RACE-004', name: 'Ridge Runner', category: 'trail', distanceKm: 12, elevationGainM: 550, recommendedLevel: 11 },
+  { id: 'RACE-005', name: 'Stone Path Classic', category: 'trail', distanceKm: 15, elevationGainM: 750, recommendedLevel: 14 },
+  { id: 'RACE-006', name: 'Wildwood Ascent', category: 'trail', distanceKm: 18, elevationGainM: 950, recommendedLevel: 18 },
+  { id: 'RACE-007', name: 'Summit Quest', category: 'mountain', distanceKm: 22, elevationGainM: 1300, recommendedLevel: 21 },
+  { id: 'RACE-008', name: 'Alpine Traverse', category: 'mountain', distanceKm: 28, elevationGainM: 1700, recommendedLevel: 25 },
+  { id: 'RACE-009', name: 'Sky Ridge Ultra', category: 'mountain', distanceKm: 35, elevationGainM: 2200, recommendedLevel: 28 },
+  { id: 'RACE-010', name: 'High Peaks Challenge', category: 'elite', distanceKm: 42, elevationGainM: 2800, recommendedLevel: 31 },
+  { id: 'RACE-011', name: 'Legends of the Crest', category: 'elite', distanceKm: 55, elevationGainM: 3600, recommendedLevel: 40 },
+  { id: 'RACE-012', name: 'Beyond the Skyline', category: 'elite', distanceKm: 70, elevationGainM: 4800, recommendedLevel: 50 },
 ]
 
 /** Proposed new catalog field (§3.2 of the proposal). */
@@ -49,9 +49,9 @@ const ATTRS = ['endurance', 'climbing', 'speed', 'technical', 'recovery', 'consi
 
 export const CATEGORY_FEES = {
   open: { standard: 0, early: 0 },
-  trail: { standard: 100, early: 250 },
-  mountain: { standard: 250, early: 600 },
-  elite: { standard: 600, early: 1400 },
+  trail: { standard: 50, early: 125 },
+  mountain: { standard: 125, early: 300 },
+  elite: { standard: 300, early: 700 },
 }
 export const GROSS_PRIZES = {
   open: [100, 70, 50, 25, 10],
@@ -60,9 +60,17 @@ export const GROSS_PRIZES = {
   elite: [1500, 1050, 750, 375, 150],
 }
 const BAND_LABELS = ['1st', '2nd', '3rd', '4th–10th', '11th or lower']
+/** Equipment race effects (owner approval, 29 October 2026): multipliers while equipped. */
+export const EQUIPMENT_EFFECTS = {
+  poles: { climb: 0.96 },
+  'trail-shoes': { technicalPenalty: 0.5 },
+  'hydration-backpack': { slowdown: 0.8 },
+}
+
 /** Anti-farming multipliers in whole percent, by level difference 0 (or below), 1, 2, 3+. */
 export const MULTIPLIER_PCT = [100, 75, 40, 0]
-export const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700]
+/** Levels 1–50: each level costs 50 XP more than the one before. */
+export const LEVEL_THRESHOLDS = Array.from({ length: 50 }, (_, i) => 100 * i + 25 * i * (i - 1))
 
 // ---------------------------------------------------------------------------------------------
 // Constants (§5.6 of the proposal)
@@ -178,14 +186,17 @@ export function raceSeconds(course, athlete, dayForm = 0) {
   const fatigueScale = C.consistencySoftensFatigue ? Math.pow(C.abilityReference / a.consistency, C.abilityExponent) : 1
   const fatigueFactor = 1 + (C.fatigueSlope * athlete.fatigue * fatigueScale) / 100
   const durability = abilities.durability(a)
+  const gear = { climb: 1, technicalPenalty: 1, slowdown: 1 }
+  for (const id of athlete.equipment ?? []) for (const [k, v] of Object.entries(EQUIPMENT_EFFECTS[id] ?? {})) gear[k] *= v
   let minutes = 0
   let effortBefore = 0
   for (const s of course) {
     const e = effortKm(s)
     const abilityFactor = Math.pow(C.abilityReference / segmentAbility(s, a), C.abilityExponent)
-    const technicalFactor = s.type === 'descent' ? 1 + C.technicalPenaltyPerLevel * s.technicality * (1 - a.technical / 100) : 1
-    const slowdown = 1 + C.slowdownRate * (effortBefore / C.slowdownReferenceEffortKm) * (C.abilityReference / durability)
-    minutes += e * C.basePaceMinPerEffortKm * abilityFactor * technicalFactor * slowdown * fitnessFactor * fatigueFactor * (1 + dayForm)
+    const technicalFactor = s.type === 'descent' ? 1 + C.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * (1 - a.technical / 100) : 1
+    const slowdown = 1 + C.slowdownRate * gear.slowdown * (effortBefore / C.slowdownReferenceEffortKm) * (C.abilityReference / durability)
+    const climbFactor = s.type === 'climb' ? gear.climb : 1
+    minutes += e * C.basePaceMinPerEffortKm * abilityFactor * technicalFactor * slowdown * climbFactor * fitnessFactor * fatigueFactor * (1 + dayForm)
     effortBefore += e
   }
   return minutes * 60
@@ -195,7 +206,7 @@ export function referenceAthlete(level) {
   const v = 16 + (level - 1) / 3
   return {
     attributes: Object.fromEntries(ATTRS.map((k) => [k, v])),
-    fitness: Math.min(90, 25 + 12 * (level - 1)),
+    fitness: Math.min(90, 25 + (65 * (level - 1)) / 29),
     fatigue: C.referenceFatigue,
   }
 }
@@ -344,6 +355,8 @@ async function compareWithRepository() {
     const profilesOk = Object.entries(PROFILES).every(([k, v]) => JSON.stringify(repoProfiles[k].attributes) === JSON.stringify(v))
     const levelsOk = JSON.stringify(repoLevels.map((l) => l.minXp)) === JSON.stringify(LEVEL_THRESHOLDS)
     const technicalityOk = repoRaces.every((r) => r.technicality === TECHNICALITY[r.id])
+    const repoItems = (await import(new URL('src/domain/equipment/items.ts', root))).EQUIPMENT_ITEMS
+    const effectsOk = repoItems.every((item) => JSON.stringify(item.raceEffect ?? null) === JSON.stringify(EQUIPMENT_EFFECTS[item.id] ?? null))
     const repoSim = (await import(new URL('src/domain/races/simulationConfig.ts', root))).RACE_SIMULATION
     const constantsOk = Object.entries(repoSim).every(([k, v]) => k.startsWith('explanation') || JSON.stringify(v) === JSON.stringify(C[k]))
     p('| Data | Matches `src/` |')
@@ -355,6 +368,7 @@ async function compareWithRepository() {
     p(`| Profile attributes | ${check(profilesOk, 'profiles copy')} |`)
     p(`| Level thresholds | ${check(levelsOk, 'levels copy')} |`)
     p(`| Race technicality (D6) | ${check(technicalityOk, 'technicality copy')} |`)
+    p(`| Equipment race effects | ${check(effectsOk, 'equipment effects copy')} |`)
     p(`| Simulation constants (\`simulationConfig.ts\`) | ${check(constantsOk, 'constants copy')} |`)
   } catch (error) {
     p(`Repository comparison skipped (${error.message.split('\n')[0]}). Run inside the repository with Node 22.18 or later.`)
@@ -680,6 +694,26 @@ function reportApprovedV1() {
   p()
 }
 
+function reportEquipment() {
+  p('## 10. Equipment race effects (approved 29 October 2026)')
+  p()
+  p('All-rounder, Fitness 60, Fatigue 20: time change and position with each item equipped.')
+  p()
+  const ids = ['RACE-001', 'RACE-004', 'RACE-007', 'RACE-008', 'RACE-012']
+  p(`| Item | ${ids.join(' | ')} |`)
+  p(`|---|${ids.map(() => '---:').join('|')}|`)
+  const base = athlete('all-rounder', 60, 20)
+  for (const [label, equipment] of [['Poles', ['poles']], ['Trail shoes', ['trail-shoes']], ['Hydration backpack', ['hydration-backpack']], ['All three', ['poles', 'trail-shoes', 'hydration-backpack']]]) {
+    p(`| ${label} | ${ids.map((id) => {
+      const r = race(id)
+      const before = simulate(r, base)
+      const after = simulate(r, { ...base, equipment })
+      return `${pct1(after.timeS / before.timeS - 1)} (#${before.position}→#${after.position})`
+    }).join(' | ')} |`)
+  }
+  p()
+}
+
 async function main() {
   p('# M4.2 race simulation — prototype results (approved model)')
   p()
@@ -695,6 +729,7 @@ async function main() {
   reportRewards()
   reportProperties()
   reportApprovedV1()
+  reportEquipment()
   p(`**Checks: ${failures.length === 0 ? 'all passed' : `${failures.length} failed — ${failures.join('; ')}`}.**`)
   console.log(out.join('\n'))
   if (process.argv.includes('--check') && failures.length > 0) process.exit(1)

@@ -2,6 +2,7 @@ import { defaultAppearance, type Appearance } from '../domain/athlete/appearance
 import type { Athlete, Attributes, ProfileId, Sex } from '../domain/athlete/athlete'
 import { PROFILES } from '../domain/athlete/profiles'
 import { STARTING_COINS } from '../domain/economy/coins'
+import { OWNED_FROM_START } from '../domain/equipment/items'
 import type { EntryType } from '../domain/races/access'
 import type { ExplanationFactor } from './raceSimulation'
 import type { SessionType } from '../domain/training/sessions'
@@ -54,8 +55,10 @@ export interface GameState {
   coins: number
   /** Race entries, oldest first. */
   raceEntries: RaceEntry[]
-  /** Equipped item ids, at most one per slot. Cosmetic for now (Game Design Bible §8). */
+  /** Equipped item ids, at most one per slot, all owned. Cosmetic for now (Game Design Bible §8). */
   equipment: string[]
+  /** Item ids the runner owns: the starting equipment plus shop purchases. */
+  ownedEquipment: string[]
 }
 
 /**
@@ -117,17 +120,20 @@ export interface RaceResult {
   referenceTimeS: number
   gapS: number
   factors: ExplanationFactor[]
+  /** Equipped items at the start (their race effects applied). Missing in older results: none. */
+  equipment?: string[]
   /** The 49 rivals' times in whole seconds, fastest first. Missing in results saved before it existed. */
   rivalTimesS?: number[]
 }
 
 /** Deterministic plan used for the first week and every following week. */
 export const DEFAULT_WEEK_PLAN: readonly SessionType[] = [
+  // 4 training days and 3 rest days (owner decision, 29 October 2026). Sunday is also race day.
   'easy-run',
   'intervals',
-  'strength',
   'rest',
   'hills',
+  'rest',
   'long-run',
   'rest',
 ]
@@ -175,6 +181,7 @@ export function createInitialGameState(
     coins: STARTING_COINS,
     raceEntries: [],
     equipment: [],
+    ownedEquipment: [...OWNED_FROM_START],
   }
 }
 

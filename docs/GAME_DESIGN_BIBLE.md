@@ -1,8 +1,10 @@
 # TRAIL GAME — GAME DESIGN BIBLE
 
-**Version:** 1.2
+**Version:** 1.3
 
 **Status:** Approved design baseline — partially implemented (M0, M1 and M2 accepted); remaining systems pending milestone assignment
+
+**Changes in 1.3 (PM, 29 October 2026):** §10 Race System replaced by the M4 Race System specification (categories, access rules, 12-race catalog, prizes, anti-farming, stages and acceptance criteria), with developer open points in §10.17. Earlier, avatar appearance was added to §2.1.
 
 **Changes in 1.2 (owner decisions, 28 October 2026):** Rest now applies Fatigue −8 and Fitness −2 (§4.4); new injury rule (§4.7); the simulated training week is labelled Monday–Sunday (§4.2); career creation adds a cosmetic sex and the runner's name (§2.1). These were implemented on the working branch together with UI Improvements v1 (see `docs/UI_IMPROVEMENTS.md`).
 
@@ -639,35 +641,90 @@ The complete economy is not yet specified. Starting money, item prices, prize di
 
 ---
 
-## 10. RACE SYSTEM
+## 10. RACE SYSTEM — M4
+
+**Status:** Specification for implementation (PM, 29 October 2026)
+**Milestone:** M4 — Race System
 
 ### 10.1 Race purpose
 
 Races are the main competitive objective of the game.
 
-They should test how effectively the player develops and manages the athlete.
+They test how effectively the player develops and manages the athlete. A race result must depend on more than athlete level alone.
 
-A race result should depend on more than the athlete's level alone.
+Races are player-selected events. They do not run automatically after training. The player chooses a race, reviews its conditions and entry cost, confirms entry, competes, and receives a result.
+
+The race system must reuse existing athlete, training, progression, Fitness, Fatigue, attribute, and equipment systems wherever possible. M4 must not rewrite or rebalance the accepted training system.
 
 ### 10.2 Race data model
 
-Each race should eventually define:
+Each race must define, where applicable:
 
+- Stable race ID.
 - Race name.
-- Location.
+- Location or fictional setting.
 - Distance in kilometres.
 - Total elevation gain in metres.
 - Terrain composition.
-- Difficulty or tier.
-- Entry fee.
-- Cutoff time, where applicable.
-- Unlock requirements.
+- Difficulty category or tier.
+- Recommended athlete level.
+- Standard entry fee.
+- Early-entry fee.
+- Cutoff time.
+- Unlock/access requirements.
 - Rewards and prizes.
 - Season or competition association.
 
-Race data should be stored separately from the presentation layer.
+Race data must be stored separately from the presentation layer. Race definitions, entry fees, prizes, and reward multipliers must be centralized in structured data or configuration rather than hard-coded into screen components.
 
-### 10.3 Race simulation principles
+The recommended level indicates the intended difficulty for an athlete. It is not a mandatory level requirement.
+
+### 10.3 Race categories and access rules
+
+M4 introduces four race categories. The values below are initial balancing values and must remain configurable.
+
+| Category | Recommended level | Standard entry fee | Early-entry fee |
+|---|---:|---:|---:|
+| Open | 1 | 0 coins | 0 coins |
+| Trail | 3 | 100 coins | 250 coins |
+| Mountain | 6 | 250 coins | 600 coins |
+| Elite | 10 | 600 coins | 1,400 coins |
+
+**Access rules**
+
+1. If the athlete's level is at or above the race's recommended level, the standard entry fee applies.
+2. If the athlete's level is below the recommended level, the player may enter by paying the higher early-entry fee.
+3. There are no hard level locks in M4. Any category, including Elite, may be attempted from the beginning if the player can afford the applicable fee.
+4. Open races are always free to enter.
+5. If the player cannot afford the applicable fee, entry must be disabled and the shortfall clearly displayed.
+6. Before confirmation, show the applicable fee, current coin balance, and remaining balance.
+7. Deduct the entry fee only once, after the player confirms entry.
+8. Entry fees are not refunded based on finishing position or reward eligibility.
+
+The game may support coin purchases through a future store. Real-money purchases, payment APIs, Google Play Billing, Apple In-App Purchases, and the coin store itself are outside M4 scope.
+
+### 10.4 Initial race catalog
+
+M4 starts with the following 12 fictional events. They are game events, not representations of real-world races.
+
+| ID | Race name | Category | Distance | Elevation gain | Terrain composition | Recommended level |
+|---|---|---|---:|---:|---|---:|
+| RACE-001 | Forest First Steps | Open | 5 km | 120 m | Non-technical forest paths | 1 |
+| RACE-002 | Riverside Trail | Open | 8 km | 220 m | Packed dirt, rolling hills | 1 |
+| RACE-003 | Pine Loop Challenge | Open | 10 km | 350 m | Forest trail, short climbs | 2 |
+| RACE-004 | Ridge Runner | Trail | 12 km | 550 m | Rolling ridges, mixed trail | 3 |
+| RACE-005 | Stone Path Classic | Trail | 15 km | 750 m | Rocky sections, moderate technicality | 3 |
+| RACE-006 | Wildwood Ascent | Trail | 18 km | 950 m | Sustained climbs, forest terrain | 4 |
+| RACE-007 | Summit Quest | Mountain | 22 km | 1,300 m | Steep climbs, rocky descents | 6 |
+| RACE-008 | Alpine Traverse | Mountain | 28 km | 1,700 m | Alpine paths, technical descents | 6 |
+| RACE-009 | Sky Ridge Ultra | Mountain | 35 km | 2,200 m | Exposed ridges, sustained elevation | 7 |
+| RACE-010 | High Peaks Challenge | Elite | 42 km | 2,800 m | Highly technical mountain terrain | 10 |
+| RACE-011 | Legends of the Crest | Elite | 55 km | 3,600 m | Long mountain ultra, technical sections | 10 |
+| RACE-012 | Beyond the Skyline | Elite | 70 km | 4,800 m | Extreme ultra, long climbs and descents | 12 |
+
+For M4, real-world locations, seasons, weather, cutoffs, and other advanced race features are not required unless an existing approved system already supports them and integration does not expand the scope.
+
+### 10.5 Race simulation principles
 
 The preferred direction is a segment-based simulation.
 
@@ -681,21 +738,25 @@ A race can be divided into segments representing different terrain and effort de
 
 Each segment should define its distance, elevation characteristics, and terrain difficulty.
 
-The athlete's performance should be influenced by relevant factors, potentially including:
+The athlete's performance may be influenced by relevant factors, including:
 
-- Relevant attributes.
+- Relevant athlete attributes.
 - Current Fitness.
 - Current Fatigue.
-- Equipment.
+- Equipment, if it already affects performance.
 - Distance and elevation.
 - Terrain difficulty.
-- Race strategy.
+- Race strategy, once strategy choices are designed and approved.
 
-The final simulation must be deterministic for the same saved inputs and strategy unless a deliberate random element is introduced.
+The final simulation must be deterministic for the same saved inputs and strategy unless a deliberate random element is approved. If randomness is introduced, it must be controlled and sufficiently transparent to make results understandable and testable.
 
-If randomness is introduced, it must be controlled and sufficiently transparent to make results understandable and testable.
+**Implementation rule: Do not invent or finalize race-simulation formulas during coding.** The formulas for speed, terrain effects, pacing, weather, nutrition, and DNF risk remain undefined. They must be documented in a separate proposal and approved by the owner before implementation.
 
-### 10.4 Race strategy
+M4.1 may implement the race catalog, access rules, and screens without simulation formulas. M4.2 simulation work must not begin until the owner approves the simulation model.
+
+Do not rewrite or rebalance the existing training system as part of M4. Reuse existing athlete data and systems wherever possible. If integration requires changing accepted training or progression logic, stop and report the specific blocker rather than making broad changes.
+
+### 10.6 Race strategy
 
 Future gameplay may allow the player to choose a strategy before or during a race.
 
@@ -706,23 +767,217 @@ Possible strategic dimensions include:
 - Risk tolerance on technical terrain.
 - Energy management over long distances.
 
-These options are not yet finalized.
+These options are not finalized and are not required for M4. Do not add strategy controls or invent strategy effects without an approved specification.
 
-### 10.5 Race outcomes
+### 10.7 Race outcomes
 
-The future race system should define:
+The race system should eventually define:
 
 - Finishing time.
-- Position.
+- Finishing position.
 - Rewards.
 - Cutoff success or failure.
 - DNF conditions, if applicable.
 - Performance feedback.
 - Attribute or progression consequences, if any.
 
-The exact formulas for speed, terrain effects, pacing, weather, nutrition, and DNF risk remain undefined.
+For M4, the result screen must display the supported result metric or time, finishing position, entry fee, gross coin prize, reward multiplier, coins awarded, XP awarded, net coin change, and an explanation of the main factors that actually influenced the result.
 
-**Implementation rule:** Do not invent final race-simulation formulas during coding. They must be approved as part of the race-system specification first.
+Do not display a factor as influential unless it affected the calculation. The goal is a coherent, testable game simulation, not a promise of precise real-world finish-time accuracy.
+
+### 10.8 Coin prizes by finishing position
+
+The following are initial **gross coin prizes**, before subtracting the entry fee. They are configurable balancing values.
+
+| Finishing position | Open | Trail | Mountain | Elite |
+|---|---:|---:|---:|---:|
+| 1st | 100 | 300 | 700 | 1,500 |
+| 2nd | 70 | 210 | 490 | 1,050 |
+| 3rd | 50 | 150 | 350 | 750 |
+| 4th–10th | 25 | 75 | 175 | 375 |
+| 11th or lower | 10 | 30 | 70 | 150 |
+
+Rules:
+
+- The entry fee is charged separately and only once.
+- Net coin change is calculated as `coins awarded - entry fee`.
+- The player's coin balance must never become negative. Entry must be prevented if the player cannot afford the fee.
+- If the simulation uses a different field size, position bands must be applied consistently and explained in the result screen.
+- These values must be tested for balance. Do not add unapproved daily bonuses, streak bonuses, or other currency sources.
+
+### 10.9 Anti-farming rules for XP and coins
+
+To prevent high-level athletes from repeatedly farming easy races, both XP and gross coin prizes are adjusted according to the difference between the athlete's current level and the race's recommended level.
+
+`levelDifference = athleteLevel - raceRecommendedLevel`
+
+Use this initial configurable multiplier table for both XP and gross coin prizes:
+
+| Level difference | XP multiplier | Coin prize multiplier |
+|---:|---:|---:|
+| 0 or below | 100% | 100% |
+| 1 | 75% | 75% |
+| 2 | 40% | 40% |
+| 3 or more | 0% | 0% |
+
+Rules:
+
+- An athlete at or below the race's recommended level receives the full reward multiplier.
+- An athlete 1 level above the recommended level receives 75% of XP and gross coin prizes.
+- An athlete 2 levels above the recommended level receives 40%.
+- An athlete 3 or more levels above the recommended level receives no XP and no gross coin prize for that race.
+- The multiplier is based on level difference, not finishing position. Winning an easy race does not bypass the anti-farming rule.
+- Apply the multiplier to the gross coin prize before calculating net coin change.
+- Entry fees are not reduced or refunded by the multiplier. The athlete still pays the applicable entry fee.
+- Round coin prizes down to whole coins. Use the existing XP rounding convention if one exists.
+- Display the multiplier and explain reduced or zero rewards on the result screen.
+- Centralize these values in configuration; do not embed them in UI code.
+
+These are initial balancing values. They may be adjusted after playtesting but must not be changed silently during implementation.
+
+### 10.10 XP integration
+
+M4 must integrate with the existing XP and progression system.
+
+- Reuse the existing XP reward mechanism; do not duplicate or replace progression logic.
+- Apply the anti-farming multiplier to race XP.
+- Do not invent new base XP amounts or change existing XP formulas without owner approval.
+- If the existing system has no suitable race XP mechanism, propose base values and obtain approval before implementation.
+- Do not award training XP, Fitness, or other training effects as a side effect unless already defined by an approved system.
+- Reopening a completed result must not grant XP again.
+
+### 10.11 Player flow and UI
+
+**Race Hub**
+
+- Accessible from the main dashboard.
+- Shows the athlete's current level and coin balance.
+- Lists all 12 initial races, grouped by category or clearly labeled by difficulty.
+- Race cards show distance, elevation gain, recommended level, and applicable entry fee.
+- Under-level races must not appear hard-locked. Display an **Early entry** label and its higher fee.
+
+**Race Detail**
+
+- Shows race name, category, distance, elevation gain, terrain, and recommended level.
+- Shows standard and early-entry fees, highlighting the fee applicable to the current athlete.
+- Shows potential gross coin prizes and explains that rewards may be reduced by anti-farming rules.
+- Requires explicit confirmation before spending coins.
+
+**Race Results**
+
+- Shows finishing position and supported time/result metric.
+- Shows entry fee, gross prize, reward multiplier, coins awarded, XP awarded, and net coin change.
+- Explains major performance factors based on the actual simulation.
+- Clearly explains when XP and prize coins are zero because the race is too easy for the athlete's level.
+
+All screens must follow existing UI conventions, use English UI copy, and be responsive on supported mobile, tablet, and desktop layouts.
+
+### 10.12 Result integrity and persistence
+
+- Follow the project's existing state and persistence patterns.
+- Store enough result data to show completed results and prevent duplicate entry charges or rewards.
+- Reopening or refreshing a completed result must not charge entry or grant rewards again.
+- Use stable race IDs and a unique result/completion identifier where supported.
+- Do not implement account/backend persistence reserved for M7 as part of M4.
+- If current persistence cannot guarantee duplicate prevention across sessions, document the limitation rather than introducing a new persistence architecture.
+
+### 10.13 M4 implementation stages
+
+**M4.1 — Race catalog and access**
+
+- Add structured data for the 12 initial races.
+- Implement Race Hub and Race Detail.
+- Implement standard versus early-entry fees.
+- Implement balance checks and confirmation before entry.
+- Display potential prizes.
+- Do not implement race simulation formulas in this stage.
+
+**M4.2 — Race simulation model (owner approval required)**
+
+- Prepare a separate proposal for the simulation model, including segment types, input variables, formulas, determinism or randomness, result generation, and test cases.
+- Do not implement the simulation until the owner approves the model.
+- After approval, integrate it with existing athlete state without changing training formulas.
+
+**M4.3 — Results and rewards**
+
+- Implement the approved result structure and result screen.
+- Integrate the existing XP system.
+- Apply configurable gross coin prizes and anti-farming multipliers.
+- Prevent duplicate charges and rewards.
+- Explain reward calculations.
+
+**M4.4 — Validation**
+
+Test at minimum:
+
+- Free Open entry.
+- Standard paid entry when athlete level meets or exceeds the recommendation.
+- Early entry when athlete level is below the recommendation.
+- Insufficient coin balance.
+- Every finishing-position reward band.
+- Level differences of 0 or below, 1, 2, and 3 or more.
+- Fractional reward rounding.
+- Refreshing or reopening completed results.
+- Different athlete profiles, Fitness/Fatigue states, and terrain types where supported.
+- Mobile layouts at 360x640 and 412x915, plus other project-supported sizes.
+- Regression checks confirming training behavior and formulas are unchanged.
+
+### 10.14 Out of scope for M4
+
+- Real-money coin purchases and payment integrations.
+- Coin store UI.
+- Online multiplayer, real-player leaderboards, seasons, or tournaments requiring backend services.
+- Full equipment shop or unlock system.
+- New training logic, training formulas, or broad progression rebalance.
+- New athlete attributes without explicit approval.
+- Weather, nutrition, strategy, cutoff, or DNF mechanics unless separately specified and approved.
+- M7 account/backend persistence.
+- Major simulator redesign without owner approval.
+
+### 10.15 Acceptance criteria
+
+M4 can be accepted when:
+
+- [ ] Race Hub displays all 12 initial races.
+- [ ] Race data is separate from presentation code.
+- [ ] Race details show distance, elevation, terrain, recommended level, applicable entry fee, and potential prizes.
+- [ ] Open entry is free.
+- [ ] Athletes at or above the recommended level pay the standard fee.
+- [ ] Under-level athletes can enter by paying the early-entry fee, including Elite.
+- [ ] Insufficient balance prevents entry with a clear explanation.
+- [ ] The player confirms before the entry fee is deducted.
+- [ ] Simulation formulas have a separate written proposal and explicit owner approval before implementation.
+- [ ] Race results show position, supported time/result, fee, prize, multiplier, XP, and net coin change.
+- [ ] Anti-farming multipliers are applied exactly as specified.
+- [ ] Athletes 3 or more levels above the race recommendation receive 0 XP and 0 gross prize coins.
+- [ ] Reopening results does not duplicate charges or rewards.
+- [ ] Result explanations only reference factors that affected the calculation.
+- [ ] Existing training formulas and behavior remain unchanged.
+- [ ] Configuration values are centralized and documented.
+- [ ] Relevant checks/build pass and the owner receives a change summary and manual test checklist.
+
+### 10.16 Required implementation report
+
+At the end of each stage, Claude Code must report:
+
+1. What was implemented.
+2. Files changed.
+3. Configuration values and existing systems reused.
+4. Tests and build results.
+5. Assumptions or limitations.
+6. Exact manual test steps for the owner.
+7. Confirmation that training logic and formulas were not changed.
+
+Do not merge to `main` or mark M4 complete without owner approval.
+
+### 10.17 Open points found against the implementation (developer, 29 October 2026)
+
+To be decided by the owner/PM before or during M4.1; not part of the PM text above.
+
+1. **Maximum level is 5** (`src/domain/athlete/levels.ts`, thresholds up to 700 XP). Mountain (recommended 6–7) and Elite (10–12) races can never be reached at their recommended level, so they always use the early-entry fee, and anti-farming never reduces their rewards.
+2. **No coin balance exists yet.** §9.1 proposes a starting balance of 100 coins, but the economy is not implemented. Existing careers have no coin field.
+3. **Milestone number:** `DEVELOPMENT.md` §11 already uses M4 for "PWA release candidate".
+4. **Entry before simulation:** in M4.1 there is no race result, so what a confirmed entry does until M4.2/M4.3 must be defined.
 
 ---
 
@@ -937,8 +1192,8 @@ The following systems require additional design before implementation:
 - Attribute adaptation amounts.
 - Full equipment catalogue and bonuses.
 - Economy and pricing.
-- Race catalogue.
-- Race simulation and strategy.
+- Race catalogue — specified in §10 (M4).
+- Race simulation and strategy — simulation model pending owner approval (M4.2); strategy not specified.
 - Rivals and rankings.
 - Season lifecycle and rewards.
 - Profile switching at season end.

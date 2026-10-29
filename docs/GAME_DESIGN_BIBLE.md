@@ -894,6 +894,8 @@ All screens must follow existing UI conventions, use English UI copy, and be res
 
 **M4.2 — Race simulation model (owner approval required)**
 
+*Proposal submitted: [`RACE_SIMULATION_PROPOSAL.md`](./RACE_SIMULATION_PROPOSAL.md) (29 October 2026), pending approval.*
+
 - Prepare a separate proposal for the simulation model, including segment types, input variables, formulas, determinism or randomness, result generation, and test cases.
 - Do not implement the simulation until the owner approves the model.
 - After approval, integrate it with existing athlete state without changing training formulas.

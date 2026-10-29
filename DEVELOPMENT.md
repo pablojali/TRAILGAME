@@ -661,6 +661,9 @@ later milestones were renumbered (PWA M5, native packaging M6, Strava/VTL M8).
 - **Training:** formulas and behaviour unchanged. One integration fix: completing a day rebuilt the
   game state from its own fields and would have dropped coins and entries; it now keeps every other
   field (`src/game-engine/training.ts`, tested).
+- **M4.2:** simulation model proposal written in
+  [`docs/RACE_SIMULATION_PROPOSAL.md`](./docs/RACE_SIMULATION_PROPOSAL.md) (29 October 2026),
+  awaiting owner approval (decisions D1–D8). Nothing of it is implemented.
 - **Limitations:** with 0 starting coins and no prizes until M4.3, only Open races can be entered in
   normal play; paid entry is testable by editing the save (see README). Multi-tab play is still
   last-write-wins.

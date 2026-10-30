@@ -77,6 +77,23 @@ function fakeAuth() {
         current = null
         return { error: null }
       },
+      async signInWithOAuth({ provider, options }) {
+        calls.push(`signInWithOAuth ${provider} ${options?.redirectTo}`)
+        const error = failure()
+        if (error) return { data: null, error }
+        return { data: { url: `https://accounts.example/${provider}?signin` }, error: null }
+      },
+      async signInWithPassword({ email, password }) {
+        calls.push('signInWithPassword')
+        const error = failure()
+        if (error) return { data: { user: null }, error }
+        const user = [...users.values()].find((u) => u.email === email)
+        if (!user || passwords.get(user.id) !== password) {
+          return { data: { user: null }, error: { code: 'invalid_credentials', status: 400 } }
+        }
+        current = user.id
+        return result(user)
+      },
     },
   }
 
@@ -121,13 +138,15 @@ function service(
   { storage = memoryStorage(), authReturn = null as AuthReturn | null } = {},
 ) {
   const navigations: string[] = []
+  const reloads: number[] = []
   const accounts = createAccountService(async () => auth.client, {
     redirectTo: 'https://trailgame.example/settings',
     authReturn,
     storage,
     navigate: (url) => navigations.push(url),
+    reload: () => reloads.push(1),
   })
-  return { accounts, navigations, storage }
+  return { accounts, navigations, storage, reloads }
 }
 
 describe('account status', () => {
@@ -355,5 +374,53 @@ describe('startup', () => {
       ensureSession: async () => auth.setCurrent('anon-1'),
     })
     await expect(accounts.status()).resolves.toEqual({ kind: 'anonymous', userId: 'anon-1' })
+  })
+})
+
+describe('signing in to an existing account (another device)', () => {
+  it('signs in with email and password, then restarts the app as that account', async () => {
+    const auth = fakeAuth()
+    auth.passwords.set('other', 'the-right-password')
+    const { accounts, reloads } = service(auth)
+    await expect(accounts.signInWithPassword('taken@example.com', 'wrong')).resolves.toMatchObject({
+      ok: false,
+      error: 'wrong-credentials',
+    })
+    expect(reloads).toEqual([])
+    await expect(accounts.signInWithPassword('taken@example.com', 'the-right-password')).resolves.toMatchObject({
+      ok: true,
+      signedIn: true,
+      status: { kind: 'linked', userId: 'other' },
+    })
+    expect(reloads).toEqual([1])
+  })
+
+  it('signs in with Google and checks on return that a permanent account with Google came back', async () => {
+    const auth = fakeAuth()
+    auth.users.get('other')!.identities = [{ provider: 'google' }]
+    const storage = memoryStorage()
+    const before = service(auth, { storage })
+    await expect(before.accounts.startOAuthSignIn('google')).resolves.toMatchObject({ ok: true })
+    expect(auth.calls).toContain('signInWithOAuth google https://trailgame.example/settings')
+    expect(auth.calls.filter((c) => c.startsWith('linkIdentity'))).toEqual([])
+    auth.setCurrent('other')
+    const after = service(auth, { storage, authReturn: { error: null, errorCode: null } })
+    await expect(after.accounts.completeRedirect()).resolves.toMatchObject({
+      ok: true,
+      signedIn: true,
+      status: { kind: 'linked', userId: 'other' },
+    })
+  })
+
+  it('a cancelled Google sign-in keeps the guest account', async () => {
+    const auth = fakeAuth()
+    const storage = memoryStorage()
+    await service(auth, { storage }).accounts.startOAuthSignIn('google')
+    const after = service(auth, { storage, authReturn: { error: 'access_denied', errorCode: null } })
+    await expect(after.accounts.completeRedirect()).resolves.toMatchObject({
+      ok: false,
+      error: 'cancelled',
+      status: { kind: 'anonymous', userId: 'anon-1' },
+    })
   })
 })

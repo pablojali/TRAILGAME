@@ -8,6 +8,7 @@ import type { BuyError, EquipError } from '../../game-engine/equipment'
 import type { AthleteIdentity, GameState } from '../../game-engine/gameState'
 import type { RaceDayError, RaceDayResult, RaceEntryError } from '../../game-engine/races'
 import type { DayRef, ExecutionResult, TrainingError } from '../../game-engine/training'
+import type { SyncConflict, SyncStatus } from '../../repositories/cloudSync'
 import type { IncompatibleReason } from '../../repositories/gameRepository'
 
 export type GamePhase =
@@ -21,6 +22,9 @@ export type GamePhase =
   | { kind: 'incompatible'; reason: IncompatibleReason }
   | { kind: 'playing'; state: GameState }
 
+/** A career came from the cloud: restored on this device, or newer from another device. */
+export type CloudNotice = 'restored' | 'updated'
+
 export interface DecayNotice {
   periods: number
   fitnessLost: number
@@ -32,6 +36,16 @@ export interface GameContextValue {
   saveFailed: boolean
   /** After `load-failed`, reads the save again. */
   retryLoad(): void
+  /** Cloud saves ('off' without Supabase). */
+  cloudStatus: SyncStatus
+  /** The device and the cloud hold different careers: the player must choose. */
+  syncConflict: SyncConflict | null
+  /** Keeps one career ('local': this device's; 'cloud': the account's). False if it failed. */
+  resolveSyncConflict(choice: 'local' | 'cloud'): Promise<boolean>
+  /** Tries the cloud again now. */
+  retrySync(): void
+  cloudNotice: CloudNotice | null
+  dismissCloudNotice(): void
   /** Fitness lost to inactivity when the game was last loaded or resumed. */
   decayNotice: DecayNotice | null
   dismissDecayNotice(): void

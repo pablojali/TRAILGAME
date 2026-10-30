@@ -1,0 +1,136 @@
+/* Cloud save indicator in the top bar. */
+.indicator {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  margin: calc(-1 * var(--space-2)) 0;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+}
+
+.dot {
+  position: absolute;
+  top: 12px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.indicator[data-status='syncing'] .dot,
+.indicator[data-status='pending'] .dot,
+.indicator[data-status='connecting'] .dot {
+  background: var(--accent-secondary);
+}
+
+.indicator[data-status='conflict'],
+.indicator[data-status='error'] {
+  color: #f2a48f;
+}
+
+.indicator[data-status='conflict'] .dot,
+.indicator[data-status='error'] .dot {
+  background: #f2a48f;
+}
+
+/* Conflict dialog: over the whole app, one explicit choice. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgb(0 0 0 / 0.7);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(100%, 480px);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+}
+
+.text {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.error {
+  color: #f2a48f;
+  font-size: var(--font-size-sm);
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+}
+
+.optionTitle {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.runner {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.facts div {
+  display: contents;
+}
+
+.facts dt {
+  color: var(--text-muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

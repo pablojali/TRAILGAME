@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
-# Tests the Supabase migrations on a throwaway LOCAL PostgreSQL database (never a Supabase
-# project): Supabase stand-ins, every migration in order, then supabase/tests/*.test.sql.
-# Needs a running local PostgreSQL and psql; PGUSER etc. as usual. Usage: npm run db:test
+# Tests the Supabase migrations on throwaway LOCAL PostgreSQL databases (never a Supabase
+# project): for each supabase/tests/*.test.sql, a fresh database with the Supabase stand-ins and
+# every migration in order, then the test. Needs a running local PostgreSQL and psql; PGUSER etc.
+# as usual. Usage: npm run db:test
 set -euo pipefail
 export PGOPTIONS="-c client_min_messages=notice"
 cd "$(dirname "$0")/.."
-DB="trailgame_test_$$"
-createdb "$DB"
-trap 'dropdb --if-exists "$DB"' EXIT
+DB=""
+trap '[ -n "$DB" ] && dropdb --if-exists "$DB"' EXIT
 run() { psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$1"; }
-run supabase/tests/supabase_stub.sql
-for migration in supabase/migrations/*.sql; do run "$migration"; done
-for test in supabase/tests/*.test.sql; do psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -o /dev/null -f "$test" 2>&1 | sed -e "s/^.*NOTICE:  //"; done
+for test in supabase/tests/*.test.sql; do
+  DB="trailgame_test_$$"
+  createdb "$DB"
+  run supabase/tests/supabase_stub.sql
+  for migration in supabase/migrations/*.sql; do run "$migration"; done
+  psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -o /dev/null -f "$test" 2>&1 | sed -e "s/^.*NOTICE:  //"
+  dropdb "$DB"
+  DB=""
+done

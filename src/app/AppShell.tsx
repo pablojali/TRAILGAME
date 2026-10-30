@@ -5,6 +5,8 @@ import { CareerCreationScreen } from '../features/career-setup/CareerCreationScr
 import { IncompatibleSaveScreen } from '../features/career-setup/IncompatibleSaveScreen'
 import button from '../components/Button.module.css'
 import { Screen } from '../components/Screen'
+import { ConflictDialog } from './cloud/ConflictDialog'
+import { SyncIndicator } from './cloud/SyncIndicator'
 import { useGame } from './game/gameContext'
 import { GameNotices } from './game/GameNotices'
 import { NAV_ITEMS } from './navigation'
@@ -34,6 +36,7 @@ export function AppShell() {
       <header className={styles.brandBar}>
         <span className={styles.brandMark} aria-hidden="true" />
         <span className={styles.brandName}>Trail Manager</span>
+        {!inSetup && <SyncIndicator />}
         {!inSetup && (
           <NavLink
             to="/settings"
@@ -88,6 +91,7 @@ export function AppShell() {
         </div>
       </main>
 
+      <ConflictDialog />
       <ScrollRestoration />
     </div>
   )

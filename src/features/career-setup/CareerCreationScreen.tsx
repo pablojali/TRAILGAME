@@ -20,6 +20,7 @@ import type { IncompatibleReason } from '../../repositories/gameRepository'
 import { AppearanceEditor } from '../appearance/AppearanceEditor'
 import { RunnerArt } from './RunnerArt'
 import styles from './CareerCreation.module.css'
+import { SignInLink } from './SignInLink'
 
 /** Preselected sex in the selector (spec: one option must be preselected). */
 const DEFAULT_SEX: Sex = 'female'
@@ -210,6 +211,7 @@ function ProfileStep({ headingRef, sex, onSexChange, index, onIndexChange, onCho
           Choose your athlete
         </h1>
         <p className={styles.help}>Swipe to compare profiles, then choose one.</p>
+        <SignInLink />
       </header>
 
       <SexToggle sex={sex} onChange={onSexChange} />

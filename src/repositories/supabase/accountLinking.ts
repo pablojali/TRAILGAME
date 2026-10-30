@@ -40,6 +40,12 @@ export interface AccountClient {
       options?: { redirectTo?: string }
     }): Promise<{ data: { url?: string | null } | null; error: AuthError | null }>
     signOut(): Promise<{ error: AuthError | null }>
+    /** Signs in to another (permanent) account, replacing this device's session. */
+    signInWithOAuth(credentials: {
+      provider: 'google' | 'apple'
+      options?: { redirectTo?: string }
+    }): Promise<{ data: { url?: string | null } | null; error: AuthError | null }>
+    signInWithPassword(credentials: { email: string; password: string }): UserResult
   }
 }
 
@@ -70,9 +76,14 @@ export type AccountError =
   | 'cancelled'
   | 'different-account'
   | 'busy'
+  | 'wrong-credentials'
+  | 'email-not-confirmed'
   | 'failed'
 
-export type LinkResult = { ok: true; status: AccountStatus } | { ok: false; error: AccountError; status: AccountStatus }
+export type LinkResult =
+  /** `signedIn`: the device now uses another, existing account (sign-in, not linking). */
+  | { ok: true; status: AccountStatus; signedIn?: true }
+  | { ok: false; error: AccountError; status: AccountStatus }
 
 /** Player-facing explanations; the account and the career are unchanged by every failure. */
 export const ACCOUNT_ERROR_TEXT: Record<AccountError, string> = {
@@ -94,6 +105,8 @@ export const ACCOUNT_ERROR_TEXT: Record<AccountError, string> = {
   'different-account':
     'The sign-in returned a different account, so it was not used. Your career on this device is unchanged.',
   busy: 'Already working on it.',
+  'wrong-credentials': 'Wrong email or password.',
+  'email-not-confirmed': 'Confirm your email first: open the link we sent you.',
   failed: 'Something went wrong. Your guest account is unchanged; try again.',
 }
 
@@ -105,6 +118,8 @@ export const PENDING_LINK_KEY = 'trailgame.pendingLink'
 interface PendingLink {
   userId: string
   provider: LinkProvider
+  /** 'link' (default): add the identity to this user. 'signin': switch to the account that has it. */
+  mode?: 'link' | 'signin'
 }
 
 /** What an auth redirect brought back in the URL: error codes only, never tokens. */
@@ -153,6 +168,10 @@ function errorOf(error: AuthError | null | undefined): AccountError {
       return 'weak-password'
     case 'same_password':
       return 'same-password'
+    case 'invalid_credentials':
+      return 'wrong-credentials'
+    case 'email_not_confirmed':
+      return 'email-not-confirmed'
     case 'over_email_send_rate_limit':
     case 'over_request_rate_limit':
       return 'rate-limited'
@@ -186,7 +205,14 @@ export interface AccountService {
    * started linking and now has the identity. Null when no linking was in progress.
    */
   completeRedirect(): Promise<LinkResult | null>
-  /** Signs out, only when the player asks (not offered in the UI yet: there is no sign-in screen). */
+  /**
+   * Signs this device in to an account linked before (on another device), replacing the guest
+   * session. The browser leaves for the provider; `completeRedirect` checks the result.
+   */
+  startOAuthSignIn(provider: LinkProvider): Promise<LinkResult>
+  /** Signs in with email and password; on success the app restarts as that account. */
+  signInWithPassword(email: string, password: string): Promise<LinkResult>
+  /** Signs out, only when the player asks (not offered in the UI yet). */
   signOut(): Promise<void>
 }
 
@@ -199,6 +225,8 @@ interface AccountServiceOptions {
   storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null
   /** Sends the browser to the provider (tests record it instead). */
   navigate(url: string): void
+  /** Restarts the app after switching accounts, so every part starts as the new user. */
+  reload?(): void
   /**
    * Waits for the player's session (the shared anonymous sign-in, which never signs in twice), so
    * opening Settings right at startup does not read the account before it exists.
@@ -314,6 +342,44 @@ export function createAccountService(load: () => Promise<AccountClient>, options
       })
     },
 
+    startOAuthSignIn(provider) {
+      return exclusive(async () => {
+        const before = await currentUser()
+        const start = statusOf(before.user)
+        const client = await load()
+        try {
+          options.storage?.setItem(
+            PENDING_LINK_KEY,
+            JSON.stringify({ userId: before.user?.id ?? '', provider, mode: 'signin' } satisfies PendingLink),
+          )
+        } catch {
+          // The return is still checked with the Auth server.
+        }
+        const { data, error } = await client.auth.signInWithOAuth({ provider, options: { redirectTo: options.redirectTo } })
+        if (error || !data?.url) {
+          clearPending()
+          return { ok: false, error: errorOf(error), status: start }
+        }
+        options.navigate(data.url)
+        return { ok: true, status: start }
+      })
+    },
+
+    signInWithPassword(email, password) {
+      return exclusive(async () => {
+        const start = await status()
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || !password) {
+          return { ok: false, error: 'wrong-credentials', status: start }
+        }
+        const client = await load()
+        const { data, error } = await client.auth.signInWithPassword({ email: email.trim(), password })
+        if (error || !data.user) return { ok: false, error: errorOf(error), status: start }
+        const now = statusOf(data.user)
+        options.reload?.()
+        return { ok: true, status: now, signedIn: true }
+      })
+    },
+
     async completeRedirect() {
       const pending = readPending()
       if (!pending) return null
@@ -331,6 +397,13 @@ export function createAccountService(load: () => Promise<AccountClient>, options
         return { ok: false, error, status: now }
       }
       if (!after.user) return { ok: false, error: errorOf(after.error), status: now }
+      if (pending.mode === 'signin') {
+        // Signing in switches accounts: proof is a permanent account with that identity.
+        if (now.kind !== 'linked' || !now.providers.includes(pending.provider)) {
+          return { ok: false, error: 'not-linked', status: now }
+        }
+        return { ok: true, status: now, signedIn: true }
+      }
       // Proof of linking is the Auth server's user: the same id, now with the identity.
       if (after.user.id !== pending.userId) return { ok: false, error: 'different-account', status: now }
       if (now.kind !== 'linked' || !now.providers.includes(pending.provider)) {
@@ -361,6 +434,7 @@ export function getAccountService(): AccountService | null {
             authReturn: startupReturn,
             storage: safeSessionStorage(),
             navigate: (url) => window.location.assign(url),
+            reload: () => window.location.reload(),
             ensureSession: () => getPlayerIdentity()?.start() ?? Promise.resolve(null),
           })
         : null

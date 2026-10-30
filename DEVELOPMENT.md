@@ -952,6 +952,19 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Phase 2C: cloud saves (30 October 2026)
+
+- The career is saved locally first, then uploaded through `save_my_career` (optimistic
+  concurrency on `careers.version`; race entries and equipment mirrored). Play never waits for
+  the network. Engine: `src/repositories/cloudSync.ts` (pure decisions in `decide`, tested apart
+  from Supabase); store: `src/repositories/supabase/supabaseCareerStore.ts`.
+- Startup: upload a local-only career, restore a cloud-only one, upload or adopt when only one side
+  changed since the last sync, otherwise the player chooses in a dialog (never merged). Offline:
+  pending, retried with backoff, online/visibility events and at the next startup.
+- UI: cloud indicator in the top bar, conflict dialog, restore notice, Settings → Cloud save, and
+  sign-in to an existing account (Settings, and the first career screen).
+- The cloud copy is a backup, not anti-cheat. Details: docs/SUPABASE_SETUP.md.
+
 ### Phase 2B: account linking (30 October 2026)
 
 - Settings → **Account**: guest (anonymous) or linked; link an email (confirmation link, then an

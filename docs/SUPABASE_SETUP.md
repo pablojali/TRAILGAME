@@ -1,8 +1,8 @@
 # Supabase setup (M7)
 
-**Status (30 October 2026, Phase 2A):** players get an anonymous Supabase identity in the
-background, and a new career also creates the player's remote career record. The game is still
-played and saved only in this browser (localStorage): there are no remote saves yet.
+**Status (30 October 2026, Phase 2C):** players get an anonymous Supabase identity, can link it
+to email or Google, and their career is saved on the device and in the cloud, restored on another
+device and protected against silent overwrites (see Phase 2C below).
 
 ## What exists
 
@@ -146,15 +146,96 @@ career and local progress stay as they are. It is optional and never blocks play
    generated client secret (it expires every 6 months and must be renewed). Apple requires Sign
    in with Apple in iOS apps that offer Google, so it is needed before the App Store release.
 
-### Existing local careers (Phase 2C)
+## Phase 2C: cloud saves, restore on another device, conflicts
 
-A career already saved on the device is left untouched and no remote career is created for it.
-Phase 2C will import it: validate it with `parseGameState`, then create the remote career from it
-through a server-side function that checks it (instead of `create_my_career`, which only accepts
-new careers). Until then the local save stays the only copy of that career.
+**The career is saved on the device first and then in the cloud.** Play never waits for the
+network; the cloud copy is a backup and the way to play on another device. It is **not
+anti-cheat**: the values come from the client and must not be trusted for future competitive
+features (that needs server-side game operations).
+
+| Part | File |
+|---|---|
+| `save_my_career`, snapshot checks, mirror of race entries and equipment | `supabase/migrations/20261030200000_career_sync.sql` |
+| Sync engine (decide, upload, retry, conflicts; no Supabase inside) | `src/repositories/cloudSync.ts` |
+| Supabase career store (read own row, write through the function) | `src/repositories/supabase/supabaseCareerStore.ts` |
+| Wiring | `src/repositories/supabase/cloudSave.ts`, `src/app/game/GameProvider.tsx` |
+| Cloud indicator, conflict dialog, restore notice | `src/app/cloud/` |
+| Cloud save card, sign-in to an existing account | `src/features/settings/` |
+
+### Persistence architecture
+
+- **One active GameState** (in `GameProvider`). Every change is saved to localStorage first (the
+  save queue); every successful local save is then handed to the cloud sync.
+- **Cloud copy:** the whole snapshot in `careers.game_state`, written only through
+  `save_my_career(snapshot, schema_version, base_version)` (security definer). It checks the
+  shape and schema version, writes only the caller's career, and saves **only if `base_version` is
+  the cloud's current version**; otherwise it writes nothing and returns the current version.
+  `race_entries` and `owned_equipment` are rewritten from the snapshot in the same transaction, so
+  they always match it. `coin_transactions` stays empty (no server-side coin operations yet).
+- **Device record** (`trailgame.sync` in localStorage, per user): the cloud version the device
+  last synced with, a fingerprint of that career and whether local changes are pending.
+
+### At startup
+
+The local career is played at once. Then, in the background, it is compared with the cloud:
+
+| Device | Cloud | What happens |
+|---|---|---|
+| Career | None | Uploaded as the cloud career (first migration). Confirmed before marked synced. |
+| None | Career | Restored (after checking its schema version and content); no new career is offered. With no local career the game waits up to 3 s for it on the loading screen. |
+| Same career | Same career | Nothing to do. |
+| Changed since last sync | Unchanged since last sync | The device's career is uploaded. |
+| Unchanged since last sync | Changed (another device) | The newer cloud career replaces it, with a notice. |
+| Different, both changed or never synced here | | **The player chooses** (dialog). |
+| None | None | A new career; uploaded (created once) when started. |
+
+Careers created in Phase 2A (an untouched Level 1 copy of the same runner in the cloud) are simply
+replaced by the device's progress, without asking. A damaged or unsupported cloud copy is never
+loaded: if the device has a career, the dialog offers to keep it.
+
+### Conflicts
+
+The dialog shows both careers (runner, level, week, coins, races) and needs an explicit choice;
+careers are never mixed. **Keep this device's career** replaces exactly the cloud version shown
+(if the cloud changed again meanwhile, nothing is written and the new difference is shown).
+**Keep the cloud career** plays it on the device; the replaced local career is kept as a copy in
+`trailgame.save.backup`. Until the choice is saved both careers are unchanged; uploads pause.
+
+### Ongoing sync, offline and retries
+
+- Uploads are debounced (2 s; rapid saves become one upload), one at a time, each on the version
+  the previous one returned, so an older snapshot cannot overwrite a newer one.
+- A refused upload (another device wrote first) is never forced: the cloud is read again and, if
+  the careers differ, the player chooses.
+- Offline: play and local saves continue; the indicator shows "pending"; retries after 5 s,
+  doubling up to 5 min, and immediately when the browser is back online, when the app becomes
+  visible again, from **Settings → Cloud save → Retry now**, or at the next startup (the pending
+  flag is stored).
+
+### Accounts and devices
+
+- **Guest (anonymous):** saved locally and in the cloud. If the browser's data is lost, a guest
+  account cannot be recovered on another device; linking it (Settings → Account) makes it
+  recoverable.
+- **Linked account on another device:** **Settings → Account → Sign in to an existing account**,
+  or on a new device the career screen's **"Already playing on another device? Sign in"** (Google
+  or email + password). The account's cloud career is restored; if the device already has a
+  different career, the player chooses.
+- **Reset demo** starts a new career that then replaces the one in the cloud (the confirmation
+  says so).
+
+### Supabase configuration
+
+- Migration `20261030200000_career_sync.sql` (applied by the owner in the SQL Editor on 30 October
+  2026, then verified with the connector). No dashboard setting is needed beyond Phases 2A–2B.
+- Security advisor: `save_my_career` and `create_my_career` are security definer functions that
+  players may call (intended: they are the only ways to write a career, and they check the
+  caller). "Anonymous access policies" are intended (guests are players reading their own rows).
+  Optional: enable **leaked password protection** (Authentication → Password security).
+- `create_my_career` is no longer used by the app (the sync creates careers); it can be removed in
+  a later migration.
 
 ## Not done yet (next phases)
 
-Remote saves and the import of existing local careers (Phase 2C and later), Sign in with Apple, a
-sign-in screen for linked accounts on a new device, Edge Functions for coins, XP and race results,
-writing the coin ledger.
+Sign in with Apple, server-side game operations (Edge Functions for coins, XP and race results,
+anti-cheat), writing the coin ledger, sign-out, native packaging.

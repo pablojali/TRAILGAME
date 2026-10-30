@@ -311,7 +311,7 @@ function TodayActions({ state, selectId, error, cooldown, onPlan, onComplete }: 
             {session.description}
             {today.session === 'rest' &&
               (isRecoveryRest(state)
-                ? ' Recovery rest after a training day: Fitness +1.'
+                ? ' Recovery rest after a training day: Fitness kept.'
                 : ' A second rest in a row: Fitness −2.')}
           </p>
         )}

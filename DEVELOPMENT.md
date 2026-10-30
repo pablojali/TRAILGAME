@@ -820,8 +820,12 @@ After the 16-week simulation (`docs/SEASON_SIMULATION_16W.md`) showed a sensible
 Fitness 0 by week 6:
 - **Decay only for days not played:** completing any day (training, race or Rest) resets the
   Fitness decay reference (`completeCurrentDay`). The decay notice now says "without playing".
-- **Recovery Rest:** a Rest right after a training day or race gives Fitness +1 instead of −2
-  (`RECOVERY_REST_FITNESS`, `isRecoveryRest`). A second Rest in a row keeps −2; forced Rest after
+- **Grace day:** the first full 24 h without playing costs nothing (`DECAY_GRACE_PERIODS`), so
+  playing once a day at the same time never decays (it cost 1 a day before). The reference only
+  advances by the periods charged, so the free day is never granted twice in one absence.
+- **Recovery Rest:** a Rest right after a training day or race keeps Fitness (0 instead of −2;
+  `RECOVERY_REST_FITNESS`, `isRecoveryRest`). It was +1 first; at +1 a sensible player reached
+  Fitness 96 at level 3 and won every Open race from week 8 (owner chose option b: 0). A second Rest in a row keeps −2; forced Rest after
   an injury always −2. Today's hint and the planned effects of future days show which applies.
 - **Previous day:** saved as `previousDayActive` (set by every completed day, so it carries from
   Sunday to Monday). Older saves derive it from the previous day of the current week; on Monday it

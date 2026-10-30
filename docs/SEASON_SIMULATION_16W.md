@@ -1,7 +1,8 @@
 # 16-week season simulation (owner request, 30 October 2026)
 
-**Update after recovery Rest and decay on played days (same day):** the second simulation is at the
-end of this file ("After the fix"). The first one below describes the rules before the fix.
+**Updates (same day):** after recovery Rest (+1) and decay on played days, see "After the fix";
+after option b (recovery Rest 0) and the 24 h grace day, see "Final rules" at the end. The first
+simulation below describes the rules before any fix.
 
 Real engine (training, races, attribute points, shop, Fitness decay), values on `main` after the
 merge of 30 October 2026. One race every 2 weeks (Sundays of weeks 2, 4, …, 16). Analysis only.
@@ -379,3 +380,120 @@ takes 1 Fitness a day. C: default plan never changed.
 | 12 | 3 | 414 | 0 | 56 | 21/16/15/14/18/16 | 20 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #50, 0:57:50, +10 coins, +3 XP |
 | 14 | 4 | 492 | 3 | 83 | 21/16/15/14/19/17 | 5 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #50, 0:59:33, +10 coins, +3 XP |
 | 16 | 4 | 558 | 0 | 100 | 21/16/15/14/19/17 | 15 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #50, 0:58:08, +10 coins, +0 XP, INJURED |
+
+
+# Final rules: recovery Rest keeps Fitness (option b) and a 24 h grace day
+
+Played exactly every 24 h (the former worst case). **Decay: 0 lost in every run.** Fitness still
+grows about +6.5 a week for a sensible player: 76 at week 8 (level 3), 98 at week 12 (level 4). The
+runner wins the level-4 Open race from week 8. Option b halves the growth but does not stop Fitness
+outrunning levels: the typical runner of a field reaches 90 only at level 30. Open point for the
+owner: a Fitness cap tied to the level, or smaller session gains.
+
+## A. Sensible player, one game day every 24 h (same time every day)
+
+### Climber — injuries: 0, Fitness lost to decay: 0
+
+| Week | Lvl | XP | Fit | Fat | End/Clm/Spd/Tec/Rec/Con | Coins | Gear | Race (Sunday) |
+|---|---|---|---|---|---|---|---|---|
+| 2 | 1 | 99 | 37 | 40 | 16/20/13/18/14/15 | 10 | Poles · Lvl 1 | Forest First Steps (L4): #28, 0:47:04, +10 coins, +3 XP |
+| 4 | 2 | 178 | 50 | 40 | 17/21/13/18/14/15 | 20 | Poles · Lvl 1 | Forest First Steps (L4): #28, 0:47:00, +10 coins, +3 XP |
+| 6 | 3 | 257 | 63 | 40 | 17/21/14/19/14/15 | 0 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #17, 0:42:49, +10 coins, +3 XP |
+| 8 | 3 | 348 | 76 | 40 | 17/21/14/19/14/15 | 15 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #3, 0:38:56, +50 coins, +15 XP |
+| 10 | 4 | 454 | 89 | 40 | 17/21/14/19/15/16 | 65 | Hydration backpack · Lvl 1, Trail shoes · Lvl 1, Poles · Lvl 2 | Forest First Steps (L4): #1, 0:37:46, +100 coins, +30 XP |
+| 12 | 4 | 560 | 98 | 40 | 17/21/14/19/15/16 | 5 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Forest First Steps (L4): #1, 0:34:28, +100 coins, +30 XP |
+| 14 | 4 | 666 | 98 | 40 | 17/21/14/19/15/16 | 105 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Forest First Steps (L4): #1, 0:33:13, +100 coins, +30 XP |
+| 16 | 5 | 772 | 98 | 42 | 18/22/14/19/15/16 | 205 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Riverside Trail (L6): #1, 0:57:20, +100 coins, +30 XP |
+
+### Sprinter — injuries: 0, Fitness lost to decay: 0
+
+| Week | Lvl | XP | Fit | Fat | End/Clm/Spd/Tec/Rec/Con | Coins | Gear | Race (Sunday) |
+|---|---|---|---|---|---|---|---|---|
+| 2 | 1 | 99 | 37 | 40 | 13/12/20/17/16/18 | 10 | Poles · Lvl 1 | Forest First Steps (L4): #22, 0:44:40, +10 coins, +3 XP |
+| 4 | 2 | 178 | 50 | 40 | 14/13/20/17/16/18 | 20 | Poles · Lvl 1 | Forest First Steps (L4): #21, 0:44:30, +10 coins, +3 XP |
+| 6 | 3 | 261 | 63 | 40 | 14/13/21/18/16/18 | 15 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #10, 0:40:41, +25 coins, +7 XP |
+| 8 | 3 | 367 | 76 | 40 | 14/13/21/18/16/18 | 30 | Hydration backpack · Lvl 1, Trail shoes · Lvl 1, Poles · Lvl 2 | Forest First Steps (L4): #1, 0:37:04, +100 coins, +30 XP |
+| 10 | 4 | 473 | 89 | 40 | 14/13/21/18/17/19 | 60 | Hydration backpack · Lvl 1, Poles · Lvl 2, Light trail shoes · Lvl 2 | Forest First Steps (L4): #1, 0:35:42, +100 coins, +30 XP |
+| 12 | 4 | 579 | 98 | 40 | 14/13/21/18/17/19 | 70 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Forest First Steps (L4): #1, 0:32:09, +100 coins, +30 XP |
+| 14 | 4 | 685 | 98 | 40 | 14/13/21/18/17/19 | 170 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Forest First Steps (L4): #1, 0:31:52, +100 coins, +30 XP |
+| 16 | 5 | 791 | 98 | 42 | 15/14/21/18/17/19 | 270 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Riverside Trail (L6): #1, 0:55:22, +100 coins, +30 XP |
+
+### All-rounder — injuries: 0, Fitness lost to decay: 0
+
+| Week | Lvl | XP | Fit | Fat | End/Clm/Spd/Tec/Rec/Con | Coins | Gear | Race (Sunday) |
+|---|---|---|---|---|---|---|---|---|
+| 2 | 1 | 99 | 37 | 40 | 16/16/16/16/16/16 | 10 | Poles · Lvl 1 | Forest First Steps (L4): #24, 0:45:35, +10 coins, +3 XP |
+| 4 | 2 | 178 | 50 | 40 | 17/17/16/16/16/16 | 20 | Poles · Lvl 1 | Forest First Steps (L4): #24, 0:45:30, +10 coins, +3 XP |
+| 6 | 3 | 257 | 63 | 40 | 17/17/17/17/16/16 | 0 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #13, 0:41:32, +10 coins, +3 XP |
+| 8 | 3 | 363 | 76 | 40 | 17/17/17/17/16/16 | 15 | Hydration backpack · Lvl 1, Trail shoes · Lvl 1, Poles · Lvl 2 | Forest First Steps (L4): #1, 0:37:48, +100 coins, +30 XP |
+| 10 | 4 | 469 | 89 | 40 | 17/17/17/17/17/17 | 45 | Hydration backpack · Lvl 1, Poles · Lvl 2, Light trail shoes · Lvl 2 | Forest First Steps (L4): #1, 0:36:25, +100 coins, +30 XP |
+| 12 | 4 | 575 | 98 | 40 | 17/17/17/17/17/17 | 55 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Forest First Steps (L4): #1, 0:32:42, +100 coins, +30 XP |
+| 14 | 4 | 681 | 98 | 40 | 17/17/17/17/17/17 | 155 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Forest First Steps (L4): #1, 0:32:24, +100 coins, +30 XP |
+| 16 | 5 | 787 | 98 | 42 | 18/18/17/17/17/17 | 255 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Riverside Trail (L6): #1, 0:56:05, +100 coins, +30 XP |
+
+### Endurance — injuries: 0, Fitness lost to decay: 0
+
+| Week | Lvl | XP | Fit | Fat | End/Clm/Spd/Tec/Rec/Con | Coins | Gear | Race (Sunday) |
+|---|---|---|---|---|---|---|---|---|
+| 2 | 1 | 99 | 37 | 40 | 20/15/14/13/18/16 | 10 | Poles · Lvl 1 | Forest First Steps (L4): #25, 0:45:47, +10 coins, +3 XP |
+| 4 | 2 | 178 | 50 | 40 | 21/16/14/13/18/16 | 20 | Poles · Lvl 1 | Forest First Steps (L4): #24, 0:45:42, +10 coins, +3 XP |
+| 6 | 3 | 257 | 63 | 40 | 21/16/15/14/18/16 | 0 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #13, 0:41:42, +10 coins, +3 XP |
+| 8 | 3 | 363 | 76 | 40 | 21/16/15/14/18/16 | 15 | Hydration backpack · Lvl 1, Trail shoes · Lvl 1, Poles · Lvl 2 | Forest First Steps (L4): #1, 0:37:58, +100 coins, +30 XP |
+| 10 | 4 | 469 | 89 | 40 | 21/16/15/14/19/17 | 45 | Hydration backpack · Lvl 1, Poles · Lvl 2, Light trail shoes · Lvl 2 | Forest First Steps (L4): #1, 0:36:33, +100 coins, +30 XP |
+| 12 | 4 | 575 | 98 | 40 | 21/16/15/14/19/17 | 55 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Forest First Steps (L4): #1, 0:32:49, +100 coins, +30 XP |
+| 14 | 4 | 681 | 98 | 40 | 21/16/15/14/19/17 | 155 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Forest First Steps (L4): #1, 0:32:31, +100 coins, +30 XP |
+| 16 | 5 | 787 | 98 | 42 | 22/17/15/14/19/17 | 255 | Poles · Lvl 2, Light trail shoes · Lvl 2, Hydration backpack · Lvl 2 | Riverside Trail (L6): #1, 0:56:13, +100 coins, +30 XP |
+
+## C. Default plan never changed, one game day every 24 h
+
+### Climber — injuries: 9, Fitness lost to decay: 0
+
+| Week | Lvl | XP | Fit | Fat | End/Clm/Spd/Tec/Rec/Con | Coins | Gear | Race (Sunday) |
+|---|---|---|---|---|---|---|---|---|
+| 2 | 2 | 117 | 42 | 64 | 17/21/13/18/14/15 | 10 | Poles · Lvl 1 | Forest First Steps (L4): #33, 0:49:04, +10 coins, +3 XP |
+| 4 | 2 | 183 | 30 | 60 | 17/21/13/18/14/15 | 10 | Poles · Lvl 1 | — |
+| 6 | 3 | 261 | 19 | 86 | 17/21/14/19/14/15 | 0 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #50, 0:57:48, +10 coins, +3 XP |
+| 8 | 3 | 327 | 0 | 100 | 17/21/14/19/14/15 | 10 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #50, 0:59:29, +10 coins, +0 XP, INJURED |
+| 10 | 3 | 384 | 0 | 91 | 17/21/14/19/14/15 | 10 | Poles · Lvl 1, Hydration backpack · Lvl 1 | — |
+| 12 | 3 | 414 | 0 | 56 | 17/21/14/19/14/15 | 20 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #50, 0:59:53, +10 coins, +3 XP |
+| 14 | 4 | 492 | 3 | 83 | 17/21/14/19/15/16 | 5 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #50, 0:58:09, +10 coins, +3 XP |
+| 16 | 4 | 558 | 0 | 100 | 17/21/14/19/15/16 | 15 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #50, 1:01:57, +10 coins, +0 XP, INJURED |
+
+### Sprinter — injuries: 9, Fitness lost to decay: 0
+
+| Week | Lvl | XP | Fit | Fat | End/Clm/Spd/Tec/Rec/Con | Coins | Gear | Race (Sunday) |
+|---|---|---|---|---|---|---|---|---|
+| 2 | 2 | 117 | 42 | 64 | 14/13/20/17/16/18 | 10 | Poles · Lvl 1 | Forest First Steps (L4): #26, 0:46:22, +10 coins, +3 XP |
+| 4 | 2 | 183 | 30 | 60 | 14/13/20/17/16/18 | 10 | Poles · Lvl 1 | — |
+| 6 | 3 | 261 | 19 | 86 | 14/13/21/18/16/18 | 0 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #45, 0:54:34, +10 coins, +3 XP |
+| 8 | 3 | 327 | 0 | 100 | 14/13/21/18/16/18 | 10 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #48, 0:56:07, +10 coins, +0 XP, INJURED |
+| 10 | 3 | 384 | 0 | 91 | 14/13/21/18/16/18 | 10 | Poles · Lvl 1, Hydration backpack · Lvl 1 | — |
+| 12 | 3 | 414 | 0 | 56 | 14/13/21/18/16/18 | 20 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #49, 0:56:36, +10 coins, +3 XP |
+| 14 | 4 | 492 | 3 | 83 | 14/13/21/18/17/19 | 5 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #46, 0:55:02, +10 coins, +3 XP |
+| 16 | 4 | 558 | 0 | 100 | 14/13/21/18/17/19 | 15 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #50, 0:58:33, +10 coins, +0 XP, INJURED |
+
+### All-rounder — injuries: 9, Fitness lost to decay: 0
+
+| Week | Lvl | XP | Fit | Fat | End/Clm/Spd/Tec/Rec/Con | Coins | Gear | Race (Sunday) |
+|---|---|---|---|---|---|---|---|---|
+| 2 | 2 | 117 | 42 | 64 | 17/17/16/16/16/16 | 10 | Poles · Lvl 1 | Forest First Steps (L4): #29, 0:47:28, +10 coins, +3 XP |
+| 4 | 2 | 183 | 30 | 60 | 17/17/16/16/16/16 | 10 | Poles · Lvl 1 | — |
+| 6 | 3 | 261 | 19 | 86 | 17/17/17/17/16/16 | 0 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #48, 0:55:56, +10 coins, +3 XP |
+| 8 | 3 | 327 | 0 | 100 | 17/17/17/17/16/16 | 10 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #50, 0:57:34, +10 coins, +0 XP, INJURED |
+| 10 | 3 | 384 | 0 | 91 | 17/17/17/17/16/16 | 10 | Poles · Lvl 1, Hydration backpack · Lvl 1 | — |
+| 12 | 3 | 414 | 0 | 56 | 17/17/17/17/16/16 | 20 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #50, 0:58:00, +10 coins, +3 XP |
+| 14 | 4 | 492 | 3 | 83 | 17/17/17/17/17/17 | 5 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #49, 0:56:21, +10 coins, +3 XP |
+| 16 | 4 | 558 | 0 | 100 | 17/17/17/17/17/17 | 15 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #50, 1:00:02, +10 coins, +0 XP, INJURED |
+
+### Endurance — injuries: 9, Fitness lost to decay: 0
+
+| Week | Lvl | XP | Fit | Fat | End/Clm/Spd/Tec/Rec/Con | Coins | Gear | Race (Sunday) |
+|---|---|---|---|---|---|---|---|---|
+| 2 | 2 | 117 | 42 | 64 | 21/16/14/13/18/16 | 10 | Poles · Lvl 1 | Forest First Steps (L4): #29, 0:47:40, +10 coins, +3 XP |
+| 4 | 2 | 183 | 30 | 60 | 21/16/14/13/18/16 | 10 | Poles · Lvl 1 | — |
+| 6 | 3 | 261 | 19 | 86 | 21/16/15/14/18/16 | 0 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #48, 0:56:09, +10 coins, +3 XP |
+| 8 | 3 | 327 | 0 | 100 | 21/16/15/14/18/16 | 10 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #50, 0:57:49, +10 coins, +0 XP, INJURED |
+| 10 | 3 | 384 | 0 | 91 | 21/16/15/14/18/16 | 10 | Poles · Lvl 1, Hydration backpack · Lvl 1 | — |
+| 12 | 3 | 414 | 0 | 56 | 21/16/15/14/18/16 | 20 | Poles · Lvl 1, Hydration backpack · Lvl 1 | Forest First Steps (L4): #50, 0:58:14, +10 coins, +3 XP |
+| 14 | 4 | 492 | 3 | 83 | 21/16/15/14/19/17 | 5 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #49, 0:56:35, +10 coins, +3 XP |
+| 16 | 4 | 558 | 0 | 100 | 21/16/15/14/19/17 | 15 | Poles · Lvl 1, Hydration backpack · Lvl 1, Trail shoes · Lvl 1 | Forest First Steps (L4): #50, 1:00:17, +10 coins, +0 XP, INJURED |

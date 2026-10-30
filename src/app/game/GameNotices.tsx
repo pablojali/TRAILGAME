@@ -16,8 +16,8 @@ export function GameNotices() {
       {decayNotice && decayNotice.fitnessLost > 0 && (
         <div className={styles.notice}>
           <p>
-            Fitness −{decayNotice.fitnessLost}: {decayNotice.periods} full{' '}
-            {decayNotice.periods === 1 ? 'day' : 'days'} without playing.
+            Fitness −{decayNotice.fitnessLost}: {decayNotice.periods}{' '}
+            {decayNotice.periods === 1 ? 'day' : 'days'} without playing, after the first free day.
           </p>
           <button type="button" className={styles.dismiss} onClick={dismissDecayNotice}>
             Dismiss

@@ -190,8 +190,8 @@ describe('executeCurrentDay', () => {
     expect(state.week.days.map((d) => d.session)).toEqual(DEFAULT_WEEK_PLAN)
     expect(state.week.days.every((d) => d.outcome === null)).toBe(true)
     expect(state.athlete.xp).toBe(WEEK_XP)
-    // Default plan: +2 +3, then each Rest follows a training day (recovery Rest, +1): +1 +3 +1 +3 +1.
-    expect(state.athlete.fitness).toBe(20 + 14)
+    // Default plan: +2 +3, then each Rest follows a training day (recovery Rest keeps Fitness): +0 +3 +0 +3 +0.
+    expect(state.athlete.fitness).toBe(20 + 11)
   })
 
   it('accumulates XP across weeks and never decreases it', () => {
@@ -230,15 +230,15 @@ describe('executeCurrentDay', () => {
   })
 
   describe('recovery Rest (owner decision, 30 October 2026)', () => {
-    it('gains 1 Fitness right after a training day; a second Rest in a row loses 2', () => {
+    it('keeps Fitness right after a training day; a second Rest in a row loses 2', () => {
       const trained = execute(newGame()).state // Easy run: Fitness 22
       expect(trained.previousDayActive).toBe(true)
-      expect(previewSession(trained, 'rest').fitnessChange).toBe(1)
+      expect(previewSession(trained, 'rest').fitnessChange).toBe(0)
       const rested = execute(withSession(trained, 'rest')).state
-      expect(rested.athlete.fitness).toBe(23)
+      expect(rested.athlete.fitness).toBe(22)
       expect(rested.previousDayActive).toBe(false)
       expect(previewSession(rested, 'rest').fitnessChange).toBe(-2)
-      expect(execute(withSession(rested, 'rest')).state.athlete.fitness).toBe(21)
+      expect(execute(withSession(rested, 'rest')).state.athlete.fitness).toBe(20)
     })
 
     it('gives no bonus at the start of a career or on forced Rest after an injury', () => {
@@ -253,7 +253,8 @@ describe('executeCurrentDay', () => {
       for (let i = 0; i < 6; i++) state = execute(state).state
       state = execute(withSession(state, 'long-run')).state // Sunday
       expect(state.week.number).toBe(2)
-      expect(previewSession(state, 'rest').fitnessChange).toBe(1)
+      expect(state.previousDayActive).toBe(true)
+      expect(previewSession(state, 'rest').fitnessChange).toBe(0)
     })
   })
 })

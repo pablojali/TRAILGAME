@@ -2,9 +2,10 @@
 --
 -- Training days, race days and attribute points now run on the server (Edge Function
 -- `career-ops`, which reuses the game's TypeScript engine). The server owns XP, level, Fitness,
--- Fatigue, attributes, the completed days of the week and race results. Clients can no longer
--- write career snapshots: `save_my_career` and `create_my_career` are removed, and every write goes
--- through `commit_career`, which only the Edge Function (service role) may call.
+-- Fatigue, attributes, the completed days of the week and race results. Every write goes
+-- through `commit_career`, which only the Edge Function (service role) may call. The client
+-- writers `save_my_career` and `create_my_career` are removed by the next migration
+-- (20261031090100), applied when the client that uses the Edge Function is released.
 -- RLS and table privileges stay as they were: players read their own rows only.
 
 -- ---------------------------------------------------------------------------------------------
@@ -120,10 +121,3 @@ $$;
 
 revoke all on function public.commit_career(uuid, integer, jsonb, integer, uuid, text, jsonb) from public, anon, authenticated;
 grant execute on function public.commit_career(uuid, integer, jsonb, integer, uuid, text, jsonb) to service_role;
-
--- ---------------------------------------------------------------------------------------------
--- Clients can no longer write snapshots directly: the Edge Function decides which fields a
--- client may change and commits through commit_career. The client-callable writers are removed.
--- ---------------------------------------------------------------------------------------------
-drop function public.save_my_career(jsonb, integer, integer);
-drop function public.create_my_career(jsonb, integer);

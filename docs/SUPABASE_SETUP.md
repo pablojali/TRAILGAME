@@ -235,7 +235,105 @@ careers are never mixed. **Keep this device's career** replaces exactly the clou
 - `create_my_career` is no longer used by the app (the sync creates careers); it can be removed in
   a later migration.
 
+## Phase 3B.1: server-authoritative progression
+
+The server now owns progression. Training days, race days and attribute points run in the
+Edge Function `career-ops`, which reuses the game's TypeScript engine (`src/game-engine`), so no
+formula exists twice. Clients can no longer write career snapshots.
+
+### What lives where
+
+| Piece | Where |
+| --- | --- |
+| `career_operations` table and `commit_career` (service role only) | `supabase/migrations/20261031090000_server_authority.sql` |
+| Removal of `save_my_career` and `create_my_career` | `supabase/migrations/20261031090100_revoke_client_writes.sql` |
+| Request handling (pure, tested without Supabase) | `src/server/careerOps.ts` |
+| Supabase access (auth check, REST reads, `commit_career`) | `src/server/supabaseRest.ts` |
+| Edge Function entry (`Deno.serve`, CORS) | `src/server/edge/careerOpsFunction.ts` |
+| Deployable bundle (generated, do not edit) | `supabase/functions/career-ops/index.js` (`npm run build:functions`) |
+| Client call | `src/repositories/supabase/careerOpsClient.ts`, `src/app/game/GameProvider.tsx` |
+
+### Actions
+
+`POST /functions/v1/career-ops` with the player's session token and a JSON body:
+
+- `train` `{operationId, baseVersion, ref, session, snapshot?}`: completes today's training day.
+- `race` `{operationId, baseVersion, ref, entryId, snapshot?}`: runs today's race.
+- `allocate` `{operationId, baseVersion, attribute, expectedSpent, snapshot?}`: spends one point.
+- `save` `{baseVersion, snapshot}`: uploads the fields the player may change (cloud sync).
+- `new-career` `{baseVersion, profile, identity}`: creates (or replaces) the career on the server.
+
+Every answer has the career the server holds afterwards (`state`, `version`). A refusal of a game
+rule (for example `day-completed`) is HTTP 422 with the server's career, so the device catches up.
+
+### How a progression request is checked
+
+1. The token is checked with Supabase Auth (`/auth/v1/user`); the user id comes only from it.
+2. The request shape is checked (operation id must be a UUID).
+3. An operation id already used is answered with the stored response (never re-applied); one used
+   by another player is refused (403).
+4. The player's career is loaded and parsed with the game's own save parser.
+5. Only when the device saw the current version (`baseVersion`) are its own fields taken from the
+   attached snapshot: name, look (must be unlocked), coins, equipment, pending race entries and
+   today's planned session (through the engine's `planSession`). Progression fields always come
+   from the server.
+6. Fitness decay is applied with the server's clock, then the engine runs (`executeCurrentDay`,
+   `raceCurrentDay` or `allocateAttributePoint`). The engine's rules decide validity.
+7. `commit_career` writes the result in one transaction: the career row is locked (`for update`),
+   the version must still be the one read (otherwise the function retries, up to 3 times, then
+   answers `busy`), race entries and equipment rows are mirrored, and the operation id is stored
+   with its response. `career_operations.operation_id` is the primary key, so the same id can
+   never be stored twice.
+
+### Fields the server keeps
+
+XP and level, Fitness, Fatigue, attributes and spent points, the week (completed days and their
+outcomes), forced rest, decay reference, finished race entries and their results. A `save` never
+changes them: the server keeps its own values and returns its career, which the device adopts.
+
+Still owned by the device (not part of this phase): coins, purchases, equipment and race entry
+(fees). They are accepted as sent in a `save`. Moving them to the server is the next step.
+
+### On the device
+
+- Local-first stays: the career is saved locally after every change and synced in the background.
+- Training, racing and spending points wait for the server. On failure nothing is awarded; the
+  screen says so ("No connection…" / "The server could not confirm…") and the same button retries
+  with the same operation id, so a request that reached the server is never applied twice.
+- No offline queue for rewards.
+- A conflict between a progressed device career and the cloud career can only be resolved by
+  keeping the cloud career (a copy of the device career stays on the device). A brand-new device
+  career, or any device career when the cloud copy is damaged, can replace it: the server builds a
+  new career for that runner.
+
+### Known limitations
+
+- A career that exists only on a device (never uploaded) is accepted once by the first `save`,
+  when the player has no cloud career yet. Careers created from now on are created by the server.
+- Coins and equipment are still client-owned (see above).
+- Without Supabase configuration (local development, tests) the game runs the engine on the device.
+
+### Deployment (owner steps)
+
+Order matters: the released app (main) still saves with `save_my_career` until this branch is
+merged.
+
+1. Migration `20261031090000_server_authority.sql` (additive): **applied on 30 October 2026**
+   with the connector and checked (privileges, idempotency, conflicts, foreign operation ids,
+   malformed snapshots) in a rolled-back transaction.
+2. Edge Function: Supabase dashboard → **Edge Functions** → **Deploy a new function** → **Via
+   Editor**. Name `career-ops`; replace the sample code with the whole content of
+   `supabase/functions/career-ops/index.js`; deploy. Keep **Verify JWT** on (the default).
+   The function uses only `SUPABASE_URL`,
+   `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`, which Supabase provides to every function;
+   nothing to configure, and no key is in the app or the repository.
+3. Merge to main (the site redeploys).
+4. Migration `20261031090100_revoke_client_writes.sql` (drops the client writers) right after the
+   release.
+5. Security advisor afterwards: "RLS enabled, no policy" on `career_operations` is intended (no
+   client may read or write it). The `save_my_career` / `create_my_career` warnings disappear.
+
 ## Not done yet (next phases)
 
-Sign in with Apple, server-side game operations (Edge Functions for coins, XP and race results,
-anti-cheat), writing the coin ledger, sign-out, native packaging.
+Sign in with Apple, server-side economy (coins, purchases, race entry fees) and the coin ledger,
+sign-out, native packaging.

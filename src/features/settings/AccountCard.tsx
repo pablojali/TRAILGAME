@@ -4,6 +4,7 @@ import { Card } from '../../components/Card'
 import {
   ACCOUNT_ERROR_TEXT,
   MIN_PASSWORD_LENGTH,
+  type AccountError,
   type AccountService,
   type AccountStatus,
   type LinkResult,
@@ -13,7 +14,7 @@ import styles from './SettingsScreen.module.css'
 
 const PROVIDER_NAMES: Record<string, string> = { email: 'Email', google: 'Google', apple: 'Apple' }
 
-type Message = { kind: 'success' | 'error'; text: string } | null
+type Message = { kind: 'success' | 'error'; text: string; error?: AccountError } | null
 
 /**
  * Account (Phase 2B): shows whether the player is a guest (anonymous) or has a linked account, and
@@ -24,10 +25,15 @@ export function AccountCard({ service }: { service: AccountService }) {
   const [status, setStatus] = useState<AccountStatus | null>(null)
   const [working, setWorking] = useState(false)
   const [message, setMessage] = useState<Message>(null)
+  const [signInOpen, setSignInOpen] = useState(false)
 
   const show = useCallback((result: LinkResult, success: string) => {
     setStatus(result.status)
-    setMessage(result.ok ? { kind: 'success', text: success } : { kind: 'error', text: ACCOUNT_ERROR_TEXT[result.error] })
+    setMessage(
+      result.ok
+        ? { kind: 'success', text: success }
+        : { kind: 'error', text: ACCOUNT_ERROR_TEXT[result.error], error: result.error },
+    )
   }, [])
 
   // On opening: finish a Google link the player is coming back from, else read the account.
@@ -125,7 +131,7 @@ export function AccountCard({ service }: { service: AccountService }) {
               Link Google account
             </button>
           </div>
-          <SignInPanel service={service} />
+          <SignInPanel key={signInOpen ? 'open' : 'closed'} service={service} initiallyOpen={signInOpen} />
         </>
       )}
       {status?.kind === 'linked' && (
@@ -151,6 +157,26 @@ export function AccountCard({ service }: { service: AccountService }) {
         <p role={message.kind === 'error' ? 'alert' : 'status'} className={message.kind === 'error' ? styles.error : styles.success}>
           {message.text}
         </p>
+      )}
+      {/* The Google account or email belongs to another account: offer to sign in to it instead. */}
+      {message?.error === 'identity-in-use' && (
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={`${button.button} ${button.primary}`}
+            aria-disabled={working || undefined}
+            onClick={() => run(() => service.startOAuthSignIn('google'), 'Opening Google…')}
+          >
+            Sign in to that account instead
+          </button>
+        </div>
+      )}
+      {message?.error === 'email-in-use' && !signInOpen && (
+        <div className={styles.actions}>
+          <button type="button" className={`${button.button} ${button.primary}`} onClick={() => setSignInOpen(true)}>
+            Sign in to that account instead
+          </button>
+        </div>
       )}
     </Card>
   )

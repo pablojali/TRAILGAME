@@ -1,10 +1,11 @@
-import { ATTRIBUTE_MAX, roundStat, STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
+import { roundStat, STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL, getLevel } from '../domain/athlete/levels'
 import {
   INJURY_FATIGUE_THRESHOLD,
   INJURY_FITNESS_LOSS,
   INJURY_REST_DAYS,
 } from '../domain/training/injury'
+import { DAILY_CONSISTENCY_GAIN, localDayKey } from '../domain/athlete/consistency'
 import { getRestFatigueDelta, RECOVERY_REST_FITNESS } from '../domain/training/recovery'
 import {
   ATTRIBUTE_GAIN_PER_SESSION,
@@ -102,12 +103,8 @@ export function previewSession(state: GameState, session: SessionType): DayOutco
     fitnessChange: statChange(fitness, fitnessDelta),
     fatigueChange,
   }
-  // Each session trains one attribute (owner decision, 30 October 2026), up to the maximum.
-  if (rules.attribute) {
-    const current = state.athlete.attributes[rules.attribute]
-    const amount = roundStat(Math.min(ATTRIBUTE_MAX, current + ATTRIBUTE_GAIN_PER_SESSION) - current)
-    if (amount > 0) outcome.attributeGain = { attribute: rules.attribute, amount }
-  }
+  // Each session trains one attribute, with no upper limit (owner decisions, 30 October 2026).
+  if (rules.attribute) outcome.attributeGain = { attribute: rules.attribute, amount: ATTRIBUTE_GAIN_PER_SESSION }
   return outcome
 }
 
@@ -171,7 +168,7 @@ export function executeCurrentDay(
     value: {
       state: advanced.state,
       executed: { ...ref, session: day.session },
-      outcome,
+      outcome: advanced.outcome,
       levelBefore,
       levelAfter,
       attributePointsAwarded: (levelAfter - levelBefore) * ATTRIBUTE_POINTS_PER_LEVEL,
@@ -186,6 +183,7 @@ export function executeCurrentDay(
  * by the outcome, forced Rest days are counted down (or set by a new injury), the next day becomes
  * current (a new week after day 7), the Fitness decay reference is reset (decay only counts days not
  * played), and `active` (a training session or a race, not Rest) is remembered for the next Rest.
+ * The first day completed on a new real day also adds Consistency, recorded in the stored outcome.
  * Shared by training and race days, so both complete a day the same way. Callers check the day first.
  */
 export function completeCurrentDay(
@@ -193,12 +191,14 @@ export function completeCurrentDay(
   outcome: DayOutcome,
   active: boolean,
   now: number,
-): { state: GameState; weekCompleted: boolean } {
+): { state: GameState; outcome: DayOutcome; weekCompleted: boolean } {
   const injured = outcome.injured === true
+  const today = localDayKey(now)
+  if (state.lastPlayedDay !== today) outcome = { ...outcome, consistencyGain: DAILY_CONSISTENCY_GAIN }
+  const attributes = { ...state.athlete.attributes }
   const gain = outcome.attributeGain
-  const attributes = gain
-    ? { ...state.athlete.attributes, [gain.attribute]: roundStat(state.athlete.attributes[gain.attribute] + gain.amount) }
-    : state.athlete.attributes
+  if (gain) attributes[gain.attribute] = roundStat(attributes[gain.attribute] + gain.amount)
+  if (outcome.consistencyGain) attributes.consistency = roundStat(attributes.consistency + outcome.consistencyGain)
   const athlete = {
     ...state.athlete,
     xp: state.athlete.xp + outcome.xpGained,
@@ -226,7 +226,16 @@ export function completeCurrentDay(
       )
 
   return {
-    state: { ...state, athlete, week, fitnessDecayReference: now, previousDayActive: active, forcedRestDays },
+    state: {
+      ...state,
+      athlete,
+      week,
+      fitnessDecayReference: now,
+      previousDayActive: active,
+      lastPlayedDay: today,
+      forcedRestDays,
+    },
+    outcome,
     weekCompleted,
   }
 }

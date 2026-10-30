@@ -94,9 +94,12 @@ describe('DashboardScreen — first screen', () => {
     renderApp('/')
 
     expect(identity()).toBe('Marta - Sprinter (Lv 3)')
-    // Coins in the Condition column, with the gold coin symbol.
-    expect(stat('Coins')).toBe('1,240 coins')
-    expect(within(screen.getByRole('region', { name: 'Condition' })).getByText('1,240').previousElementSibling!.tagName).toBe('svg')
+    // Coins at the top right, beside the week and day, with the gold coin symbol.
+    const coins = screen.getByText('1,240')
+    expect(coins.parentElement).toHaveTextContent('1,240 coins')
+    expect(coins.previousElementSibling!.tagName).toBe('svg')
+    expect(coins.closest('p')!.previousElementSibling).toHaveTextContent('Week 3 · Wednesday')
+    expect(within(screen.getByRole('region', { name: 'Condition' })).queryByText('Coins')).not.toBeInTheDocument()
     expect(screen.getByText('Week 3 · Wednesday')).toBeInTheDocument()
     expect(stat('Level')).toBe('3')
     expect(stat('XP')).toBe('260')

@@ -140,7 +140,8 @@ export function raceSeconds(course: readonly CourseSegment[], athlete: RaceAthle
     const abilityFactor = Math.pow(C.abilityReference / segmentAbility(s, a), C.abilityExponent)
     const technicalFactor =
       s.type === 'descent'
-        ? 1 + C.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * (1 - a.technical / 100)
+        ? // Technical 100 or more removes the penalty; it never turns into a bonus (no attribute cap).
+          1 + C.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * Math.max(0, 1 - a.technical / 100)
         : 1
     const slowdown =
       1 +

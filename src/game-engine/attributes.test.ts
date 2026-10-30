@@ -47,20 +47,10 @@ describe('allocateAttributePoint', () => {
     expect(allocateAttributePoint(newGame(), 'speed', 0)).toEqual({ ok: false, error: 'no-points' })
   })
 
-  it('never raises an attribute above 100', () => {
+  it('raises attributes past 100: there is no upper limit (owner decision, 30 October 2026)', () => {
     const base = newGame()
     const state = withAthlete(base, { xp: 100, attributes: { ...base.athlete.attributes, speed: 100 } })
-    expect(allocateAttributePoint(state, 'speed', 0)).toEqual({ ok: false, error: 'attribute-max' })
-    expect(allocate(state, 'climbing').athlete.attributes.speed).toBe(100)
-  })
-
-  it('keeps unspent points when every attribute is at 100', () => {
-    const state = withAthlete(newGame(), {
-      xp: 700,
-      attributes: { endurance: 100, climbing: 100, speed: 100, technical: 100, recovery: 100, consistency: 100 },
-    })
-    expect(allocateAttributePoint(state, 'recovery', 0)).toEqual({ ok: false, error: 'attribute-max' })
-    expect(getUnspentAttributePoints(state.athlete)).toBe(8)
+    expect(allocate(state, 'speed').athlete.attributes.speed).toBe(101)
   })
 
   it('rejects a repeated request based on an older state', () => {

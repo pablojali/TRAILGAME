@@ -1,6 +1,5 @@
 import {
   ATTRIBUTE_IDS,
-  ATTRIBUTE_MAX,
   ATTRIBUTE_MIN,
   isAttributeId,
   isSex,
@@ -11,6 +10,7 @@ import {
   type Sex,
 } from '../domain/athlete/athlete'
 import { parseAppearance } from '../domain/athlete/appearance'
+import { isDayKey } from '../domain/athlete/consistency'
 import { STARTING_COINS } from '../domain/economy/coins'
 import { getEquipmentItem, OWNED_FROM_START } from '../domain/equipment/items'
 import { PRIZE_BANDS } from '../domain/races/categories'
@@ -97,6 +97,7 @@ function isOutcome(value: unknown): value is DayOutcome {
     isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) &&
     isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) &&
     isAttributeGain(value.attributeGain) &&
+    (value.consistencyGain === undefined || isHundredths(value.consistencyGain, 0, 1)) &&
     (value.injured === undefined || typeof value.injured === 'boolean') &&
     (value.raceEntryId === undefined || (typeof value.raceEntryId === 'string' && value.raceEntryId.length > 0))
   )
@@ -200,7 +201,7 @@ function parseAttributes(value: unknown): Attributes | null {
   const attributes = {} as Attributes
   for (const id of ATTRIBUTE_IDS) {
     const v = value[id]
-    if (!isHundredths(v, ATTRIBUTE_MIN, ATTRIBUTE_MAX)) return null
+    if (!isHundredths(v, ATTRIBUTE_MIN, Number.MAX_SAFE_INTEGER)) return null
     attributes[id] = v
   }
   return attributes
@@ -289,6 +290,10 @@ export function parseGameState(value: unknown, now: number): GameState | null {
       : value.previousDayActive
   if (typeof previousDayActive !== 'boolean') return null
 
+  // Missing: a career saved before the daily Consistency reward existed (no day played yet).
+  const lastPlayedDay = value.lastPlayedDay === undefined ? null : value.lastPlayedDay
+  if (lastPlayedDay !== null && !isDayKey(lastPlayedDay)) return null
+
   const reference = value.fitnessDecayReference
   return {
     athlete: {
@@ -314,6 +319,7 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     },
     fitnessDecayReference: typeof reference === 'number' && Number.isFinite(reference) ? reference : now,
     previousDayActive,
+    lastPlayedDay,
     forcedRestDays,
     coins,
     raceEntries,

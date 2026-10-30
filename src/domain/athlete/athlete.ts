@@ -55,13 +55,15 @@ export function cleanAthleteName(value: string): string | null {
 }
 
 /**
- * Six core attributes on a 1–100 scale. Whole numbers until 30 October 2026; training now adds
- * tenths (owner decision), so values have up to 2 decimals and are shown with 1.
+ * Six core attributes, at least 1 and with no upper limit (owner decision, 30 October 2026; were
+ * capped at 100). Whole numbers until 30 October 2026; training now adds tenths, so values have up
+ * to 2 decimals and are shown with 1.
  */
 export type Attributes = Record<AttributeId, number>
 
 export const ATTRIBUTE_MIN = 1
-export const ATTRIBUTE_MAX = 100
+/** Where attribute bars are full. Not a limit: attributes can grow past it. */
+export const ATTRIBUTE_SCALE = 100
 
 export interface Athlete {
   name: string

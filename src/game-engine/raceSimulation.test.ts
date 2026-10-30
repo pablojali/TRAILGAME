@@ -208,6 +208,20 @@ describe('result explanation (D10)', () => {
   })
 })
 
+describe('attributes above 100 (no upper limit, 30 October 2026)', () => {
+  it('removes the technical-descent penalty at Technical 100 but never turns it into a bonus', () => {
+    const course = generateCourse(race('RACE-012'))
+    const at = (technical: number) => {
+      const a = athlete('all-rounder', 60, 20, { technical })
+      return raceSeconds(course, a)
+    }
+    expect(at(100)).toBeLessThan(at(90))
+    // Above 100 the time still improves through the ability curve, and stays finite.
+    expect(at(150)).toBeLessThan(at(100))
+    expect(Number.isFinite(at(500))).toBe(true)
+  })
+})
+
 describe('equipment race effects (owner approval, 29 October 2026; balance review 30 October 2026)', () => {
   const base = athlete('all-rounder', 60, 20)
   const change = (id: string, equipment: string[]) => {

@@ -814,6 +814,20 @@ Replaces the silhouette and the Stage A placeholder options above. On the workin
   head and shoulders (×3.2, 450 ms, no animation with reduced motion) and zooms back out on the
   other tabs. The frame keeps its size.
 
+### Daily Consistency, no attribute cap, coins at the top (owner decisions, 30 October 2026)
+
+- **Consistency rewards playing every day:** the first game day (training, Rest or race) completed
+  on a new real calendar day, in the player's local date, adds Consistency +0.1
+  (`DAILY_CONSISTENCY_GAIN`, `localDayKey`, `completeCurrentDay`). Saved as `lastPlayedDay`
+  (older saves: none, so their next day played counts). Shown in the Training feedback and day
+  result: "Consistency +0.1 (first day played today)". Several days played on one real day add it
+  once; days away add a single 0.1.
+- **No attribute cap:** training and attribute points can raise attributes past 100
+  (`ATTRIBUTE_MAX` removed; `ATTRIBUTE_SCALE` = 100 is only where bars are full). Saves accept any
+  value ≥ 1. The race formula's technical-descent penalty stops at Technical 100 and never turns
+  into a bonus (`Math.max(0, 1 − Technical/100)`; mirrored in the prototype).
+- **Dashboard coins** moved from the Condition column to the top right, on the week/day line.
+
 ### Fractional Fitness and attributes trained by sessions (owner decision, 30 October 2026)
 
 After the 16- and 52-week simulations (`docs/SEASON_SIMULATION_16W.md`):
@@ -828,8 +842,8 @@ After the 16- and 52-week simulations (`docs/SEASON_SIMULATION_16W.md`):
 | Trail technique | +2 → +0.25 | Technical |
 | Rest | 0 after an active day, −2 after Rest (unchanged) | — |
 
-- XP and Fatigue are unchanged. Injured sessions, Rest and races train no attribute; attributes stop
-  at 100 (`ATTRIBUTE_GAIN_PER_SESSION`, `SessionDefinition.attribute`, `DayOutcome.attributeGain`).
+- XP and Fatigue are unchanged. Injured sessions, Rest and races train no attribute; attributes have
+  no upper limit (`ATTRIBUTE_GAIN_PER_SESSION`, `SessionDefinition.attribute`, `DayOutcome.attributeGain`).
 - **Decimals:** Fitness, Fatigue and attributes are kept at 2 decimals (`roundStat`) so repeated
   fractions never drift, and shown with 1 decimal (`formatStat`): "20.5", "16.1". Changes are shown
   exactly ("+0.75", "+0.1"), so a session's effect is never rounded away.
@@ -839,7 +853,7 @@ After the 16- and 52-week simulations (`docs/SEASON_SIMULATION_16W.md`):
   The attribute total must now be at least the profile total plus points spent (training adds to it).
 - **Simulation (sensible player):** Fitness about +0.6 a week, slightly below the typical runner of
   the level for 4 months, then a few points ahead; mid-field to podium over a year.
-- **Consistency:** no session trains it yet (owner: open; idea, a reward for a fully planned week).
+- **Consistency:** no session trains it; it rewards playing every day (see the next decision).
 
 ### Recovery Rest and decay on played days (owner decisions, 30 October 2026)
 

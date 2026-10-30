@@ -33,9 +33,63 @@
 
 .topBar {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-2);
+}
+
+/* Year progress: compact, top left (owner choice, option a). */
+.year {
+  grid-column: 1;
+  justify-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: min(100%, 120px);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.yearLabel {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.yearWeek {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dayShort {
+  display: none;
+}
+
+@media (max-width: 359px) {
+  .dayLong {
+    display: none;
+  }
+
+  .dayShort {
+    display: inline;
+  }
+}
+
+.yearPercent {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.year [role='meter'].yearMeter {
+  height: 5px;
+  color: var(--accent);
 }
 
 .when {

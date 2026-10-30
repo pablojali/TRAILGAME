@@ -826,6 +826,10 @@ Replaces the silhouette and the Stage A placeholder options above. On the workin
   value ≥ 1. The race formula's technical-descent penalty stops at Technical 100 and never turns
   into a bonus (`Math.max(0, 1 − Technical/100)`; mirrored in the prototype).
 - **Dashboard coins** moved from the Condition column to the top right, on the week/day line.
+- **Year progress** (owner choice, option a): the Dashboard top bar shows the career year and week
+  on the left ("Year 1", "Week 24 / 52 · 46%" and a bar), the day in the centre (short name below
+  360 px wide) and the coins on the right. A year is 52 weeks; week 53 starts Year 2
+  (`getCareerProgress`, `WEEKS_PER_YEAR`).
 
 ### Fractional Fitness and attributes trained by sessions (owner decision, 30 October 2026)
 

@@ -32,7 +32,14 @@ describe('DashboardScreen — first screen', () => {
     renderApp('/')
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
     expect(identity()).toBe('Demo Runner - Climber (Lv 1)')
-    expect(screen.getByText('Week 1 · Monday')).toBeInTheDocument()
+    expect(screen.getByText('Monday')).toBeInTheDocument()
+    // Year progress at the top left (owner choice): week 1 of 52.
+    expect(screen.getByText('Year 1')).toBeInTheDocument()
+    expect(screen.getByText('Week 1 / 52')).toBeInTheDocument()
+    expect(screen.getByRole('meter', { name: 'Year 1 progress' })).toHaveAttribute(
+      'aria-valuetext',
+      'Week 1 of 52, 2% of the year',
+    )
     expect(attributeValues()).toEqual([
       'Endurance 16',
       'Climbing 20',
@@ -98,9 +105,10 @@ describe('DashboardScreen — first screen', () => {
     const coins = screen.getByText('1,240')
     expect(coins.parentElement).toHaveTextContent('1,240 coins')
     expect(coins.previousElementSibling!.tagName).toBe('svg')
-    expect(coins.closest('p')!.previousElementSibling).toHaveTextContent('Week 3 · Wednesday')
+    expect(coins.closest('p')!.previousElementSibling).toHaveTextContent('Wednesday')
     expect(within(screen.getByRole('region', { name: 'Condition' })).queryByText('Coins')).not.toBeInTheDocument()
-    expect(screen.getByText('Week 3 · Wednesday')).toBeInTheDocument()
+    expect(screen.getByText('Week 3 / 52')).toBeInTheDocument()
+    expect(screen.getByText('6%')).toBeInTheDocument()
     expect(stat('Level')).toBe('3')
     expect(stat('XP')).toBe('260')
     expect(stat('Fitness')).toBe('71.0')
@@ -166,7 +174,7 @@ describe('DashboardScreen — cards below', () => {
     expect(stat('XP')).toBe('9')
     expect(stat('Fitness')).toBe('20.5')
     expect(stat('Fatigue')).toBe('5')
-    expect(screen.getByText('Week 1 · Tuesday')).toBeInTheDocument()
+    expect(screen.getByText('Tuesday')).toBeInTheDocument()
   })
 
   it('reset demo asks for confirmation, then clears the save and returns to profile selection', async () => {

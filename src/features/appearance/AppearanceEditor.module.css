@@ -74,17 +74,19 @@
   outline-offset: -3px;
 }
 
-/* 48 px swatches, wrapping onto more rows when there are many. */
+/* 48 px swatches in one row that scrolls sideways when there are many (the screen does not scroll). */
 .swatches {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-2) var(--space-3);
+  justify-content: safe center;
+  gap: var(--space-3);
   min-width: 0;
   min-height: 70px;
   margin: 0;
-  padding: 0;
+  padding: var(--space-1) var(--space-1) var(--space-2);
   border: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
 }
 
 .swatch {
@@ -93,7 +95,9 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  flex: none;
   min-width: 48px;
+  scroll-snap-align: start;
   cursor: pointer;
 }
 

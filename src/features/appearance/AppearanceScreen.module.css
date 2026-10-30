@@ -1,10 +1,19 @@
-/* A fixed-height editor so the preview keeps its room above the swatches. */
+/* The editor takes the screen's remaining height; the preview shrinks to fit. */
 .editor {
-  flex: none;
-  height: min(78dvh, 680px);
+  flex: 1;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .warning {
+  flex: none;
   color: #f2a48f;
   font-weight: 600;
 }

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
-import { Screen } from '../../components/Screen'
+import { Screen, ScrollPanel } from '../../components/Screen'
 import { getLevel } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
 import { getEntryFee, getGrossPrizes, getRewardMultiplier, getShortfall } from '../../domain/races/access'
@@ -48,11 +48,16 @@ function RaceDetail({ race }: { race: Race }) {
   const prizes = getGrossPrizes(race)
 
   return (
-    <Screen eyebrow={`${category.label} race`} title={race.name} description={courseText(race)}>
-      <Link to="/races" className={styles.back}>
-        ← All races
-      </Link>
-
+    <Screen
+      eyebrow={`${category.label} race`}
+      title={race.name}
+      description={courseText(race)}
+      aside={
+        <Link to={`/races?category=${race.category}`} className={styles.back}>
+          ← All races
+        </Link>
+      }
+    >
       <dl className={styles.facts}>
         <div>
           <dt>Distance</dt>
@@ -74,55 +79,60 @@ function RaceDetail({ race }: { race: Race }) {
         </div>
       </dl>
 
-      <Card title="Entry fee">
-        <ul className={styles.fees}>
-          <FeeRow
-            label={`Standard (level ${race.recommendedLevel} or higher)`}
-            amount={category.standardFee}
-            applies={fee.type !== 'early'}
-          />
-          <FeeRow
-            label={`Early entry (below level ${race.recommendedLevel})`}
-            amount={category.earlyEntryFee}
-            applies={fee.type === 'early'}
-          />
-        </ul>
-      </Card>
+      {/* Fees, prizes and past results scroll here; the entry action stays in view below. */}
+      <ScrollPanel label="Fees, prizes and your results">
+        <Card title="Entry fee">
+          <ul className={styles.fees}>
+            <FeeRow
+              label={`Standard (level ${race.recommendedLevel} or higher)`}
+              amount={category.standardFee}
+              applies={fee.type !== 'early'}
+            />
+            <FeeRow
+              label={`Early entry (below level ${race.recommendedLevel})`}
+              amount={category.earlyEntryFee}
+              applies={fee.type === 'early'}
+            />
+          </ul>
+        </Card>
 
-      <Card title="Potential prizes">
-        <table className={styles.prizes}>
-          <caption className={styles.srOnly}>Gross coin prizes by finishing position</caption>
-          <thead>
-            <tr>
-              <th scope="col">Position</th>
-              <th scope="col">Gross prize</th>
-            </tr>
-          </thead>
-          <tbody>
-            {PRIZE_BANDS.map((band, i) => (
-              <tr key={band.label}>
-                <th scope="row">{band.label}</th>
-                <td>{formatCoins(prizes[i]!)}</td>
+        <Card title="Potential prizes">
+          <table className={styles.prizes}>
+            <caption className={styles.srOnly}>Gross coin prizes by finishing position</caption>
+            <thead>
+              <tr>
+                <th scope="col">Position</th>
+                <th scope="col">Gross prize</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className={styles.muted}>
-          Prizes are before the entry fee. XP and prizes are reduced when your level is above the
-          recommended level:{' '}
-          {REWARD_MULTIPLIERS.slice(1)
-            .map((row, i, rows) => `+${row.levelDifference}${i === rows.length - 1 ? ' or more' : ''} → ${percentText(row.coins)}`)
-            .join(', ')}
-          .
-        </p>
-        <p className={multiplier.coins < 1 ? styles.warning : styles.muted}>
-          At your level: {percentText(multiplier.coins)} of prizes and XP
-          {multiplier.coins === 0 ? ' — this race is too easy for your level.' : '.'}
-        </p>
-      </Card>
+            </thead>
+            <tbody>
+              {PRIZE_BANDS.map((band, i) => (
+                <tr key={band.label}>
+                  <th scope="row">{band.label}</th>
+                  <td>{formatCoins(prizes[i]!)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className={styles.muted}>
+            Prizes are before the entry fee. XP and prizes are reduced when your level is above the
+            recommended level:{' '}
+            {REWARD_MULTIPLIERS.slice(1)
+              .map((row, i, rows) => `+${row.levelDifference}${i === rows.length - 1 ? ' or more' : ''} → ${percentText(row.coins)}`)
+              .join(', ')}
+            .
+          </p>
+          <p className={multiplier.coins < 1 ? styles.warning : styles.muted}>
+            At your level: {percentText(multiplier.coins)} of prizes and XP
+            {multiplier.coins === 0 ? ' — this race is too easy for your level.' : '.'}
+          </p>
+        </Card>
+        <PastResults race={race} />
+      </ScrollPanel>
 
-      <EntryPanel race={race} />
-      <PastResults race={race} />
+      <div className={styles.entry}>
+        <EntryPanel race={race} />
+      </div>
     </Screen>
   )
 }

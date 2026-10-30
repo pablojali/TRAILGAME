@@ -108,7 +108,7 @@ describe('AttributesScreen', () => {
     seedCareer(withAthlete(newGame(), { xp: 100 }))
     const user = userEvent.setup()
     renderApp('/')
-    await user.click(screen.getByRole('link', { name: 'Allocate points' }))
+    await user.click(screen.getByRole('link', { name: /attribute points? to spend/ }))
     expect(screen.getByRole('heading', { level: 1, name: 'Attributes' })).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Back to Dashboard' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()

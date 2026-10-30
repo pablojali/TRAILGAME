@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import { Avatar } from '../../components/avatar/Avatar'
 import { Coins } from '../../components/Coins'
 import button from '../../components/Button.module.css'
-import { Screen } from '../../components/Screen'
+import { Screen, ScrollPanel } from '../../components/Screen'
+import { Chips, Tabs } from '../../components/Tabs'
 import { formatCoins } from '../../domain/economy/coins'
 import { EQUIPMENT_ITEMS, itemName, type EquipmentItem, type EquipmentSlot } from '../../domain/equipment/items'
 import { isEquipped, type BuyError } from '../../game-engine/equipment'
@@ -17,8 +18,7 @@ const BUY_ERRORS: Record<BuyError, string> = {
   'price-changed': 'The price changed. Check it and try again.',
 }
 
-/** Shoes are shown on the avatar's feet (recoloured starter-shoe art until each model has its own); other items show an icon. */
-
+/** Shoes are shown on the avatar's feet; other items show an icon until they have their own art. */
 const ICON_PATHS: Record<EquipmentSlot, string> = {
   shoes: 'M3 16h6l3-3 2 2 7 1v3H3z',
   pack: 'M8 6a4 4 0 0 1 8 0M6 7h12v13H6zM9 12h6',
@@ -40,95 +40,177 @@ function ItemArt({ item }: { item: EquipmentItem }) {
   )
 }
 
-/** Owned equipment (put on or take off) and the shop. Equipment has no effect on races yet. */
+const SLOTS: readonly { id: EquipmentSlot; label: string }[] = [
+  { id: 'shoes', label: 'Shoes' },
+  { id: 'poles', label: 'Poles' },
+  { id: 'pack', label: 'Backpack' },
+]
+
+type EquipmentTab = 'equipped' | 'shop'
+
+function isSlot(value: unknown): value is EquipmentSlot {
+  return SLOTS.some((slot) => slot.id === value)
+}
+
+/**
+ * Equipment in two tabs so it fits one screen (owner request, 30 October 2026): Equipped (the
+ * runner, then one row per slot to put an owned item on or take it off) and Shop (filtered by
+ * slot). The tab and slot are kept in the URL (`?tab=shop&slot=poles`).
+ */
 export function EquipmentScreen() {
-  const { state, setItemEquipped } = useCareer()
-  const { athlete } = state
+  const { state } = useCareer()
+  const [params, setParams] = useSearchParams()
   const [message, setMessage] = useState('')
-  const owned = EQUIPMENT_ITEMS.filter((item) => state.ownedEquipment.includes(item.id))
-  const forSale = EQUIPMENT_ITEMS.filter((item) => !state.ownedEquipment.includes(item.id))
+  const tab: EquipmentTab = params.get('tab') === 'shop' ? 'shop' : 'equipped'
+  const askedSlot = params.get('slot')
+  const slot: EquipmentSlot = isSlot(askedSlot) ? askedSlot : 'shoes'
+
+  function show(nextTab: EquipmentTab, nextSlot: EquipmentSlot = slot) {
+    setParams(nextTab === 'shop' ? { tab: 'shop', slot: nextSlot } : {}, { replace: true })
+  }
 
   return (
     <Screen
       title="Equipment"
       description="Buy gear and choose what your runner wears. Equipped items help in races; they never change training."
+      aside={
+        <p className={styles.balance}>
+          <span className={styles.balanceLabel}>Balance</span> <Coins amount={state.coins} />
+        </p>
+      }
     >
-      <p className={styles.balance}>
-        <span className={styles.balanceLabel}>Balance</span> <Coins amount={state.coins} />
-      </p>
+      <Tabs
+        label="Equipment"
+        tabs={[
+          { id: 'equipped', label: 'Equipped' },
+          { id: 'shop', label: 'Shop' },
+        ]}
+        value={tab}
+        onChange={(next) => show(next)}
+      >
+        {tab === 'equipped' ? (
+          <EquippedTab onMessage={setMessage} onShop={(nextSlot) => show('shop', nextSlot)} />
+        ) : (
+          <ShopTab slot={slot} onSlot={(nextSlot) => show('shop', nextSlot)} onMessage={setMessage} />
+        )}
+      </Tabs>
 
-      <div className={styles.layout}>
-        <div className={styles.previewColumn}>
-          <figure className={styles.preview} role="img" aria-label={`${athlete.name} with the equipment worn`}>
-            <Avatar
-              sex={athlete.sex}
-              appearance={athlete.appearance}
-              equipment={state.equipment}
-              className={styles.previewArt}
-            />
-          </figure>
-          <Link to="/appearance" className={`${button.button} ${button.secondary}`}>
-            Change look
-          </Link>
-        </div>
-
-        <div className={styles.columns}>
-          <section aria-labelledby="owned-title" className={styles.owned}>
-            <h2 id="owned-title" className={styles.sectionTitle}>
-              Your equipment
-            </h2>
-            <ul className={styles.items}>
-              {owned.map((item) => {
-                const equipped = isEquipped(state, item.id)
-                return (
-                  <li key={item.id} className={`${styles.item} ${equipped ? styles.equipped : ''}`}>
-                    <span className={styles.itemArt}>
-                      <ItemArt item={item} />
-                    </span>
-                    <span className={styles.itemText}>
-                      <strong>{itemName(item)}</strong>
-                      <span className={styles.muted}>{item.description}</span>
-                      {item.effectText && <span className={styles.effect}>{item.effectText}</span>}
-                      <span className={styles.muted}>{equipped ? 'Equipped' : 'Not equipped'}</span>
-                    </span>
-                    <button
-                      type="button"
-                      className={`${button.button} ${equipped ? button.secondary : button.primary}`}
-                      onClick={() => {
-                        const error = setItemEquipped(item.id, !equipped)
-                        setMessage(
-                          error ? 'That item cannot be changed.' : `${itemName(item)} ${equipped ? 'taken off' : 'equipped'}.`,
-                        )
-                      }}
-                    >
-                      {equipped ? 'Take off' : 'Equip'}
-                      <span className={styles.srOnly}> {itemName(item).toLowerCase()}</span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-
-          {forSale.length > 0 && (
-            <section aria-labelledby="shop-title" className={styles.owned}>
-              <h2 id="shop-title" className={styles.sectionTitle}>
-                Shop
-              </h2>
-              <ul className={styles.items}>
-                {forSale.map((item) => (
-                  <ShopItem key={item.id} item={item} onBought={(text) => setMessage(text)} />
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
-      </div>
-
-      <p role="status" className={styles.muted}>
+      <p role="status" className={styles.status}>
         {message}
       </p>
     </Screen>
+  )
+}
+
+/** The runner wearing the equipment, then one row per slot. */
+function EquippedTab({ onMessage, onShop }: { onMessage(text: string): void; onShop(slot: EquipmentSlot): void }) {
+  const { state, setItemEquipped } = useCareer()
+  const { athlete } = state
+  const [open, setOpen] = useState<EquipmentSlot | null>(null)
+
+  return (
+    <>
+      <div className={styles.previewArea}>
+        <figure className={styles.preview} role="img" aria-label={`${athlete.name} with the equipment worn`}>
+          <Avatar sex={athlete.sex} appearance={athlete.appearance} equipment={state.equipment} className={styles.previewArt} />
+        </figure>
+        <Link to="/appearance" className={`${button.button} ${button.secondary} ${styles.lookButton}`}>
+          Change look
+        </Link>
+      </div>
+
+      <ul className={styles.slots}>
+        {SLOTS.map(({ id, label }) => {
+          const worn = EQUIPMENT_ITEMS.find((item) => item.slot === id && isEquipped(state, item.id))
+          const owned = EQUIPMENT_ITEMS.filter((item) => item.slot === id && state.ownedEquipment.includes(item.id))
+          const expanded = open === id
+          return (
+            <li key={id} className={`${styles.slot} ${worn ? styles.slotWorn : ''}`}>
+              <div className={styles.slotRow}>
+                <span className={styles.slotLabel}>{label}</span>
+                <span className={styles.slotItem}>
+                  <strong>{worn ? itemName(worn) : 'Empty'}</strong>
+                  <span className={worn ? styles.effect : styles.muted}>
+                    {worn ? worn.effectText?.replace(/^Races: /, '') ?? 'No race effect' : owned.length ? 'Put on an item you own' : 'Buy one in the Shop'}
+                  </span>
+                </span>
+                {owned.length > 0 ? (
+                  <button
+                    type="button"
+                    className={styles.slotAction}
+                    aria-expanded={expanded}
+                    onClick={() => setOpen(expanded ? null : id)}
+                  >
+                    {expanded ? 'Done' : 'Change'}
+                    <span className={styles.srOnly}> {label.toLowerCase()}</span>
+                  </button>
+                ) : (
+                  <button type="button" className={styles.slotAction} onClick={() => onShop(id)}>
+                    Shop<span className={styles.srOnly}> {label.toLowerCase()}</span>
+                  </button>
+                )}
+              </div>
+              {expanded && (
+                <ul className={styles.choices}>
+                  {owned.map((item) => {
+                    const equipped = isEquipped(state, item.id)
+                    return (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          className={`${styles.choice} ${equipped ? styles.choiceOn : ''}`}
+                          onClick={() => {
+                            const error = setItemEquipped(item.id, !equipped)
+                            onMessage(error ? 'That item cannot be changed.' : `${itemName(item)} ${equipped ? 'taken off' : 'equipped'}.`)
+                          }}
+                        >
+                          {equipped ? 'Take off' : 'Equip'} {itemName(item).toLowerCase()}
+                        </button>
+                      </li>
+                    )
+                  })}
+                  <li>
+                    <button type="button" className={styles.choice} onClick={() => onShop(id)}>
+                      Shop for {label.toLowerCase()}
+                    </button>
+                  </li>
+                </ul>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </>
+  )
+}
+
+/** Items not owned yet, one slot at a time. */
+function ShopTab({
+  slot,
+  onSlot,
+  onMessage,
+}: {
+  slot: EquipmentSlot
+  onSlot(slot: EquipmentSlot): void
+  onMessage(text: string): void
+}) {
+  const { state } = useCareer()
+  const forSale = EQUIPMENT_ITEMS.filter((item) => item.slot === slot && !state.ownedEquipment.includes(item.id))
+  return (
+    <>
+      <Chips label="Item type" options={SLOTS} value={slot} onChange={onSlot} />
+      {forSale.length === 0 ? (
+        <p className={styles.muted}>You own every item of this type. Put them on in Equipped.</p>
+      ) : (
+        <ScrollPanel label="Items for sale">
+          <ul className={styles.items}>
+            {forSale.map((item) => (
+              <ShopItem key={item.id} item={item} onBought={onMessage} />
+            ))}
+          </ul>
+        </ScrollPanel>
+      )}
+    </>
   )
 }
 

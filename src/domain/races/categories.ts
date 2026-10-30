@@ -7,6 +7,10 @@ export type RaceCategory = 'open' | 'trail' | 'mountain' | 'elite'
 /** Display order. */
 export const RACE_CATEGORIES: readonly RaceCategory[] = ['open', 'trail', 'mountain', 'elite']
 
+export function isRaceCategory(value: unknown): value is RaceCategory {
+  return (RACE_CATEGORIES as readonly unknown[]).includes(value)
+}
+
 export interface RaceCategoryConfig {
   label: string
   /** Typical recommended level for the category; each race sets its own. */

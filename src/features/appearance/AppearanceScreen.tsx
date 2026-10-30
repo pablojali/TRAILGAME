@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
-import button from '../../components/Button.module.css'
 import { Screen } from '../../components/Screen'
 import { getLevel } from '../../domain/athlete/levels'
 import { AppearanceEditor } from './AppearanceEditor'
@@ -21,6 +20,11 @@ export function AppearanceScreen() {
       eyebrow={`Level ${getLevel(athlete.xp)}`}
       title="Appearance"
       description="Change your runner's look. New options unlock as you level up; appearance never changes your stats."
+      aside={
+        <Link to="/equipment" className={styles.back}>
+          ← Equipment
+        </Link>
+      }
     >
       <AppearanceEditor
         sex={athlete.sex}
@@ -39,9 +43,6 @@ export function AppearanceScreen() {
           {message}
         </p>
       )}
-      <Link to="/equipment" className={`${button.button} ${button.secondary}`}>
-        Back to equipment
-      </Link>
     </Screen>
   )
 }

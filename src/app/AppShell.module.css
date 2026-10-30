@@ -1,6 +1,13 @@
-/* Mobile first: top brand bar, scrolling content, persistent bottom nav. */
+/*
+ * App frame (owner request, 30 October 2026): the top bar and the bottom nav never move and the
+ * page never scrolls; each screen fits the space between them. `main` still scrolls as a fallback
+ * (very small screens, large system fonts) rather than clipping.
+ */
 .shell {
-  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .skipLink {
@@ -21,8 +28,7 @@
 }
 
 .brandBar {
-  position: sticky;
-  top: 0;
+  flex: none;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -45,20 +51,46 @@
 }
 
 .brandName {
+  flex: 1;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   font-size: var(--font-size-sm);
 }
 
+.settingsLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+}
+
+.settingsLink:hover,
+.settingsLinkActive {
+  color: var(--accent);
+}
+
 .main {
-  padding: var(--space-4);
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-3) var(--space-4);
   padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--space-3));
   outline: none;
 }
 
 .content {
+  display: flex;
+  flex-direction: column;
   max-width: var(--content-max-width);
+  /* Exactly the space between the bars, so a ScrollPanel takes what is left and scrolls. */
+  height: 100%;
   margin: 0 auto;
 }
 
@@ -120,6 +152,10 @@
     grid-template-rows: auto 1fr;
   }
 
+  .settingsLink {
+    margin: 0;
+  }
+
   .brandBar {
     grid-column: 1;
     grid-row: 1;
@@ -176,6 +212,7 @@
     grid-row: 1 / span 2;
     padding: var(--space-6);
   }
+
 }
 
 /*
@@ -202,8 +239,7 @@
 }
 
 .setup .content {
-  display: flex;
-  flex-direction: column;
+  height: auto;
   min-height: 100%;
 }
 

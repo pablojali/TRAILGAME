@@ -927,6 +927,36 @@ Fitness 0 by week 6:
 - **Open races** at levels 4, 6 and 8 (were 1, 4 and 8). Open entry stays free; a new runner
   (Fitness 20) now finishes about 24th in Forest First Steps instead of 19th.
 
+### App-style layout: no page scroll (owner request, 30 October 2026)
+
+Like a phone app, the page never scrolls: the top bar and the bottom navigation stay still and
+every screen fits the space between them (checked at 390 × 844 and 360 × 740).
+
+- **Frame:** `src/app/AppShell.module.css` makes the shell `100dvh` with `overflow: hidden`; the
+  content area is exactly the height between the bars. `main` still scrolls as a fallback (very
+  small screens, large system fonts) rather than clipping.
+- **Shared parts:** `Screen` (`src/components/Screen.tsx`) has a one-line header (title left, an
+  optional `aside` right; the description is for screen readers unless `showDescription`), and
+  `ScrollPanel` for long lists, which scroll inside their own panel. `Tabs` and `Chips`
+  (`src/components/Tabs.tsx`) split a screen into parts; the selected tab is kept in the URL.
+- **Screens:**
+  - Dashboard: the runner, then a **Today** strip (today's session and effects, Sunday's race,
+    unspent attribute points) with the main action, **Train** or **Go to race**.
+  - Races: one tab per category (`?category=`), opening on the runner's level band (or the
+    entered race's category).
+  - Race detail: facts on top, fees, prizes and past results in a scroll panel, the entry action
+    always in view. **← All races** returns to the race's category.
+  - Race result: tabs **Result** (time, rewards, condition), **Why** (what shaped the time) and
+    **Full results** (the 50 runners, scrolled to the player); **Back to races** stays in view.
+  - Equipment: tabs **Equipped** (the runner, then one row per slot: Shoes, Poles, Backpack, with
+    **Change** to put on or take off an owned item) and **Shop** (filtered by slot,
+    `?tab=shop&slot=poles`). Bought items are put on in Equipped.
+  - Career: tabs **Medals**, **Bests** and **History**.
+  - Appearance: the preview takes the free height; the swatches are one row that scrolls sideways.
+  - Attributes: the points left are in the header; compact rows.
+- **Settings:** the icon at the top right opens Settings (`/settings`), which holds **Reset demo**
+  (moved from the Dashboard).
+
 ### M4 — Race System (M4.1–M4.4 done on the working branch, pending owner approval)
 
 **M4.4 validation:** [`docs/M4_VALIDATION.md`](./docs/M4_VALIDATION.md) (29 October 2026).

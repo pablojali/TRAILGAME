@@ -1,4 +1,4 @@
-export type IconName = 'dashboard' | 'training' | 'equipment' | 'races' | 'career'
+export type IconName = 'dashboard' | 'training' | 'equipment' | 'races' | 'career' | 'settings'
 
 const PATHS: Record<IconName, string> = {
   // Gauge
@@ -11,6 +11,8 @@ const PATHS: Record<IconName, string> = {
   races: 'M2 20l7-11 4 6 3-4 6 9zM16 11V4l4 2-4 2',
   // Trophy
   career: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8M10 17h4',
+  // Sliders
+  settings: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',
 }
 
 interface IconProps {
@@ -18,7 +20,7 @@ interface IconProps {
   size?: number
 }
 
-/** Decorative stroke icon; always pair with a visible text label. */
+/** Decorative stroke icon; pair it with a visible text label or an aria-label on its control. */
 export function Icon({ name, size = 24 }: IconProps) {
   return (
     <svg

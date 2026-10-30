@@ -31,6 +31,15 @@ export function AppShell() {
       <header className={styles.brandBar}>
         <span className={styles.brandMark} aria-hidden="true" />
         <span className={styles.brandName}>Trail Manager</span>
+        {!inSetup && (
+          <NavLink
+            to="/settings"
+            aria-label="Settings"
+            className={({ isActive }) => `${styles.settingsLink} ${isActive ? styles.settingsLinkActive : ''}`}
+          >
+            <Icon name="settings" />
+          </NavLink>
+        )}
       </header>
 
       {!inSetup && (

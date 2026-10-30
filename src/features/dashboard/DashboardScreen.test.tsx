@@ -116,11 +116,10 @@ describe('DashboardScreen — first screen', () => {
     expect(attributeValues()[0]).toBe('Endurance 14')
     expect(screen.getByRole('meter', { name: 'Progress to Level 4' })).toHaveAttribute('aria-valuetext', '260 of 450 XP')
     // Level 3 earned 4 points; 1 is spent.
-    expect(screen.getByText('unspent attribute points', { exact: false })).toHaveTextContent('3 unspent attribute points')
-    expect(screen.getByRole('link', { name: 'Allocate points' })).toHaveAttribute('href', '/attributes')
-    expect(screen.getByRole('heading', { name: 'Today · Wed' })).toBeInTheDocument()
-    expect(screen.getByText('XP +14').parentElement).toHaveTextContent('XP +14 · Fitness +0.5 · Fatigue +12 · Climbing +0.1')
-    expect(screen.getByText('25 XP earned this week')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '3 attribute points to spend ›' })).toHaveAttribute('href', '/attributes')
+    const today = screen.getByRole('region', { name: 'Today' })
+    expect(today).toHaveTextContent('Today · Hills')
+    expect(today).toHaveTextContent('XP +14 · Fitness +0.5 · Fatigue +12 · Climbing +0.1')
   })
 
   it('shows level 50 as the maximum level', () => {
@@ -142,26 +141,23 @@ describe('DashboardScreen — first screen', () => {
   })
 })
 
-describe('DashboardScreen — cards below', () => {
-  it('shows attribute points, today, the week and the demo reset', () => {
+describe('DashboardScreen — Today strip (one screen, no cards)', () => {
+  it('shows today’s session and its effects, with no attribute-point link when none are unspent', () => {
     seedCareer(newGame('climber'))
     renderApp('/')
-    expect(screen.getByRole('heading', { name: 'Attribute points' })).toBeInTheDocument()
-    expect(screen.getByText('unspent attribute points', { exact: false })).toHaveTextContent('0 unspent attribute points')
-    expect(screen.getByRole('link', { name: 'View attributes' })).toHaveAttribute('href', '/attributes')
-    expect(screen.getByRole('heading', { name: 'Today · Mon' })).toBeInTheDocument()
-    expect(screen.getByText('Easy run')).toBeInTheDocument()
-    expect(screen.getByText('XP +9').parentElement).toHaveTextContent('XP +9 · Fitness +0.5 · Fatigue +5 · Endurance +0.1')
-    expect(screen.getByRole('heading', { name: 'Week 1' })).toBeInTheDocument()
-    expect(screen.getByText('0 XP earned this week')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reset demo' })).toBeInTheDocument()
+    const today = screen.getByRole('region', { name: 'Today' })
+    expect(today).toHaveTextContent('Today · Easy run')
+    expect(today).toHaveTextContent('XP +9 · Fitness +0.5 · Fatigue +5 · Endurance +0.1')
+    expect(within(today).queryByRole('link', { name: /attribute point/ })).not.toBeInTheDocument()
+    // The demo reset lives in Settings now.
+    expect(screen.queryByRole('button', { name: 'Reset demo' })).not.toBeInTheDocument()
   })
 
   it('links to the Training screen', async () => {
     const user = userEvent.setup()
     seedCareer()
     const { router } = renderApp('/')
-    await user.click(screen.getByRole('link', { name: 'Go to training' }))
+    await user.click(screen.getByRole('link', { name: 'Train' }))
     expect(router.state.location.pathname).toBe('/training')
   })
 
@@ -177,10 +173,11 @@ describe('DashboardScreen — cards below', () => {
     expect(screen.getByText('Tuesday')).toBeInTheDocument()
   })
 
-  it('reset demo asks for confirmation, then clears the save and returns to profile selection', async () => {
+  it('reset demo (in Settings) asks for confirmation, then clears the save and returns to profile selection', async () => {
     const user = userEvent.setup()
     seedCareer(withAthlete(newGame(), { xp: 120 }))
     renderApp('/')
+    await user.click(screen.getByRole('link', { name: 'Settings' }))
 
     await user.click(screen.getByRole('button', { name: 'Reset demo' }))
     expect(screen.getByRole('button', { name: 'Confirm reset' })).toHaveFocus()

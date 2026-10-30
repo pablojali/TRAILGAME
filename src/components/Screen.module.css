@@ -1,13 +1,28 @@
+/* A screen fills the content area: header on top, the rest takes the remaining height. */
 .screen {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-3);
+  min-height: 0;
 }
 
 .header {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.heading {
+  display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 2px;
+  min-width: 0;
+}
+
+.aside {
+  flex: none;
 }
 
 .eyebrow {
@@ -26,7 +41,37 @@
 
 .description {
   color: var(--text-muted);
-  max-width: 60ch;
+  font-size: var(--font-size-sm);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Long lists scroll here, inside the screen; the page itself never scrolls. */
+.scrollPanel {
+  /* Positioned so visually hidden text inside stays inside the panel's scroll area. */
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 120px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-md);
+}
+
+.scrollPanel > * {
+  flex: none;
 }
 
 @media (min-width: 768px) {

@@ -1,8 +1,10 @@
 .balance {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
   color: var(--accent-secondary);
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .group {
@@ -92,10 +94,16 @@
 }
 
 .facts {
+  flex: none;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
   margin: 0;
+}
+
+/* The entry action stays under the scrolling details (the page does not scroll). */
+.entry {
+  flex: none;
 }
 
 .facts dt,
@@ -333,40 +341,21 @@
   border-top: 1px solid var(--border);
 }
 
+/* Fixed under the result tabs. */
 .links {
+  flex: none;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
 }
 
-/* Full results: collapsed until the player opens them. */
-.standings {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
+.links > * {
+  flex: 1;
 }
 
-.standingsSummary {
-  display: flex;
-  align-items: center;
-  min-height: var(--touch-target);
-  padding: 0 var(--space-4);
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.standingsSummary:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
-  border-radius: var(--radius-lg);
-}
-
-.standings[open] .standingsSummary {
-  border-bottom: 1px solid var(--border);
-}
-
-.standings > p {
-  padding: var(--space-2) var(--space-4) var(--space-3);
+.standingsNote {
+  flex: none;
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
 }
 
@@ -393,6 +382,9 @@
 }
 
 .standingsTable thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
   color: var(--text-muted);
   font-size: var(--font-size-xs);
   text-transform: uppercase;

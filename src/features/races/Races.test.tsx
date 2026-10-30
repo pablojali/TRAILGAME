@@ -17,40 +17,56 @@ function card(name: string) {
 }
 
 describe('Race Hub', () => {
-  it('lists all 12 races grouped by category, with level and coin balance', () => {
+  it('shows one category at a time in tabs, with level and coin balance', async () => {
+    const user = userEvent.setup()
     seedCareer()
-    renderApp('/races')
+    const { router } = renderApp('/races')
     expect(screen.getByRole('heading', { level: 1, name: 'Races' })).toBeInTheDocument()
-    expect(screen.getByText('Level 1')).toBeInTheDocument()
-    expect(screen.getByText('25 coins')).toBeInTheDocument()
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
-      'Open',
-      'Trail',
-      'Mountain',
-      'Elite',
-    ])
-    expect(screen.getAllByRole('link', { name: /km/ })).toHaveLength(12)
+    expect(screen.getByText('Level 1').parentElement).toHaveTextContent('Level 1·25 coins')
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Open', 'Trail', 'Mountain', 'Elite'])
+    // Level 1: the Open tab first, with its three races.
+    expect(screen.getByRole('tab', { name: 'Open' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getAllByRole('link', { name: /km/ })).toHaveLength(3)
+    await user.click(screen.getByRole('tab', { name: 'Trail' }))
+    expect(router.state.location.search).toBe('?category=trail')
+    expect(screen.getAllByRole('link', { name: /km/ })).toHaveLength(3)
     expect(card('Ridge Runner')).toHaveAccessibleName(
       'Ridge Runner 12 km · 550 m D+ · Rec. Lv 11 Early entry · 125 coins',
     )
   })
 
-  it('shows free Open races, standard fees at level and Early entry below it, never locked', () => {
+  it('shows free Open races, standard fees at level and Early entry below it, never locked', async () => {
+    const user = userEvent.setup()
     seedCareer(level11(0))
     renderApp('/races')
-    expect(within(card('Forest First Steps')).getByText('Free')).toBeInTheDocument()
-    expect(within(card('Pine Loop Challenge')).getByText('Free')).toBeInTheDocument()
+    // Level 11: the Trail tab first (the first category with a race at or above the level).
+    expect(screen.getByRole('tab', { name: 'Trail' })).toHaveAttribute('aria-selected', 'true')
     expect(within(card('Ridge Runner')).getByText('50 coins')).toBeInTheDocument()
     expect(within(card('Wildwood Ascent')).getByText('Early entry · 125 coins')).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Open' }))
+    expect(within(card('Forest First Steps')).getByText('Free')).toBeInTheDocument()
+    expect(within(card('Pine Loop Challenge')).getByText('Free')).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Elite' }))
     expect(within(card('Beyond the Skyline')).getByText('Early entry · 700 coins')).toBeInTheDocument()
     expect(card('Beyond the Skyline')).toHaveAttribute('href', '/races/RACE-012')
   })
 
-  it('is reachable from the Dashboard', async () => {
+  it('opens the tab of a pending entry and keeps the tab in the URL', () => {
+    const entered = enterRace(level11(500), 'RACE-007', 300, 0)
+    if (!entered.ok) throw new Error(entered.error)
+    seedCareer(entered.state)
+    const first = renderApp('/races')
+    expect(screen.getByRole('tab', { name: 'Mountain' })).toHaveAttribute('aria-selected', 'true')
+    first.unmount()
+    renderApp('/races?category=elite')
+    expect(screen.getByRole('tab', { name: 'Elite' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('is reachable from the navigation', async () => {
     const user = userEvent.setup()
     seedCareer()
     const { router } = renderApp('/')
-    await user.click(screen.getByRole('link', { name: 'Race Hub' }))
+    await user.click(screen.getByRole('link', { name: 'Races' }))
     expect(router.state.location.pathname).toBe('/races')
   })
 })
@@ -198,11 +214,7 @@ describe('Race day and results', () => {
     const { result } = entry
     expect(first.router.state.location.pathname).toBe('/races/results/entry-1')
     expect(screen.getByRole('heading', { level: 1, name: `${ordinal(result.position)} of 50` })).toBeInTheDocument()
-    expect(screen.getByText(/than a typical runner in this field/)).toBeInTheDocument()
-    expect(screen.getByText(/each measured on its own \(they don’t add up\)/)).toBeInTheDocument()
-    if (!result.factors.some((f) => f.id === 'day-form')) {
-      expect(screen.getByText(/^Day form [−+]\d+\.\d% \((a good day|an off day)\): fixed for this entry/)).toBeInTheDocument()
-    }
+    expect(screen.getByRole('tab', { name: 'Result' })).toHaveAttribute('aria-selected', 'true')
     const rewards = within(screen.getByRole('heading', { name: 'Rewards' }).closest('article')!)
     expect(rewards.getByText('Entry fee (paid at entry)').nextSibling).toHaveTextContent('Free')
     expect(rewards.getByText('Reward multiplier').nextSibling).toHaveTextContent('100%')
@@ -211,11 +223,16 @@ describe('Race day and results', () => {
     expect(rewards.getByText('Net coin change').nextSibling).toHaveTextContent(`+${result.coinsAwarded} coins`)
     expect(screen.getByText(/Week 1, Sunday/)).toBeInTheDocument()
 
-    // Full results, one click away.
-    const summary = screen.getByText('Full results · 50 runners')
-    expect(summary.closest('details')).not.toHaveAttribute('open')
-    await user.click(summary)
-    expect(summary.closest('details')).toHaveAttribute('open')
+    // The explanation and the full results are one tab away.
+    await user.click(screen.getByRole('tab', { name: 'Why' }))
+    expect(screen.getByText(/than a typical runner in this field/)).toBeInTheDocument()
+    expect(screen.getByText(/each measured on its own \(they don’t add up\)/)).toBeInTheDocument()
+    if (!result.factors.some((f) => f.id === 'day-form')) {
+      expect(screen.getByText(/^Day form [−+]\d+\.\d% \((a good day|an off day)\): fixed for this entry/)).toBeInTheDocument()
+    }
+    await user.click(screen.getByRole('tab', { name: 'Full results' }))
+    expect(first.router.state.location.search).toBe('?tab=standings')
+    expect(screen.getByRole('region', { name: 'Full results · 50 runners' })).toBeInTheDocument()
     const table = within(screen.getByRole('table', { name: 'Full results of Forest First Steps' }))
     expect(table.getAllByRole('row')).toHaveLength(51)
     const you = table.getByRole('rowheader', { name: 'Demo Runner (you)' }).closest('tr')!
@@ -258,7 +275,7 @@ describe('Race day and results', () => {
     if (!entered.ok) throw new Error(entered.error)
     seedCareer(onSunday(entered.state))
     renderApp('/')
-    expect(screen.getByText('Race: Forest First Steps')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Today' })).toHaveTextContent('Today · Race: Forest First Steps')
     expect(screen.getByRole('link', { name: 'Go to race' })).toHaveAttribute('href', '/races/RACE-001')
   })
 

@@ -10,6 +10,7 @@ import type { RaceDayError, RaceDayResult, RaceEntryError } from '../../game-eng
 import type { DayRef, ExecutionResult, TrainingError } from '../../game-engine/training'
 import type { SyncConflict, SyncStatus } from '../../repositories/cloudSync'
 import type { IncompatibleReason } from '../../repositories/gameRepository'
+import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 
 export type GamePhase =
   /** The saved career is being read; game actions are refused until it is. */
@@ -24,6 +25,9 @@ export type GamePhase =
 
 /** A career came from the cloud: restored on this device, or newer from another device. */
 export type CloudNotice = 'restored' | 'updated'
+
+/** Why a new career could not be started on the server. */
+export type StartCareerError = ServerError | 'cloud-career-exists'
 
 export interface DecayNotice {
   periods: number
@@ -42,6 +46,11 @@ export interface GameContextValue {
   syncConflict: SyncConflict | null
   /** Keeps one career ('local': this device's; 'cloud': the account's). False if it failed. */
   resolveSyncConflict(choice: 'local' | 'cloud'): Promise<boolean>
+  /**
+   * Whether this device's career may replace the cloud one. With server operations only a
+   * brand-new career may (progression is the server's).
+   */
+  canKeepDeviceCareer: boolean
   /** Tries the cloud again now. */
   retrySync(): void
   cloudNotice: CloudNotice | null
@@ -52,14 +61,15 @@ export interface GameContextValue {
   /** Result of the most recent execution in this session, for feedback. */
   lastExecution: ExecutionResult | null
   /** Creates and saves a new career. Overwrites any existing save. */
-  startCareer(profile: ProfileId, identity: AthleteIdentity): void
+  startCareer(profile: ProfileId, identity: AthleteIdentity): Promise<StartCareerError | null>
   /** From an incompatible save, goes to profile selection. Writes nothing. */
   beginRestart(): void
   /** Deletes the current career and returns to profile selection. */
   resetCareer(): void
   planSession(ref: DayRef, session: SessionType): TrainingError | null
-  executeDay(ref: DayRef): TrainingError | null
-  allocateAttributePoint(attribute: AttributeId, expectedSpent: number): AllocationError | null
+  /** Server-decided with Supabase: nothing is awarded unless the server confirms. */
+  executeDay(ref: DayRef): Promise<TrainingError | ServerError | null>
+  allocateAttributePoint(attribute: AttributeId, expectedSpent: number): Promise<AllocationError | ServerError | null>
   /** Pays `confirmedFee` once and records a pending entry. */
   enterRace(raceId: string, confirmedFee: number): RaceEntryError | null
   /** Buys an item once for `confirmedPrice` coins. */
@@ -69,7 +79,10 @@ export interface GameContextValue {
   /** Changes the runner's look. Options above the runner's level are refused. */
   setAppearance(appearance: Appearance): AppearanceError | null
   /** Races a pending entry on the current day, once. Returns the result or the reason it failed. */
-  raceDay(ref: DayRef, entryId: string): { ok: true; value: RaceDayResult } | { ok: false; error: RaceDayError }
+  raceDay(
+    ref: DayRef,
+    entryId: string,
+  ): Promise<{ ok: true; value: RaceDayResult } | { ok: false; error: RaceDayError | ServerError }>
 }
 
 export const GameContext = createContext<GameContextValue | null>(null)

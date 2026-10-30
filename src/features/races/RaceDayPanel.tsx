@@ -10,9 +10,12 @@ import { weekdayLong } from '../../domain/training/weekdays'
 import { getCurrentDay } from '../../game-engine/gameState'
 import { getRaceWeek, getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedule'
 import { previewRaceDay, type RaceDayError } from '../../game-engine/races'
+import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './Races.module.css'
 
-const RACE_DAY_ERRORS: Record<RaceDayError, string> = {
+const RACE_DAY_ERRORS: Record<RaceDayError | ServerError, string> = {
+  offline: 'Could not reach the server, so the race was not run yet. Check your connection and try again.',
+  'server-error': 'The server could not run the race, so it was not run yet. Try again.',
   'day-completed': 'Today was already completed. Check the current day and try again.',
   'day-not-current': 'Races take the current day only.',
   'wrong-week': 'The week changed. Check the current day and try again.',
@@ -88,20 +91,21 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
         type="button"
         className={`${button.button} ${preview.injured ? button.danger : button.primary} ${button.block}`}
         aria-disabled={busy || undefined}
-        onClick={() => {
+        onClick={async () => {
           if (busy) return
-          const result = raceDay(ref, entryId)
+          setBusy(true)
+          const result = await raceDay(ref, entryId)
           if (!result.ok) {
+            setBusy(false)
             setError(RACE_DAY_ERRORS[result.error])
             return
           }
-          setBusy(true)
           navigate(`/races/results/${entryId}`, {
             state: { levelsGained: result.value.levelAfter - result.value.levelBefore },
           })
         }}
       >
-        {preview.injured ? 'Start race anyway — injury' : 'Start race'}
+        {busy ? 'Running the race…' : preview.injured ? 'Start race anyway — injury' : 'Start race'}
       </button>
     </>
   )

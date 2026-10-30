@@ -21,7 +21,8 @@ export interface RemoteCareer {
 }
 
 export type RemoteSaveResult =
-  | { saved: true; version: number }
+  /** `state`: the career as the server stored it (with server-authoritative fields, Phase 3B.1). */
+  | { saved: true; version: number; state?: GameState }
   /** Nothing written: the cloud is at another version (null: the expected career is gone). */
   | { saved: false; version: number | null }
 
@@ -172,8 +173,11 @@ export function summarize(state: GameState, level: (xp: number) => number): Care
 }
 
 export interface CloudSyncHandlers {
-  /** The cloud career replaces the local one (restore, or a newer cloud career with no local changes). */
-  adopt(state: GameState): void
+  /**
+   * The cloud career replaces the local one (restore, or a newer cloud career with no local
+   * changes). `quiet`: the server corrected fields it owns after a save; no notice needed.
+   */
+  adopt(state: GameState, quiet?: boolean): void
   /** Status or conflict changed. */
   changed(): void
 }
@@ -193,6 +197,15 @@ export interface CloudSync {
   resolve(choice: 'local' | 'cloud'): Promise<{ ok: true; adopt: GameState | null } | { ok: false }>
   /** Retries now (back online, app visible, player pressed retry). */
   retry(): void
+  /** The cloud version the local career is in step with (null: none known). */
+  knownVersion(): number | null
+  /** Compares the local career with the cloud again, as at startup. */
+  refresh(local: GameState | null): void
+  /**
+   * The server confirmed this career at this version (a server operation, Phase 3B.1): it is now
+   * the synced career, and any conflict is settled.
+   */
+  confirmed(state: GameState, version: number): void
   stop(): void
 }
 
@@ -308,9 +321,15 @@ export function createCloudSync({
     setStatus('syncing')
     const result = await store.save(career, baseVersion)
     if (result.saved) {
-      synced(result.version, career)
-      // A newer local save arrived during the upload: upload that one next.
+      // The server keeps the fields it owns: play its version if it differs from what was sent.
+      const stored = result.state && careerHash(result.state) !== careerHash(career) ? result.state : career
+      synced(result.version, stored)
       if (latest === career) latest = null
+      if (stored !== career) {
+        latest = null
+        handlers?.adopt(stored, true)
+      }
+      // A newer local save arrived during the upload: upload that one next.
       if (latest) schedule(0)
       else setStatus('synced')
       return
@@ -406,6 +425,25 @@ export function createCloudSync({
         setStatus('conflict')
         return { ok: false }
       }
+    },
+
+    knownVersion: () => meta?.baseVersion ?? null,
+
+    refresh(local) {
+      latest = local
+      started = false
+      currentConflict = null
+      void run()
+    },
+
+    confirmed(career, version) {
+      if (!userId) return
+      synced(version, career)
+      if (latest && careerHash(latest) === careerHash(career)) latest = null
+      currentConflict = null
+      started = true
+      setStatus(latest ? 'pending' : 'synced')
+      if (latest) schedule(debounceMs)
     },
 
     retry() {

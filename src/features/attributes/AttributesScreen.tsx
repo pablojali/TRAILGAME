@@ -15,9 +15,12 @@ import { PROFILES } from '../../domain/athlete/profiles'
 import { getRestFatigueDelta, RECOVERY_BONUS_FATIGUE, RECOVERY_BONUS_STEP } from '../../domain/training/recovery'
 import { formatDelta, formatStat } from '../../components/format'
 import { getUnspentAttributePoints, type AllocationError } from '../../game-engine/attributes'
+import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './AttributesScreen.module.css'
 
-const ERRORS: Record<AllocationError, string> = {
+const ERRORS: Record<AllocationError | ServerError, string> = {
+  offline: 'Could not reach the server, so the point was not spent. Check your connection and try again.',
+  'server-error': 'The server could not spend the point. Try again.',
   'no-points': 'No attribute points left to spend.',
   'unknown-attribute': 'That attribute does not exist.',
   'stale-request': 'The attributes changed. Check the values and try again.',
@@ -34,9 +37,9 @@ export function AttributesScreen() {
   const [message, setMessage] = useState('')
   const startRecovery = PROFILES[athlete.profile].attributes.recovery
 
-  function add(attribute: AttributeId) {
+  async function add(attribute: AttributeId) {
     const label = ATTRIBUTE_LABELS[attribute]
-    const error = allocateAttributePoint(attribute, athlete.spentAttributePoints)
+    const error = await allocateAttributePoint(attribute, athlete.spentAttributePoints)
     if (error) {
       setMessage(ERRORS[error])
       return

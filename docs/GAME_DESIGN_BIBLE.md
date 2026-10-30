@@ -177,7 +177,7 @@ Fitness represents the athlete's current physical readiness and accumulated trai
 - Range: 0–100.
 - Initial value: 20.
 - Fitness increases through training.
-- Fitness decreases through inactivity and on Rest days (−2 per Rest day, 1.2).
+- Fitness decreases through inactivity and on a second Rest day in a row (−2); a Rest right after a training day or race keeps Fitness (owner decisions, 30 October 2026).
 - Fitness must never exceed 100 or fall below 0.
 
 Fitness is not the same as an attribute.
@@ -306,6 +306,8 @@ Fitness gains must be capped at 100.
 
 **Revision 1.2:** each Rest day reduces Fitness by 2 (owner decision, 28 October 2026). Rest still grants no XP and still does not reset the inactivity reference (§4.5).
 
+**Recovery Rest (owner decisions, 30 October 2026; supersedes the line above where they differ):** a Rest day right after a training day or a race keeps Fitness (0 instead of −2), rewarding rest as recovery. It was first +1, then set to 0 because with +1 Fitness reached 96 by level 3 in the 16-week simulation. A Rest right after another Rest keeps Fitness −2. Forced Rest days after an injury always use −2. The previous day carries across weeks (Monday after a Sunday session). A played Rest day now resets the inactivity reference (§4.5).
+
 The new values intentionally make Fitness progression slower than in the original M1 prototype.
 
 **Fatigue effects are not changed by this adjustment.** The existing M1 Fatigue values should remain unchanged unless a later balancing decision explicitly modifies them.
@@ -334,7 +336,7 @@ Proposed deterministic rule:
 - Reduce Fitness by 1 point for every complete 24-hour period without a completed non-rest training session.
 - The initial inactivity reference timestamp must be established when the career is created.
 - Completing a non-rest training session resets the inactivity reference timestamp.
-- Completing a Rest session does not reset the inactivity reference timestamp.
+- Completing a Rest session does not reset the inactivity reference timestamp. **Superseded (owner decisions, 30 October 2026):** every played day, Rest included, resets it, and the first full 24-hour period without playing is free. Decay only counts days the player does not play; playing once a day, even at the same time, never decays. With the grace day, 72 hours without playing take Fitness 20 → 18 (example below: was 17).
 - Fitness cannot fall below 0.
 - Fitness cannot rise above 100.
 - Multiple elapsed periods must be applied correctly after the player returns to the game.
@@ -1273,7 +1275,7 @@ These criteria apply when the corresponding follow-up milestone is approved.
 - Each complete 24-hour period without a non-rest session reduces Fitness by 1.
 - Partial periods do not cause premature decay.
 - Completing a non-rest session resets the inactivity reference.
-- Rest does not reset the inactivity reference.
+- Rest does not reset the inactivity reference (superseded on 30 October 2026: a played Rest day resets it).
 - Reopening the application does not apply the same decay period twice.
 - Decay is correctly applied after several elapsed periods.
 - Missing or invalid timestamps do not crash the application or cause unbounded decay.

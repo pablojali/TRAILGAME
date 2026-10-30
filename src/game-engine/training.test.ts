@@ -190,8 +190,8 @@ describe('executeCurrentDay', () => {
     expect(state.week.days.map((d) => d.session)).toEqual(DEFAULT_WEEK_PLAN)
     expect(state.week.days.every((d) => d.outcome === null)).toBe(true)
     expect(state.athlete.xp).toBe(WEEK_XP)
-    // Default plan: +2 +3 −2 +3 −2 +3 −2.
-    expect(state.athlete.fitness).toBe(20 + 5)
+    // Default plan: +2 +3, then each Rest follows a training day (recovery Rest keeps Fitness): +0 +3 +0 +3 +0.
+    expect(state.athlete.fitness).toBe(20 + 11)
   })
 
   it('accumulates XP across weeks and never decreases it', () => {
@@ -214,18 +214,47 @@ describe('executeCurrentDay', () => {
       expect(result.state.fitnessDecayReference).toBe(T0 + 30 * HOUR)
     })
 
-    it('is not changed by Rest', () => {
+    it('moves to the completion time after Rest too (owner decision, 30 October 2026)', () => {
       const result = execute(withSession(newGame(), 'rest'), T0 + 30 * HOUR)
-      expect(result.state.fitnessDecayReference).toBe(T0)
+      expect(result.state.fitnessDecayReference).toBe(T0 + 30 * HOUR)
     })
 
-    it('is not changed by advancing the simulated week', () => {
+    it('causes no decay from advancing the simulated week', () => {
       let state = newGame()
       for (let i = 0; i < 7; i++) state = execute(withSession(state, 'rest'), T0 + i).state
       expect(state.week.number).toBe(2)
-      expect(state.fitnessDecayReference).toBe(T0)
-      // Only the Rest effect (−2 per day), no extra decay from the simulated days.
+      expect(state.fitnessDecayReference).toBe(T0 + 6)
+      // Only the Rest effect (−2 per day: no active day before any of them), no decay.
       expect(state.athlete.fitness).toBe(20 - 7 * 2)
+    })
+  })
+
+  describe('recovery Rest (owner decision, 30 October 2026)', () => {
+    it('keeps Fitness right after a training day; a second Rest in a row loses 2', () => {
+      const trained = execute(newGame()).state // Easy run: Fitness 22
+      expect(trained.previousDayActive).toBe(true)
+      expect(previewSession(trained, 'rest').fitnessChange).toBe(0)
+      const rested = execute(withSession(trained, 'rest')).state
+      expect(rested.athlete.fitness).toBe(22)
+      expect(rested.previousDayActive).toBe(false)
+      expect(previewSession(rested, 'rest').fitnessChange).toBe(-2)
+      expect(execute(withSession(rested, 'rest')).state.athlete.fitness).toBe(20)
+    })
+
+    it('gives no bonus at the start of a career or on forced Rest after an injury', () => {
+      expect(newGame().previousDayActive).toBe(false)
+      expect(previewSession(newGame(), 'rest').fitnessChange).toBe(-2)
+      const injured = { ...newGame(), previousDayActive: true, forcedRestDays: 3 }
+      expect(previewSession(injured, 'rest').fitnessChange).toBe(-2)
+    })
+
+    it('counts across weeks: Monday Rest after a Sunday session is a recovery Rest', () => {
+      let state = newGame()
+      for (let i = 0; i < 6; i++) state = execute(state).state
+      state = execute(withSession(state, 'long-run')).state // Sunday
+      expect(state.week.number).toBe(2)
+      expect(state.previousDayActive).toBe(true)
+      expect(previewSession(state, 'rest').fitnessChange).toBe(0)
     })
   })
 })

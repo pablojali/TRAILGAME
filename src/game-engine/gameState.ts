@@ -43,9 +43,14 @@ export interface GameState {
   week: TrainingWeek
   /**
    * Epoch milliseconds from which Fitness decay is measured: career creation, the last completed
-   * non-rest session, or the end of the last decay period applied.
+   * day (Rest included since 30 October 2026), or the end of the last decay period applied.
    */
   fitnessDecayReference: number
+  /**
+   * True if the last completed day was a training session or a race, false if it was Rest (or
+   * nothing yet). A Rest day right after an active day gains Fitness (owner decision, 30 October 2026).
+   */
+  previousDayActive: boolean
   /**
    * Number of upcoming days, starting with the current one, that are forced to Rest after an injury.
    * Those days are already planned as Rest and cannot be changed.
@@ -177,6 +182,7 @@ export function createInitialGameState(
     },
     week: createWeek(1),
     fitnessDecayReference: now,
+    previousDayActive: false,
     forcedRestDays: 0,
     coins: STARTING_COINS,
     raceEntries: [],

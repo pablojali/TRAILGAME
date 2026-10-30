@@ -5,7 +5,7 @@ import {
   INJURY_FITNESS_LOSS,
   INJURY_REST_DAYS,
 } from '../domain/training/injury'
-import { getRestFatigueDelta } from '../domain/training/recovery'
+import { getRestFatigueDelta, RECOVERY_REST_FITNESS } from '../domain/training/recovery'
 import { isSessionType, TRAINING_SESSIONS, type SessionType } from '../domain/training/sessions'
 import {
   createWeek,
@@ -58,7 +58,16 @@ export function clampStat(value: number): number {
 }
 
 /**
- * Changes a session would apply to the current athlete, after clamping. A non-rest session that
+ * True if a Rest today is a recovery Rest: the previous day was a training session or a race, and
+ * today is not a forced Rest day after an injury.
+ */
+export function isRecoveryRest(state: GameState): boolean {
+  return state.previousDayActive && state.forcedRestDays === 0
+}
+
+/**
+ * Changes a session would apply to the current athlete, after clamping. Rest right after an
+ * active day gains Fitness (`isRecoveryRest`). A non-rest session that
  * would leave Fatigue above the injury threshold is reported as an injury: no XP, a Fitness loss
  * instead of the gain, and its Fatigue cost still applies.
  */
@@ -76,9 +85,10 @@ export function previewSession(state: GameState, session: SessionType): DayOutco
       injured: true,
     }
   }
+  const fitnessDelta = session === 'rest' && isRecoveryRest(state) ? RECOVERY_REST_FITNESS : rules.fitnessDelta
   return {
     xpGained: rules.xp,
-    fitnessChange: clampStat(fitness + rules.fitnessDelta) - fitness,
+    fitnessChange: clampStat(fitness + fitnessDelta) - fitness,
     fatigueChange,
   }
 }
@@ -120,8 +130,8 @@ export function planSession(
 
 /**
  * Executes the current day's planned session exactly once at `now` (epoch ms), then advances to the
- * next day. After the final day, a new week starts; athlete progression is kept. A non-rest session
- * resets the Fitness decay reference; Rest does not.
+ * next day. After the final day, a new week starts; athlete progression is kept. Every completed day,
+ * Rest included, resets the Fitness decay reference (owner decision, 30 October 2026).
  */
 export function executeCurrentDay(
   state: GameState,
@@ -156,13 +166,14 @@ export function executeCurrentDay(
 /**
  * Applies an outcome to the current day and moves the calendar on: XP, Fitness and Fatigue change
  * by the outcome, forced Rest days are counted down (or set by a new injury), the next day becomes
- * current (a new week after day 7), and the Fitness decay reference is reset if `resetsDecay`.
+ * current (a new week after day 7), the Fitness decay reference is reset (decay only counts days not
+ * played), and `active` (a training session or a race, not Rest) is remembered for the next Rest.
  * Shared by training and race days, so both complete a day the same way. Callers check the day first.
  */
 export function completeCurrentDay(
   state: GameState,
   outcome: DayOutcome,
-  resetsDecay: boolean,
+  active: boolean,
   now: number,
 ): { state: GameState; weekCompleted: boolean } {
   const injured = outcome.injured === true
@@ -191,10 +202,8 @@ export function completeCurrentDay(
         forcedRestDays,
       )
 
-  const fitnessDecayReference = resetsDecay ? now : state.fitnessDecayReference
-
   return {
-    state: { ...state, athlete, week, fitnessDecayReference, forcedRestDays },
+    state: { ...state, athlete, week, fitnessDecayReference: now, previousDayActive: active, forcedRestDays },
     weekCompleted,
   }
 }

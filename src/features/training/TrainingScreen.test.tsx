@@ -182,7 +182,7 @@ describe('TrainingScreen — completing sessions', () => {
     expect(feedback()).toHaveTextContent('Week 1 complete. Week 2 has started: Monday, Easy run.')
     expect(screen.getByRole('list', { name: 'Week 2 plan' })).toBeInTheDocument()
     expect(strip().filter((b) => b.getAttribute('aria-label')!.endsWith('completed'))).toHaveLength(0)
-    expect(readSave()!.state.athlete).toMatchObject({ xp: 57, fitness: 25 })
+    expect(readSave()!.state.athlete).toMatchObject({ xp: 57, fitness: 31 })
   })
 
   it('persists edits and executions across a reload', async () => {
@@ -197,7 +197,7 @@ describe('TrainingScreen — completing sessions', () => {
     expect(strip()[1]).toHaveAccessibleName('Tuesday, Hills, today')
   })
 
-  it('resets the inactivity reference on a non-rest session but not on Rest', async () => {
+  it('resets the inactivity reference on every played day, Rest included', async () => {
     const user = userEvent.setup()
     renderApp('/training')
 
@@ -208,17 +208,33 @@ describe('TrainingScreen — completing sessions', () => {
     await user.selectOptions(within(detail()).getByLabelText('Session for Tuesday'), 'Rest')
     vi.setSystemTime(T0 + 9 * HOUR)
     await user.click(await within(detail()).findByRole('button', { name: 'Take rest day (Tue)' }, { timeout: 1500 }))
-    expect(readSave()!.state.fitnessDecayReference).toBe(T0 + 5 * HOUR)
+    expect(readSave()!.state.fitnessDecayReference).toBe(T0 + 9 * HOUR)
+  })
+
+  it('shows recovery Rest: Fitness kept after a training day, −2 for a second Rest in a row', async () => {
+    const user = userEvent.setup()
+    renderApp('/training')
+    // Default plan: Wednesday Rest after Tuesday Intervals; plan Thursday as Rest too.
+    await user.click(screen.getByRole('button', { name: /^Wednesday/ }))
+    expect(within(detail()).getByText(/Planned:/).parentElement).toHaveTextContent('Fitness 0')
+    await user.click(screen.getByRole('button', { name: /^Monday/ }))
+    await completeToday(user)
+    await completeToday(user)
+    expect(within(detail()).getByText(/Recovery rest after a training day: Fitness kept\./)).toBeInTheDocument()
+    await completeToday(user)
+    expect(readSave()!.state.athlete.fitness).toBe(20 + 2 + 3)
+    await user.selectOptions(within(detail()).getByLabelText('Session for Thursday'), 'Rest')
+    expect(await within(detail()).findByText(/A second rest in a row: Fitness −2\./)).toBeInTheDocument()
   })
 
   it('applies due decay before executing a session', async () => {
     const user = userEvent.setup()
     renderApp('/training')
-    vi.setSystemTime(T0 + 2 * 24 * HOUR + HOUR)
+    vi.setSystemTime(T0 + 3 * 24 * HOUR + HOUR)
     await completeToday(user)
-    // 20 − 2 (two full days) + 2 (Easy run).
+    // 20 − 2 (three full days, the first one free) + 2 (Easy run).
     expect(readSave()!.state.athlete.fitness).toBe(20)
-    expect(screen.getByText('Fitness −2: 2 full days without a training session.')).toBeInTheDocument()
+    expect(screen.getByText('Fitness −2: 2 days without playing, after the first free day.')).toBeInTheDocument()
   })
 })
 

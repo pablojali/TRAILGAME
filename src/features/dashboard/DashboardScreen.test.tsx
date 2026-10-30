@@ -188,23 +188,24 @@ describe('DashboardScreen — cards below', () => {
 describe('DashboardScreen — Fitness decay', () => {
   it('applies Fitness decay on load, announces it and saves it once', () => {
     seedCareer(newGame())
-    vi.setSystemTime(T0 + 3 * DAY + 5000)
+    // Four full days without playing: the first is free (owner decision, 30 October 2026).
+    vi.setSystemTime(T0 + 4 * DAY + 5000)
     const first = renderApp('/')
     expect(stat('Fitness')).toBe('17')
-    expect(screen.getByText('Fitness −3: 3 full days without a training session.')).toBeInTheDocument()
+    expect(screen.getByText('Fitness −3: 3 days without playing, after the first free day.')).toBeInTheDocument()
     expect(readSave()!.state).toMatchObject({ athlete: { fitness: 17 }, fitnessDecayReference: T0 + 3 * DAY })
     first.unmount()
 
     // Reopening later the same day does not apply the same periods again.
-    vi.setSystemTime(T0 + 3 * DAY + 60_000)
+    vi.setSystemTime(T0 + 4 * DAY + 60_000)
     renderApp('/')
     expect(stat('Fitness')).toBe('17')
-    expect(screen.queryByText(/without a training session\./)).not.toBeInTheDocument()
+    expect(screen.queryByText(/without playing/)).not.toBeInTheDocument()
   })
 
-  it('does not decay before a full day has passed', () => {
+  it('does not decay during the first free day', () => {
     seedCareer(newGame())
-    vi.setSystemTime(T0 + DAY - 1)
+    vi.setSystemTime(T0 + 2 * DAY - 1)
     renderApp('/')
     expect(stat('Fitness')).toBe('20')
   })
@@ -213,7 +214,7 @@ describe('DashboardScreen — Fitness decay', () => {
     seedCareer(newGame())
     renderApp('/')
     expect(stat('Fitness')).toBe('20')
-    vi.setSystemTime(T0 + 2 * DAY)
+    vi.setSystemTime(T0 + 3 * DAY)
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'))
     })

@@ -446,7 +446,8 @@ function ExecutionFeedback({ result }: { result: ExecutionResult }) {
 
 /** New appearance options reached by a level-up, with a link to try them on. */
 function UnlockNotice({ from, to }: { from: number; to: number }) {
-  const unlocks = appearanceUnlocks(from, to)
+  const { athlete } = useCareer().state
+  const unlocks = appearanceUnlocks(from, to, athlete.sex, athlete.appearance.skin)
   if (unlocks.length === 0) return null
   return (
     <>

@@ -1,8 +1,10 @@
 import { useId, useRef, useState, type KeyboardEvent } from 'react'
 import { Avatar } from '../../components/avatar/Avatar'
 import {
-  HAIR_STYLE_LABELS,
-  HAIR_STYLES,
+  appearanceForSex,
+  hairStyleLabel,
+  hairStyles,
+  hairUnlockLevel,
   OUTFIT_LABELS,
   outfitUnlockLevel,
   OUTFITS,
@@ -21,10 +23,6 @@ const APPEARANCE_TABS: readonly { id: AppearanceTab; label: string }[] = [
   { id: 'outfit', label: 'Clothing' },
 ]
 
-/** Shown under the options of a tab, when it needs explaining. */
-const TAB_NOTES: Partial<Record<AppearanceTab, string>> = {
-  hair: 'Each runner’s hair is drawn with the body. More hairstyles come with new artwork.',
-}
 
 interface Option {
   value: string
@@ -76,15 +74,21 @@ export function AppearanceEditor({
     tabRefs.current[next]?.focus()
   }
 
+  const hairs = hairStyles(sex, appearance.skin)
   const options: Option[] =
     tab === 'hair'
-      ? HAIR_STYLES[sex].map((hair) => ({
-          value: hair,
-          label: HAIR_STYLE_LABELS[hair],
-          swatch: { ...appearance, hair },
-          crop: 'head',
-          caption: true,
-        }))
+      ? hairs
+          .filter((hair) => showLocked || hairUnlockLevel(sex, hair) <= level)
+          .map((hair) => {
+            const unlock = hairUnlockLevel(sex, hair)
+            return {
+              value: hair,
+              label: hairStyleLabel(sex, hair),
+              swatch: { ...appearance, hair },
+              crop: 'head',
+              lockedUntil: unlock > level ? unlock : undefined,
+            }
+          })
       : tab === 'skin'
         ? SKIN_TONES[sex].map((skin) => ({
             value: skin,
@@ -105,14 +109,19 @@ export function AppearanceEditor({
           })
 
   const hasLocked = OUTFITS.some((outfit) => outfitUnlockLevel(outfit) > level)
+  const hasLockedHair = hairs.some((hair) => hairUnlockLevel(sex, hair) > level)
   const note =
     tab === 'outfit'
       ? `${OUTFIT_LABELS[appearance.outfit]}.${hasLocked ? ' New T-shirt colours unlock as you level up.' : ''}`
-      : TAB_NOTES[tab]
+      : tab === 'hair'
+        ? `${hairStyleLabel(sex, appearance.hair)}.${hasLockedHair ? ' New hairstyles unlock as you level up.' : ''}${
+            hairs.length === 1 ? ' More hairstyles for this skin tone come with new artwork.' : ''
+          }`
+        : undefined
 
   const previewLabel = `Avatar preview: ${[
     SEX_LABELS[sex],
-    HAIR_STYLE_LABELS[appearance.hair],
+    hairStyleLabel(sex, appearance.hair),
     SKIN_TONE_LABELS[appearance.skin],
     OUTFIT_LABELS[appearance.outfit],
   ]
@@ -172,7 +181,8 @@ export function AppearanceEditor({
                   value={option.value}
                   checked={checked}
                   disabled={locked}
-                  onChange={() => onChange({ ...appearance, [tab]: option.value })}
+                  // A new skin tone keeps the hairstyle only if it has art in that tone.
+                  onChange={() => onChange(appearanceForSex({ ...appearance, [tab]: option.value }, sex))}
                   className={styles.srOnlyInput}
                 />
                 <span className={styles.swatchArt}>

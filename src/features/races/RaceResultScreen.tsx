@@ -52,10 +52,15 @@ export function RaceResultScreen() {
 
 function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
   const { result } = entry
-  const athleteName = useCareer().state.athlete.name
   const location = useLocation()
   const levelsGained = (location.state as { levelsGained?: number } | null)?.levelsGained ?? 0
-  const unlocks = appearanceUnlocks(result.levelAtStart, result.levelAtStart + levelsGained)
+  const { athlete } = useCareer().state
+  const unlocks = appearanceUnlocks(
+    result.levelAtStart,
+    result.levelAtStart + levelsGained,
+    athlete.sex,
+    athlete.appearance.skin,
+  )
 
   return (
     <Screen
@@ -85,7 +90,7 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
         <Performance result={result} />
       </Card>
 
-      <Standings race={race} entry={entry} name={athleteName} />
+      <Standings race={race} entry={entry} name={athlete.name} />
 
       <Card title="Rewards">
         <Rewards race={race} entry={entry} />

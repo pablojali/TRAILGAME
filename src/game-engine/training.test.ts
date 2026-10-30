@@ -17,7 +17,7 @@ describe('createInitialGameState', () => {
     expect(athlete).toEqual({
       name: 'Demo Runner',
       sex: 'female',
-      appearance: defaultAppearance('female'),
+      appearance: defaultAppearance(),
       profile,
       xp: 0,
       fitness: 20,

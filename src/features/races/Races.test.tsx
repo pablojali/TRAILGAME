@@ -110,7 +110,7 @@ describe('Race Detail', () => {
     renderApp('/races/RACE-004')
     const enter = screen.getByRole('button', { name: 'Enter race' })
     expect(enter).toHaveAttribute('aria-disabled', 'true')
-    expect(enter).toHaveAccessibleDescription('Not enough coins: you need 10 coins more (balance 40 coins).')
+    expect(enter).toHaveAccessibleDescription('You need 10 coins more.')
     await user.click(enter)
     expect(screen.queryByRole('heading', { name: 'Confirm entry' })).not.toBeInTheDocument()
     expect(readSave()!.state.coins).toBe(40)
@@ -122,7 +122,7 @@ describe('Race Detail', () => {
     const first = renderApp('/races/RACE-001')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     expect(screen.getByRole('heading', { name: 'Confirm entry to Forest First Steps' })).toHaveFocus()
-    expect(screen.getByText('Balance after entry').nextSibling).toHaveTextContent('25 coins')
+    expect(screen.getByText(/Balance stays 25 coins/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     expect(screen.getByText('Entry confirmed. Entry fee paid: free entry.')).toHaveAttribute('role', 'status')
     expect(screen.getByText(/Race day: Sunday, week 1\./)).toBeInTheDocument()
@@ -141,9 +141,9 @@ describe('Race Detail', () => {
     seedCareer(level11(300))
     renderApp('/races/RACE-004')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
-    expect(screen.getByText('Entry fee', { selector: 'dt' }).nextSibling).toHaveTextContent('50 coins')
-    expect(screen.getByText('Your balance').nextSibling).toHaveTextContent('300 coins')
-    expect(screen.getByText('Balance after entry').nextSibling).toHaveTextContent('250 coins')
+    expect(screen.getByText('Pay 50 coins.').parentElement).toHaveTextContent(
+      'Pay 50 coins. Balance 300 coins → 250 coins. Not refundable.',
+    )
     expect(readSave()!.state.coins).toBe(300)
 
     const pay = screen.getByRole('button', { name: 'Pay 50 coins and enter' })
@@ -191,7 +191,7 @@ describe('Race day and results', () => {
     const user = userEvent.setup()
     seedCareer()
     renderApp('/races/RACE-001')
-    expect(screen.getByText(/this one would be on Sunday of week 1/)).toBeInTheDocument()
+    expect(screen.getByText('Sunday, week 1')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     expect(screen.getByText('Race day: Sunday, week 1.')).toBeInTheDocument()
@@ -303,7 +303,7 @@ describe('Race day and results', () => {
       week: { ...sunday.week, days: sunday.week.days.map((d, i) => (i === 6 ? { ...d, session: 'rest' as const } : d)) },
     })
     renderApp('/races/RACE-001')
-    expect(screen.getByText(/this one would be on Sunday of week 2/)).toBeInTheDocument()
+    expect(screen.getByText('Sunday, week 2')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     expect(screen.getByText(/Sunday is a forced rest day, so the race moves to Sunday of week 2/)).toBeInTheDocument()

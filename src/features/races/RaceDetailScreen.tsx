@@ -193,16 +193,16 @@ function EntryPanel({ race }: { race: Race }) {
 
   if (entry) {
     return (
-      <Card title="Entered">
+      <section className={styles.entryBar} aria-label="Your entry">
         <h2 ref={panel} tabIndex={-1} className={styles.srOnly}>
           Race entry confirmed
         </h2>
-        <p role="status">
+        <p role="status" className={styles.entryTitle}>
           {justEntered ? 'Entry confirmed. ' : ''}
           Entry fee paid: {entry.feePaid === 0 ? 'free entry' : formatCoins(entry.feePaid)}.
         </p>
         <RaceDayPanel race={race} entryId={entry.id} />
-      </Card>
+      </section>
     )
   }
 
@@ -210,36 +210,33 @@ function EntryPanel({ race }: { race: Race }) {
   const scheduledRace = scheduled && getRace(scheduled.raceId)
   if (scheduled && scheduledRace) {
     return (
-      <Card title="Enter this race">
-        <p className={styles.warning}>
-          You are already entered in {scheduledRace.name} on Sunday. Races are run on Sundays, one per week.
+      <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label="Enter this race">
+        <p className={`${styles.entryText} ${styles.warning}`}>
+          You are already entered in {scheduledRace.name} on Sunday. One race per week.
         </p>
         <Link to={`/races/${scheduledRace.id}`} className={`${button.button} ${button.secondary}`}>
-          Go to {scheduledRace.name}
+          Go to race<span className={styles.srOnly}> {scheduledRace.name}</span>
         </Link>
-      </Card>
+      </section>
     )
   }
 
+  // A compact bar under the race details (owner request: the entry must not cover them).
   if (!confirming) {
     return (
-      <Card title="Enter this race">
-        <p className={styles.muted}>
-          Races are run on Sundays: this one would be on Sunday of week {getRaceWeek(state)}, instead of that
-          day’s session.
-        </p>
-        <p>
-          {feeText(fee)}
-          {fee.type === 'early' && <span className={styles.muted}> (your level is below {race.recommendedLevel})</span>}
-        </p>
-        {shortfall > 0 && (
-          <p className={styles.warning} id="race-shortfall">
-            Not enough coins: you need {formatCoins(shortfall)} more (balance {formatCoins(state.coins)}).
-          </p>
-        )}
+      <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label="Enter this race">
+        <div className={styles.entryText}>
+          <p className={styles.entryTitle}>Sunday, week {getRaceWeek(state)}</p>
+          <p>{feeText(fee)}</p>
+          {shortfall > 0 && (
+            <p className={styles.warning} id="race-shortfall">
+              You need {formatCoins(shortfall)} more.
+            </p>
+          )}
+        </div>
         <button
           type="button"
-          className={`${button.button} ${button.primary} ${button.block}`}
+          className={`${button.button} ${button.primary}`}
           aria-disabled={shortfall > 0 || undefined}
           aria-describedby={shortfall > 0 ? 'race-shortfall' : undefined}
           onClick={() => {
@@ -250,30 +247,27 @@ function EntryPanel({ race }: { race: Race }) {
         >
           Enter race
         </button>
-      </Card>
+      </section>
     )
   }
 
   return (
-    <Card title="Confirm entry">
+    <section className={styles.entryBar} aria-label="Confirm entry">
       <h2 ref={panel} tabIndex={-1} className={styles.srOnly}>
         Confirm entry to {race.name}
       </h2>
-      <dl className={styles.confirm}>
-        <div>
-          <dt>Entry fee</dt>
-          <dd>{fee.fee === 0 ? 'Free' : formatCoins(fee.fee)}</dd>
-        </div>
-        <div>
-          <dt>Your balance</dt>
-          <dd>{formatCoins(state.coins)}</dd>
-        </div>
-        <div>
-          <dt>Balance after entry</dt>
-          <dd>{formatCoins(state.coins - fee.fee)}</dd>
-        </div>
-      </dl>
-      <p className={styles.muted}>Entry fees are not refunded.</p>
+      <p>
+        {fee.fee === 0 ? (
+          <>
+            <strong>Free entry.</strong> Balance stays {formatCoins(state.coins)}.
+          </>
+        ) : (
+          <>
+            <strong>Pay {formatCoins(fee.fee)}.</strong> Balance {formatCoins(state.coins)} →{' '}
+            {formatCoins(state.coins - fee.fee)}. Not refundable.
+          </>
+        )}
+      </p>
       {message && (
         <p role="alert" className={styles.warning}>
           {message}
@@ -299,6 +293,6 @@ function EntryPanel({ race }: { race: Race }) {
           {fee.fee === 0 ? 'Confirm free entry' : `Pay ${formatCoins(fee.fee)} and enter`}
         </button>
       </div>
-    </Card>
+    </section>
   )
 }

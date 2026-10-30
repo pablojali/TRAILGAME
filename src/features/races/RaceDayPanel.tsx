@@ -57,8 +57,7 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
           </p>
         )}
         <p>
-          <strong>Race day: Sunday, week {raceWeek}.</strong> Today is {weekdayLong(today.day)}. Train until then;
-          on Sunday, start the race here or from Training.
+          <strong>Race day: Sunday, week {raceWeek}.</strong> Today is {weekdayLong(today.day)}. Train until then.
         </p>
       </>
     )

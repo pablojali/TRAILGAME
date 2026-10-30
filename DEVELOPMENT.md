@@ -945,7 +945,8 @@ every screen fits the space between them (checked at 390 × 844 and 360 × 740).
   - Races: one tab per category (`?category=`), opening on the runner's level band (or the
     entered race's category).
   - Race detail: facts on top, fees, prizes and past results in a scroll panel, the entry action
-    always in view. **← All races** returns to the race's category.
+    always in view as a compact bar (race day and fee, then **Enter race**; confirming shows one
+    line: fee and balance before → after). **← All races** returns to the race's category.
   - Race result: tabs **Result** (time, rewards, condition), **Why** (what shaped the time) and
     **Full results** (the 50 runners, scrolled to the player); **Back to races** stays in view.
   - Equipment: tabs **Equipped** (the runner, then one row per slot: Shoes, Poles, Backpack, with

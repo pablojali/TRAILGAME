@@ -106,8 +106,36 @@
   flex: none;
 }
 
-.facts dt,
-.confirm dt {
+/* Entry: a compact bar under the scrolling details. */
+.entryBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  font-size: var(--font-size-sm);
+}
+
+.entryRow {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.entryText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.entryTitle {
+  font-weight: 800;
+}
+
+.facts dt {
   color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-weight: 700;
@@ -115,8 +143,7 @@
   text-transform: uppercase;
 }
 
-.facts dd,
-.confirm dd {
+.facts dd {
   margin: 0;
   font-weight: 700;
 }
@@ -188,18 +215,7 @@
   font-weight: 600;
 }
 
-.confirm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: 0;
-}
 
-.confirm div {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
 
 .muted {
   color: var(--text-muted);

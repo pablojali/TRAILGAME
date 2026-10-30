@@ -416,7 +416,7 @@ The exact adaptation amount, frequency, probability, and cap behavior must be ba
 
 Rest may improve the athlete's condition through Fatigue recovery, but it must not directly increase attributes under the current design.
 
-**Implemented (owner decision, 30 October 2026; replaces the mapping above):** each completed session adds 0.1 to one attribute: Easy Run and Long Run → Endurance, Intervals → Speed, Hills → Climbing, Trail technique → Technical, Strength → Recovery. Rest, races and injured sessions train nothing. No session trains Consistency: it rewards playing every day. The first game day completed on each new real calendar day (the player's local date) adds Consistency +0.1; more days on the same real day add nothing, and coming back after days away adds a single 0.1 (owner decision, 30 October 2026). Attributes have no upper limit (owner decision, 30 October 2026); at Technical 100 or more the technical-descent penalty is gone, and it never becomes a bonus.
+**Implemented (owner decision, 30 October 2026; replaces the mapping above):** each completed session adds 0.1 to one attribute: Easy Run and Long Run → Endurance, Intervals → Speed, Hills → Climbing, Trail technique → Technical, Strength → Recovery. Rest, races and injured sessions train nothing. No session trains Consistency: it rewards finishing weeks. Completing the last day of a training week (training, Rest or race), which saves it, adds Consistency +0.1 (owner decision, 30 October 2026). Attributes have no upper limit (owner decision, 30 October 2026); at Technical 100 or more the technical-descent penalty is gone, and it never becomes a bonus.
 
 ### 5.3 Attribute limits
 

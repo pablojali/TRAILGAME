@@ -5,7 +5,7 @@ import {
   INJURY_FITNESS_LOSS,
   INJURY_REST_DAYS,
 } from '../domain/training/injury'
-import { DAILY_CONSISTENCY_GAIN, localDayKey } from '../domain/athlete/consistency'
+import { WEEKLY_CONSISTENCY_GAIN } from '../domain/athlete/consistency'
 import { getRestFatigueDelta, RECOVERY_REST_FITNESS } from '../domain/training/recovery'
 import {
   ATTRIBUTE_GAIN_PER_SESSION,
@@ -183,7 +183,7 @@ export function executeCurrentDay(
  * by the outcome, forced Rest days are counted down (or set by a new injury), the next day becomes
  * current (a new week after day 7), the Fitness decay reference is reset (decay only counts days not
  * played), and `active` (a training session or a race, not Rest) is remembered for the next Rest.
- * The first day completed on a new real day also adds Consistency, recorded in the stored outcome.
+ * Completing the last day of the week also adds Consistency, recorded in the stored outcome.
  * Shared by training and race days, so both complete a day the same way. Callers check the day first.
  */
 export function completeCurrentDay(
@@ -193,8 +193,10 @@ export function completeCurrentDay(
   now: number,
 ): { state: GameState; outcome: DayOutcome; weekCompleted: boolean } {
   const injured = outcome.injured === true
-  const today = localDayKey(now)
-  if (state.lastPlayedDay !== today) outcome = { ...outcome, consistencyGain: DAILY_CONSISTENCY_GAIN }
+  const dayIndex = state.week.currentDayIndex
+  const nextDayIndex = dayIndex + 1
+  const weekCompleted = nextDayIndex >= DAYS_PER_WEEK
+  if (weekCompleted) outcome = { ...outcome, consistencyGain: WEEKLY_CONSISTENCY_GAIN }
   const attributes = { ...state.athlete.attributes }
   const gain = outcome.attributeGain
   if (gain) attributes[gain.attribute] = roundStat(attributes[gain.attribute] + gain.amount)
@@ -210,9 +212,6 @@ export function completeCurrentDay(
   // A forced Rest day uses up one day of the injury; a new injury forces the following days.
   const forcedRestDays = injured ? INJURY_REST_DAYS : Math.max(0, state.forcedRestDays - 1)
 
-  const dayIndex = state.week.currentDayIndex
-  const nextDayIndex = dayIndex + 1
-  const weekCompleted = nextDayIndex >= DAYS_PER_WEEK
   const week = weekCompleted
     ? forceRest(createWeek(state.week.number + 1), 0, forcedRestDays)
     : forceRest(
@@ -232,7 +231,6 @@ export function completeCurrentDay(
       week,
       fitnessDecayReference: now,
       previousDayActive: active,
-      lastPlayedDay: today,
       forcedRestDays,
     },
     outcome,

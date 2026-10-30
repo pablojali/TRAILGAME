@@ -3,7 +3,6 @@ import { ATTRIBUTE_IDS, type AttributeId } from '../domain/athlete/athlete'
 import { PROFILE_IDS, PROFILES } from '../domain/athlete/profiles'
 import type { SessionType } from '../domain/training/sessions'
 import { defaultAppearance } from '../domain/athlete/appearance'
-import { localDayKey } from '../domain/athlete/consistency'
 import { createInitialGameState, DEFAULT_WEEK_PLAN, getDayStatus } from './gameState'
 import { currentRef, execute, newGame, T0, TEST_IDENTITY, withAthlete, withSession } from '../test/gameFixtures'
 import { executeCurrentDay, planSession, previewSession, summarizeWeek } from './training'
@@ -147,6 +146,8 @@ describe('executeCurrentDay', () => {
       endurance: 13.7,
       speed: 20.4,
       climbing: 12.4,
+      // Four completed weeks: +0.1 Consistency each.
+      consistency: 18.4,
     })
     expect(state.athlete.spentAttributePoints).toBe(0)
   })
@@ -298,33 +299,24 @@ describe('executeCurrentDay', () => {
   })
 })
 
-describe('daily Consistency (owner decision, 30 October 2026)', () => {
-  const DAY = 24 * HOUR
-
-  it('adds 0.1 Consistency for the first day played on each new real day, once', () => {
-    const fresh = createInitialGameState('all-rounder', T0, TEST_IDENTITY)
-    expect(fresh.lastPlayedDay).toBeNull()
-    const first = execute(fresh, T0 + HOUR)
-    expect(first.outcome.consistencyGain).toBe(0.1)
-    expect(first.state.athlete.attributes.consistency).toBe(16.1)
-    expect(first.state.lastPlayedDay).toBe(localDayKey(T0 + HOUR))
-    expect(first.state.week.days[0]!.outcome!.consistencyGain).toBe(0.1)
-    // More game days the same real day add nothing.
-    const second = execute(first.state, T0 + 2 * HOUR)
-    expect(second.outcome.consistencyGain).toBeUndefined()
-    expect(second.state.athlete.attributes.consistency).toBe(16.1)
-    // The next real day adds 0.1 again, also for a Rest day.
-    const nextDay = execute(withSession(second.state, 'rest'), T0 + DAY + HOUR)
-    expect(nextDay.outcome.consistencyGain).toBe(0.1)
-    expect(nextDay.state.athlete.attributes.consistency).toBe(16.2)
+describe('weekly Consistency (owner decision, 30 October 2026)', () => {
+  it('adds 0.1 Consistency when the last day of the week is completed, and only then', () => {
+    let state = newGame()
+    for (let i = 0; i < 6; i++) {
+      const result = execute(state)
+      expect(result.outcome.consistencyGain).toBeUndefined()
+      state = result.state
+    }
+    expect(state.athlete.attributes.consistency).toBe(16)
+    const sunday = execute(state)
+    expect(sunday.weekCompleted).toBe(true)
+    expect(sunday.outcome.consistencyGain).toBe(0.1)
+    expect(sunday.state.athlete.attributes.consistency).toBe(16.1)
+    // Two weeks: 0.2.
+    let two = sunday.state
+    for (let i = 0; i < 7; i++) two = execute(two).state
+    expect(two.athlete.attributes.consistency).toBe(16.2)
   })
-
-  it('gives a single 0.1 after days away, not one per missed day', () => {
-    const played = execute(createInitialGameState('sprinter', T0, TEST_IDENTITY), T0).state
-    const back = execute(played, T0 + 5 * DAY)
-    expect(back.state.athlete.attributes.consistency).toBe(18.2)
-  })
-
 })
 
 describe('planSession', () => {

@@ -814,14 +814,13 @@ Replaces the silhouette and the Stage A placeholder options above. On the workin
   head and shoulders (×3.2, 450 ms, no animation with reduced motion) and zooms back out on the
   other tabs. The frame keeps its size.
 
-### Daily Consistency, no attribute cap, coins at the top (owner decisions, 30 October 2026)
+### Weekly Consistency, no attribute cap, coins at the top (owner decisions, 30 October 2026)
 
-- **Consistency rewards playing every day:** the first game day (training, Rest or race) completed
-  on a new real calendar day, in the player's local date, adds Consistency +0.1
-  (`DAILY_CONSISTENCY_GAIN`, `localDayKey`, `completeCurrentDay`). Saved as `lastPlayedDay`
-  (older saves: none, so their next day played counts). Shown in the Training feedback and day
-  result: "Consistency +0.1 (first day played today)". Several days played on one real day add it
-  once; days away add a single 0.1.
+- **Consistency rewards finished weeks** (owner decision, 30 October 2026; first set to +0.1 per new
+  real day played, changed the same day): completing the last day of a week (training, Rest or
+  race), which saves it, adds Consistency +0.1 (`WEEKLY_CONSISTENCY_GAIN`, `completeCurrentDay`).
+  Shown in the Training feedback: "Consistency +0.1 (week completed)". Saves of the daily version
+  load; their `lastPlayedDay` field is dropped.
 - **No attribute cap:** training and attribute points can raise attributes past 100
   (`ATTRIBUTE_MAX` removed; `ATTRIBUTE_SCALE` = 100 is only where bars are full). Saves accept any
   value ≥ 1. The race formula's technical-descent penalty stops at Technical 100 and never turns
@@ -853,7 +852,7 @@ After the 16- and 52-week simulations (`docs/SEASON_SIMULATION_16W.md`):
   The attribute total must now be at least the profile total plus points spent (training adds to it).
 - **Simulation (sensible player):** Fitness about +0.6 a week, slightly below the typical runner of
   the level for 4 months, then a few points ahead; mid-field to podium over a year.
-- **Consistency:** no session trains it; it rewards playing every day (see the next decision).
+- **Consistency:** no session trains it; it rewards finished weeks (see the next decision).
 
 ### Recovery Rest and decay on played days (owner decisions, 30 October 2026)
 

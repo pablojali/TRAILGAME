@@ -229,15 +229,14 @@ describe('TrainingScreen — completing sessions', () => {
     expect(await within(detail()).findByText(/A second rest in a row: Fitness −2\./)).toBeInTheDocument()
   })
 
-  it('announces the daily Consistency on the first day played on a new real day', async () => {
-    seedCareer({ ...newGame(), lastPlayedDay: null })
+  it('announces the weekly Consistency when the week is completed', async () => {
     const user = userEvent.setup()
     renderApp('/training')
-    await completeToday(user)
-    expect(feedback()).toHaveTextContent('Consistency +0.1 (first day played today)')
-    expect(readSave()!.state.athlete.attributes.consistency).toBe(16.1)
-    await completeToday(user)
+    for (let day = 0; day < 6; day++) await completeToday(user)
     expect(feedback()).not.toHaveTextContent('Consistency')
+    await completeToday(user)
+    expect(feedback()).toHaveTextContent('Consistency +0.1 (week completed)')
+    expect(readSave()!.state.athlete.attributes.consistency).toBe(16.1)
   })
 
   it('applies due decay before executing a session', async () => {

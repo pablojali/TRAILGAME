@@ -64,10 +64,11 @@ describe('applyFitnessDecay', () => {
     expect(applyFitnessDecay(trained, T0 + 54 * HOUR).state.athlete.fitness).toBe(21)
   })
 
-  it('is not reset by Rest', () => {
+  it('is reset by a played Rest day too: decay only counts days not played (owner decision, 30 October 2026)', () => {
     const rested = execute(withSession(newGame(), 'rest'), T0 + 30 * HOUR).state
-    expect(rested.athlete.fitness).toBe(18) // Rest: −2
-    expect(applyFitnessDecay(rested, T0 + 2 * DAY).state.athlete.fitness).toBe(16)
+    expect(rested.athlete.fitness).toBe(18) // Rest with no active day before it: −2
+    expect(applyFitnessDecay(rested, T0 + 2 * DAY).state.athlete.fitness).toBe(18)
+    expect(applyFitnessDecay(rested, T0 + 30 * HOUR + 2 * DAY).state.athlete.fitness).toBe(16)
   })
 
   it.each([

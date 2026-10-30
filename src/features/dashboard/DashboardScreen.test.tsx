@@ -191,7 +191,7 @@ describe('DashboardScreen — Fitness decay', () => {
     vi.setSystemTime(T0 + 3 * DAY + 5000)
     const first = renderApp('/')
     expect(stat('Fitness')).toBe('17')
-    expect(screen.getByText('Fitness −3: 3 full days without a training session.')).toBeInTheDocument()
+    expect(screen.getByText('Fitness −3: 3 full days without playing.')).toBeInTheDocument()
     expect(readSave()!.state).toMatchObject({ athlete: { fitness: 17 }, fitnessDecayReference: T0 + 3 * DAY })
     first.unmount()
 

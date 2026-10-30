@@ -267,6 +267,15 @@ export function parseGameState(value: unknown, now: number): GameState | null {
   const raceDays = (week.days as TrainingDay[]).filter((day) => day.outcome?.raceEntryId !== undefined)
   if (!raceDays.every((day) => finishedIds.has(day.outcome!.raceEntryId!))) return null
 
+  // Missing: a career saved before recovery Rest existed. Derived from the last completed day of
+  // this week (a race or a non-rest session is active); on Monday it is unknown, so no bonus.
+  const previousDay = currentDayIndex > 0 ? (week.days as TrainingDay[])[currentDayIndex - 1]! : undefined
+  const previousDayActive =
+    value.previousDayActive === undefined
+      ? previousDay !== undefined && (previousDay.outcome?.raceEntryId !== undefined || previousDay.session !== 'rest')
+      : value.previousDayActive
+  if (typeof previousDayActive !== 'boolean') return null
+
   const reference = value.fitnessDecayReference
   return {
     athlete: {
@@ -291,6 +300,7 @@ export function parseGameState(value: unknown, now: number): GameState | null {
       })),
     },
     fitnessDecayReference: typeof reference === 'number' && Number.isFinite(reference) ? reference : now,
+    previousDayActive,
     forcedRestDays,
     coins,
     raceEntries,

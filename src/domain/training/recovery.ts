@@ -9,6 +9,13 @@ import { TRAINING_SESSIONS } from './sessions'
 export const RECOVERY_BONUS_STEP = 3
 export const RECOVERY_BONUS_FATIGUE = 2
 
+/**
+ * Recovery Rest (owner decision, 30 October 2026): a Rest day right after a training or race day
+ * gains this much Fitness instead of the Rest session's loss. A second Rest in a row, and forced Rest
+ * after an injury, keep the normal loss.
+ */
+export const RECOVERY_REST_FITNESS = 1
+
 /** Extra Fatigue a Rest day recovers for this athlete (0 at the starting Recovery). */
 export function getRestRecoveryBonus(athlete: Pick<Athlete, 'profile' | 'attributes'>): number {
   const gained = athlete.attributes.recovery - PROFILES[athlete.profile].attributes.recovery

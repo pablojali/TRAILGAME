@@ -213,7 +213,7 @@ export function raceCurrentDay(
   }
   const finished: FinishedRaceEntry = { ...entry, status: 'finished', result }
 
-  // A race counts as activity: it resets the Fitness decay reference (D3).
+  // A race is an active day: a Rest the next day is a recovery Rest. It also resets decay (D3).
   const advanced = completeCurrentDay(state, outcome, true, now)
   const nextState: GameState = {
     ...advanced.state,

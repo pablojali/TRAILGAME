@@ -1,7 +1,7 @@
 import type { GameState } from './gameState'
 
 export const DECAY_PERIOD_MS = 24 * 60 * 60 * 1000
-/** Fitness lost per complete period without a non-rest session. */
+/** Fitness lost per complete period without a played day (training, race or Rest). */
 export const FITNESS_DECAY_PER_PERIOD = 1
 
 export interface DecayResult {

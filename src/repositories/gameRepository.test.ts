@@ -278,6 +278,34 @@ describe('localStorage game repository', () => {
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
+  it.each([
+    // Default plan: day 3 is Rest, day 2 Intervals; day 0 has no previous day this week.
+    ['after a training day', 2, true],
+    ['after a Rest day', 3, false],
+    ['on Monday (unknown)', 0, false],
+    ['on Monday of week 2 (unknown)', 7, false],
+  ])('loads a career saved before recovery Rest existed: previous day %s', (_, days, expected) => {
+    const state = progressedState(days)
+    const withoutField: Partial<GameState> = { ...state }
+    delete withoutField.previousDayActive
+    const raw = saveOf(withoutField)
+    const storage = memoryStorage({ [SAVE_KEY]: raw })
+    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({
+      status: 'loaded',
+      state: { ...state, previousDayActive: expected },
+    })
+    expect(storage.data.get(SAVE_KEY)).toBe(raw)
+  })
+
+  it('round-trips the previous day and rejects a non-boolean one', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const state = progressedState(2)
+    repo.save(state)
+    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    const storage = memoryStorage({ [SAVE_KEY]: saveOf({ ...state, previousDayActive: 'yes' }) })
+    expect(createLocalStorageGameRepository(storage).load(T0)).toMatchObject({ status: 'incompatible' })
+  })
+
   it('clear removes the saved career', () => {
     const storage = memoryStorage()
     const repo = createLocalStorageGameRepository(storage)

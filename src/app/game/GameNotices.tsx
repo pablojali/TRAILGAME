@@ -17,7 +17,7 @@ export function GameNotices() {
         <div className={styles.notice}>
           <p>
             Fitness −{decayNotice.fitnessLost}: {decayNotice.periods} full{' '}
-            {decayNotice.periods === 1 ? 'day' : 'days'} without a training session.
+            {decayNotice.periods === 1 ? 'day' : 'days'} without playing.
           </p>
           <button type="button" className={styles.dismiss} onClick={dismissDecayNotice}>
             Dismiss

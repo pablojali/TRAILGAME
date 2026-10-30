@@ -814,6 +814,19 @@ Replaces the silhouette and the Stage A placeholder options above. On the workin
   head and shoulders (×3.2, 450 ms, no animation with reduced motion) and zooms back out on the
   other tabs. The frame keeps its size.
 
+### Recovery Rest and decay on played days (owner decisions, 30 October 2026)
+
+After the 16-week simulation (`docs/SEASON_SIMULATION_16W.md`) showed a sensible daily player at
+Fitness 0 by week 6:
+- **Decay only for days not played:** completing any day (training, race or Rest) resets the
+  Fitness decay reference (`completeCurrentDay`). The decay notice now says "without playing".
+- **Recovery Rest:** a Rest right after a training day or race gives Fitness +1 instead of −2
+  (`RECOVERY_REST_FITNESS`, `isRecoveryRest`). A second Rest in a row keeps −2; forced Rest after
+  an injury always −2. Today's hint and the planned effects of future days show which applies.
+- **Previous day:** saved as `previousDayActive` (set by every completed day, so it carries from
+  Sunday to Monday). Older saves derive it from the previous day of the current week; on Monday it
+  is unknown and gives no bonus. New careers start with no bonus.
+
 ### Equipment on the avatar, coins symbol, Open levels (owner decisions, 30 October 2026)
 
 - **Avatar shows all equipped gear** (bug: only the starter shoes had art, so other shoes showed

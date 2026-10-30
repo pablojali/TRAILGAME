@@ -5,7 +5,7 @@ import button from '../../components/Button.module.css'
 import { formatDelta } from '../../components/format'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
-import { getRestFatigueDelta } from '../../domain/training/recovery'
+import { getRestFatigueDelta, RECOVERY_REST_FITNESS } from '../../domain/training/recovery'
 import { isSessionType, SESSION_TYPES, TRAINING_SESSIONS, type SessionType } from '../../domain/training/sessions'
 import { weekdayLong, weekdayShort } from '../../domain/training/weekdays'
 import {
@@ -20,7 +20,7 @@ import { getRace, type Race } from '../../domain/races/races'
 import { getRaceWeek, getScheduledEntry, RACE_DAY_INDEX } from '../../game-engine/raceSchedule'
 import { getEntry } from '../../game-engine/races'
 import { RaceDayPanel } from '../races/RaceDayPanel'
-import { previewSession, type DayRef, type ExecutionResult, type TrainingError } from '../../game-engine/training'
+import { isRecoveryRest, previewSession, type DayRef, type ExecutionResult, type TrainingError } from '../../game-engine/training'
 import { ordinal, raceTimeText } from '../races/raceText'
 import { SessionIcon } from './SessionIcon'
 import styles from './TrainingScreen.module.css'
@@ -66,12 +66,26 @@ function effectsText(outcome: DayOutcome) {
   return `XP ${formatDelta(outcome.xpGained)} · Fitness ${formatDelta(outcome.fitnessChange)} · Fatigue ${formatDelta(outcome.fatigueChange)}`
 }
 
-/** Base effects of a planned session (the real result depends on the athlete on that day). */
-/** A future day's planned effects, before clamping (Rest includes the athlete's Recovery bonus). */
-function plannedEffects(state: GameState, session: SessionType): DayOutcome {
+/**
+ * A future day's planned effects, before clamping. Rest includes the athlete's Recovery bonus, and
+ * is a recovery Rest (Fitness +1) when the day before is planned as training or a race and it is
+ * not a forced Rest day.
+ */
+function plannedEffects(state: GameState, index: number): DayOutcome {
+  const session = state.week.days[index]!.session
   const rules = TRAINING_SESSIONS[session]
-  const fatigueChange = session === 'rest' ? getRestFatigueDelta(state.athlete) : rules.fatigueDelta
-  return { xpGained: rules.xp, fitnessChange: rules.fitnessDelta, fatigueChange }
+  if (session !== 'rest') {
+    return { xpGained: rules.xp, fitnessChange: rules.fitnessDelta, fatigueChange: rules.fatigueDelta }
+  }
+  const forced = index < state.week.currentDayIndex + state.forcedRestDays
+  const before = state.week.days[index - 1]
+  const recovery =
+    !forced && before !== undefined && (before.session !== 'rest' || scheduledRace(state, index - 1) !== null)
+  return {
+    xpGained: 0,
+    fitnessChange: recovery ? RECOVERY_REST_FITNESS : rules.fitnessDelta,
+    fatigueChange: getRestFatigueDelta(state.athlete),
+  }
 }
 
 export function TrainingScreen() {
@@ -237,7 +251,7 @@ function DayDetail({ state, index, error, cooldown, onPlan, onComplete }: DayDet
         <>
           <p className={styles.description}>{session.description}</p>
           <p className={styles.summary}>
-            <strong>Planned:</strong> {effectsText(plannedEffects(state, day.session))}
+            <strong>Planned:</strong> {effectsText(plannedEffects(state, index))}
           </p>
           <p className={styles.hint}>Only today’s session can be changed or completed.</p>
         </>
@@ -293,7 +307,13 @@ function TodayActions({ state, selectId, error, cooldown, onPlan, onComplete }: 
             Session locked.
           </p>
         ) : (
-          <p className={styles.hint}>{session.description}</p>
+          <p className={styles.hint}>
+            {session.description}
+            {today.session === 'rest' &&
+              (isRecoveryRest(state)
+                ? ' Recovery rest after a training day: Fitness +1.'
+                : ' A second rest in a row: Fitness −2.')}
+          </p>
         )}
       </div>
 

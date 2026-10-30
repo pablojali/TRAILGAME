@@ -57,6 +57,23 @@ describe('Account card', () => {
     await user.click(screen.getByRole('button', { name: 'Link email' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('already belongs to another Trail Game account')
     expect(screen.getByText('Guest account.')).toBeInTheDocument()
+    // Offers to sign in to that account instead: opens the sign-in form.
+    await user.click(screen.getByRole('button', { name: 'Sign in to that account instead' }))
+    expect(screen.getByRole('region', { name: 'Sign in to an existing account' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Password')).toBeInTheDocument()
+  })
+
+  it('offers to sign in with Google when that Google account belongs to another account', async () => {
+    const user = userEvent.setup()
+    const service = fakeService({
+      startOAuthLink: vi.fn(async (): Promise<LinkResult> => ({ ok: false, error: 'identity-in-use', status: ANONYMOUS })),
+    })
+    render(<AccountCard service={service} />)
+    await user.click(await screen.findByRole('button', { name: 'Link Google account' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('sign in to it instead')
+    await user.click(screen.getByRole('button', { name: 'Sign in to that account instead' }))
+    expect(service.startOAuthSignIn).toHaveBeenCalledWith('google')
+    expect(service.startOAuthLink).toHaveBeenCalledTimes(1)
   })
 
   it('shows the result of a Google link the player comes back from', async () => {

@@ -91,9 +91,9 @@ export const ACCOUNT_ERROR_TEXT: Record<AccountError, string> = {
   'invalid-email': 'That email address is not valid.',
   'email-unavailable': 'Emails cannot be sent to that address yet. Your guest account keeps working; try Google instead.',
   'email-in-use':
-    'That email already belongs to another Trail Game account. Accounts are not merged: your current account and career are unchanged.',
+    'That email already belongs to another Trail Game account, so it cannot be added to this one. To play that account here, sign in to it instead.',
   'identity-in-use':
-    'That Google account is already linked to another Trail Game account. Accounts are not merged: your current account and career are unchanged.',
+    'That Google account already belongs to another Trail Game account, so it cannot be added to this one. To play that account here, sign in to it instead.',
   'weak-password': 'Choose a longer, stronger password (at least 8 characters).',
   'same-password': 'That is already your password.',
   'rate-limited': 'Too many attempts. Wait a few minutes and try again.',

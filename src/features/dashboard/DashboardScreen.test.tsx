@@ -1,4 +1,4 @@
-import { act, screen, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { DECAY_PERIOD_MS } from '../../game-engine/fitnessDecay'
@@ -27,9 +27,9 @@ function identity() {
 }
 
 describe('DashboardScreen — first screen', () => {
-  it('shows the runner with name, profile and level above, attributes left and condition right', () => {
+  it('shows the runner with name, profile and level above, attributes left and condition right', async () => {
     seedCareer(newGame('climber'))
-    renderApp('/')
+    await renderApp('/')
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
     expect(identity()).toBe('Demo Runner - Climber (Lv 1)')
     expect(screen.getByText('Monday')).toBeInTheDocument()
@@ -56,20 +56,20 @@ describe('DashboardScreen — first screen', () => {
     expect(screen.getByRole('meter', { name: 'Progress to Level 2' })).toHaveAttribute('aria-valuetext', '0 of 100 XP')
   })
 
-  it('shows the Dashboard runner without equipment, in the runner sex, not the creation art', () => {
+  it('shows the Dashboard runner without equipment, in the runner sex, not the creation art', async () => {
     seedCareer(newGame('sprinter', T0, { name: 'Leo', sex: 'male' }))
-    renderApp('/')
+    await renderApp('/')
     const runner = screen.getByRole('img', { name: /runner/ })
     expect(runner).toHaveAccessibleName('Leo, male runner, no equipment')
     // Creation illustrations are labelled with the profile; the Dashboard never shows them.
     expect(screen.queryByRole('img', { name: /Sprinter, male runner/ })).not.toBeInTheDocument()
   })
 
-  it('draws the saved appearance as layers: body by sex and tone, chosen top, no shoes until equipped', () => {
+  it('draws the saved appearance as layers: body by sex and tone, chosen top, no shoes until equipped', async () => {
     seedCareer(
       newGame('sprinter', T0, { name: 'Leo', sex: 'male', appearance: { hair: 'natural', skin: 'tone-3', outfit: 'white-tshirt' } }),
     )
-    const view = renderApp('/')
+    const view = await renderApp('/')
     const runner = screen.getByRole('img', { name: 'Leo, male runner, no equipment' })
     const avatar = runner.querySelector('svg')!
     expect(avatar).toHaveAttribute('data-skin', 'tone-3')
@@ -78,12 +78,12 @@ describe('DashboardScreen — first screen', () => {
     view.unmount()
 
     seedCareer({ ...newGame('sprinter', T0, { name: 'Leo', sex: 'male' }), equipment: ['starter-shoes'] })
-    renderApp('/')
+    await renderApp('/')
     const shod = screen.getByRole('img', { name: 'Leo, male runner, wearing starter shoes' }).querySelector('svg')!
     expect([...shod.querySelectorAll('image')].map((i) => i.getAttribute('data-layer'))).toEqual(['body', 'starter-shoes'])
   })
 
-  it('derives every value from the saved game state', () => {
+  it('derives every value from the saved game state', async () => {
     const state = withAthlete(newGame('sprinter', T0, { name: 'Marta', sex: 'female' }), {
       xp: 260,
       fitness: 71,
@@ -98,7 +98,7 @@ describe('DashboardScreen — first screen', () => {
     state.week.days[2]!.session = 'hills'
     state.coins = 1240
     seedCareer(state)
-    renderApp('/')
+    await renderApp('/')
 
     expect(identity()).toBe('Marta - Sprinter (Lv 3)')
     // Coins at the top right, beside the week and day, with the gold coin symbol.
@@ -122,9 +122,9 @@ describe('DashboardScreen — first screen', () => {
     expect(today).toHaveTextContent('XP +14 · Fitness +0.5 · Fatigue +12 · Climbing +0.1')
   })
 
-  it('shows level 50 as the maximum level', () => {
+  it('shows level 50 as the maximum level', async () => {
     seedCareer(withAthlete(newGame(), { xp: 63_700 }))
-    renderApp('/')
+    await renderApp('/')
     expect(stat('Level')).toBe('50')
     expect(screen.getByText('Max level')).toBeInTheDocument()
     expect(screen.queryByRole('meter', { name: /Progress to Level/ })).not.toBeInTheDocument()
@@ -134,17 +134,17 @@ describe('DashboardScreen — first screen', () => {
     [69, '69'],
     [70, '70 High'],
     [100, '100 High'],
-  ])('marks fatigue %i as %j', (fatigue, shown) => {
+  ])('marks fatigue %i as %j', async (fatigue, shown) => {
     seedCareer(withAthlete(newGame(), { fatigue }))
-    renderApp('/')
+    await renderApp('/')
     expect(stat('Fatigue')).toBe(shown)
   })
 })
 
 describe('DashboardScreen — Today strip (one screen, no cards)', () => {
-  it('shows today’s session and its effects, with no attribute-point link when none are unspent', () => {
+  it('shows today’s session and its effects, with no attribute-point link when none are unspent', async () => {
     seedCareer(newGame('climber'))
-    renderApp('/')
+    await renderApp('/')
     const today = screen.getByRole('region', { name: 'Today' })
     expect(today).toHaveTextContent('Today · Easy run')
     expect(today).toHaveTextContent('XP +9 · Fitness +0.5 · Fatigue +5 · Endurance +0.1')
@@ -156,7 +156,7 @@ describe('DashboardScreen — Today strip (one screen, no cards)', () => {
   it('links to the Training screen', async () => {
     const user = userEvent.setup()
     seedCareer()
-    const { router } = renderApp('/')
+    const { router } = await renderApp('/')
     await user.click(screen.getByRole('link', { name: 'Train' }))
     expect(router.state.location.pathname).toBe('/training')
   })
@@ -164,7 +164,7 @@ describe('DashboardScreen — Today strip (one screen, no cards)', () => {
   it('reflects training done on the Training screen', async () => {
     const user = userEvent.setup()
     seedCareer()
-    renderApp('/training')
+    await renderApp('/training')
     await user.click(screen.getByRole('button', { name: 'Complete Easy run' }))
     await user.click(screen.getByRole('link', { name: 'Dashboard' }))
     expect(stat('XP')).toBe('9')
@@ -176,7 +176,7 @@ describe('DashboardScreen — Today strip (one screen, no cards)', () => {
   it('reset demo (in Settings) asks for confirmation, then clears the save and returns to profile selection', async () => {
     const user = userEvent.setup()
     seedCareer(withAthlete(newGame(), { xp: 120 }))
-    renderApp('/')
+    await renderApp('/')
     await user.click(screen.getByRole('link', { name: 'Settings' }))
 
     await user.click(screen.getByRole('button', { name: 'Reset demo' }))
@@ -194,11 +194,11 @@ describe('DashboardScreen — Today strip (one screen, no cards)', () => {
 })
 
 describe('DashboardScreen — Fitness decay', () => {
-  it('applies Fitness decay on load, announces it and saves it once', () => {
+  it('applies Fitness decay on load, announces it and saves it once', async () => {
     seedCareer(newGame())
     // Four full days without playing: the first is free (owner decision, 30 October 2026).
     vi.setSystemTime(T0 + 4 * DAY + 5000)
-    const first = renderApp('/')
+    const first = await renderApp('/')
     expect(stat('Fitness')).toBe('17.0')
     expect(screen.getByText('Fitness −3: 3 days without playing, after the first free day.')).toBeInTheDocument()
     expect(readSave()!.state).toMatchObject({ athlete: { fitness: 17 }, fitnessDecayReference: T0 + 3 * DAY })
@@ -206,28 +206,28 @@ describe('DashboardScreen — Fitness decay', () => {
 
     // Reopening later the same day does not apply the same periods again.
     vi.setSystemTime(T0 + 4 * DAY + 60_000)
-    renderApp('/')
+    await renderApp('/')
     expect(stat('Fitness')).toBe('17.0')
     expect(screen.queryByText(/without playing/)).not.toBeInTheDocument()
   })
 
-  it('does not decay during the first free day', () => {
+  it('does not decay during the first free day', async () => {
     seedCareer(newGame())
     vi.setSystemTime(T0 + 2 * DAY - 1)
-    renderApp('/')
+    await renderApp('/')
     expect(stat('Fitness')).toBe('20.0')
   })
 
   it('applies decay when the app becomes visible again', async () => {
     seedCareer(newGame())
-    renderApp('/')
+    await renderApp('/')
     expect(stat('Fitness')).toBe('20.0')
     vi.setSystemTime(T0 + 3 * DAY)
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
     expect(stat('Fitness')).toBe('18.0')
-    expect(readSave()!.state.athlete.fitness).toBe(18)
+    await waitFor(() => expect(readSave()!.state.athlete.fitness).toBe(18))
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Dismiss' }))
     expect(screen.queryByText(/Fitness −2/)).not.toBeInTheDocument()

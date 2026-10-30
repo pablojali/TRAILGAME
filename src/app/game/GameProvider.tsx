@@ -10,7 +10,12 @@ import { buyItem, setItemEquipped } from '../../game-engine/equipment'
 import { enterRace, raceCurrentDay } from '../../game-engine/races'
 import * as engine from '../../game-engine/training'
 import type { DayRef, ExecutionResult } from '../../game-engine/training'
-import { createLocalStorageGameRepository, type GameRepository } from '../../repositories/gameRepository'
+import {
+  createLocalStorageGameRepository,
+  IncompatibleSaveError,
+  type GameRepository,
+} from '../../repositories/gameRepository'
+import { createSaveQueue } from '../../repositories/saveQueue'
 import { GameContext, type DecayNotice, type GameContextValue, type GamePhase } from './gameContext'
 
 interface GameProviderProps {
@@ -21,47 +26,75 @@ interface GameProviderProps {
   clock?: () => number
 }
 
-interface InitialLoad {
-  phase: GamePhase
-  decay: DecayNotice | null
-}
-
-function loadInitial(repo: GameRepository, now: number): InitialLoad {
-  const result = repo.load(now)
-  if (result.status === 'empty') return { phase: { kind: 'new-career', replacing: null }, decay: null }
-  if (result.status === 'incompatible') {
-    return { phase: { kind: 'incompatible', reason: result.reason }, decay: null }
-  }
-  const decayed = applyFitnessDecay(result.state, now)
-  return {
-    phase: { kind: 'playing', state: decayed.state },
-    decay: decayed.periods > 0 ? { periods: decayed.periods, fitnessLost: decayed.fitnessLost } : null,
-  }
-}
-
 export function GameProvider({ children, repository, clock = Date.now }: GameProviderProps) {
-  const [repo] = useState(() => repository ?? createLocalStorageGameRepository())
-  const [initial] = useState(() => loadInitial(repo, clock()))
-  const [phase, setPhase] = useState<GamePhase>(initial.phase)
-  const [saveFailed, setSaveFailed] = useState(false)
-  const [decayNotice, setDecayNotice] = useState<DecayNotice | null>(initial.decay)
-  const [lastExecution, setLastExecution] = useState<ExecutionResult | null>(null)
-
-  // Latest phase, read synchronously so rapid repeated actions see each other's result.
-  const phaseRef = useRef(phase)
+  // Latest clock, also read by the repository (decay reference fallback when loading).
   const clockRef = useRef(clock)
   useEffect(() => {
     clockRef.current = clock
   }, [clock])
+  const [repo] = useState(() => repository ?? createLocalStorageGameRepository(undefined, () => clockRef.current()))
+  const [phase, setPhase] = useState<GamePhase>({ kind: 'loading' })
+  const [saveFailed, setSaveFailed] = useState(false)
+  const [decayNotice, setDecayNotice] = useState<DecayNotice | null>(null)
+  const [lastExecution, setLastExecution] = useState<ExecutionResult | null>(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // One queue for the provider's lifetime: saves never overlap and keep their order.
+  const [queue] = useState(() => createSaveQueue(repo, (saved) => setSaveFailed(!saved)))
+  useEffect(() => () => queue.dispose(), [queue])
+
+  // Latest phase, read synchronously so rapid repeated actions see each other's result.
+  const phaseRef = useRef(phase)
+
+  const setPhaseNow = useCallback((next: GamePhase) => {
+    phaseRef.current = next
+    setPhase(next)
+  }, [])
 
   const commit = useCallback(
     (next: GamePhase) => {
-      phaseRef.current = next
-      setPhase(next)
-      if (next.kind === 'playing') setSaveFailed(!repo.save(next.state))
+      setPhaseNow(next)
+      if (next.kind === 'playing') queue.save(next.state)
     },
-    [repo],
+    [queue, setPhaseNow],
   )
+
+  // Initial load. Game actions are refused until it finishes (no career is being played yet).
+  useEffect(() => {
+    let cancelled = false
+    repo.load().then(
+      (state) => {
+        if (cancelled) return
+        if (state === null) {
+          setPhaseNow({ kind: 'new-career', replacing: null })
+          return
+        }
+        const decayed = applyFitnessDecay(state, clockRef.current())
+        if (decayed.periods > 0) {
+          setDecayNotice({ periods: decayed.periods, fitnessLost: decayed.fitnessLost })
+        }
+        // Decay applied while loading is saved once.
+        if (decayed.state !== state) commit({ kind: 'playing', state: decayed.state })
+        else setPhaseNow({ kind: 'playing', state })
+      },
+      (error: unknown) => {
+        if (cancelled) return
+        setPhaseNow(
+          error instanceof IncompatibleSaveError
+            ? { kind: 'incompatible', reason: error.reason }
+            : { kind: 'load-failed' },
+        )
+      },
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [repo, commit, setPhaseNow, loadAttempt])
+
+  const retryLoad = useCallback(() => {
+    if (phaseRef.current.kind !== 'load-failed') return
+    setPhaseNow({ kind: 'loading' })
+    setLoadAttempt((n) => n + 1)
+  }, [setPhaseNow])
 
   /** Current career with any due Fitness decay applied (and announced), or null. */
   const currentState = useCallback((): GameState | null => {
@@ -77,21 +110,16 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
     return decayed.state
   }, [commit])
 
-  // Persist decay applied while loading, once.
-  useEffect(() => {
-    if (initial.phase.kind === 'playing' && initial.decay) {
-      setSaveFailed(!repo.save(initial.phase.state))
-    }
-  }, [initial, repo])
-
-  // Apply decay when the player returns to the app.
+  // Apply decay when the player returns to the app, and retry a failed save.
   useEffect(() => {
     function onVisibilityChange() {
-      if (document.visibilityState === 'visible') currentState()
+      if (document.visibilityState !== 'visible') return
+      currentState()
+      queue.retry()
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
-  }, [currentState])
+  }, [currentState, queue])
 
   const startCareer = useCallback(
     (profile: ProfileId, identity: AthleteIdentity) => {
@@ -105,20 +133,18 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
   const beginRestart = useCallback(() => {
     const current = phaseRef.current
     if (current.kind !== 'incompatible') return
-    const next: GamePhase = { kind: 'new-career', replacing: current.reason }
-    phaseRef.current = next
-    setPhase(next)
-  }, [])
+    setPhaseNow({ kind: 'new-career', replacing: current.reason })
+  }, [setPhaseNow])
 
   const resetCareer = useCallback(() => {
-    repo.clear()
-    const next: GamePhase = { kind: 'new-career', replacing: null }
-    phaseRef.current = next
-    setPhase(next)
+    if (phaseRef.current.kind !== 'playing') return
+    // Queued after any earlier save, so an older write cannot bring the career back.
+    void queue.clear()
+    setPhaseNow({ kind: 'new-career', replacing: null })
     setSaveFailed(false)
     setDecayNotice(null)
     setLastExecution(null)
-  }, [repo])
+  }, [queue, setPhaseNow])
 
   const planSession = useCallback(
     (ref: DayRef, session: SessionType) => {
@@ -223,6 +249,7 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
     () => ({
       phase,
       saveFailed,
+      retryLoad,
       decayNotice,
       dismissDecayNotice: () => setDecayNotice(null),
       lastExecution,
@@ -241,6 +268,7 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
     [
       phase,
       saveFailed,
+      retryLoad,
       decayNotice,
       lastExecution,
       startCareer,

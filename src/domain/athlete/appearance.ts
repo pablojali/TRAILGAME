@@ -65,7 +65,7 @@ function toneNumber(skin: SkinToneId): number {
  * head that has art in that tone, locked or not.
  */
 export function hairStyles(sex: Sex, skin: SkinToneId): HairStyleId[] {
-  return [BASIC_HAIR, ...HEADS.filter((h) => h.sex === sex && h.art[toneNumber(skin)]).map((h) => h.id)]
+  return [BASIC_HAIR, ...HEADS.filter((h) => h.sex === sex && h.files[toneNumber(skin)]).map((h) => h.id)]
 }
 
 export function hairStyleLabel(sex: Sex, hair: HairStyleId): string {

@@ -28,16 +28,37 @@ import {
 } from '../game-engine/gameState'
 
 /**
- * Persistence boundary for the single-player career. M2 stores to localStorage;
- * a future backend can implement the same interface.
+ * Persistence boundary for the single-player career. Asynchronous so a remote database (Supabase,
+ * future) can implement the same interface; localStorage is the active implementation.
  */
 export interface GameRepository {
-  /** Reads the saved career. Never modifies or deletes stored data. */
-  load(now: number): LoadResult
-  /** Returns false if the state could not be stored. */
-  save(state: GameState): boolean
+  /**
+   * Reads the saved career: null when there is none. Rejects with `IncompatibleSaveError` when a
+   * save exists that cannot be loaded. Never modifies or deletes stored data.
+   */
+  load(): Promise<GameState | null>
+  /** Stores the career. Rejects with `SaveError` if it could not be stored. */
+  save(state: GameState): Promise<void>
   /** Removes the saved career. */
-  clear(): void
+  clear(): Promise<void>
+}
+
+/** A save exists but cannot be loaded; `reason` says why. Nothing was changed. */
+export class IncompatibleSaveError extends Error {
+  readonly reason: IncompatibleReason
+  constructor(reason: IncompatibleReason) {
+    super(`Incompatible save: ${reason}`)
+    this.name = 'IncompatibleSaveError'
+    this.reason = reason
+  }
+}
+
+/** The career could not be stored (storage unavailable or full). */
+export class SaveError extends Error {
+  constructor(cause?: unknown) {
+    super('The career could not be saved', { cause })
+    this.name = 'SaveError'
+  }
 }
 
 export type IncompatibleReason =
@@ -341,22 +362,30 @@ export function parseSave(raw: string, now: number): LoadResult {
   return state ? { status: 'loaded', state } : { status: 'incompatible', reason: 'malformed' }
 }
 
+/**
+ * The localStorage repository (key `trailgame.save`, schema v2). `clock` gives the time used when a
+ * saved career has no valid Fitness decay reference.
+ */
 export function createLocalStorageGameRepository(
   storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null = getLocalStorage(),
+  clock: () => number = Date.now,
 ): GameRepository {
   return {
-    load(now) {
+    async load() {
       let raw: string | null = null
       try {
         raw = storage?.getItem(SAVE_KEY) ?? null
       } catch {
         // Storage unavailable (e.g. blocked by browser settings).
       }
-      return raw === null ? { status: 'empty' } : parseSave(raw, now)
+      if (raw === null) return null
+      const result = parseSave(raw, clock())
+      if (result.status === 'incompatible') throw new IncompatibleSaveError(result.reason)
+      return result.status === 'loaded' ? result.state : null
     },
 
-    save(state) {
-      if (!storage) return false
+    async save(state) {
+      if (!storage) throw new SaveError()
       const envelope: SaveEnvelope = {
         schemaVersion: SCHEMA_VERSION,
         savedAt: new Date().toISOString(),
@@ -364,13 +393,12 @@ export function createLocalStorageGameRepository(
       }
       try {
         storage.setItem(SAVE_KEY, JSON.stringify(envelope))
-        return true
-      } catch {
-        return false
+      } catch (error) {
+        throw new SaveError(error)
       }
     },
 
-    clear() {
+    async clear() {
       try {
         storage?.removeItem(SAVE_KEY)
       } catch {

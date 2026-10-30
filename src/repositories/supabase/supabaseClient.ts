@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { readSupabaseConfig, type SupabaseConfig, type SupabaseConfigResult } from './supabaseConfig'
+import type { SupabaseConfig } from './supabaseConfig'
+import { supabaseConfigFromEnv } from './supabaseEnv'
 
 /**
  * The one Supabase client of the app (M7 foundation), for future authentication and repository
@@ -7,14 +8,6 @@ import { readSupabaseConfig, type SupabaseConfig, type SupabaseConfigResult } fr
  * game never waits for Supabase. Only the repository layer may import this module; `src/domain`
  * and `src/game-engine` never do (checked by src/architecture/layers.test.ts).
  */
-
-/** The configuration from the build's environment (`.env.local`, or the host's settings). */
-export function supabaseConfigFromEnv(): SupabaseConfigResult {
-  return readSupabaseConfig({
-    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
-  })
-}
 
 /** A client for a configuration. Creating it makes no network request. */
 export function createSupabaseClient(config: SupabaseConfig): SupabaseClient {

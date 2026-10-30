@@ -1,8 +1,8 @@
-# Supabase setup (M7 foundation)
+# Supabase setup (M7)
 
-**Status (30 October 2026):** the official client is installed and configured, but nothing in the
-game uses it yet. The career is still saved only in this browser (localStorage). There are no
-tables, no sign-in and no remote saves; those come in later phases.
+**Status (30 October 2026, Phase 2A):** players get an anonymous Supabase identity in the
+background, and a new career also creates the player's remote career record. The game is still
+played and saved only in this browser (localStorage): there are no remote saves yet.
 
 ## What exists
 
@@ -11,10 +11,11 @@ tables, no sign-in and no remote saves; those come in later phases.
 | Configuration: reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, refuses secret keys | `src/repositories/supabase/supabaseConfig.ts` |
 | The one shared client, created on first use; `null` when not configured | `src/repositories/supabase/supabaseClient.ts` (`getSupabaseClient()`) |
 | Connection check (no sign-in, no tables) | `npm run supabase:check` (`scripts/check-supabase.mjs`) |
+| Configuration from the build environment | `src/repositories/supabase/supabaseEnv.ts` |
 
 Supabase lives in the repository layer only. `src/domain` and `src/game-engine` never import it
-(checked by `src/architecture/layers.test.ts`). Because nothing imports the client yet, it is not
-in the production bundle.
+(checked by `src/architecture/layers.test.ts`). The library is a separate chunk loaded after the
+game has started, and only when Supabase is configured.
 
 ## Connect a project (owner steps)
 
@@ -31,7 +32,67 @@ in the production bundle.
 If the variables are missing or invalid, the game starts and plays exactly as before. A
 `service_role` or `sb_secret_` key is refused even if it is set.
 
+## Phase 2A: database and anonymous sign-in
+
+### Owner steps in the Supabase dashboard
+
+1. **Apply the migration** `supabase/migrations/20261030120000_player_foundation.sql`: open
+   **SQL Editor → New query**, paste the whole file and **Run** (or `supabase db push` with the
+   Supabase CLI linked to the project). It only creates new tables and one function; it deletes
+   nothing. Run it once.
+2. **Enable anonymous sign-ins:** **Authentication → Sign In / Providers → Allow anonymous
+   sign-ins** (on).
+3. Recommended against abuse (anonymous accounts can be created by anyone with the public key):
+   **Authentication → Rate Limits** (keep the default limit on anonymous sign-ins), and later a
+   CAPTCHA (**Authentication → Attack Protection**). Old unused anonymous users can be cleaned up
+   later with a scheduled job.
+
+### How to check it worked
+
+- **Table Editor:** the five tables `profiles`, `careers`, `race_entries`, `owned_equipment` and
+  `coin_transactions` exist, each with "RLS enabled".
+- Open the deployed game in a private window and start a new career. In **Authentication →
+  Users** a new user appears marked *Anonymous*; in **Table Editor → careers** one row appears for
+  it, with the new career in `game_state`. Reloading the game creates no second user or career.
+- An existing player (a career already on the device) gets an anonymous user but no remote
+  career: their local career will be imported in Phase 2C.
+
+### What it does
+
+| Part | File |
+|---|---|
+| Tables, RLS policies and `create_my_career` | `supabase/migrations/20261030120000_player_foundation.sql` |
+| Anonymous sign-in and remote career creation | `src/repositories/supabase/playerIdentity.ts` |
+| Database checks on a local PostgreSQL | `npm run db:test` (`scripts/test-db.sh`, `supabase/tests/`) |
+
+- **Tables:** `profiles` (one per auth user), `careers` (one per user: `user_id` is unique;
+  `game_state` is the GameState snapshot the app's save parser reads; `schema_version`;
+  `version` for later concurrency checks), `race_entries` (unique per career and game entry id),
+  `owned_equipment` (career + item), `coin_transactions` (ledger, empty for now: no history is
+  invented from current balances). Deleting a user deletes all of their rows.
+- **RLS:** players can only **read** their own profile, career, race entries, equipment and coin
+  transactions. Clients cannot insert, update or delete anything; signed-out visitors cannot read
+  anything. Writes go through server-side code only.
+- **`create_my_career(initial_state, initial_schema_version)`:** a `security definer` function
+  that creates the caller's profile and career once and returns the career (also on later calls,
+  which create nothing). It accepts only a brand-new career (Level 1, 25 coins, week 1, no races,
+  starter shoes), so it cannot be used to plant progress.
+- **In the app:** at startup the game reuses the stored Supabase session (key `trailgame.auth`)
+  or signs in anonymously once; simultaneous starts share one sign-in. Failures (offline,
+  Supabase down) are retried in the background (2 s, doubling up to 60 s) and never block play.
+  Starting a new career calls `create_my_career` with that career; the local save is never read,
+  changed or deleted by any of this. The Supabase library loads after the game's first screen.
+- **Account linking later** (email, Apple, Google) will link the identity to the same anonymous
+  user, so the user id, career id and all progress stay the same.
+
+### Existing local careers (Phase 2C)
+
+A career already saved on the device is left untouched and no remote career is created for it.
+Phase 2C will import it: validate it with `parseGameState`, then create the remote career from it
+through a server-side function that checks it (instead of `create_my_career`, which only accepts
+new careers). Until then the local save stays the only copy of that career.
+
 ## Not done yet (next phases)
 
-Database tables and RLS, authentication (anonymous, then email/Apple/Google), remote saves and the
-import of the local save, Edge Functions for coins, XP and race results, the coin ledger.
+Remote saves (Phase 2B), the import of existing local careers (Phase 2C), account linking with
+email/Apple/Google, Edge Functions for coins, XP and race results, writing the coin ledger.

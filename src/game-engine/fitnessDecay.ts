@@ -1,3 +1,4 @@
+import { roundStat } from '../domain/athlete/athlete'
 import type { GameState } from './gameState'
 
 export const DECAY_PERIOD_MS = 24 * 60 * 60 * 1000
@@ -34,7 +35,7 @@ export function applyFitnessDecay(state: GameState, now: number): DecayResult {
   const periods = Math.max(0, Math.floor((now - reference) / DECAY_PERIOD_MS) - DECAY_GRACE_PERIODS)
   if (periods === 0) return { state, periods: 0, fitnessLost: 0 }
 
-  const fitness = Math.max(0, state.athlete.fitness - periods * FITNESS_DECAY_PER_PERIOD)
+  const fitness = Math.max(0, roundStat(state.athlete.fitness - periods * FITNESS_DECAY_PER_PERIOD))
   return {
     state: {
       ...state,
@@ -42,6 +43,6 @@ export function applyFitnessDecay(state: GameState, now: number): DecayResult {
       fitnessDecayReference: reference + periods * DECAY_PERIOD_MS,
     },
     periods,
-    fitnessLost: state.athlete.fitness - fitness,
+    fitnessLost: roundStat(state.athlete.fitness - fitness),
   }
 }

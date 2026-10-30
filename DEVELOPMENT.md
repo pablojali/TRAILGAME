@@ -814,6 +814,33 @@ Replaces the silhouette and the Stage A placeholder options above. On the workin
   head and shoulders (×3.2, 450 ms, no animation with reduced motion) and zooms back out on the
   other tabs. The frame keeps its size.
 
+### Fractional Fitness and attributes trained by sessions (owner decision, 30 October 2026)
+
+After the 16- and 52-week simulations (`docs/SEASON_SIMULATION_16W.md`):
+
+| Session | Fitness before → now | Trains (+0.1) |
+|---|---|---|
+| Easy run | +2 → +0.5 | Endurance |
+| Intervals | +3 → +0.75 | Speed |
+| Hills | +3 → +0.5 | Climbing |
+| Long run | +3 → +1 | Endurance |
+| Strength | +2 → +0.5 | Recovery |
+| Trail technique | +2 → +0.25 | Technical |
+| Rest | 0 after an active day, −2 after Rest (unchanged) | — |
+
+- XP and Fatigue are unchanged. Injured sessions, Rest and races train no attribute; attributes stop
+  at 100 (`ATTRIBUTE_GAIN_PER_SESSION`, `SessionDefinition.attribute`, `DayOutcome.attributeGain`).
+- **Decimals:** Fitness, Fatigue and attributes are kept at 2 decimals (`roundStat`) so repeated
+  fractions never drift, and shown with 1 decimal (`formatStat`): "20.5", "16.1". Changes are shown
+  exactly ("+0.75", "+0.1"), so a session's effect is never rounded away.
+- **Where it shows:** Training (today's effects and "Trains Endurance +0.1 (16.0 → 16.1)", planned
+  and completed days), the Dashboard Today card, Dashboard and Attributes values, race explanation.
+- **Saves:** decimals with at most 2 places are accepted; older whole-number saves load unchanged.
+  The attribute total must now be at least the profile total plus points spent (training adds to it).
+- **Simulation (sensible player):** Fitness about +0.6 a week, slightly below the typical runner of
+  the level for 4 months, then a few points ahead; mid-field to podium over a year.
+- **Consistency:** no session trains it yet (owner: open; idea, a reward for a fully planned week).
+
 ### Recovery Rest and decay on played days (owner decisions, 30 October 2026)
 
 After the 16-week simulation (`docs/SEASON_SIMULATION_16W.md`) showed a sensible daily player at

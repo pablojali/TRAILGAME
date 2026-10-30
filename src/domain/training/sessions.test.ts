@@ -1,21 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { isSessionType, SESSION_TYPES, TRAINING_SESSIONS } from './sessions'
+import { ATTRIBUTE_GAIN_PER_SESSION, isSessionType, SESSION_TYPES, TRAINING_SESSIONS } from './sessions'
 
 describe('TRAINING_SESSIONS', () => {
-  it('matches the approved values: M2, Rest −2/−8, Strength +4 and Trail technique +3 Fatigue (owner decisions)', () => {
+  it('matches the approved values: XP and Fatigue (M2 and later), Fitness and trained attribute (30 October 2026)', () => {
     const table = SESSION_TYPES.map((id) => {
       const s = TRAINING_SESSIONS[id]
-      return [s.label, s.xp, s.fitnessDelta, s.fatigueDelta]
+      return [s.label, s.xp, s.fitnessDelta, s.fatigueDelta, s.attribute ?? null]
     })
     expect(table).toEqual([
-      ['Easy run', 9, 2, 5],
-      ['Intervals', 16, 3, 14],
-      ['Hills', 14, 3, 12],
-      ['Long run', 18, 3, 16],
-      ['Strength', 11, 2, 4],
-      ['Trail technique', 11, 2, 3],
-      ['Rest', 0, -2, -8],
+      ['Easy run', 9, 0.5, 5, 'endurance'],
+      ['Intervals', 16, 0.75, 14, 'speed'],
+      ['Hills', 14, 0.5, 12, 'climbing'],
+      ['Long run', 18, 1, 16, 'endurance'],
+      ['Strength', 11, 0.5, 4, 'recovery'],
+      ['Trail technique', 11, 0.25, 3, 'technical'],
+      ['Rest', 0, -2, -8, null],
     ])
+    expect(ATTRIBUTE_GAIN_PER_SESSION).toBe(0.1)
   })
 
   it('keys every definition by its own id', () => {

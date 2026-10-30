@@ -302,6 +302,8 @@ Use conventional rounding to the nearest integer, with half values rounded up.
 
 Fitness gains must be capped at 100.
 
+**Revision (owner decision, 30 October 2026; supersedes the table above):** Fitness gains are now fractional so Fitness grows with the level instead of outrunning it (`docs/SEASON_SIMULATION_16W.md`): Easy Run +0.5, Intervals +0.75, Hills +0.5, Long Run +1, Strength +0.5, Trail technique +0.25; Rest after a training day or race 0, a second Rest in a row −2. Fitness and attributes keep up to 2 decimals and are shown with 1.
+
 **Recovery bonus on Rest (owner decision, 29 October 2026):** Rest reduces Fatigue by 8, plus 2 more for every 3 Recovery points above the profile's starting Recovery (for example, Climber 14 → 17: −10; 20: −12). This applies to forced Rest days too. Training and recovery must be balanced by the player.
 
 **Revision 1.2:** each Rest day reduces Fitness by 2 (owner decision, 28 October 2026). Rest still grants no XP and still does not reset the inactivity reference (§4.5).
@@ -413,6 +415,8 @@ This mapping defines training intent, not final numerical gains.
 The exact adaptation amount, frequency, probability, and cap behavior must be balanced before implementation.
 
 Rest may improve the athlete's condition through Fatigue recovery, but it must not directly increase attributes under the current design.
+
+**Implemented (owner decision, 30 October 2026; replaces the mapping above):** each completed session adds 0.1 to one attribute: Easy Run and Long Run → Endurance, Intervals → Speed, Hills → Climbing, Trail technique → Technical, Strength → Recovery. Rest, races and injured sessions train nothing; attributes stop at 100. No session trains Consistency yet; it grows with attribute points only (an open idea is a reward for completing a planned week).
 
 ### 5.3 Attribute limits
 
@@ -1193,7 +1197,7 @@ The following requirements revise or extend the original M1 design:
 - Define attribute-point rewards and allocation rules.
 - Establish profile changes at the end of a completed season.
 
-These rules are design requirements. Implementation status: profile selection, profile-specific starting attributes, starting Fitness 20, the revised XP and Fitness rewards, time-based Fitness decay and attribute-point rewards and allocation were implemented and accepted in M2. Attribute adaptation by training type and profile changes at the end of a season are not implemented.
+These rules are design requirements. Implementation status: profile selection, profile-specific starting attributes, starting Fitness 20, the revised XP and Fitness rewards, time-based Fitness decay and attribute-point rewards and allocation were implemented and accepted in M2. Attribute adaptation by training type was implemented on 30 October 2026 (§5.2); profile changes at the end of a season are not implemented.
 
 Because M1 has already been delivered, the PM must assign these changes to an explicitly named follow-up milestone or approve a deliberate M1 revision before implementation begins.
 

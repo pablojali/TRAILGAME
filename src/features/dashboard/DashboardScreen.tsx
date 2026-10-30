@@ -4,7 +4,7 @@ import { useCareer, useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card, Meter } from '../../components/Card'
 import { Coins } from '../../components/Coins'
-import { formatDelta } from '../../components/format'
+import { formatDelta, formatStat } from '../../components/format'
 import {
   ATTRIBUTE_IDS,
   ATTRIBUTE_LABELS,
@@ -68,11 +68,11 @@ export function DashboardScreen() {
                       label={ATTRIBUTE_LABELS[id]}
                       value={athlete.attributes[id]}
                       max={ATTRIBUTE_MAX}
-                      valueText={`${athlete.attributes[id]} of ${ATTRIBUTE_MAX}`}
+                      valueText={`${formatStat(athlete.attributes[id])} of ${ATTRIBUTE_MAX}`}
                       className={styles.sideMeter}
                     />
                     <span className={styles.value} aria-hidden="true">
-                      {athlete.attributes[id]}
+                      {formatStat(athlete.attributes[id])}
                     </span>
                   </span>
                 </li>
@@ -123,9 +123,15 @@ export function DashboardScreen() {
               </div>
               <div className={styles.stat}>
                 <dt>Fitness</dt>
-                <dd className={styles.value}>{athlete.fitness}</dd>
+                <dd className={styles.value}>{formatStat(athlete.fitness)}</dd>
                 <dd>
-                  <Meter label="Fitness" value={athlete.fitness} max={STAT_MAX} className={styles.fitnessMeter} />
+                  <Meter
+                    label="Fitness"
+                    value={athlete.fitness}
+                    max={STAT_MAX}
+                    valueText={`${formatStat(athlete.fitness)} of ${STAT_MAX}`}
+                    className={styles.fitnessMeter}
+                  />
                 </dd>
               </div>
               <div className={styles.stat}>
@@ -182,6 +188,15 @@ export function DashboardScreen() {
                 <span>XP {formatDelta(effects.xpGained)}</span> ·{' '}
                 <span>Fitness {formatDelta(effects.fitnessChange)}</span> ·{' '}
                 <span>Fatigue {formatDelta(effects.fatigueChange)}</span>
+                {effects.attributeGain && (
+                  <>
+                    {' '}
+                    ·{' '}
+                    <span>
+                      {ATTRIBUTE_LABELS[effects.attributeGain.attribute]} {formatDelta(effects.attributeGain.amount)}
+                    </span>
+                  </>
+                )}
               </p>
               <Link to="/training" className={`${button.button} ${button.primary}`}>
                 Go to training

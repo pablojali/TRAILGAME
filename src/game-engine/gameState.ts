@@ -1,5 +1,5 @@
 import { defaultAppearance, type Appearance } from '../domain/athlete/appearance'
-import type { Athlete, Attributes, ProfileId, Sex } from '../domain/athlete/athlete'
+import type { Athlete, AttributeId, Attributes, ProfileId, Sex } from '../domain/athlete/athlete'
 import { PROFILES } from '../domain/athlete/profiles'
 import { STARTING_COINS } from '../domain/economy/coins'
 import { OWNED_FROM_START } from '../domain/equipment/items'
@@ -14,6 +14,8 @@ export interface DayOutcome {
   xpGained: number
   fitnessChange: number
   fatigueChange: number
+  /** Attribute trained by the session (none for Rest, races and injuries). */
+  attributeGain?: { attribute: AttributeId; amount: number }
   /** True if the session caused an injury. */
   injured?: boolean
   /** Set when the day was a race instead of the planned session: the finished entry's id. */

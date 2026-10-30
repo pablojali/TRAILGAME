@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ATTRIBUTE_IDS, type AttributeId } from '../domain/athlete/athlete'
 import { PROFILE_IDS, PROFILES } from '../domain/athlete/profiles'
 import type { SessionType } from '../domain/training/sessions'
 import { defaultAppearance } from '../domain/athlete/appearance'
@@ -63,17 +64,43 @@ describe('createInitialGameState', () => {
 })
 
 describe('executeCurrentDay', () => {
-  it.each<[SessionType, number, number, number]>([
-    ['easy-run', 9, 22, 5],
-    ['intervals', 16, 23, 14],
-    ['hills', 14, 23, 12],
-    ['long-run', 18, 23, 16],
-    ['strength', 11, 22, 4],
-    ['trail-technique', 11, 22, 3],
-    ['rest', 0, 18, 0],
-  ])('applies %s: XP %i, fitness %i, fatigue %i', (session, xp, fitness, fatigue) => {
-    const result = execute(withSession(newGame(), session))
+  it.each<[SessionType, number, number, number, AttributeId | null]>([
+    ['easy-run', 9, 20.5, 5, 'endurance'],
+    ['intervals', 16, 20.75, 14, 'speed'],
+    ['hills', 14, 20.5, 12, 'climbing'],
+    ['long-run', 18, 21, 16, 'endurance'],
+    ['strength', 11, 20.5, 4, 'recovery'],
+    ['trail-technique', 11, 20.25, 3, 'technical'],
+    ['rest', 0, 18, 0, null],
+  ])('applies %s: XP %i, fitness %d, fatigue %i, trains %s', (session, xp, fitness, fatigue, attribute) => {
+    const state = withSession(newGame(), session)
+    const result = execute(state)
     expect(result.state.athlete).toMatchObject({ xp, fitness, fatigue })
+    const trained = ATTRIBUTE_IDS.filter((id) => result.state.athlete.attributes[id] !== state.athlete.attributes[id])
+    expect(trained).toEqual(attribute ? [attribute] : [])
+    if (attribute) {
+      expect(result.state.athlete.attributes[attribute]).toBe(state.athlete.attributes[attribute] + 0.1)
+      expect(result.outcome.attributeGain).toEqual({ attribute, amount: 0.1 })
+    }
+  })
+
+  it('keeps decimals exact over many sessions (2 decimals at most)', () => {
+    let state = newGame()
+    for (let i = 0; i < 30; i++) state = execute(withSession(state, 'trail-technique')).state
+    expect(state.athlete.attributes.technical).toBe(19)
+    expect(state.athlete.fitness).toBe(27.5)
+  })
+
+  it('trains no attribute on an injury or above 100', () => {
+    const injured = execute(withSession(withAthlete(newGame(), { fatigue: 90 }), 'long-run'))
+    expect(injured.injured).toBe(true)
+    expect(injured.outcome.attributeGain).toBeUndefined()
+    expect(injured.state.athlete.attributes).toEqual(newGame().athlete.attributes)
+    const maxed = newGame()
+    maxed.athlete.attributes.speed = 99.95
+    expect(execute(withSession(maxed, 'intervals')).state.athlete.attributes.speed).toBe(100)
+    maxed.athlete.attributes.speed = 100
+    expect(execute(withSession(maxed, 'intervals')).outcome.attributeGain).toBeUndefined()
   })
 
   it('rest reduces fatigue by 8 and Fitness by 2, and grants no XP', () => {
@@ -90,9 +117,9 @@ describe('executeCurrentDay', () => {
   })
 
   it('clamps fitness at 100', () => {
-    const result = execute(withSession(withAthlete(newGame(), { fitness: 99 }), 'long-run'))
+    const result = execute(withSession(withAthlete(newGame(), { fitness: 99.5 }), 'long-run'))
     expect(result.state.athlete.fitness).toBe(100)
-    expect(result.outcome).toEqual({ xpGained: 18, fitnessChange: 1, fatigueChange: 16 })
+    expect(result.outcome).toMatchObject({ xpGained: 18, fitnessChange: 0.5, fatigueChange: 16 })
   })
 
   it('keeps stats within 0–100 over many weeks of any session', () => {
@@ -110,10 +137,17 @@ describe('executeCurrentDay', () => {
     }
   })
 
-  it('never changes attributes automatically', () => {
+  it('changes attributes only by the trained 0.1 per session, never by spending points automatically', () => {
     let state = newGame('sprinter')
     for (let i = 0; i < 28; i++) state = execute(state).state
-    expect(state.athlete.attributes).toEqual(PROFILES.sprinter.attributes)
+    // Four weeks of the default plan: Easy run + Long run (Endurance), Intervals (Speed), Hills (Climbing).
+    // The fourth Long run injures (the default plan's Fatigue) and trains nothing.
+    expect(state.athlete.attributes).toEqual({
+      ...PROFILES.sprinter.attributes,
+      endurance: 13.7,
+      speed: 20.4,
+      climbing: 12.4,
+    })
     expect(state.athlete.spentAttributePoints).toBe(0)
   })
 
@@ -121,7 +155,12 @@ describe('executeCurrentDay', () => {
     const result = execute(newGame())
     const { week } = result.state
     expect(week.currentDayIndex).toBe(1)
-    expect(week.days[0]!.outcome).toEqual({ xpGained: 9, fitnessChange: 2, fatigueChange: 5 })
+    expect(week.days[0]!.outcome).toEqual({
+      xpGained: 9,
+      fitnessChange: 0.5,
+      fatigueChange: 5,
+      attributeGain: { attribute: 'endurance', amount: 0.1 },
+    })
     expect(getDayStatus(week, 0)).toBe('completed')
     expect(getDayStatus(week, 1)).toBe('current')
     expect(getDayStatus(week, 2)).toBe('upcoming')
@@ -190,8 +229,8 @@ describe('executeCurrentDay', () => {
     expect(state.week.days.map((d) => d.session)).toEqual(DEFAULT_WEEK_PLAN)
     expect(state.week.days.every((d) => d.outcome === null)).toBe(true)
     expect(state.athlete.xp).toBe(WEEK_XP)
-    // Default plan: +2 +3, then each Rest follows a training day (recovery Rest keeps Fitness): +0 +3 +0 +3 +0.
-    expect(state.athlete.fitness).toBe(20 + 11)
+    // Default plan: +0.5 +0.75, then each Rest follows a training day (recovery Rest keeps Fitness): 0 +0.5 0 +1 0.
+    expect(state.athlete.fitness).toBe(22.75)
   })
 
   it('accumulates XP across weeks and never decreases it', () => {
@@ -231,14 +270,14 @@ describe('executeCurrentDay', () => {
 
   describe('recovery Rest (owner decision, 30 October 2026)', () => {
     it('keeps Fitness right after a training day; a second Rest in a row loses 2', () => {
-      const trained = execute(newGame()).state // Easy run: Fitness 22
+      const trained = execute(newGame()).state // Easy run: Fitness 20.5
       expect(trained.previousDayActive).toBe(true)
       expect(previewSession(trained, 'rest').fitnessChange).toBe(0)
       const rested = execute(withSession(trained, 'rest')).state
-      expect(rested.athlete.fitness).toBe(22)
+      expect(rested.athlete.fitness).toBe(20.5)
       expect(rested.previousDayActive).toBe(false)
       expect(previewSession(rested, 'rest').fitnessChange).toBe(-2)
-      expect(execute(withSession(rested, 'rest')).state.athlete.fitness).toBe(20)
+      expect(execute(withSession(rested, 'rest')).state.athlete.fitness).toBe(18.5)
     })
 
     it('gives no bonus at the start of a career or on forced Rest after an injury', () => {

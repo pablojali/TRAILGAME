@@ -2,7 +2,7 @@ import { Link, useLocation, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
-import { formatDelta } from '../../components/format'
+import { formatDelta, formatStat } from '../../components/format'
 import { Screen } from '../../components/Screen'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
 import { ATTRIBUTE_LABELS, isAttributeId } from '../../domain/athlete/athlete'
@@ -128,7 +128,8 @@ function factorLabel(factor: ExplanationFactor, equipment: readonly string[] = [
     return `Day form ${factor.value < 0 ? '−' : '+'}${percent}% (${factor.value < 0 ? 'a good day' : 'an off day'})`
   }
   const name = factor.id === 'fitness' ? 'Fitness' : factor.id === 'fatigue' ? 'Fatigue' : isAttributeId(factor.id) ? ATTRIBUTE_LABELS[factor.id] : factor.id
-  return `${name} ${factor.value} (typical ${Math.round(factor.reference)})`
+  const shown = factor.id === 'fatigue' ? String(factor.value) : formatStat(factor.value)
+  return `${name} ${shown} (typical ${Math.round(factor.reference)})`
 }
 
 /** The explanation (D10): total gap, then the largest single effects, never added up. */

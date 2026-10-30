@@ -2,11 +2,18 @@ import { useEffect, useId, useState } from 'react'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
-import { formatDelta } from '../../components/format'
+import { formatDelta, formatStat } from '../../components/format'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
 import { getRestFatigueDelta, RECOVERY_REST_FITNESS } from '../../domain/training/recovery'
-import { isSessionType, SESSION_TYPES, TRAINING_SESSIONS, type SessionType } from '../../domain/training/sessions'
+import { ATTRIBUTE_LABELS } from '../../domain/athlete/athlete'
+import {
+  ATTRIBUTE_GAIN_PER_SESSION,
+  isSessionType,
+  SESSION_TYPES,
+  TRAINING_SESSIONS,
+  type SessionType,
+} from '../../domain/training/sessions'
 import { weekdayLong, weekdayShort } from '../../domain/training/weekdays'
 import {
   getDayStatus,
@@ -63,7 +70,9 @@ const ERROR_MESSAGES: Record<TrainingError, string> = {
 const COMPLETE_COOLDOWN_MS = 700
 
 function effectsText(outcome: DayOutcome) {
-  return `XP ${formatDelta(outcome.xpGained)} · Fitness ${formatDelta(outcome.fitnessChange)} · Fatigue ${formatDelta(outcome.fatigueChange)}`
+  const gain = outcome.attributeGain
+  const trained = gain ? ` · ${ATTRIBUTE_LABELS[gain.attribute]} ${formatDelta(gain.amount)}` : ''
+  return `XP ${formatDelta(outcome.xpGained)} · Fitness ${formatDelta(outcome.fitnessChange)} · Fatigue ${formatDelta(outcome.fatigueChange)}${trained}`
 }
 
 /**
@@ -75,7 +84,12 @@ function plannedEffects(state: GameState, index: number): DayOutcome {
   const session = state.week.days[index]!.session
   const rules = TRAINING_SESSIONS[session]
   if (session !== 'rest') {
-    return { xpGained: rules.xp, fitnessChange: rules.fitnessDelta, fatigueChange: rules.fatigueDelta }
+    return {
+      xpGained: rules.xp,
+      fitnessChange: rules.fitnessDelta,
+      fatigueChange: rules.fatigueDelta,
+      ...(rules.attribute && { attributeGain: { attribute: rules.attribute, amount: ATTRIBUTE_GAIN_PER_SESSION } }),
+    }
   }
   const forced = index < state.week.currentDayIndex + state.forcedRestDays
   const before = state.week.days[index - 1]
@@ -332,7 +346,7 @@ function TodayActions({ state, selectId, error, cooldown, onPlan, onComplete }: 
           <dd>
             <span className={styles.delta}>{formatDelta(effects.fitnessChange)}</span>
             <span className={styles.result}>
-              {athlete.fitness} → {athlete.fitness + effects.fitnessChange}
+              {formatStat(athlete.fitness)} → {formatStat(athlete.fitness + effects.fitnessChange)}
             </span>
           </dd>
         </div>
@@ -346,6 +360,13 @@ function TodayActions({ state, selectId, error, cooldown, onPlan, onComplete }: 
           </dd>
         </div>
       </dl>
+      {effects.attributeGain && (
+        <p className={styles.hint}>
+          Trains {ATTRIBUTE_LABELS[effects.attributeGain.attribute]} {formatDelta(effects.attributeGain.amount)} (
+          {formatStat(athlete.attributes[effects.attributeGain.attribute])} →{' '}
+          {formatStat(athlete.attributes[effects.attributeGain.attribute] + effects.attributeGain.amount)})
+        </p>
+      )}
 
       {effects.injured && (
         <p className={styles.warning} role="alert">

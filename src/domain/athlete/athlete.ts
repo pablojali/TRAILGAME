@@ -54,7 +54,10 @@ export function cleanAthleteName(value: string): string | null {
   return name.length >= 1 && name.length <= ATHLETE_NAME_MAX_LENGTH ? name : null
 }
 
-/** Six core attributes, integers on a 1–100 scale. */
+/**
+ * Six core attributes on a 1–100 scale. Whole numbers until 30 October 2026; training now adds
+ * tenths (owner decision), so values have up to 2 decimals and are shown with 1.
+ */
 export type Attributes = Record<AttributeId, number>
 
 export const ATTRIBUTE_MIN = 1
@@ -69,7 +72,7 @@ export interface Athlete {
   profile: ProfileId
   /** Cumulative XP; never decreases. Level and earned attribute points derive from it. */
   xp: number
-  /** 0–100 inclusive. */
+  /** 0–100 inclusive, up to 2 decimals (sessions add fractions since 30 October 2026). */
   fitness: number
   /** 0–100 inclusive. */
   fatigue: number
@@ -81,6 +84,14 @@ export interface Athlete {
 /** Range for Fitness and Fatigue. */
 export const STAT_MIN = 0
 export const STAT_MAX = 100
+
+/**
+ * Rounds a Fitness, Fatigue or attribute value to 2 decimals, the precision game values are kept
+ * at, so repeated fractional changes never drift (0.1 + 0.2 stays 0.3).
+ */
+export function roundStat(value: number): number {
+  return Math.round(value * 100) / 100
+}
 
 export function isAttributeId(value: unknown): value is AttributeId {
   return typeof value === 'string' && (ATTRIBUTE_IDS as readonly string[]).includes(value)

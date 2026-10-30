@@ -24,8 +24,8 @@ describe('AttributesScreen', () => {
     renderApp('/attributes')
     expect(screen.getByRole('heading', { level: 1, name: 'Attributes' })).toBeInTheDocument()
     expect(pointsLeft()).toBe('0')
-    expect(value('Endurance')).toBe('20')
-    expect(value('Technical')).toBe('13')
+    expect(value('Endurance')).toBe('20.0')
+    expect(value('Technical')).toBe('13.0')
     for (const label of ['Endurance', 'Climbing', 'Speed', 'Technical', 'Recovery', 'Consistency']) {
       expect(addButton(label)).toHaveAttribute('aria-disabled', 'true')
     }
@@ -41,13 +41,13 @@ describe('AttributesScreen', () => {
     expect(pointsLeft()).toBe('4')
 
     await user.click(addButton('Speed'))
-    expect(value('Speed')).toBe('14')
+    expect(value('Speed')).toBe('14.0')
     expect(pointsLeft()).toBe('3')
-    expect(screen.getByText('Speed increased to 14. 3 points left.')).toBeInTheDocument()
+    expect(screen.getByText('Speed increased to 14.0. 3 points left.')).toBeInTheDocument()
 
     await user.click(addButton('Speed'))
     await user.click(addButton('Recovery'))
-    expect(screen.getByText('Recovery increased to 15. 1 point left.')).toBeInTheDocument()
+    expect(screen.getByText('Recovery increased to 15.0. 1 point left.')).toBeInTheDocument()
     expect(readSave()!.state.athlete).toMatchObject({
       spentAttributePoints: 3,
       attributes: { ...PROFILES.climber.attributes, speed: 15, recovery: 15 },
@@ -56,7 +56,7 @@ describe('AttributesScreen', () => {
 
     renderApp('/attributes')
     expect(pointsLeft()).toBe('1')
-    expect(value('Speed')).toBe('15')
+    expect(value('Speed')).toBe('15.0')
   })
 
   it('disables every increase once the points run out', async () => {
@@ -68,7 +68,7 @@ describe('AttributesScreen', () => {
     expect(pointsLeft()).toBe('0')
     expect(addButton('Climbing')).toHaveAttribute('aria-disabled', 'true')
     await user.click(addButton('Climbing'))
-    expect(value('Climbing')).toBe('18')
+    expect(value('Climbing')).toBe('18.0')
     expect(readSave()!.state.athlete.spentAttributePoints).toBe(2)
   })
 
@@ -98,7 +98,7 @@ describe('AttributesScreen', () => {
     addButton('Endurance').focus()
     await user.keyboard('{Enter}')
     await user.keyboard(' ')
-    expect(value('Endurance')).toBe('18')
+    expect(value('Endurance')).toBe('18.0')
     // Focus stays on the (now inactive) button rather than being lost.
     expect(addButton('Endurance')).toHaveFocus()
     expect(addButton('Endurance')).toHaveAttribute('aria-disabled', 'true')

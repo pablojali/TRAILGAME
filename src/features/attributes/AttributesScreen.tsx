@@ -13,7 +13,7 @@ import {
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
 import { PROFILES } from '../../domain/athlete/profiles'
 import { getRestFatigueDelta, RECOVERY_BONUS_FATIGUE, RECOVERY_BONUS_STEP } from '../../domain/training/recovery'
-import { formatDelta } from '../../components/format'
+import { formatDelta, formatStat } from '../../components/format'
 import { getUnspentAttributePoints, type AllocationError } from '../../game-engine/attributes'
 import styles from './AttributesScreen.module.css'
 
@@ -45,7 +45,7 @@ export function AttributesScreen() {
     }
     const left = unspent - 1
     setMessage(
-      `${label} increased to ${athlete.attributes[attribute] + 1}. ${pointsText(left)} left.`,
+      `${label} increased to ${formatStat(Math.min(ATTRIBUTE_MAX, athlete.attributes[attribute] + 1))}. ${pointsText(left)} left.`,
     )
   }
 
@@ -73,9 +73,15 @@ export function AttributesScreen() {
               <li key={id} className={styles.row}>
                 <div className={styles.rowText}>
                   <span className={styles.label}>{label}</span>
-                  <span className={styles.value}>{value}</span>
+                  <span className={styles.value}>{formatStat(value)}</span>
                 </div>
-                <Meter label={label} value={value} min={0} max={ATTRIBUTE_MAX} valueText={`${value} of ${ATTRIBUTE_MAX}`} />
+                <Meter
+                  label={label}
+                  value={value}
+                  min={0}
+                  max={ATTRIBUTE_MAX}
+                  valueText={`${formatStat(value)} of ${ATTRIBUTE_MAX}`}
+                />
                 <button
                   type="button"
                   className={`${button.button} ${button.secondary} ${styles.add}`}

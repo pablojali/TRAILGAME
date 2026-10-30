@@ -2,7 +2,9 @@ import {
   ATTRIBUTE_IDS,
   ATTRIBUTE_MAX,
   ATTRIBUTE_MIN,
+  isAttributeId,
   isSex,
+  roundStat,
   STAT_MAX,
   STAT_MIN,
   type Attributes,
@@ -75,16 +77,26 @@ function isInt(value: unknown, min: number, max = Number.MAX_SAFE_INTEGER): valu
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max
 }
 
+/** A number in range kept at 2 decimals at most (Fitness, Fatigue, attributes; 30 October 2026). */
+function isHundredths(value: unknown, min: number, max: number): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max && roundStat(value) === value
+}
+
 function isStat(value: unknown): value is number {
-  return isInt(value, STAT_MIN, STAT_MAX)
+  return isHundredths(value, STAT_MIN, STAT_MAX)
+}
+
+function isAttributeGain(value: unknown): boolean {
+  return value === undefined || (isRecord(value) && isAttributeId(value.attribute) && isHundredths(value.amount, 0, 1))
 }
 
 function isOutcome(value: unknown): value is DayOutcome {
   return (
     isRecord(value) &&
     isInt(value.xpGained, 0) &&
-    isInt(value.fitnessChange, -STAT_MAX, STAT_MAX) &&
-    isInt(value.fatigueChange, -STAT_MAX, STAT_MAX) &&
+    isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) &&
+    isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) &&
+    isAttributeGain(value.attributeGain) &&
     (value.injured === undefined || typeof value.injured === 'boolean') &&
     (value.raceEntryId === undefined || (typeof value.raceEntryId === 'string' && value.raceEntryId.length > 0))
   )
@@ -140,8 +152,8 @@ function isRaceResult(value: unknown, feePaid: number): value is RaceResult {
     isInt(value.coinsAwarded, 0) &&
     isInt(value.xpAwarded, 0) &&
     value.netCoins === value.coinsAwarded - feePaid &&
-    isInt(value.fatigueChange, -STAT_MAX, STAT_MAX) &&
-    isInt(value.fitnessChange, -STAT_MAX, STAT_MAX) &&
+    isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) &&
+    isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) &&
     typeof value.injured === 'boolean' &&
     isInt(value.referenceTimeS, 1) &&
     isWholeNumber(value.gapS) &&
@@ -188,7 +200,7 @@ function parseAttributes(value: unknown): Attributes | null {
   const attributes = {} as Attributes
   for (const id of ATTRIBUTE_IDS) {
     const v = value[id]
-    if (!isInt(v, ATTRIBUTE_MIN, ATTRIBUTE_MAX)) return null
+    if (!isHundredths(v, ATTRIBUTE_MIN, ATTRIBUTE_MAX)) return null
     attributes[id] = v
   }
   return attributes
@@ -218,9 +230,10 @@ export function parseGameState(value: unknown, now: number): GameState | null {
   ) {
     return null
   }
-  // Attributes change only by spending points, so their total is fixed by the points spent.
-  const total = ATTRIBUTE_IDS.reduce((sum, id) => sum + attributes[id], 0)
-  if (total !== PROFILE_ATTRIBUTE_TOTAL + athlete.spentAttributePoints) return null
+  // Attributes grow by spent points and by training (since 30 October 2026), never below the
+  // profile's total plus the points spent.
+  const total = roundStat(ATTRIBUTE_IDS.reduce((sum, id) => sum + attributes[id], 0))
+  if (total < PROFILE_ATTRIBUTE_TOTAL + athlete.spentAttributePoints) return null
 
   if (!isInt(week.number, 1) || !isInt(week.currentDayIndex, 0, DAYS_PER_WEEK - 1)) return null
   const currentDayIndex = week.currentDayIndex

@@ -1,4 +1,4 @@
-import { ATTRIBUTE_MAX, isAttributeId, type AttributeId } from '../domain/athlete/athlete'
+import { ATTRIBUTE_MAX, isAttributeId, roundStat, type AttributeId } from '../domain/athlete/athlete'
 import { getEarnedAttributePoints } from '../domain/athlete/levels'
 import type { Athlete } from '../domain/athlete/athlete'
 import type { GameState } from './gameState'
@@ -38,7 +38,10 @@ export function allocateAttributePoint(
       ...state,
       athlete: {
         ...athlete,
-        attributes: { ...athlete.attributes, [attribute]: athlete.attributes[attribute] + 1 },
+        attributes: {
+          ...athlete.attributes,
+          [attribute]: Math.min(ATTRIBUTE_MAX, roundStat(athlete.attributes[attribute] + 1)),
+        },
         spentAttributePoints: athlete.spentAttributePoints + 1,
       },
     },

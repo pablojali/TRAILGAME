@@ -7,7 +7,7 @@ import { getHead, HEADS } from './heads'
  *
  * The avatar uses the owner's layered artwork (assets/runner/avatar, prepared by
  * scripts/prepare_avatar_art.py; docs/AVATAR_ART_SPEC.md). The skin tone selects the body, which
- * has a basic head (men bald, women basic hair). The hair is either that basic head ('natural') or
+ * has a basic head (bald). The hair is either that basic head ('natural') or
  * one of the owner's heads, drawn over it in the same skin tone (src/domain/athlete/heads.ts).
  * Shoes are equipment, not appearance (see src/domain/equipment).
  */

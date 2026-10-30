@@ -58,33 +58,23 @@ describe('appearance', () => {
     expect(bodyId('male', 'tone-4')).toBe('male-4')
   })
 
-  it('offers the heads drawn for the skin tone, with their unlock level (owner art, 30 October 2026)', () => {
-    expect(hairStyles('female', 'tone-3')).toEqual([
-      'natural',
-      'head-l1-03',
-      'head-l1-05',
-      'head-l2-01',
-      'head-l2-02',
-      'head-l2-03',
-    ])
-    expect(hairStyles('female', 'tone-2')).toEqual(['natural', 'head-l1-03', 'head-l2-01', 'head-l2-02'])
-    expect(hairStyles('female', 'tone-1')).toEqual(['natural'])
-    expect(hairStyles('male', 'tone-1')).toEqual(['natural', 'head-l1-01'])
-    expect(hairStyles('male', 'tone-4')).toEqual(['natural'])
-    expect(hairUnlockLevel('female', 'head-l2-01')).toBe(2)
-    expect(hairUnlockLevel('female', 'natural')).toBe(1)
-    expect(isAppearanceUnlocked({ hair: 'head-l2-01', skin: 'tone-2', outfit: 'none' }, 1, 'female')).toBe(false)
-    expect(isAppearanceUnlocked({ hair: 'head-l2-01', skin: 'tone-2', outfit: 'none' }, 2, 'female')).toBe(true)
-    expect(appearanceUnlocks(1, 2, 'female', 'tone-2')).toEqual(['Hairstyle 3', 'Hairstyle 4', 'Red T-shirt'])
+  it('offers the current head art: one Level 1 head for women, in every tone (owner art, 30 October 2026)', () => {
+    for (const skin of SKIN_TONES.female) expect(hairStyles('female', skin)).toEqual(['natural', 'head-l1-01'])
+    for (const skin of SKIN_TONES.male) expect(hairStyles('male', skin)).toEqual(['natural'])
+    expect(hairStyleLabel('female', 'head-l1-01')).toBe('Hairstyle 1')
+    expect(hairUnlockLevel('female', 'head-l1-01')).toBe(1)
+    expect(isAppearanceUnlocked({ hair: 'head-l1-01', skin: 'tone-1', outfit: 'none' }, 1, 'female')).toBe(true)
+    expect(appearanceUnlocks(1, 2, 'female', 'tone-2')).toEqual(['Red T-shirt'])
   })
 
-  it('falls back to the basic head when the head has no art in the new skin tone or sex', () => {
-    // Hairstyle 2 (head-l1-05) is drawn in tone 3 only.
-    expect(appearanceForSex({ hair: 'head-l1-05', skin: 'tone-3', outfit: 'none' }, 'female').hair).toBe('head-l1-05')
-    expect(appearanceForSex({ hair: 'head-l1-05', skin: 'tone-2', outfit: 'none' }, 'female').hair).toBe('natural')
-    expect(appearanceForSex({ hair: 'head-l1-03', skin: 'tone-2', outfit: 'none' }, 'male').hair).toBe('natural')
-    expect(parseAppearance({ hair: 'head-l2-02', skin: 'tone-2', outfit: 'none' }, 'female').hair).toBe('head-l2-02')
-    expect(parseAppearance({ hair: 'head-l9-99', skin: 'tone-2', outfit: 'none' }, 'female').hair).toBe('natural')
+  it('loads saves with heads that no longer exist as the basic head', () => {
+    // Heads removed by the owner on 30 October 2026, possibly chosen in existing careers.
+    for (const hair of ['head-l1-03', 'head-l1-05', 'head-l2-01', 'head-l2-02', 'head-l2-03']) {
+      expect(parseAppearance({ hair, skin: 'tone-2', outfit: 'none' }, 'female').hair).toBe('natural')
+    }
+    expect(parseAppearance({ hair: 'head-l1-01', skin: 'tone-2', outfit: 'none' }, 'male').hair).toBe('natural')
+    expect(parseAppearance({ hair: 'head-l1-01', skin: 'tone-2', outfit: 'none' }, 'female').hair).toBe('head-l1-01')
+    expect(appearanceForSex({ hair: 'head-l1-01', skin: 'tone-3', outfit: 'none' }, 'male').hair).toBe('natural')
   })
 
   it('keeps a valid tone when the sex changes', () => {

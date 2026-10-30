@@ -179,19 +179,20 @@ describe('career creation — appearance step', () => {
     expect(avatar()).not.toHaveAttribute('data-focus')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))
     expect(avatar()).toHaveAttribute('data-focus', 'face')
-    // Women, tone 2 (default): the basic head and Hairstyle 1; Level 2 heads are hidden at creation.
+    // Women, tone 2 (default): the basic head and Hairstyle 1.
     const hairPanel = screen.getByRole('tabpanel')
-    expect(within(hairPanel).getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['natural', 'head-l1-03'])
+    expect(within(hairPanel).getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['natural', 'head-l1-01'])
     expect(screen.getByRole('radio', { name: 'Basic' })).toBeChecked()
-    expect(screen.getByText(/New hairstyles unlock as you level up/)).toBeInTheDocument()
+    // The note about hairstyles unlocking later shows only when locked heads exist (none in the current art).
+    expect(screen.queryByText(/New hairstyles unlock as you level up/)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('radio', { name: 'Hairstyle 1' }))
-    expect(avatar().querySelector('image[data-layer="head"]')!.getAttribute('href')).toMatch(/lvl1_women_head_03_tone2/)
-    // Tone 1 has no head art yet: the head falls back to the basic one.
+    expect(avatar().querySelector('image[data-layer="head"]')!.getAttribute('href')).toMatch(/lvl1_women_head_01_tone2/)
+    // The head follows the skin tone.
     await user.click(screen.getByRole('tab', { name: 'Skin' }))
     await user.click(screen.getByRole('radio', { name: 'Skin tone 1' }))
-    expect(avatar()).toHaveAccessibleName('Avatar preview: female, basic, skin tone 1, no shirt')
-    expect(avatar().querySelector('image[data-layer="head"]')).toBeNull()
+    expect(avatar()).toHaveAccessibleName('Avatar preview: female, hairstyle 1, skin tone 1, no shirt')
+    expect(avatar().querySelector('image[data-layer="head"]')!.getAttribute('href')).toMatch(/lvl1_women_head_01_tone1/)
   })
 
   it('offers no shirt (default) or the white T-shirt, and no shoes', async () => {

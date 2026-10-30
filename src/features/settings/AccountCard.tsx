@@ -8,6 +8,7 @@ import {
   type AccountStatus,
   type LinkResult,
 } from '../../repositories/supabase/accountLinking'
+import { SignInPanel } from './SignInPanel'
 import styles from './SettingsScreen.module.css'
 
 const PROVIDER_NAMES: Record<string, string> = { email: 'Email', google: 'Google', apple: 'Apple' }
@@ -35,7 +36,14 @@ export function AccountCard({ service }: { service: AccountService }) {
     void (async () => {
       const returned = await service.completeRedirect()
       if (cancelled) return
-      if (returned) show(returned, 'Google account linked. Your career and progress are unchanged.')
+      if (returned) {
+        show(
+          returned,
+          returned.ok && returned.signedIn
+            ? 'Signed in. Your cloud career is loaded on this device.'
+            : 'Google account linked. Your career and progress are unchanged.',
+        )
+      }
       else setStatus(await service.status())
     })()
     return () => {
@@ -117,6 +125,7 @@ export function AccountCard({ service }: { service: AccountService }) {
               Link Google account
             </button>
           </div>
+          <SignInPanel service={service} />
         </>
       )}
       {status?.kind === 'linked' && (

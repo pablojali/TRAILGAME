@@ -4,6 +4,7 @@ import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { getAccountService, type AccountService } from '../../repositories/supabase/accountLinking'
+import { CLOUD_STATUS_TEXT } from '../../app/cloud/cloudText'
 import { AccountCard } from './AccountCard'
 import styles from './SettingsScreen.module.css'
 
@@ -16,9 +17,28 @@ export function SettingsScreen({ accountService = getAccountService() }: { accou
     <Screen title="Settings" description="Game options.">
       <ScrollPanel label="Settings">
         {accountService && <AccountCard service={accountService} />}
+        <CloudSaveCard />
         <ResetDemo />
       </ScrollPanel>
     </Screen>
+  )
+}
+
+/** The cloud save's state, with a retry when it is pending. Hidden without Supabase. */
+function CloudSaveCard() {
+  const { cloudStatus, retrySync } = useGame()
+  if (cloudStatus === 'off') return null
+  return (
+    <Card title="Cloud save">
+      <p className={styles.muted}>{CLOUD_STATUS_TEXT[cloudStatus]}.</p>
+      {cloudStatus === 'pending' && (
+        <div className={styles.actions}>
+          <button type="button" className={`${button.button} ${button.secondary}`} onClick={retrySync}>
+            Retry now
+          </button>
+        </div>
+      )}
+    </Card>
   )
 }
 
@@ -45,7 +65,10 @@ function ResetDemo() {
     <Card title="Demo">
       {confirming ? (
         <>
-          <p className={styles.muted}>This erases all saved progress. You will then choose a new starting profile.</p>
+          <p className={styles.muted}>
+            This erases all saved progress. You will then choose a new starting profile; with cloud save on, the new
+            career replaces the one in your cloud save.
+          </p>
           <div className={styles.actions}>
             <button ref={confirmButton} type="button" className={`${button.button} ${button.danger}`} onClick={resetCareer}>
               Confirm reset

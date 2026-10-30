@@ -1,3 +1,4 @@
+import { localDayKey } from '../domain/athlete/consistency'
 import { describe, expect, it } from 'vitest'
 import { STARTING_COINS } from '../domain/economy/coins'
 import { getRace, RACES } from '../domain/races/races'
@@ -110,6 +111,17 @@ describe('raceCurrentDay', () => {
     const result = entered(state, raceId, fee)
     return { ...result, state: onSunday(result.state) }
   }
+
+  it('gives the daily Consistency when the race is the first day played on a new real day', () => {
+    const { state, entry } = enteredOnSunday({ ...newGame(), lastPlayedDay: null }, 'RACE-001', 0)
+    const result = race(state, entry.id)
+    if (!result.ok) throw new Error(result.error)
+    expect(result.value.state.athlete.attributes.consistency).toBe(16.1)
+    expect(result.value.state.week.number).toBe(2)
+    // Played again the same real day: nothing more.
+    const again = race({ ...state, lastPlayedDay: localDayKey(T0 + 1000) }, entry.id)
+    expect(again.ok && again.value.state.athlete.attributes.consistency).toBe(16)
+  })
 
   it('runs on Sundays only; on race Sunday the day cannot be trained or re-planned', () => {
     const { state, entry } = entered(newGame(), 'RACE-001', 0)

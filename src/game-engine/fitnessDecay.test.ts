@@ -19,7 +19,7 @@ describe('applyFitnessDecay', () => {
       state = applyFitnessDecay(state, T0 + day * DAY).state
       state = execute(withSession(state, 'strength'), T0 + day * DAY).state
     }
-    expect(state.athlete.fitness).toBe(20 + 14 * 2)
+    expect(state.athlete.fitness).toBe(20 + 14 * 0.5)
   })
 
   it('removes 1 Fitness at exactly 48 hours, keeping the free day ahead of the reference', () => {
@@ -69,14 +69,14 @@ describe('applyFitnessDecay', () => {
   it('does not reapply old periods after Fitness reached 0 and training resumed', () => {
     const atZero = applyFitnessDecay(withAthlete(newGame(), { fitness: 1 }), T0 + 5 * DAY).state
     const trained = execute(atZero, T0 + 5 * DAY + HOUR).state
-    expect(trained.athlete.fitness).toBe(2)
-    expect(applyFitnessDecay(trained, T0 + 7 * DAY).state.athlete.fitness).toBe(2)
+    expect(trained.athlete.fitness).toBe(0.5)
+    expect(applyFitnessDecay(trained, T0 + 7 * DAY).state.athlete.fitness).toBe(0.5)
   })
 
   it('counts from the last played day', () => {
-    const trained = execute(newGame(), T0 + 30 * HOUR).state // fitness 22
-    expect(applyFitnessDecay(trained, T0 + 77 * HOUR).state.athlete.fitness).toBe(22)
-    expect(applyFitnessDecay(trained, T0 + 78 * HOUR).state.athlete.fitness).toBe(21)
+    const trained = execute(newGame(), T0 + 30 * HOUR).state // fitness 20.5
+    expect(applyFitnessDecay(trained, T0 + 77 * HOUR).state.athlete.fitness).toBe(20.5)
+    expect(applyFitnessDecay(trained, T0 + 78 * HOUR).state.athlete.fitness).toBe(19.5)
   })
 
   it('is reset by a played Rest day too: decay only counts days not played (owner decision, 30 October 2026)', () => {

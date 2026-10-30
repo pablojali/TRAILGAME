@@ -19,8 +19,9 @@ describe('injury rule', () => {
     // Intervals: +14 Fatigue.
     expect(previewSession(withAthlete(newGame(), { fatigue: 81 }), 'intervals')).toEqual({
       xpGained: 16,
-      fitnessChange: 3,
+      fitnessChange: 0.75,
       fatigueChange: 14,
+      attributeGain: { attribute: 'speed', amount: 0.1 },
     })
     expect(previewSession(withAthlete(newGame(), { fatigue: 82 }), 'intervals')).toEqual({
       xpGained: 0,

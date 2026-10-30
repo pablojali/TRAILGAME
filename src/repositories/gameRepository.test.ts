@@ -297,6 +297,38 @@ describe('localStorage game repository', () => {
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
+  it('round-trips the last played day; older saves have none; an invalid one is rejected', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const state = progressedState(1)
+    expect(state.lastPlayedDay).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    repo.save(state)
+    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    const withoutField: Partial<GameState> = { ...state }
+    delete withoutField.lastPlayedDay
+    const old = memoryStorage({ [SAVE_KEY]: saveOf(withoutField) })
+    expect(createLocalStorageGameRepository(old).load(T0)).toEqual({ status: 'loaded', state: { ...state, lastPlayedDay: null } })
+    const bad = memoryStorage({ [SAVE_KEY]: saveOf({ ...state, lastPlayedDay: 'yesterday' }) })
+    expect(createLocalStorageGameRepository(bad).load(T0)).toMatchObject({ status: 'incompatible' })
+  })
+
+  it('round-trips an attribute above 100 (no upper limit since 30 October 2026)', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const state = newGame()
+    state.athlete.attributes.speed = 120.3
+    repo.save(state)
+    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+  })
+
+  it('round-trips decimal Fitness, attributes trained by sessions and their outcomes (30 October 2026)', () => {
+    const repo = createLocalStorageGameRepository(memoryStorage())
+    const state = progressedState(4) // Easy run, Intervals, Rest, Hills
+    expect(state.athlete.fitness).toBe(21.75)
+    expect(state.athlete.attributes).toMatchObject({ endurance: 16.1, speed: 13.1, climbing: 20.1 })
+    expect(state.week.days[0]!.outcome!.attributeGain).toEqual({ attribute: 'endurance', amount: 0.1 })
+    repo.save(state)
+    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+  })
+
   it('round-trips the previous day and rejects a non-boolean one', () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = progressedState(2)
@@ -363,9 +395,10 @@ describe('localStorage game repository', () => {
     ['negative fatigue', saveOf({ ...valid, athlete: { ...valid.athlete, fatigue: -1 } })],
     ['non-integer XP', saveOf({ ...valid, athlete: { ...valid.athlete, xp: 'lots' } })],
     ['an attribute below 1', saveOf({ ...valid, athlete: { ...valid.athlete, attributes: { ...valid.athlete.attributes, speed: 0 } } })],
-    ['an attribute above 100', saveOf({ ...valid, athlete: { ...valid.athlete, attributes: { ...valid.athlete.attributes, speed: 101 } } })],
     ['a missing attribute', saveOf({ ...valid, athlete: { ...valid.athlete, attributes: { endurance: 16 } } })],
-    ['attributes that do not match points spent', saveOf({ ...valid, athlete: { ...valid.athlete, attributes: { ...valid.athlete.attributes, climbing: 25 } } })],
+    ['attributes below the points spent', saveOf({ ...valid, athlete: { ...valid.athlete, attributes: { ...valid.athlete.attributes, climbing: 10 } } })],
+    ['an attribute with 3 decimals', saveOf({ ...valid, athlete: { ...valid.athlete, attributes: { ...valid.athlete.attributes, climbing: 20.125 } } })],
+    ['Fitness with 3 decimals', saveOf({ ...valid, athlete: { ...valid.athlete, fitness: 23.125 } })],
     ['more points spent than earned', saveOf({ ...valid, athlete: { ...valid.athlete, spentAttributePoints: 3 } })],
     ['negative points spent', saveOf({ ...valid, athlete: { ...valid.athlete, spentAttributePoints: -1 } })],
     ['an unknown session', saveOf({ ...valid, week: { ...valid.week, days: valid.week.days.map((d) => ({ ...d, session: 'nap' })) } })],

@@ -204,7 +204,7 @@ export function raceSeconds(course, athlete, dayForm = 0) {
   for (const s of course) {
     const e = effortKm(s)
     const abilityFactor = Math.pow(C.abilityReference / segmentAbility(s, a), C.abilityExponent)
-    const technicalFactor = s.type === 'descent' ? 1 + C.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * (1 - a.technical / 100) : 1
+    const technicalFactor = s.type === 'descent' ? 1 + C.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * Math.max(0, 1 - a.technical / 100) : 1
     const slowdown = 1 + C.slowdownRate * gear.slowdown * (effortBefore / C.slowdownReferenceEffortKm) * (C.abilityReference / durability)
     const gearFactor = s.type === 'climb' ? gear.climb : s.type === 'descent' ? gear.descent : gear.runnable
     minutes += e * C.basePaceMinPerEffortKm * abilityFactor * technicalFactor * slowdown * gearFactor * fitnessFactor * fatigueFactor * (1 + dayForm)

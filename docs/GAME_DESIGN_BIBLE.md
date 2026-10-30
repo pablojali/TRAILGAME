@@ -302,6 +302,8 @@ Use conventional rounding to the nearest integer, with half values rounded up.
 
 Fitness gains must be capped at 100.
 
+**Revision (owner decision, 30 October 2026; supersedes the table above):** Fitness gains are now fractional so Fitness grows with the level instead of outrunning it (`docs/SEASON_SIMULATION_16W.md`): Easy Run +0.5, Intervals +0.75, Hills +0.5, Long Run +1, Strength +0.5, Trail technique +0.25; Rest after a training day or race 0, a second Rest in a row −2. Fitness and attributes keep up to 2 decimals and are shown with 1.
+
 **Recovery bonus on Rest (owner decision, 29 October 2026):** Rest reduces Fatigue by 8, plus 2 more for every 3 Recovery points above the profile's starting Recovery (for example, Climber 14 → 17: −10; 20: −12). This applies to forced Rest days too. Training and recovery must be balanced by the player.
 
 **Revision 1.2:** each Rest day reduces Fitness by 2 (owner decision, 28 October 2026). Rest still grants no XP and still does not reset the inactivity reference (§4.5).
@@ -413,6 +415,8 @@ This mapping defines training intent, not final numerical gains.
 The exact adaptation amount, frequency, probability, and cap behavior must be balanced before implementation.
 
 Rest may improve the athlete's condition through Fatigue recovery, but it must not directly increase attributes under the current design.
+
+**Implemented (owner decision, 30 October 2026; replaces the mapping above):** each completed session adds 0.1 to one attribute: Easy Run and Long Run → Endurance, Intervals → Speed, Hills → Climbing, Trail technique → Technical, Strength → Recovery. Rest, races and injured sessions train nothing. No session trains Consistency: it rewards playing every day. The first game day completed on each new real calendar day (the player's local date) adds Consistency +0.1; more days on the same real day add nothing, and coming back after days away adds a single 0.1 (owner decision, 30 October 2026). Attributes have no upper limit (owner decision, 30 October 2026); at Technical 100 or more the technical-descent penalty is gone, and it never becomes a bonus.
 
 ### 5.3 Attribute limits
 
@@ -1193,7 +1197,7 @@ The following requirements revise or extend the original M1 design:
 - Define attribute-point rewards and allocation rules.
 - Establish profile changes at the end of a completed season.
 
-These rules are design requirements. Implementation status: profile selection, profile-specific starting attributes, starting Fitness 20, the revised XP and Fitness rewards, time-based Fitness decay and attribute-point rewards and allocation were implemented and accepted in M2. Attribute adaptation by training type and profile changes at the end of a season are not implemented.
+These rules are design requirements. Implementation status: profile selection, profile-specific starting attributes, starting Fitness 20, the revised XP and Fitness rewards, time-based Fitness decay and attribute-point rewards and allocation were implemented and accepted in M2. Attribute adaptation by training type was implemented on 30 October 2026 (§5.2); profile changes at the end of a season are not implemented.
 
 Because M1 has already been delivered, the PM must assign these changes to an explicitly named follow-up milestone or approve a deliberate M1 revision before implementation begins.
 
@@ -1286,7 +1290,7 @@ These criteria apply when the corresponding follow-up milestone is approved.
 - Multiple level-ups grant the correct total number of points.
 - Unspent points persist after refresh.
 - A point increases exactly one attribute by 1.
-- An attribute cannot exceed 100.
+- An attribute cannot exceed 100. **Superseded (owner decision, 30 October 2026):** attributes have no upper limit; 100 is only where the bars are full.
 - Points cannot be spent when none are available.
 
 ### Persistence

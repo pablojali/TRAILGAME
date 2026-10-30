@@ -4,11 +4,11 @@ import { useCareer, useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card, Meter } from '../../components/Card'
 import { Coins } from '../../components/Coins'
-import { formatDelta } from '../../components/format'
+import { formatDelta, formatStat } from '../../components/format'
 import {
   ATTRIBUTE_IDS,
   ATTRIBUTE_LABELS,
-  ATTRIBUTE_MAX,
+  ATTRIBUTE_SCALE,
   STAT_MAX,
 } from '../../domain/athlete/athlete'
 import { getLevelProgress } from '../../domain/athlete/levels'
@@ -50,9 +50,15 @@ export function DashboardScreen() {
 
       {/* First screen: the runner with attributes on the left and condition on the right. */}
       <div className={styles.hero}>
-        <p className={styles.when}>
-          Week {week.number} · {weekdayLong(today.day)}
-        </p>
+        {/* Week and day centred, coins on the right at the same height (owner request). */}
+        <div className={styles.topBar}>
+          <p className={styles.when}>
+            Week {week.number} · {weekdayLong(today.day)}
+          </p>
+          <p className={styles.balance}>
+            <Coins amount={state.coins} />
+          </p>
+        </div>
 
         <div className={styles.stage}>
           <section className={`${styles.side} ${styles.left}`} aria-label="Attributes">
@@ -66,13 +72,13 @@ export function DashboardScreen() {
                   <span className={styles.attributeRow}>
                     <Meter
                       label={ATTRIBUTE_LABELS[id]}
-                      value={athlete.attributes[id]}
-                      max={ATTRIBUTE_MAX}
-                      valueText={`${athlete.attributes[id]} of ${ATTRIBUTE_MAX}`}
+                      value={Math.min(athlete.attributes[id], ATTRIBUTE_SCALE)}
+                      max={ATTRIBUTE_SCALE}
+                      valueText={formatStat(athlete.attributes[id])}
                       className={styles.sideMeter}
                     />
                     <span className={styles.value} aria-hidden="true">
-                      {athlete.attributes[id]}
+                      {formatStat(athlete.attributes[id])}
                     </span>
                   </span>
                 </li>
@@ -123,15 +129,15 @@ export function DashboardScreen() {
               </div>
               <div className={styles.stat}>
                 <dt>Fitness</dt>
-                <dd className={styles.value}>{athlete.fitness}</dd>
+                <dd className={styles.value}>{formatStat(athlete.fitness)}</dd>
                 <dd>
-                  <Meter label="Fitness" value={athlete.fitness} max={STAT_MAX} className={styles.fitnessMeter} />
-                </dd>
-              </div>
-              <div className={styles.stat}>
-                <dt>Coins</dt>
-                <dd className={`${styles.value} ${styles.coins}`}>
-                  <Coins amount={state.coins} />
+                  <Meter
+                    label="Fitness"
+                    value={athlete.fitness}
+                    max={STAT_MAX}
+                    valueText={`${formatStat(athlete.fitness)} of ${STAT_MAX}`}
+                    className={styles.fitnessMeter}
+                  />
                 </dd>
               </div>
               <div className={`${styles.stat} ${fatigueHigh ? styles.fatigueHigh : ''}`}>
@@ -182,6 +188,15 @@ export function DashboardScreen() {
                 <span>XP {formatDelta(effects.xpGained)}</span> ·{' '}
                 <span>Fitness {formatDelta(effects.fitnessChange)}</span> ·{' '}
                 <span>Fatigue {formatDelta(effects.fatigueChange)}</span>
+                {effects.attributeGain && (
+                  <>
+                    {' '}
+                    ·{' '}
+                    <span>
+                      {ATTRIBUTE_LABELS[effects.attributeGain.attribute]} {formatDelta(effects.attributeGain.amount)}
+                    </span>
+                  </>
+                )}
               </p>
               <Link to="/training" className={`${button.button} ${button.primary}`}>
                 Go to training

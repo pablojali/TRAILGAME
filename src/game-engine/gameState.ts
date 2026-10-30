@@ -1,5 +1,5 @@
 import { defaultAppearance, type Appearance } from '../domain/athlete/appearance'
-import type { Athlete, Attributes, ProfileId, Sex } from '../domain/athlete/athlete'
+import type { Athlete, AttributeId, Attributes, ProfileId, Sex } from '../domain/athlete/athlete'
 import { PROFILES } from '../domain/athlete/profiles'
 import { STARTING_COINS } from '../domain/economy/coins'
 import { OWNED_FROM_START } from '../domain/equipment/items'
@@ -14,6 +14,10 @@ export interface DayOutcome {
   xpGained: number
   fitnessChange: number
   fatigueChange: number
+  /** Attribute trained by the session (none for Rest, races and injuries). */
+  attributeGain?: { attribute: AttributeId; amount: number }
+  /** Consistency gained because this was the first day played on a new real day. */
+  consistencyGain?: number
   /** True if the session caused an injury. */
   injured?: boolean
   /** Set when the day was a race instead of the planned session: the finished entry's id. */
@@ -51,6 +55,11 @@ export interface GameState {
    * nothing yet). A Rest day right after an active day gains Fitness (owner decision, 30 October 2026).
    */
   previousDayActive: boolean
+  /**
+   * The player's local date of the last real day a game day was completed (`localDayKey`), or
+   * null before the first one. A new real day gives Consistency (owner decision, 30 October 2026).
+   */
+  lastPlayedDay: string | null
   /**
    * Number of upcoming days, starting with the current one, that are forced to Rest after an injury.
    * Those days are already planned as Rest and cannot be changed.
@@ -183,6 +192,7 @@ export function createInitialGameState(
     week: createWeek(1),
     fitnessDecayReference: now,
     previousDayActive: false,
+    lastPlayedDay: null,
     forcedRestDays: 0,
     coins: STARTING_COINS,
     raceEntries: [],

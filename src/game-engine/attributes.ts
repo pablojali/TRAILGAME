@@ -1,4 +1,4 @@
-import { ATTRIBUTE_MAX, isAttributeId, type AttributeId } from '../domain/athlete/athlete'
+import { isAttributeId, roundStat, type AttributeId } from '../domain/athlete/athlete'
 import { getEarnedAttributePoints } from '../domain/athlete/levels'
 import type { Athlete } from '../domain/athlete/athlete'
 import type { GameState } from './gameState'
@@ -9,7 +9,6 @@ export function getUnspentAttributePoints(athlete: Athlete): number {
 
 export type AllocationError =
   | 'no-points'
-  | 'attribute-max'
   | 'unknown-attribute'
   /** The request was based on an older state (e.g. a repeated click); nothing was spent. */
   | 'stale-request'
@@ -30,7 +29,6 @@ export function allocateAttributePoint(
   if (!isAttributeId(attribute)) return { ok: false, error: 'unknown-attribute' }
   if (expectedSpent !== athlete.spentAttributePoints) return { ok: false, error: 'stale-request' }
   if (getUnspentAttributePoints(athlete) <= 0) return { ok: false, error: 'no-points' }
-  if (athlete.attributes[attribute] >= ATTRIBUTE_MAX) return { ok: false, error: 'attribute-max' }
 
   return {
     ok: true,
@@ -38,7 +36,10 @@ export function allocateAttributePoint(
       ...state,
       athlete: {
         ...athlete,
-        attributes: { ...athlete.attributes, [attribute]: athlete.attributes[attribute] + 1 },
+        attributes: {
+          ...athlete.attributes,
+          [attribute]: roundStat(athlete.attributes[attribute] + 1),
+        },
         spentAttributePoints: athlete.spentAttributePoints + 1,
       },
     },

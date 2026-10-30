@@ -7,19 +7,18 @@ import { Screen } from '../../components/Screen'
 import {
   ATTRIBUTE_IDS,
   ATTRIBUTE_LABELS,
-  ATTRIBUTE_MAX,
+  ATTRIBUTE_SCALE,
   type AttributeId,
 } from '../../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
 import { PROFILES } from '../../domain/athlete/profiles'
 import { getRestFatigueDelta, RECOVERY_BONUS_FATIGUE, RECOVERY_BONUS_STEP } from '../../domain/training/recovery'
-import { formatDelta } from '../../components/format'
+import { formatDelta, formatStat } from '../../components/format'
 import { getUnspentAttributePoints, type AllocationError } from '../../game-engine/attributes'
 import styles from './AttributesScreen.module.css'
 
 const ERRORS: Record<AllocationError, string> = {
   'no-points': 'No attribute points left to spend.',
-  'attribute-max': 'That attribute is already at the maximum of 100.',
   'unknown-attribute': 'That attribute does not exist.',
   'stale-request': 'The attributes changed. Check the values and try again.',
 }
@@ -32,7 +31,6 @@ export function AttributesScreen() {
   const { state, allocateAttributePoint } = useCareer()
   const { athlete } = state
   const unspent = getUnspentAttributePoints(athlete)
-  const allMaxed = ATTRIBUTE_IDS.every((id) => athlete.attributes[id] >= ATTRIBUTE_MAX)
   const [message, setMessage] = useState('')
   const startRecovery = PROFILES[athlete.profile].attributes.recovery
 
@@ -45,7 +43,7 @@ export function AttributesScreen() {
     }
     const left = unspent - 1
     setMessage(
-      `${label} increased to ${athlete.attributes[attribute] + 1}. ${pointsText(left)} left.`,
+      `${label} increased to ${formatStat(athlete.attributes[attribute] + 1)}. ${pointsText(left)} left.`,
     )
   }
 
@@ -59,31 +57,33 @@ export function AttributesScreen() {
         <span className={styles.points}>{unspent}</span>
         <span>{unspent === 1 ? 'attribute point' : 'attribute points'} to spend</span>
       </div>
-      {unspent > 0 && allMaxed && (
-        <p className={styles.muted}>All attributes are at the maximum. Your points are kept.</p>
-      )}
-
       <Card title="Current attributes">
         <ul className={styles.list}>
           {ATTRIBUTE_IDS.map((id) => {
             const label = ATTRIBUTE_LABELS[id]
             const value = athlete.attributes[id]
-            const disabled = unspent <= 0 || value >= ATTRIBUTE_MAX
+            const disabled = unspent <= 0
             return (
               <li key={id} className={styles.row}>
                 <div className={styles.rowText}>
                   <span className={styles.label}>{label}</span>
-                  <span className={styles.value}>{value}</span>
+                  <span className={styles.value}>{formatStat(value)}</span>
                 </div>
-                <Meter label={label} value={value} min={0} max={ATTRIBUTE_MAX} valueText={`${value} of ${ATTRIBUTE_MAX}`} />
+                <Meter
+                  label={label}
+                  // The bar is full at 100; attributes have no upper limit (owner decision).
+                  value={Math.min(value, ATTRIBUTE_SCALE)}
+                  min={0}
+                  max={ATTRIBUTE_SCALE}
+                  valueText={formatStat(value)}
+                />
                 <button
                   type="button"
                   className={`${button.button} ${button.secondary} ${styles.add}`}
                   aria-label={`Add 1 point to ${label}`}
                   aria-disabled={disabled}
                   onClick={() => {
-                    if (value >= ATTRIBUTE_MAX) setMessage(ERRORS['attribute-max'])
-                    else if (unspent <= 0) setMessage(ERRORS['no-points'])
+                    if (unspent <= 0) setMessage(ERRORS['no-points'])
                     else add(id)
                   }}
                 >

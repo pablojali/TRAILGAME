@@ -1,12 +1,18 @@
-import { STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
+import { roundStat, STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL, getLevel } from '../domain/athlete/levels'
 import {
   INJURY_FATIGUE_THRESHOLD,
   INJURY_FITNESS_LOSS,
   INJURY_REST_DAYS,
 } from '../domain/training/injury'
+import { DAILY_CONSISTENCY_GAIN, localDayKey } from '../domain/athlete/consistency'
 import { getRestFatigueDelta, RECOVERY_REST_FITNESS } from '../domain/training/recovery'
-import { isSessionType, TRAINING_SESSIONS, type SessionType } from '../domain/training/sessions'
+import {
+  ATTRIBUTE_GAIN_PER_SESSION,
+  isSessionType,
+  TRAINING_SESSIONS,
+  type SessionType,
+} from '../domain/training/sessions'
 import {
   createWeek,
   DAYS_PER_WEEK,
@@ -53,8 +59,14 @@ export interface ExecutionResult {
   injured: boolean
 }
 
+/** Keeps a Fitness or Fatigue value in 0–100, at 2 decimals. */
 export function clampStat(value: number): number {
-  return Math.min(STAT_MAX, Math.max(STAT_MIN, value))
+  return Math.min(STAT_MAX, Math.max(STAT_MIN, roundStat(value)))
+}
+
+/** The change that takes `value` to `value + delta`, clamped to 0–100 and kept at 2 decimals. */
+export function statChange(value: number, delta: number): number {
+  return roundStat(clampStat(value + delta) - value)
 }
 
 /**
@@ -76,21 +88,24 @@ export function previewSession(state: GameState, session: SessionType): DayOutco
   const { fitness, fatigue } = state.athlete
   // Rest recovers more with Recovery gained above the profile's start (owner decision).
   const fatigueDelta = session === 'rest' ? getRestFatigueDelta(state.athlete) : rules.fatigueDelta
-  const fatigueChange = clampStat(fatigue + fatigueDelta) - fatigue
+  const fatigueChange = statChange(fatigue, fatigueDelta)
   if (session !== 'rest' && fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD) {
     return {
       xpGained: 0,
-      fitnessChange: clampStat(fitness - INJURY_FITNESS_LOSS) - fitness,
+      fitnessChange: statChange(fitness, -INJURY_FITNESS_LOSS),
       fatigueChange,
       injured: true,
     }
   }
   const fitnessDelta = session === 'rest' && isRecoveryRest(state) ? RECOVERY_REST_FITNESS : rules.fitnessDelta
-  return {
+  const outcome: DayOutcome = {
     xpGained: rules.xp,
-    fitnessChange: clampStat(fitness + fitnessDelta) - fitness,
+    fitnessChange: statChange(fitness, fitnessDelta),
     fatigueChange,
   }
+  // Each session trains one attribute, with no upper limit (owner decisions, 30 October 2026).
+  if (rules.attribute) outcome.attributeGain = { attribute: rules.attribute, amount: ATTRIBUTE_GAIN_PER_SESSION }
+  return outcome
 }
 
 /** Plans Rest on up to `count` days of the week, starting at `fromIndex`. */
@@ -153,7 +168,7 @@ export function executeCurrentDay(
     value: {
       state: advanced.state,
       executed: { ...ref, session: day.session },
-      outcome,
+      outcome: advanced.outcome,
       levelBefore,
       levelAfter,
       attributePointsAwarded: (levelAfter - levelBefore) * ATTRIBUTE_POINTS_PER_LEVEL,
@@ -168,6 +183,7 @@ export function executeCurrentDay(
  * by the outcome, forced Rest days are counted down (or set by a new injury), the next day becomes
  * current (a new week after day 7), the Fitness decay reference is reset (decay only counts days not
  * played), and `active` (a training session or a race, not Rest) is remembered for the next Rest.
+ * The first day completed on a new real day also adds Consistency, recorded in the stored outcome.
  * Shared by training and race days, so both complete a day the same way. Callers check the day first.
  */
 export function completeCurrentDay(
@@ -175,13 +191,20 @@ export function completeCurrentDay(
   outcome: DayOutcome,
   active: boolean,
   now: number,
-): { state: GameState; weekCompleted: boolean } {
+): { state: GameState; outcome: DayOutcome; weekCompleted: boolean } {
   const injured = outcome.injured === true
+  const today = localDayKey(now)
+  if (state.lastPlayedDay !== today) outcome = { ...outcome, consistencyGain: DAILY_CONSISTENCY_GAIN }
+  const attributes = { ...state.athlete.attributes }
+  const gain = outcome.attributeGain
+  if (gain) attributes[gain.attribute] = roundStat(attributes[gain.attribute] + gain.amount)
+  if (outcome.consistencyGain) attributes.consistency = roundStat(attributes.consistency + outcome.consistencyGain)
   const athlete = {
     ...state.athlete,
     xp: state.athlete.xp + outcome.xpGained,
-    fitness: state.athlete.fitness + outcome.fitnessChange,
-    fatigue: state.athlete.fatigue + outcome.fatigueChange,
+    fitness: roundStat(state.athlete.fitness + outcome.fitnessChange),
+    fatigue: roundStat(state.athlete.fatigue + outcome.fatigueChange),
+    attributes,
   }
 
   // A forced Rest day uses up one day of the injury; a new injury forces the following days.
@@ -203,7 +226,16 @@ export function completeCurrentDay(
       )
 
   return {
-    state: { ...state, athlete, week, fitnessDecayReference: now, previousDayActive: active, forcedRestDays },
+    state: {
+      ...state,
+      athlete,
+      week,
+      fitnessDecayReference: now,
+      previousDayActive: active,
+      lastPlayedDay: today,
+      forcedRestDays,
+    },
+    outcome,
     weekCompleted,
   }
 }

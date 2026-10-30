@@ -7,7 +7,7 @@ import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS } from '../domain/trainin
 import type { DayOutcome, FinishedRaceEntry, GameState, PendingRaceEntry, RaceEntry, RaceResult } from './gameState'
 import { getScheduledEntry, RACE_DAY_INDEX } from './raceSchedule'
 import { courseEffortKm, explainRace, generateCourse, getDayForm, rivalTimes, simulateRace } from './raceSimulation'
-import { checkDay, clampStat, completeCurrentDay, type DayRef, type TrainingError } from './training'
+import { checkDay, completeCurrentDay, statChange, type DayRef, type TrainingError } from './training'
 
 export type RaceEntryError =
   | 'unknown-race'
@@ -111,7 +111,7 @@ export function getRaceFatigue(race: Race): number {
 /** What racing today would do to Fatigue, and whether it would injure the athlete (same rule as training). */
 export function previewRaceDay(state: GameState, race: Race): { fatigueChange: number; injured: boolean } {
   const { fatigue } = state.athlete
-  const fatigueChange = clampStat(fatigue + getRaceFatigue(race)) - fatigue
+  const fatigueChange = statChange(fatigue, getRaceFatigue(race))
   return { fatigueChange, injured: fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD }
 }
 
@@ -174,7 +174,7 @@ export function raceCurrentDay(
   // Injury after a race (D4): the existing rule — no XP, Fitness loss, forced Rest. The result and
   // the prize coins still count.
   const { fatigueChange, injured } = previewRaceDay(state, race)
-  const fitnessChange = injured ? clampStat(athlete.fitness - INJURY_FITNESS_LOSS) - athlete.fitness : 0
+  const fitnessChange = injured ? statChange(athlete.fitness, -INJURY_FITNESS_LOSS) : 0
   const xpAwarded = injured ? 0 : rewards.xp
   const outcome: DayOutcome = {
     xpGained: xpAwarded,

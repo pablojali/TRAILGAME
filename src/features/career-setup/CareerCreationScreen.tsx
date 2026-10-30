@@ -4,17 +4,7 @@ import { useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
 import { Avatar } from '../../components/avatar/Avatar'
-import {
-  appearanceForSex,
-  defaultAppearance,
-  HAIR_STYLE_LABELS,
-  HAIR_STYLES,
-  OUTFIT_LABELS,
-  OUTFITS,
-  SKIN_TONE_LABELS,
-  SKIN_TONES,
-  type Appearance,
-} from '../../domain/athlete/appearance'
+import { appearanceForSex, defaultAppearance, type Appearance } from '../../domain/athlete/appearance'
 import {
   ATHLETE_NAME_MAX_LENGTH,
   ATTRIBUTE_IDS,
@@ -27,6 +17,7 @@ import {
 } from '../../domain/athlete/athlete'
 import { PROFILE_ATTRIBUTE_TOTAL, PROFILE_IDS, PROFILES } from '../../domain/athlete/profiles'
 import type { IncompatibleReason } from '../../repositories/gameRepository'
+import { AppearanceEditor } from '../appearance/AppearanceEditor'
 import { RunnerArt } from './RunnerArt'
 import styles from './CareerCreation.module.css'
 
@@ -305,19 +296,6 @@ function ProfileStep({ headingRef, sex, onSexChange, index, onIndexChange, onCho
   )
 }
 
-type AppearanceTab = 'skin' | 'hair' | 'outfit'
-
-const APPEARANCE_TABS: readonly { id: AppearanceTab; label: string }[] = [
-  { id: 'skin', label: 'Skin' },
-  { id: 'hair', label: 'Hair' },
-  { id: 'outfit', label: 'Clothing' },
-]
-
-/** Shown under the options of a tab, when it needs explaining. */
-const TAB_NOTES: Partial<Record<AppearanceTab, string>> = {
-  hair: 'Each runner’s hair is drawn with the body. More hairstyles come with new artwork.',
-}
-
 interface AppearanceStepProps {
   headingRef: RefObject<HTMLHeadingElement | null>
   sex: Sex
@@ -337,53 +315,6 @@ function AppearanceStep({
   onBack,
   onContinue,
 }: AppearanceStepProps) {
-  const [tab, setTab] = useState<AppearanceTab>('skin')
-  const tabRefs = useRef<Partial<Record<AppearanceTab, HTMLButtonElement | null>>>({})
-  const baseId = useId()
-
-  function onTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
-    if (!offset) return
-    event.preventDefault()
-    const index = APPEARANCE_TABS.findIndex((t) => t.id === tab)
-    const next = APPEARANCE_TABS[(index + offset + APPEARANCE_TABS.length) % APPEARANCE_TABS.length]!.id
-    setTab(next)
-    tabRefs.current[next]?.focus()
-  }
-
-  const options: { value: string; label: string; swatch: Appearance; crop: 'head' | 'kit'; caption?: boolean }[] =
-    tab === 'hair'
-      ? HAIR_STYLES[sex].map((hair) => ({
-          value: hair,
-          label: HAIR_STYLE_LABELS[hair],
-          swatch: { ...appearance, hair },
-          crop: 'head',
-          caption: true,
-        }))
-      : tab === 'skin'
-        ? SKIN_TONES[sex].map((skin) => ({
-            value: skin,
-            label: SKIN_TONE_LABELS[skin],
-            swatch: { ...appearance, skin },
-            crop: 'head',
-          }))
-        : OUTFITS.map((outfit) => ({
-            value: outfit,
-            label: OUTFIT_LABELS[outfit],
-            swatch: { ...appearance, outfit },
-            crop: 'kit',
-            caption: true,
-          }))
-
-  const previewLabel = `Avatar preview: ${[
-    SEX_LABELS[sex],
-    HAIR_STYLE_LABELS[appearance.hair],
-    SKIN_TONE_LABELS[appearance.skin],
-    OUTFIT_LABELS[appearance.outfit],
-  ]
-    .join(', ')
-    .toLowerCase()}`
-
   return (
     <section className={styles.step} aria-labelledby="creation-title">
       <title>Customize your runner · Trail Manager</title>
@@ -397,58 +328,7 @@ function AppearanceStep({
 
       <SexToggle sex={sex} onChange={onSexChange} />
 
-      <div className={styles.preview}>
-        <div className={styles.previewStage}>
-          <Avatar sex={sex} appearance={appearance} label={previewLabel} />
-        </div>
-      </div>
-
-      <div className={styles.tabs} role="tablist" aria-label="Appearance" onKeyDown={onTabKeyDown}>
-        {APPEARANCE_TABS.map((t) => (
-          <button
-            key={t.id}
-            ref={(el) => {
-              tabRefs.current[t.id] = el
-            }}
-            type="button"
-            role="tab"
-            id={`${baseId}-tab-${t.id}`}
-            aria-selected={tab === t.id}
-            aria-controls={`${baseId}-panel`}
-            tabIndex={tab === t.id ? 0 : -1}
-            className={styles.tab}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div role="tabpanel" id={`${baseId}-panel`} aria-labelledby={`${baseId}-tab-${tab}`}>
-        <fieldset className={styles.swatches}>
-          <legend className={styles.srOnly}>{APPEARANCE_TABS.find((t) => t.id === tab)!.label}</legend>
-          {options.map((option) => {
-            const checked = appearance[tab] === option.value
-            return (
-              <label key={option.value} className={styles.swatch}>
-                <input
-                  type="radio"
-                  name={`appearance-${tab}`}
-                  value={option.value}
-                  checked={checked}
-                  onChange={() => onAppearanceChange({ ...appearance, [tab]: option.value })}
-                  className={styles.srOnlyInput}
-                />
-                <span className={styles.swatchArt}>
-                  <Avatar sex={sex} appearance={option.swatch} crop={option.crop} />
-                </span>
-                <span className={option.caption ? styles.swatchCaption : styles.srOnly}>{option.label}</span>
-              </label>
-            )
-          })}
-        </fieldset>
-        {TAB_NOTES[tab] && <p className={styles.tabNote}>{TAB_NOTES[tab]}</p>}
-      </div>
+      <AppearanceEditor sex={sex} appearance={appearance} onChange={onAppearanceChange} level={1} />
 
       <div className={styles.actions}>
         <button type="button" className={`${button.button} ${button.secondary}`} onClick={onBack}>

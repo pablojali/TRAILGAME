@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import { Avatar } from '../../components/avatar/Avatar'
 import button from '../../components/Button.module.css'
@@ -55,14 +56,19 @@ export function EquipmentScreen() {
       <p className={styles.balance}>{formatCoins(state.coins)}</p>
 
       <div className={styles.layout}>
-        <figure className={styles.preview} role="img" aria-label={`${athlete.name} with the equipment worn`}>
-          <Avatar
-            sex={athlete.sex}
-            appearance={athlete.appearance}
-            equipment={state.equipment}
-            className={styles.previewArt}
-          />
-        </figure>
+        <div className={styles.previewColumn}>
+          <figure className={styles.preview} role="img" aria-label={`${athlete.name} with the equipment worn`}>
+            <Avatar
+              sex={athlete.sex}
+              appearance={athlete.appearance}
+              equipment={state.equipment}
+              className={styles.previewArt}
+            />
+          </figure>
+          <Link to="/appearance" className={`${button.button} ${button.secondary}`}>
+            Change look
+          </Link>
+        </div>
 
         <div className={styles.columns}>
           <section aria-labelledby="owned-title" className={styles.owned}>

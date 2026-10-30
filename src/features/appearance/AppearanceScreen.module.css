@@ -1,0 +1,10 @@
+/* A fixed-height editor so the preview keeps its room above the swatches. */
+.editor {
+  flex: none;
+  height: min(78dvh, 680px);
+}
+
+.warning {
+  color: #f2a48f;
+  font-weight: 600;
+}

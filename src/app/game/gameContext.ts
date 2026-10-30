@@ -1,6 +1,8 @@
 import { createContext, useContext } from 'react'
+import type { Appearance } from '../../domain/athlete/appearance'
 import type { AttributeId, ProfileId } from '../../domain/athlete/athlete'
 import type { SessionType } from '../../domain/training/sessions'
+import type { AppearanceError } from '../../game-engine/appearance'
 import type { AllocationError } from '../../game-engine/attributes'
 import type { BuyError, EquipError } from '../../game-engine/equipment'
 import type { AthleteIdentity, GameState } from '../../game-engine/gameState'
@@ -44,6 +46,8 @@ export interface GameContextValue {
   buyItem(itemId: string, confirmedPrice: number): BuyError | null
   /** Puts an owned item on (replacing the same slot) or takes it off. Cosmetic for now. */
   setItemEquipped(itemId: string, equipped: boolean): EquipError | null
+  /** Changes the runner's look. Options above the runner's level are refused. */
+  setAppearance(appearance: Appearance): AppearanceError | null
   /** Races a pending entry on the current day, once. Returns the result or the reason it failed. */
   raceDay(ref: DayRef, entryId: string): { ok: true; value: RaceDayResult } | { ok: false; error: RaceDayError }
 }

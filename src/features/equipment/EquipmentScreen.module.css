@@ -4,6 +4,12 @@
   gap: var(--space-4);
 }
 
+.previewColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .preview {
   position: relative;
   height: min(48dvh, 420px);

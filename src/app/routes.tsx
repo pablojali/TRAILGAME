@@ -1,4 +1,5 @@
 import type { RouteObject } from 'react-router'
+import { AppearanceScreen } from '../features/appearance/AppearanceScreen'
 import { AttributesScreen } from '../features/attributes/AttributesScreen'
 import { CareerScreen } from '../features/career/CareerScreen'
 import { DashboardScreen } from '../features/dashboard/DashboardScreen'
@@ -23,6 +24,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <DashboardScreen /> },
       { path: 'training', element: <TrainingScreen /> },
       { path: 'equipment', element: <EquipmentScreen /> },
+      { path: 'appearance', element: <AppearanceScreen /> },
       { path: 'races', element: <RacesScreen /> },
       { path: 'races/:raceId', element: <RaceDetailScreen /> },
       { path: 'races/results/:entryId', element: <RaceResultScreen /> },

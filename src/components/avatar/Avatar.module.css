@@ -2,3 +2,14 @@
   display: block;
   overflow: hidden;
 }
+
+.zoom {
+  transform-origin: 0 0;
+  transition: transform 450ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoom {
+    transition: none;
+  }
+}

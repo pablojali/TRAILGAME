@@ -5,7 +5,7 @@ import { newGame } from '../../test/gameFixtures'
 import { readSave, renderApp, seedCareer } from '../../test/renderApp'
 
 function layers(name: RegExp) {
-  return [...screen.getByRole('img', { name }).querySelectorAll('svg > image')].map((i) => i.getAttribute('data-layer'))
+  return [...screen.getByRole('img', { name }).querySelectorAll('svg image')].map((i) => i.getAttribute('data-layer'))
 }
 
 describe('Equipment', () => {

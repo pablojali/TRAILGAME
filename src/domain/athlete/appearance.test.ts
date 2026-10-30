@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   appearanceForSex,
+  appearanceUnlocks,
+  isAppearanceUnlocked,
+  outfitTint,
+  outfitUnlockLevel,
+  TSHIRT_COLORS,
   bodyId,
   defaultAppearance,
   HAIR_STYLES,
@@ -10,11 +15,31 @@ import {
 } from './appearance'
 
 describe('appearance', () => {
-  it('offers one body per skin tone (3 women, 4 men), the drawn hair and two tops', () => {
+  it('offers one body per skin tone (3 women, 4 men), the drawn hair, two tops and the T-shirt colours', () => {
     expect(SKIN_TONES.female).toEqual(['tone-1', 'tone-2', 'tone-3'])
     expect(SKIN_TONES.male).toEqual(['tone-1', 'tone-2', 'tone-3', 'tone-4'])
     expect(HAIR_STYLES).toEqual({ female: ['natural'], male: ['natural'] })
-    expect(OUTFITS).toEqual(['none', 'white-tshirt'])
+    expect(OUTFITS.slice(0, 2)).toEqual(['none', 'white-tshirt'])
+    expect(OUTFITS).toHaveLength(2 + TSHIRT_COLORS.length)
+  })
+
+  it('unlocks one T-shirt colour per level from Level 2', () => {
+    expect(TSHIRT_COLORS.map((color) => color.level)).toEqual(TSHIRT_COLORS.map((_, i) => i + 2))
+    expect(outfitUnlockLevel('none')).toBe(1)
+    expect(outfitUnlockLevel('white-tshirt')).toBe(1)
+    expect(outfitUnlockLevel('tshirt-red')).toBe(2)
+    expect(outfitUnlockLevel('tshirt-black')).toBe(13)
+    expect(isAppearanceUnlocked({ hair: 'natural', skin: 'tone-1', outfit: 'tshirt-orange' }, 2)).toBe(false)
+    expect(isAppearanceUnlocked({ hair: 'natural', skin: 'tone-1', outfit: 'tshirt-orange' }, 3)).toBe(true)
+    expect(appearanceUnlocks(1, 3)).toEqual(['Red T-shirt', 'Orange T-shirt'])
+    expect(appearanceUnlocks(13, 20)).toEqual([])
+    expect(outfitTint('tshirt-red')).toBe('#d6453a')
+    expect(outfitTint('white-tshirt')).toBeNull()
+  })
+
+  it('keeps a saved T-shirt colour', () => {
+    expect(parseAppearance({ hair: 'natural', skin: 'tone-1', outfit: 'tshirt-navy' }, 'male').outfit).toBe('tshirt-navy')
+    expect(parseAppearance({ hair: 'natural', skin: 'tone-1', outfit: 'tshirt-gold' }, 'male').outfit).toBe('none')
   })
 
   it('defaults to the runner as drawn: tone 2, drawn hair, no shirt', () => {

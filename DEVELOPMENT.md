@@ -785,6 +785,27 @@ Replaces the silhouette and the Stage A placeholder options above. On the workin
   - Cosmetic only: no effect on training or races (tested). The race simulation does not read
     equipment.
 
+### Appearance after creation, level unlocks and face zoom (owner request, 30 October 2026)
+
+- **Appearance screen** (`/appearance`, "Change look" on Equipment): the same Skin / Hair / Clothing
+  editor as career creation (`src/features/appearance/AppearanceEditor.tsx`), for the current
+  runner. Each change is saved at once through `setAppearance` (`src/game-engine/appearance.ts`),
+  which refuses values the runner's sex has no art for (`invalid`) and options above the runner's
+  level (`locked`). The sex cannot change. Cosmetic only: nothing else in the state changes.
+- **Level unlocks:** one T-shirt colour per level, Level 2 to Level 13 (red, orange, yellow, lime,
+  green, teal, sky blue, blue, purple, pink, navy, black; `TSHIRT_COLORS`). They tint the white
+  T-shirt artwork (SVG colour matrix, shading kept), so they need no new art.
+  - Locked colours show dimmed with "Lvl N" on the Appearance screen; career creation (Level 1)
+    hides them and says new colours unlock as you level up.
+  - The level-up messages (training feedback and race result) name what was unlocked, with a
+    "Change look" link.
+  - Saved as `outfit: 'tshirt-<colour>'` in the existing appearance; unknown values still fall
+    back to "No shirt". Levels 14–50 unlock nothing yet: they need new art (hairstyles, caps,
+    sunglasses, shorts), to be added to the same table.
+- **Face zoom:** on the Hair tab (creation and the Appearance screen) the preview zooms in on the
+  head and shoulders (×3.2, 450 ms, no animation with reduced motion) and zooms back out on the
+  other tabs. The frame keeps its size.
+
 ### M4 — Race System (M4.1–M4.4 done on the working branch, pending owner approval)
 
 **M4.4 validation:** [`docs/M4_VALIDATION.md`](./docs/M4_VALIDATION.md) (29 October 2026).

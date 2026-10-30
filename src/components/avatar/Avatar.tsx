@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { bodyId, outfitTint, type Appearance } from '../../domain/athlete/appearance'
+import { headArt } from '../../domain/athlete/heads'
 import type { Sex } from '../../domain/athlete/athlete'
 import { getEquipmentItem } from '../../domain/equipment/items'
 import styles from './Avatar.module.css'
@@ -167,8 +168,8 @@ function Vest({ id }: { id: string }) {
 }
 
 /**
- * Runner avatar, back to front: poles (held in the hands), body (skin tone and hair painted in),
- * shoes, the chosen top, then the running vest. Without equipment the runner is as drawn: men in
+ * Runner avatar, back to front: poles (held in the hands), body (skin tone, basic head), the chosen
+ * head, shoes, the chosen top, then the running vest. Without equipment the runner is as drawn: men in
  * socks, women barefoot.
  */
 export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', focus, className }: AvatarProps) {
@@ -183,6 +184,8 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
   })
   const layers: { id: string; href: string | undefined; filter?: string }[] = [
     { id: 'body', href: art(`bodies/${bodyId(sex, appearance.skin)}`) },
+    // The chosen head is drawn over the body's basic head, in the body's skin tone.
+    { id: 'head', href: headArt(sex, appearance.hair, Number(appearance.skin.slice('tone-'.length))) },
     ...shoes.map((shoe) => ({ ...shoe, filter: shoe.color && `${filterId}-${shoe.id}` })),
     ...(appearance.outfit === 'none'
       ? []

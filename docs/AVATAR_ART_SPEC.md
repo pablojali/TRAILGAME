@@ -1,5 +1,8 @@
 # Avatar artwork: folders and file names (owner decisions, 30 October 2026)
 
+**Status:** bodies and heads are in the game (see DEVELOPMENT.md, "Owner's bodies and heads").
+Tops, bottoms and accessories follow the same pattern when their art arrives.
+
 How the owner's avatar parts are organised in the repository, so the preparation script
 (`scripts/prepare_avatar_art.py`) can find them, read their unlock level and build the
 Appearance options. Cosmetic only: no part gives points or race effects.

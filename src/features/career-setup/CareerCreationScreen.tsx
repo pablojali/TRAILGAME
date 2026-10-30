@@ -43,7 +43,7 @@ const STEP_COUNT = 3
 export function CareerCreationScreen({ replacing }: CareerCreationScreenProps) {
   const [step, setStep] = useState<Step>('profile')
   const [sex, setSex] = useState<Sex>(DEFAULT_SEX)
-  const [appearance, setAppearance] = useState<Appearance>(() => defaultAppearance(DEFAULT_SEX))
+  const [appearance, setAppearance] = useState<Appearance>(() => defaultAppearance())
   const [profileIndex, setProfileIndex] = useState(0)
   const heading = useRef<HTMLHeadingElement>(null)
   const isFirstRender = useRef(true)

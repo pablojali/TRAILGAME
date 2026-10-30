@@ -176,7 +176,7 @@ export function createInitialGameState(
     athlete: {
       name: identity.name,
       sex: identity.sex,
-      appearance: identity.appearance ?? defaultAppearance(identity.sex),
+      appearance: identity.appearance ?? defaultAppearance(),
       profile,
       xp: 0,
       fitness: 20,

@@ -81,7 +81,7 @@ describe('localStorage game repository', () => {
     expect(LEGACY_DEFAULT_SEX).toBe('male')
     expect(result).toEqual({
       status: 'loaded',
-      state: { ...state, athlete: { ...state.athlete, sex: 'male', appearance: defaultAppearance('male') } },
+      state: { ...state, athlete: { ...state.athlete, sex: 'male', appearance: defaultAppearance() } },
     })
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
@@ -95,7 +95,7 @@ describe('localStorage game repository', () => {
     const result = createLocalStorageGameRepository(storage).load(T0)
     expect(result).toEqual({
       status: 'loaded',
-      state: { ...state, athlete: { ...state.athlete, sex: 'male', appearance: defaultAppearance('male') } },
+      state: { ...state, athlete: { ...state.athlete, sex: 'male', appearance: defaultAppearance() } },
     })
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })

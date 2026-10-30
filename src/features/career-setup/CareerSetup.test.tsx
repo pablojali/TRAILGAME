@@ -147,7 +147,7 @@ describe('career creation — appearance step', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Customize your runner' })).toHaveFocus()
     expect(screen.getByText('New career · Step 2 of 3')).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Male' })).toBeChecked()
-    expect(avatar()).toHaveAccessibleName('Avatar preview: male, as drawn, skin tone 2, no shirt')
+    expect(avatar()).toHaveAccessibleName('Avatar preview: male, basic, skin tone 2, no shirt')
     expect(screen.getByRole('tab', { name: 'Skin' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getAllByRole('radio', { name: /Skin tone/ })).toHaveLength(4)
     expect(localStorage.getItem(SAVE_KEY)).toBeNull()
@@ -162,25 +162,36 @@ describe('career creation — appearance step', () => {
 
     await user.click(screen.getByRole('radio', { name: 'Male' }))
     await user.click(screen.getByRole('radio', { name: 'Skin tone 4' }))
-    expect(avatar()).toHaveAccessibleName('Avatar preview: male, as drawn, skin tone 4, no shirt')
+    expect(avatar()).toHaveAccessibleName('Avatar preview: male, basic, skin tone 4, no shirt')
     expect(avatar().querySelector('[data-layer="body"]')!.getAttribute('href')).toMatch(/male-4/)
 
     // Women have 3 bodies: tone 4 becomes tone 3.
     await user.click(screen.getByRole('radio', { name: 'Female' }))
-    expect(avatar()).toHaveAccessibleName('Avatar preview: female, as drawn, skin tone 3, no shirt')
+    expect(avatar()).toHaveAccessibleName('Avatar preview: female, basic, skin tone 3, no shirt')
     await user.click(screen.getByRole('button', { name: 'Back' }))
     expect(screen.getByRole('radio', { name: 'Female' })).toBeChecked()
   })
 
-  it('shows the drawn hair as the only hairstyle, with a note, zoomed in on the face', async () => {
+  it('offers the basic head and the Level 1 heads of the skin tone, zoomed in on the face', async () => {
     const user = userEvent.setup()
     renderApp('/')
     await user.click(chooseButton())
     expect(avatar()).not.toHaveAttribute('data-focus')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))
     expect(avatar()).toHaveAttribute('data-focus', 'face')
-    expect(screen.getByRole('radio', { name: 'As drawn' })).toBeChecked()
-    expect(screen.getByText(/More hairstyles come with new artwork/)).toBeInTheDocument()
+    // Women, tone 2 (default): the basic head and Hairstyle 1; Level 2 heads are hidden at creation.
+    const hairPanel = screen.getByRole('tabpanel')
+    expect(within(hairPanel).getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['natural', 'head-l1-03'])
+    expect(screen.getByRole('radio', { name: 'Basic' })).toBeChecked()
+    expect(screen.getByText(/New hairstyles unlock as you level up/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('radio', { name: 'Hairstyle 1' }))
+    expect(avatar().querySelector('image[data-layer="head"]')!.getAttribute('href')).toMatch(/lvl1_women_head_03_tone2/)
+    // Tone 1 has no head art yet: the head falls back to the basic one.
+    await user.click(screen.getByRole('tab', { name: 'Skin' }))
+    await user.click(screen.getByRole('radio', { name: 'Skin tone 1' }))
+    expect(avatar()).toHaveAccessibleName('Avatar preview: female, basic, skin tone 1, no shirt')
+    expect(avatar().querySelector('image[data-layer="head"]')).toBeNull()
   })
 
   it('offers no shirt (default) or the white T-shirt, and no shoes', async () => {
@@ -299,7 +310,7 @@ describe('career creation — name step', () => {
     expect(save.state.athlete).toEqual({
       name: 'Alex',
       sex,
-      appearance: defaultAppearance(sex),
+      appearance: defaultAppearance(),
       profile,
       xp: 0,
       fitness: 20,

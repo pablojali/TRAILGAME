@@ -814,6 +814,29 @@ Replaces the silhouette and the Stage A placeholder options above. On the workin
   head and shoulders (×3.2, 450 ms, no animation with reduced motion) and zooms back out on the
   other tabs. The frame keeps its size.
 
+### Owner's bodies and heads in the game (30 October 2026)
+
+Art rules: `docs/AVATAR_ART_SPEC.md`.
+- **Bodies:** `bodies/{men|women}_body_01_tone{n}.png` replace the earlier bodies (deleted with
+  the owner's approval). Tones follow the owner's numbering, tone 1 darkest (it was lightest
+  first): saved careers keep their tone number, so their skin can look different; it is cosmetic
+  and can be changed in "Change look". The white T-shirt and the starter shoes still fit; so do
+  the placeholder vest and poles.
+- **Heads:** `heads/lvl{L}_{men|women}_head_{NN}_tone{n}.png`, drawn over the body's basic head.
+  The catalog is read from the prepared file names (`src/domain/athlete/heads.ts`): one head per
+  sex, level and design, offered in the tones it has art for; named "Hairstyle N" per sex in
+  unlock order; id `head-l{L}-{NN}` (saved in `appearance.hair`; `natural` is the basic head).
+- **Hair tab:** the basic head plus the tone's heads, locked ones with "Lvl N" (hidden at
+  creation). Choosing another skin tone keeps the head only if it has art in that tone, otherwise
+  the basic head. Level-up messages name the heads unlocked for the runner's sex and tone.
+- **Cleanup on preparation** (`scripts/prepare_avatar_art.py`; originals untouched): loose specks
+  removed, leftover white taken out of the edges (two passes), and the bottom of the neck faded
+  over 22 px so the join with the body does not show. The black ponytail
+  (`lvl1_women_head_03_tone2`) keeps a few light streaks inside its outline: best retouched in
+  the source.
+- **Today's art:** men tones 1–3 have Hairstyle 1 (Level 1); women tone 2 has 3 heads and tone 3
+  has 5 (Level 1 and 2). Women tone 1 and men tone 4 have only the basic head.
+
 ### Weekly Consistency, no attribute cap, coins at the top (owner decisions, 30 October 2026)
 
 - **Consistency rewards finished weeks** (owner decision, 30 October 2026; first set to +0.1 per new

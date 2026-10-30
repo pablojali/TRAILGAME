@@ -1,17 +1,22 @@
 import type { Sex } from './athlete'
+import { getHead, HEADS } from './heads'
 
 /**
  * Runner appearance (avatar). Cosmetic only: it selects how the avatar is drawn and never affects
  * any gameplay value. Identifiers are stable and saved; labels are for display.
  *
  * The avatar uses the owner's layered artwork (assets/runner/avatar, prepared by
- * scripts/prepare_avatar_art.py). Each body has its face, hair and skin tone painted in, so the skin
- * tone selects the body, and the hair is the one drawn on it until hair layers exist. Shoes are
- * equipment, not appearance (see src/domain/equipment).
+ * scripts/prepare_avatar_art.py; docs/AVATAR_ART_SPEC.md). The skin tone selects the body, which
+ * has a basic head (men bald, women basic hair). The hair is either that basic head ('natural') or
+ * one of the owner's heads, drawn over it in the same skin tone (src/domain/athlete/heads.ts).
+ * Shoes are equipment, not appearance (see src/domain/equipment).
  */
-export type HairStyleId = 'natural'
+export type HairStyleId = 'natural' | (string & {})
 
-/** Skin tone, lightest first. Women have tones 1–3, men 1–4 (one body each). */
+/**
+ * Skin tone, numbered as in the owner's files (tone 1 darkest; owner decision, 30 October 2026).
+ * Women have tones 1–3, men 1–4 (one body each).
+ */
 export type SkinToneId = 'tone-1' | 'tone-2' | 'tone-3' | 'tone-4'
 
 /**
@@ -48,17 +53,31 @@ export interface Appearance {
   outfit: OutfitId
 }
 
-/** Hairstyles offered for each sex, in display order. The first one is the default. */
-export const HAIR_STYLES: Record<Sex, readonly HairStyleId[]> = {
-  female: ['natural'],
-  male: ['natural'],
+/** The body's basic head; always available and the default. */
+export const BASIC_HAIR = 'natural'
+
+function toneNumber(skin: SkinToneId): number {
+  return Number(skin.slice('tone-'.length))
 }
 
-export const HAIR_STYLE_LABELS: Record<HairStyleId, string> = {
-  natural: 'As drawn',
+/**
+ * Hairstyles offered for a sex and skin tone, in display order: the basic head first, then every
+ * head that has art in that tone, locked or not.
+ */
+export function hairStyles(sex: Sex, skin: SkinToneId): HairStyleId[] {
+  return [BASIC_HAIR, ...HEADS.filter((h) => h.sex === sex && h.art[toneNumber(skin)]).map((h) => h.id)]
 }
 
-/** Skin tones with a body for each sex, lightest first. */
+export function hairStyleLabel(sex: Sex, hair: HairStyleId): string {
+  return getHead(sex, hair)?.label ?? 'Basic'
+}
+
+/** The level a hairstyle unlocks at; the basic head is always available. */
+export function hairUnlockLevel(sex: Sex, hair: HairStyleId): number {
+  return getHead(sex, hair)?.level ?? 1
+}
+
+/** Skin tones with a body for each sex. */
 export const SKIN_TONES: Record<Sex, readonly SkinToneId[]> = {
   female: ['tone-1', 'tone-2', 'tone-3'],
   male: ['tone-1', 'tone-2', 'tone-3', 'tone-4'],
@@ -98,21 +117,25 @@ export function outfitUnlockLevel(outfit: OutfitId): number {
 }
 
 /** True if every part of the appearance is unlocked at `level`. */
-export function isAppearanceUnlocked(appearance: Appearance, level: number): boolean {
-  return outfitUnlockLevel(appearance.outfit) <= level
+export function isAppearanceUnlocked(appearance: Appearance, level: number, sex: Sex): boolean {
+  return outfitUnlockLevel(appearance.outfit) <= level && hairUnlockLevel(sex, appearance.hair) <= level
 }
 
-/** Labels of the options that unlock on reaching a level above `from` up to `to`, in order. */
-export function appearanceUnlocks(from: number, to: number): string[] {
-  return OUTFITS.filter((outfit) => {
-    const level = outfitUnlockLevel(outfit)
-    return level > from && level <= to
-  }).map((outfit) => OUTFIT_LABELS[outfit])
+/**
+ * Labels of the options that unlock on reaching a level above `from` up to `to`, in order: the
+ * runner's hairstyles (those with art in the runner's skin tone), then outfits.
+ */
+export function appearanceUnlocks(from: number, to: number, sex: Sex, skin: SkinToneId): string[] {
+  const reached = (level: number) => level > from && level <= to
+  const heads = hairStyles(sex, skin)
+    .filter((hair) => hair !== BASIC_HAIR && reached(hairUnlockLevel(sex, hair)))
+    .map((hair) => hairStyleLabel(sex, hair))
+  return [...heads, ...OUTFITS.filter((outfit) => reached(outfitUnlockLevel(outfit))).map((o) => OUTFIT_LABELS[o])]
 }
 
-/** As drawn: no shirt (owner decision, 29 October 2026). */
-export function defaultAppearance(sex: Sex): Appearance {
-  return { hair: HAIR_STYLES[sex][0]!, skin: 'tone-2', outfit: 'none' }
+/** Basic head, tone 2, no shirt (owner decision, 29 October 2026). The same for both sexes. */
+export function defaultAppearance(): Appearance {
+  return { hair: BASIC_HAIR, skin: 'tone-2', outfit: 'none' }
 }
 
 /** The artwork body for a sex and skin tone, e.g. `female-2`. */
@@ -121,14 +144,14 @@ export function bodyId(sex: Sex, skin: SkinToneId): string {
 }
 
 /**
- * Keeps the appearance valid when the sex changes: a skin tone the other sex has no body for
- * becomes the nearest one (tone 4 → tone 3 for women), and the hair becomes that sex's default if
- * it is not offered.
+ * Keeps the appearance valid for a sex and its skin tone: a skin tone the sex has no body for
+ * becomes the nearest one (tone 4 → tone 3 for women), and a hairstyle not offered for that sex
+ * and tone becomes the basic head. Use it after changing the sex or the skin tone.
  */
 export function appearanceForSex(appearance: Appearance, sex: Sex): Appearance {
   const tones = SKIN_TONES[sex]
   const skin = tones.includes(appearance.skin) ? appearance.skin : tones[tones.length - 1]!
-  const hair = HAIR_STYLES[sex].includes(appearance.hair) ? appearance.hair : HAIR_STYLES[sex][0]!
+  const hair = hairStyles(sex, skin).includes(appearance.hair) ? appearance.hair : BASIC_HAIR
   return { ...appearance, skin, hair }
 }
 
@@ -137,13 +160,13 @@ export function appearanceForSex(appearance: Appearance, sex: Sex): Appearance {
  * no body for becomes the nearest one), so an appearance can never make a career fail to load.
  */
 export function parseAppearance(value: unknown, sex: Sex): Appearance {
-  const fallback = defaultAppearance(sex)
+  const fallback = defaultAppearance()
   if (typeof value !== 'object' || value === null) return fallback
   const { hair, skin, outfit } = value as Record<string, unknown>
   const knownSkin = (SKIN_TONES.male as readonly unknown[]).includes(skin) ? (skin as SkinToneId) : fallback.skin
   return appearanceForSex(
     {
-      hair: (HAIR_STYLES[sex] as readonly unknown[]).includes(hair) ? (hair as HairStyleId) : fallback.hair,
+      hair: typeof hair === 'string' ? hair : fallback.hair,
       skin: knownSkin,
       outfit: (OUTFITS as readonly unknown[]).includes(outfit) ? (outfit as OutfitId) : fallback.outfit,
     },

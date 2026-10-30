@@ -28,6 +28,20 @@ describe('setAppearance', () => {
     expect(setAppearance(level2, look('tshirt-orange'))).toEqual({ ok: false, error: 'locked' })
   })
 
+  it('refuses a head above the runner level, or one with no art in the runner skin tone', () => {
+    const female = newGame() // Women, tone 2.
+    expect(setAppearance(female, { hair: 'head-l2-01', skin: 'tone-2', outfit: 'none' })).toEqual({
+      ok: false,
+      error: 'locked',
+    })
+    expect(setAppearance(withAthlete(female, { xp: 100 }), { hair: 'head-l2-01', skin: 'tone-2', outfit: 'none' }).ok).toBe(true)
+    // Hairstyle 2 (head-l1-05) is drawn in tone 3 only.
+    expect(setAppearance(female, { hair: 'head-l1-05', skin: 'tone-2', outfit: 'none' })).toEqual({
+      ok: false,
+      error: 'invalid',
+    })
+  })
+
   it('refuses values that do not exist for the runner', () => {
     // The test runner is female: women have skin tones 1–3.
     expect(setAppearance(newGame(), look('none', 'tone-4'))).toEqual({ ok: false, error: 'invalid' })

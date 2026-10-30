@@ -33,6 +33,17 @@ describe('Appearance', () => {
     expect(readSave()?.state.athlete.appearance).toEqual({ hair: 'natural', skin: 'tone-3', outfit: 'tshirt-orange' })
   })
 
+  it('shows Level 2 hairstyles locked at Level 1 and saves an unlocked one', async () => {
+    const user = userEvent.setup()
+    seedCareer() // Women, tone 2, Level 1.
+    renderApp('/appearance')
+    await user.click(screen.getByRole('tab', { name: 'Hair' }))
+    expect(screen.getByRole('radio', { name: 'Hairstyle 3, unlocks at Level 2' })).toBeDisabled()
+    await user.click(screen.getByRole('radio', { name: 'Hairstyle 1' }))
+    expect(readSave()?.state.athlete.appearance.hair).toBe('head-l1-03')
+    expect(screen.getByRole('img', { name: /hairstyle 1/ }).querySelector('image[data-layer="head"]')).not.toBeNull()
+  })
+
   it('zooms in on the face while choosing a hairstyle', async () => {
     const user = userEvent.setup()
     seedCareer()

@@ -21,6 +21,6 @@ export function setAppearance(
   if (parsed.hair !== appearance.hair || parsed.skin !== appearance.skin || parsed.outfit !== appearance.outfit) {
     return { ok: false, error: 'invalid' }
   }
-  if (!isAppearanceUnlocked(parsed, getLevel(athlete.xp))) return { ok: false, error: 'locked' }
+  if (!isAppearanceUnlocked(parsed, getLevel(athlete.xp), athlete.sex)) return { ok: false, error: 'locked' }
   return { ok: true, state: { ...state, athlete: { ...athlete, appearance: parsed } } }
 }

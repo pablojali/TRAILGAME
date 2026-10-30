@@ -1,0 +1,135 @@
+.muted {
+  color: var(--text-muted);
+}
+
+/* Medal table: categories by gold, silver, bronze and races. */
+.medalTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.medalTable th,
+.medalTable td {
+  padding: var(--space-2) var(--space-1);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.medalTable thead th {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.medalTable thead svg {
+  width: 1.6em;
+  height: 1.6em;
+}
+
+.medalTable tbody th {
+  font-weight: 600;
+}
+
+.medalTable tfoot th,
+.medalTable tfoot td {
+  border-bottom: 0;
+  font-weight: 800;
+}
+
+.medalTable .num {
+  width: 3.2em;
+  text-align: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list > li + li {
+  border-top: 1px solid var(--border);
+}
+
+/* Personal bests: race on the left, best position and time on the right. */
+.bestRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.bestValues {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.raceName {
+  min-width: 0;
+  font-weight: 700;
+}
+
+.position {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.position svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+/* Race history: one tappable row per race. */
+.historyRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'when position'
+    'name time';
+  align-items: center;
+  gap: 2px var(--space-3);
+  min-height: var(--touch-target);
+  padding: var(--space-2) 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.historyRow:hover .raceName,
+.historyRow:focus-visible .raceName {
+  text-decoration: underline;
+}
+
+.historyRow .when {
+  grid-area: when;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.historyRow .raceName {
+  grid-area: name;
+}
+
+.historyRow .position {
+  grid-area: position;
+  justify-self: end;
+}
+
+.historyRow .time {
+  grid-area: time;
+  justify-self: end;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}

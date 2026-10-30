@@ -814,6 +814,17 @@ Replaces the silhouette and the Stage A placeholder options above. On the workin
   head and shoulders (×3.2, 450 ms, no animation with reduced motion) and zooms back out on the
   other tabs. The frame keeps its size.
 
+### Career screen (owner request, 30 October 2026)
+
+`/career` replaces the placeholder with three sections, all read from the saved race results
+(`src/game-engine/career.ts`; nothing new is stored):
+- **Medal table:** gold (1st), silver (2nd) and bronze (3rd) by category (Open, Trail, Mountain,
+  Elite) and in total, with the races run.
+- **Personal bests:** for each race run, the best position and the best time (they can come
+  from different runs), each linking to its result; and how many times it was run.
+- **Race history:** every race, newest first: week and day, race, position of 50 (with its medal)
+  and time. Each row opens the result with all 50 runners.
+
 ### Owner's bodies and heads in the game (30 October 2026)
 
 Art rules: `docs/AVATAR_ART_SPEC.md`.

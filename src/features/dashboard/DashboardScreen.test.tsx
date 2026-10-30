@@ -237,10 +237,3 @@ describe('DashboardScreen — Fitness decay', () => {
   })
 })
 
-describe('placeholder screens', () => {
-  it.each(['/career'])('%s remains a placeholder', (path) => {
-    seedCareer()
-    renderApp(path)
-    expect(screen.getByRole('heading', { name: 'Planned for a later milestone' })).toBeInTheDocument()
-  })
-})

@@ -1123,6 +1123,8 @@ Career is intended to contain long-term progression, season history, and competi
 
 Until the relevant systems are implemented, it may remain a clearly marked placeholder.
 
+**Implemented (owner request, 30 October 2026):** a historic medal table (gold, silver and bronze for 1st, 2nd and 3rd, by category and in total), personal bests (best position and best time on each race run) and the race history (week, race, position and time, newest first; each opens its full result).
+
 ### Equipment and Races
 
 These screens may remain placeholders until their respective systems are defined and implemented.

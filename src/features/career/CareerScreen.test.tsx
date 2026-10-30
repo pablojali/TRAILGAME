@@ -1,0 +1,64 @@
+import { screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it } from 'vitest'
+import type { GameState } from '../../game-engine/gameState'
+import { enterRace, raceCurrentDay } from '../../game-engine/races'
+import { currentRef, newGame, onSunday, T0, withAthlete } from '../../test/gameFixtures'
+import { renderApp, seedCareer } from '../../test/renderApp'
+
+/** Enters and runs a race on Sunday with the given form; returns the state after the race. */
+function race(state: GameState, raceId: string, fitness: number): GameState {
+  const entered = enterRace(withAthlete(state, { fitness, fatigue: 0 }), raceId, 0, T0)
+  if (!entered.ok) throw new Error(entered.error)
+  const sunday = onSunday(entered.state)
+  const raced = raceCurrentDay(sunday, currentRef(sunday), entered.entry.id, T0)
+  if (!raced.ok) throw new Error(raced.error)
+  return raced.value.state
+}
+
+describe('Career', () => {
+  it('explains that medals and results come with the first race', () => {
+    seedCareer()
+    renderApp('/career')
+    expect(screen.getByRole('heading', { level: 1, name: 'Career' })).toBeInTheDocument()
+    expect(screen.getByText(/No races yet/)).toBeInTheDocument()
+    expect(within(screen.getByRole('table')).getByRole('row', { name: 'Total 0 0 0 0' })).toBeInTheDocument()
+  })
+
+  it('shows the medal table, personal bests and race history, newest first, each opening its result', async () => {
+    const user = userEvent.setup()
+    // A very fit runner wins Forest First Steps, then an unfit one runs it again.
+    let state = race(newGame(), 'RACE-001', 100)
+    state = race(state, 'RACE-001', 0)
+    const [first, second] = state.raceEntries
+    if (first?.status !== 'finished' || second?.status !== 'finished') throw new Error('not raced')
+    expect(first.result.position).toBe(1)
+    expect(second.result.position).toBeGreaterThan(10)
+    seedCareer(state)
+    renderApp('/career')
+
+    const table = screen.getByRole('table')
+    expect(within(table).getByRole('row', { name: 'Open 1 0 0 2' })).toBeInTheDocument()
+    expect(within(table).getByRole('row', { name: 'Total 1 0 0 2' })).toBeInTheDocument()
+    expect(within(table).getByRole('img', { name: 'Gold' })).toBeInTheDocument()
+
+    // Personal best: the win, and the faster time (the same race).
+    expect(screen.getByRole('link', { name: 'Best position in Forest First Steps: 1st' })).toHaveAttribute(
+      'href',
+      `/races/results/${first.id}`,
+    )
+    expect(screen.getByText(/· Open · 2 runs/)).toBeInTheDocument()
+
+    // History: newest first, each row links to its result.
+    const history = screen.getByRole('heading', { name: 'Race history' }).closest('article')!
+    const rows = within(history).getAllByRole('link')
+    expect(rows.map((row) => row.getAttribute('href'))).toEqual([
+      `/races/results/${second.id}`,
+      `/races/results/${first.id}`,
+    ])
+    expect(rows[1]).toHaveTextContent('Forest First Steps')
+    expect(rows[1]).toHaveTextContent('1st of 50')
+    await user.click(rows[1]!)
+    expect(screen.getByRole('heading', { level: 1, name: '1st of 50' })).toBeInTheDocument()
+  })
+})

@@ -18,8 +18,8 @@
 // ---------------------------------------------------------------------------------------------
 
 export const RACES = [
-  { id: 'RACE-001', name: 'Forest First Steps', category: 'open', distanceKm: 5, elevationGainM: 120, recommendedLevel: 1 },
-  { id: 'RACE-002', name: 'Riverside Trail', category: 'open', distanceKm: 8, elevationGainM: 220, recommendedLevel: 4 },
+  { id: 'RACE-001', name: 'Forest First Steps', category: 'open', distanceKm: 5, elevationGainM: 120, recommendedLevel: 4 },
+  { id: 'RACE-002', name: 'Riverside Trail', category: 'open', distanceKm: 8, elevationGainM: 220, recommendedLevel: 6 },
   { id: 'RACE-003', name: 'Pine Loop Challenge', category: 'open', distanceKm: 10, elevationGainM: 350, recommendedLevel: 8 },
   { id: 'RACE-004', name: 'Ridge Runner', category: 'trail', distanceKm: 12, elevationGainM: 550, recommendedLevel: 11 },
   { id: 'RACE-005', name: 'Stone Path Classic', category: 'trail', distanceKm: 15, elevationGainM: 750, recommendedLevel: 14 },
@@ -60,15 +60,15 @@ export const GROSS_PRIZES = {
   elite: [1500, 1050, 750, 375, 150],
 }
 const BAND_LABELS = ['1st', '2nd', '3rd', '4th–10th', '11th or lower']
-/** Equipment race effects (owner approval, 29 October 2026): multipliers while equipped. */
+/** Equipment race effects (owner approval, 29 October 2026; balance review 30 October 2026). */
 export const EQUIPMENT_EFFECTS = {
   'trail-shoes-basic': { attributes: { speed: 1, technical: 1 } },
   'trail-shoes': { attributes: { technical: 4 }, technicalPenalty: 0.7 },
   'trail-shoes-light': { attributes: { speed: 3 }, descent: 0.98, technicalPenalty: 1.3 },
-  poles: { attributes: { climbing: 2, endurance: 1 }, runnable: 1.03 },
-  'poles-2': { attributes: { climbing: 3, endurance: 2 }, runnable: 1.01 },
-  'hydration-backpack': { attributes: { endurance: 2 }, slowdown: 0.9 },
-  'hydration-backpack-2': { attributes: { endurance: 3 }, slowdown: 0.85 },
+  poles: { attributes: { climbing: 2 }, runnable: 1.01 },
+  'poles-2': { attributes: { climbing: 3, endurance: 1 }, runnable: 1.01 },
+  'hydration-backpack': { attributes: { endurance: 1 }, slowdown: 0.9 },
+  'hydration-backpack-2': { attributes: { endurance: 2 }, slowdown: 0.85 },
 }
 
 /** Anti-farming multipliers in whole percent, by level difference 0 (or below), 1, 2, 3+. */
@@ -630,8 +630,8 @@ function reportRewards() {
   p('|---|---|---:|---:|---:|---:|---:|---:|---:|')
   const examples = [
     ['Level 1 wins Forest First Steps', 'RACE-001', 0, 'free', 1, 1],
-    ['Level 3 wins Forest First Steps (too easy)', 'RACE-001', 0, 'free', 3, 1],
-    ['Level 4 wins Forest First Steps (0 %)', 'RACE-001', 0, 'free', 4, 1],
+    ['Level 6 wins Forest First Steps (too easy)', 'RACE-001', 0, 'free', 6, 1],
+    ['Level 7 wins Forest First Steps (0 %)', 'RACE-001', 0, 'free', 7, 1],
     ['Level 3, 5th in Ridge Runner', 'RACE-004', 100, 'standard', 3, 5],
     ['Entered early at level 2, raced at level 3, 2nd in Wildwood Ascent', 'RACE-006', 250, 'early', 3, 2],
     ['Level 4, 1st in Ridge Runner (75 %, odd rounding)', 'RACE-004', 100, 'standard', 4, 1],

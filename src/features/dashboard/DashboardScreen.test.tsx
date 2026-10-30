@@ -89,10 +89,14 @@ describe('DashboardScreen — first screen', () => {
     state.week.days[0]!.outcome = { xpGained: 9, fitnessChange: 2, fatigueChange: 5 }
     state.week.days[1]!.outcome = { xpGained: 16, fitnessChange: 3, fatigueChange: 14 }
     state.week.days[2]!.session = 'hills'
+    state.coins = 1240
     seedCareer(state)
     renderApp('/')
 
     expect(identity()).toBe('Marta - Sprinter (Lv 3)')
+    // Coins in the Condition column, with the gold coin symbol.
+    expect(stat('Coins')).toBe('1,240 coins')
+    expect(within(screen.getByRole('region', { name: 'Condition' })).getByText('1,240').previousElementSibling!.tagName).toBe('svg')
     expect(screen.getByText('Week 3 · Wednesday')).toBeInTheDocument()
     expect(stat('Level')).toBe('3')
     expect(stat('XP')).toBe('260')

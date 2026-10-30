@@ -83,10 +83,10 @@ describe('course generation', () => {
 
 describe('race simulation — approved test cases (docs/race-simulation/results.md §3)', () => {
   it.each<[string, string, RaceAthleteInput, string, number]>([
-    ['All-rounder F20 Fa0', 'RACE-001', athlete('all-rounder', 20, 0), '0:45:41', 19],
+    ['All-rounder F20 Fa0', 'RACE-001', athlete('all-rounder', 20, 0), '0:45:41', 24],
     ['All-rounder F80 Fa10', 'RACE-001', athlete('all-rounder', 80, 10), '0:37:04', 1],
-    ['Sprinter F60 Fa20', 'RACE-001', athlete('sprinter', 60, 20), '0:40:54', 3],
-    ['Climber F60 Fa20', 'RACE-001', athlete('climber', 60, 20), '0:43:01', 11],
+    ['Sprinter F60 Fa20', 'RACE-001', athlete('sprinter', 60, 20), '0:40:54', 11],
+    ['Climber F60 Fa20', 'RACE-001', athlete('climber', 60, 20), '0:43:01', 17],
     ['All-rounder F60 Fa0', 'RACE-004', athlete('all-rounder', 60, 0), '1:55:17', 20],
     ['All-rounder F60 Fa80', 'RACE-004', athlete('all-rounder', 60, 80), '2:25:12', 47],
     ['Climber F60 Fa20', 'RACE-007', athlete('climber', 60, 20), '4:24:01', 47],
@@ -189,13 +189,18 @@ describe('result explanation (D10)', () => {
   })
 
   it('never lists an input that had no effect', () => {
-    // RACE-001 has no technical descents, and this athlete matches the typical runner's Technical, Recovery and Consistency.
-    const explanation = explainRace(race('RACE-001'), athlete('all-rounder', 25, 20, { speed: 30 }))
+    // RACE-001 has no technical descents, and this athlete matches the typical runner (level 4) in
+    // everything but Speed.
+    const typical = referenceAthlete(4)
+    const explanation = explainRace(race('RACE-001'), {
+      ...typical,
+      attributes: { ...typical.attributes, speed: 30 },
+    })
     expect(explanation.factors.map((f) => f.id)).toEqual(['speed'])
   })
 
   it('reports day form as its own factor when it is large enough', () => {
-    const explanation = explainRace(race('RACE-001'), referenceAthlete(1), -0.03)
+    const explanation = explainRace(race('RACE-001'), referenceAthlete(4), -0.03)
     expect(explanation.factors).toEqual([
       { id: 'day-form', value: -0.03, reference: 0, effectS: expect.any(Number) },
     ])
@@ -203,7 +208,7 @@ describe('result explanation (D10)', () => {
   })
 })
 
-describe('equipment race effects (owner approval, 29 October 2026)', () => {
+describe('equipment race effects (owner approval, 29 October 2026; balance review 30 October 2026)', () => {
   const base = athlete('all-rounder', 60, 20)
   const change = (id: string, equipment: string[]) => {
     const course = generateCourse(race(id))
@@ -211,21 +216,21 @@ describe('equipment race effects (owner approval, 29 October 2026)', () => {
   }
 
   it.each<[string[], string, number]>([
-    // Owner's catalog (29 October 2026), All-rounder at Fitness 60, Fatigue 20; see results.md §10.
-    [['poles'], 'RACE-001', 0.0022],
-    [['poles'], 'RACE-004', -0.0095],
-    [['poles'], 'RACE-012', -0.0246],
-    [['poles-2'], 'RACE-001', -0.0162],
+    // Owner's catalog after the balance review (30 October 2026), All-rounder at Fitness 60, Fatigue 20; see results.md §10.
+    [['poles'], 'RACE-001', -0.0014],
+    [['poles'], 'RACE-004', -0.0085],
+    [['poles'], 'RACE-012', -0.014],
+    [['poles-2'], 'RACE-001', -0.0104],
     [['trail-shoes-basic'], 'RACE-004', -0.0105],
     [['trail-shoes'], 'RACE-004', -0.0114],
     [['trail-shoes'], 'RACE-012', -0.0362],
     [['trail-shoes-light'], 'RACE-001', -0.0389],
     [['trail-shoes-light'], 'RACE-012', -0.0008],
-    [['hydration-backpack'], 'RACE-004', -0.0163],
-    [['hydration-backpack'], 'RACE-012', -0.0506],
-    [['hydration-backpack-2'], 'RACE-012', -0.0734],
-    [['trail-shoes-light', 'poles-2', 'hydration-backpack-2'], 'RACE-001', -0.0695],
-    [['trail-shoes', 'poles-2', 'hydration-backpack-2'], 'RACE-012', -0.144],
+    [['hydration-backpack'], 'RACE-004', -0.01],
+    [['hydration-backpack'], 'RACE-012', -0.0386],
+    [['hydration-backpack-2'], 'RACE-012', -0.0626],
+    [['trail-shoes-light', 'poles-2', 'hydration-backpack-2'], 'RACE-001', -0.06],
+    [['trail-shoes', 'poles-2', 'hydration-backpack-2'], 'RACE-012', -0.1256],
   ])('%j in %s: %d', (equipment, id, expected) => {
     expect(change(id, equipment)).toBeCloseTo(expected, 4)
   })

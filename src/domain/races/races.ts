@@ -2,7 +2,8 @@ import type { RaceCategory } from './categories'
 
 /**
  * Initial race catalog (Game Design Bible §10.4). Fictional events; ids are stable and saved.
- * Recommended levels spread over the category ranges (owner decision, 29 October 2026).
+ * Recommended levels spread over the category ranges (owner decision, 29 October 2026); Open races
+ * at levels 4, 6 and 8 (owner decision, 30 October 2026; were 1, 4 and 8).
  */
 export interface Race {
   id: string
@@ -18,8 +19,8 @@ export interface Race {
 }
 
 export const RACES: readonly Race[] = [
-  { id: 'RACE-001', name: 'Forest First Steps', category: 'open', distanceKm: 5, elevationGainM: 120, terrain: 'Non-technical forest paths', recommendedLevel: 1, technicality: 0 },
-  { id: 'RACE-002', name: 'Riverside Trail', category: 'open', distanceKm: 8, elevationGainM: 220, terrain: 'Packed dirt, rolling hills', recommendedLevel: 4, technicality: 0 },
+  { id: 'RACE-001', name: 'Forest First Steps', category: 'open', distanceKm: 5, elevationGainM: 120, terrain: 'Non-technical forest paths', recommendedLevel: 4, technicality: 0 },
+  { id: 'RACE-002', name: 'Riverside Trail', category: 'open', distanceKm: 8, elevationGainM: 220, terrain: 'Packed dirt, rolling hills', recommendedLevel: 6, technicality: 0 },
   { id: 'RACE-003', name: 'Pine Loop Challenge', category: 'open', distanceKm: 10, elevationGainM: 350, terrain: 'Forest trail, short climbs', recommendedLevel: 8, technicality: 1 },
   { id: 'RACE-004', name: 'Ridge Runner', category: 'trail', distanceKm: 12, elevationGainM: 550, terrain: 'Rolling ridges, mixed trail', recommendedLevel: 11, technicality: 1 },
   { id: 'RACE-005', name: 'Stone Path Classic', category: 'trail', distanceKm: 15, elevationGainM: 750, terrain: 'Rocky sections, moderate technicality', recommendedLevel: 14, technicality: 2 },

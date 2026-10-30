@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { formatDelta } from '../../components/format'
+import { appearanceUnlocks } from '../../domain/athlete/appearance'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
 import { getRestFatigueDelta } from '../../domain/training/recovery'
 import { isSessionType, SESSION_TYPES, TRAINING_SESSIONS, type SessionType } from '../../domain/training/sessions'
@@ -387,6 +388,7 @@ function ExecutionFeedback({ result }: { result: ExecutionResult }) {
           <Link to="/attributes" className={styles.inlineLink}>
             Allocate points
           </Link>
+          <UnlockNotice from={levelBefore} to={levelAfter} />
         </p>
       )}
       {/* The next day is highlighted in the week strip; the rollover is announced here. */}
@@ -397,5 +399,20 @@ function ExecutionFeedback({ result }: { result: ExecutionResult }) {
         </p>
       )}
     </div>
+  )
+}
+
+/** New appearance options reached by a level-up, with a link to try them on. */
+function UnlockNotice({ from, to }: { from: number; to: number }) {
+  const unlocks = appearanceUnlocks(from, to)
+  if (unlocks.length === 0) return null
+  return (
+    <>
+      {' '}
+      New look unlocked: {unlocks.join(', ')}.{' '}
+      <Link to="/appearance" className={styles.inlineLink}>
+        Change look
+      </Link>
+    </>
   )
 }

@@ -207,13 +207,13 @@ describe('raceCurrentDay', () => {
   })
 
   it('judges rewards at the level when the race starts, not at entry', () => {
-    // Entered at level 1 (free Open race), raced at level 4: 3 above the recommended level 1.
+    // Entered at level 1 (free Open race), raced at level 7: 3 above the recommended level 4.
     const { state, entry } = enteredOnSunday(newGame(), 'RACE-001', 0)
-    const levelled = withAthlete(state, { xp: 450, fitness: 95 })
+    const levelled = withAthlete(state, { xp: 1350, fitness: 95 })
     const result = race(levelled, entry.id)
     if (!result.ok) throw new Error(result.error)
     expect(result.value.entry.levelAtEntry).toBe(1)
-    expect(result.value.entry.result).toMatchObject({ levelAtStart: 4, multiplierPct: 0, coinsAwarded: 0, xpAwarded: 0 })
+    expect(result.value.entry.result).toMatchObject({ levelAtStart: 7, multiplierPct: 0, coinsAwarded: 0, xpAwarded: 0 })
   })
 
   it('subtracts the fee paid at entry in the net coin change, and adds the prize to the balance', () => {
@@ -257,9 +257,9 @@ describe('race rewards', () => {
   it.each<[string, number, number, number, number]>([
     // race, position, level at start, coins, XP
     ['RACE-001', 1, 1, 100, 30],
-    ['RACE-001', 1, 2, 75, 22],
-    ['RACE-001', 1, 3, 40, 12],
-    ['RACE-001', 1, 4, 0, 0],
+    ['RACE-001', 1, 5, 75, 22],
+    ['RACE-001', 1, 6, 40, 12],
+    ['RACE-001', 1, 7, 0, 0],
     ['RACE-001', 12, 1, 10, 3],
     ['RACE-004', 2, 12, 157, 31],
     ['RACE-004', 5, 11, 75, 15],

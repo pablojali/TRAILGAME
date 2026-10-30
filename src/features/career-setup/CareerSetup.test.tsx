@@ -172,11 +172,13 @@ describe('career creation — appearance step', () => {
     expect(screen.getByRole('radio', { name: 'Female' })).toBeChecked()
   })
 
-  it('shows the drawn hair as the only hairstyle, with a note', async () => {
+  it('shows the drawn hair as the only hairstyle, with a note, zoomed in on the face', async () => {
     const user = userEvent.setup()
     renderApp('/')
     await user.click(chooseButton())
+    expect(avatar()).not.toHaveAttribute('data-focus')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))
+    expect(avatar()).toHaveAttribute('data-focus', 'face')
     expect(screen.getByRole('radio', { name: 'As drawn' })).toBeChecked()
     expect(screen.getByText(/More hairstyles come with new artwork/)).toBeInTheDocument()
   })
@@ -191,6 +193,9 @@ describe('career creation — appearance step', () => {
     await user.click(screen.getByRole('radio', { name: 'White T-shirt' }))
     expect([...avatar().querySelectorAll('image')].map((i) => i.getAttribute('data-layer'))).toEqual(['body', 'white-tshirt'])
     expect(screen.queryByText(/shoe/i)).not.toBeInTheDocument()
+    // Colours unlock with levels: a new runner (Level 1) does not see them yet.
+    expect(screen.queryByRole('radio', { name: /Red T-shirt/ })).not.toBeInTheDocument()
+    expect(screen.getByText(/New T-shirt colours unlock as you level up/)).toBeInTheDocument()
   })
 
   it('switches tabs with the arrow keys', async () => {

@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import { Avatar } from '../../components/avatar/Avatar'
+import { Coins } from '../../components/Coins'
 import button from '../../components/Button.module.css'
 import { Screen } from '../../components/Screen'
 import { formatCoins } from '../../domain/economy/coins'
@@ -15,8 +17,7 @@ const BUY_ERRORS: Record<BuyError, string> = {
   'price-changed': 'The price changed. Check it and try again.',
 }
 
-/** Item artwork exists only for the starter shoes; other items show an icon until art is added. */
-const HAS_ART = new Set(['starter-shoes'])
+/** Shoes are shown on the avatar's feet (recoloured starter-shoe art until each model has its own); other items show an icon. */
 
 const ICON_PATHS: Record<EquipmentSlot, string> = {
   shoes: 'M3 16h6l3-3 2 2 7 1v3H3z',
@@ -27,7 +28,7 @@ const ICON_PATHS: Record<EquipmentSlot, string> = {
 function ItemArt({ item }: { item: EquipmentItem }) {
   const { state } = useCareer()
   const { athlete } = state
-  if (HAS_ART.has(item.id)) {
+  if (item.slot === 'shoes') {
     return (
       <Avatar sex={athlete.sex} appearance={{ ...athlete.appearance, outfit: 'none' }} equipment={[item.id]} crop="feet" />
     )
@@ -52,17 +53,24 @@ export function EquipmentScreen() {
       title="Equipment"
       description="Buy gear and choose what your runner wears. Equipped items help in races; they never change training."
     >
-      <p className={styles.balance}>{formatCoins(state.coins)}</p>
+      <p className={styles.balance}>
+        <span className={styles.balanceLabel}>Balance</span> <Coins amount={state.coins} />
+      </p>
 
       <div className={styles.layout}>
-        <figure className={styles.preview} role="img" aria-label={`${athlete.name} with the equipment worn`}>
-          <Avatar
-            sex={athlete.sex}
-            appearance={athlete.appearance}
-            equipment={state.equipment}
-            className={styles.previewArt}
-          />
-        </figure>
+        <div className={styles.previewColumn}>
+          <figure className={styles.preview} role="img" aria-label={`${athlete.name} with the equipment worn`}>
+            <Avatar
+              sex={athlete.sex}
+              appearance={athlete.appearance}
+              equipment={state.equipment}
+              className={styles.previewArt}
+            />
+          </figure>
+          <Link to="/appearance" className={`${button.button} ${button.secondary}`}>
+            Change look
+          </Link>
+        </div>
 
         <div className={styles.columns}>
           <section aria-labelledby="owned-title" className={styles.owned}>
@@ -138,10 +146,12 @@ function ShopItem({ item, onBought }: { item: EquipmentItem; onBought(text: stri
         <ItemArt item={item} />
       </span>
       <span className={styles.itemText}>
-        <strong>{itemName(item)}</strong>
+        <span className={styles.nameRow}>
+          <strong>{itemName(item)}</strong>{' '}
+          <Coins amount={item.price} className={styles.price} />
+        </span>
         <span className={styles.muted}>{item.description}</span>
         {item.effectText && <span className={styles.effect}>{item.effectText}</span>}
-        <span className={styles.price}>{formatCoins(item.price)}</span>
         {shortfall > 0 && (
           <span id={shortfallId} className={styles.warning}>
             You need {formatCoins(shortfall)} more.

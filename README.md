@@ -188,6 +188,11 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
     coins** charges once. Poles move
     to **Your equipment** and can be equipped. Each item shows its race effect, and an equipped item
     can appear as "Equipment (…)" in a race result's explanation.
+16. Look: in creation, the **Hair** tab zooms the preview in on the face; **Skin** and
+    **Clothing** zoom back out. **Equipment** → **Change look** opens **Appearance** with the same
+    tabs; changes save at once. At Level 1 the T-shirt colours show dimmed with "Lvl 2"–"Lvl 13".
+    Set `state.athlete.xp` to 1500 (Level 7) and reload: red to teal can be chosen; sky blue says
+    "Lvl 8". A level-up message names the new colour, with a **Change look** link.
 
 ## Deployment — Cloudflare Pages
 

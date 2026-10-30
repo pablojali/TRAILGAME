@@ -19,10 +19,10 @@ export interface RaceCategoryConfig {
 
 /**
  * Owner decisions (29 October 2026): levels per category Open 1–10, Trail 11–20, Mountain 21–30,
- * Elite 31–50, and every entry fee halved (was 100/250, 250/600, 600/1,400).
+ * Elite 31–50 (Open races at 4, 6 and 8 since 30 October 2026), and every entry fee halved (was 100/250, 250/600, 600/1,400).
  */
 export const RACE_CATEGORY_CONFIG: Record<RaceCategory, RaceCategoryConfig> = {
-  open: { label: 'Open', recommendedLevel: 1, standardFee: 0, earlyEntryFee: 0 },
+  open: { label: 'Open', recommendedLevel: 4, standardFee: 0, earlyEntryFee: 0 },
   trail: { label: 'Trail', recommendedLevel: 11, standardFee: 50, earlyEntryFee: 125 },
   mountain: { label: 'Mountain', recommendedLevel: 21, standardFee: 125, earlyEntryFee: 300 },
   elite: { label: 'Elite', recommendedLevel: 31, standardFee: 300, earlyEntryFee: 700 },

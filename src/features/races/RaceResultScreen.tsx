@@ -4,6 +4,7 @@ import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
 import { formatDelta } from '../../components/format'
 import { Screen } from '../../components/Screen'
+import { appearanceUnlocks } from '../../domain/athlete/appearance'
 import { ATTRIBUTE_LABELS, isAttributeId } from '../../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
@@ -54,6 +55,7 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
   const athleteName = useCareer().state.athlete.name
   const location = useLocation()
   const levelsGained = (location.state as { levelsGained?: number } | null)?.levelsGained ?? 0
+  const unlocks = appearanceUnlocks(result.levelAtStart, result.levelAtStart + levelsGained)
 
   return (
     <Screen
@@ -70,6 +72,12 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
         <p role="status" className={styles.warning}>
           Level up! +{levelsGained * ATTRIBUTE_POINTS_PER_LEVEL} attribute points.{' '}
           <Link to="/attributes">Allocate points</Link>
+          {unlocks.length > 0 && (
+            <>
+              {' '}
+              New look unlocked: {unlocks.join(', ')}. <Link to="/appearance">Change look</Link>
+            </>
+          )}
         </p>
       )}
 

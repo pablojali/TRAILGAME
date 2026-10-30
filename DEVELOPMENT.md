@@ -544,7 +544,7 @@ On the working branch, not merged.
   - Levels 1–5 are unchanged, so no saved career changes level.
   - Attribute points stay 2 per level (98 at level 50).
 - **Races:**
-  - Recommended levels: Open 1/4/8, Trail 11/14/18, Mountain 21/25/28, Elite 31/40/50. Category
+  - Recommended levels: Open 4/6/8 (owner decision, 30 October 2026; were 1/4/8), Trail 11/14/18, Mountain 21/25/28, Elite 31/40/50. Category
     levels are 1/11/21/31.
   - Fees halved: Trail 50/125, Mountain 125/300, Elite 300/700.
   - The field's typical runner now reaches Fitness 90 at level 30
@@ -617,10 +617,10 @@ first items:
 | Trail shoes lvl 1 | 35 | Speed +1, Technical +1 |
 | Technical trail shoes lvl 2 | 70 | Technical +4, technical-descent penalty −30 % |
 | Light trail shoes lvl 2 | 70 | Speed +3, descents −2 %, technical-descent penalty +30 % |
-| Poles lvl 1 | 25 | Climbing +2, Endurance +1, flats +3 % |
-| Poles lvl 2 | 50 | Climbing +3, Endurance +2, flats +1 % |
-| Hydration backpack lvl 1 | 30 | Endurance +2, wear over distance −10 % |
-| Hydration backpack lvl 2 | 90 | Endurance +3, wear over distance −15 % |
+| Poles lvl 1 | 25 | Climbing +2, flats +1 % (balance review: was Endurance +1, flats +3 %) |
+| Poles lvl 2 | 50 | Climbing +3, Endurance +1, flats +1 % (was Endurance +2) |
+| Hydration backpack lvl 1 | 30 | Endurance +1, wear over distance −10 % (was Endurance +2) |
+| Hydration backpack lvl 2 | 90 | Endurance +2, wear over distance −15 % (was Endurance +3) |
 
 Effects per race and the best loadout are in `docs/race-simulation/results.md` §10; the prototype
 checks every item's effect against `src/`.
@@ -641,6 +641,14 @@ Possible adjustments if wanted:
 - smaller attribute bonuses;
 - larger flats costs;
 - a level requirement for lvl 2 items.
+
+**Balance review (PM proposal, owner approval 30 October 2026):** see
+`docs/EQUIPMENT_BALANCE_REVIEW.md`. Poles and backpacks lose 1 Endurance each (Poles lvl 1 none),
+shoes and prices are unchanged. Poles lvl 1 slow flats by 1 % instead of 3 %: with the proposal as
+written they were up to 0.9 % slower than no poles in short races; at 1 % they help in every race
+(−0.1 % to −1.0 %). Full loadout for the typical runner: about −6 % in Open races and −12.6 % in the
+longest ultra at Fitness 60 / Fatigue 20 (was −7 % / −14.4 %). The findings above describe the
+values before this review.
 
 ### Recovery bonus on Rest (owner decision, 29 October 2026)
 
@@ -784,6 +792,45 @@ Replaces the silhouette and the Stage A placeholder options above. On the workin
   - Saved as `equipment` (equipped item ids, one per slot; older saves: none).
   - Cosmetic only: no effect on training or races (tested). The race simulation does not read
     equipment.
+
+### Appearance after creation, level unlocks and face zoom (owner request, 30 October 2026)
+
+- **Appearance screen** (`/appearance`, "Change look" on Equipment): the same Skin / Hair / Clothing
+  editor as career creation (`src/features/appearance/AppearanceEditor.tsx`), for the current
+  runner. Each change is saved at once through `setAppearance` (`src/game-engine/appearance.ts`),
+  which refuses values the runner's sex has no art for (`invalid`) and options above the runner's
+  level (`locked`). The sex cannot change. Cosmetic only: nothing else in the state changes.
+- **Level unlocks:** one T-shirt colour per level, Level 2 to Level 13 (red, orange, yellow, lime,
+  green, teal, sky blue, blue, purple, pink, navy, black; `TSHIRT_COLORS`). They tint the white
+  T-shirt artwork (SVG colour matrix, shading kept), so they need no new art.
+  - Locked colours show dimmed with "Lvl N" on the Appearance screen; career creation (Level 1)
+    hides them and says new colours unlock as you level up.
+  - The level-up messages (training feedback and race result) name what was unlocked, with a
+    "Change look" link.
+  - Saved as `outfit: 'tshirt-<colour>'` in the existing appearance; unknown values still fall
+    back to "No shirt". Levels 14–50 unlock nothing yet: they need new art (hairstyles, caps,
+    sunglasses, shorts), to be added to the same table.
+- **Face zoom:** on the Hair tab (creation and the Appearance screen) the preview zooms in on the
+  head and shoulders (×3.2, 450 ms, no animation with reduced motion) and zooms back out on the
+  other tabs. The frame keeps its size.
+
+### Equipment on the avatar, coins symbol, Open levels (owner decisions, 30 October 2026)
+
+- **Avatar shows all equipped gear** (bug: only the starter shoes had art, so other shoes showed
+  the runner barefoot, and backpack and poles were never drawn). `src/components/avatar/Avatar.tsx`:
+  - Shoes without their own art reuse the starter-shoe art, recoloured per model (Trail shoes blue,
+    Technical orange, Light lime). Only the bluish shoe pixels are recoloured; the grey socks are
+    not. The shop shows each shoe on the avatar's feet.
+  - Poles: placeholder vector poles held in the hands, drawn behind the body (lvl 1 aluminium with
+    a red band, lvl 2 carbon with an orange band).
+  - Backpack: placeholder vector running-vest front (straps, chest pockets with soft flasks,
+    sternum straps) drawn over the top (lvl 1 slate, lvl 2 charcoal with orange trim).
+  - All bodies share the same neck, shoulder and hand positions, so one set of coordinates fits
+    all. Owner artwork can replace any placeholder later.
+- **Coins:** a gold coin symbol (`src/components/Coins.tsx`) with the balance on the Dashboard
+  (Condition column) and on Equipment, and next to each item's name in the shop.
+- **Open races** at levels 4, 6 and 8 (were 1, 4 and 8). Open entry stays free; a new runner
+  (Fitness 20) now finishes about 24th in Forest First Steps instead of 19th.
 
 ### M4 — Race System (M4.1–M4.4 done on the working branch, pending owner approval)
 

@@ -5,10 +5,9 @@ import { createPlayerIdentity, type IdentityClient } from './playerIdentity'
 
 /** A fake Supabase client: a stored session (or none), failures to inject, and call counts. */
 function fakeClient({ session = null as string | null } = {}) {
-  const calls = { getSession: 0, signIn: 0, rpc: 0 }
-  const failures = { getSession: 0, signIn: 0, rpc: 0 }
+  const calls = { getSession: 0, signIn: 0 }
+  const failures = { getSession: 0, signIn: 0 }
   let stored = session
-  const careers = new Map<string, string>()
   const client: IdentityClient = {
     auth: {
       async getSession() {
@@ -29,22 +28,8 @@ function fakeClient({ session = null as string | null } = {}) {
         return { data: { user: { id: stored } }, error: null }
       },
     },
-    async rpc(_fn, args) {
-      calls.rpc++
-      if (failures.rpc > 0) {
-        failures.rpc--
-        return { data: null, error: new TypeError('Failed to fetch') }
-      }
-      // Like the database function: one career per user, created once.
-      const user = stored!
-      const existing = careers.get(user)
-      if (existing) return { data: [{ career_id: existing, created: false }], error: null }
-      expect(args.initial_schema_version).toBe(2)
-      careers.set(user, `career-of-${user}`)
-      return { data: [{ career_id: `career-of-${user}`, created: true }], error: null }
-    },
   }
-  return { client, calls, failures, careers }
+  return { client, calls, failures }
 }
 
 afterEach(() => {
@@ -104,50 +89,13 @@ describe('player identity — anonymous sign-in', () => {
   })
 })
 
-describe('player identity — remote career', () => {
-  it('creates the remote career once, however often it is asked', async () => {
-    const fake = fakeClient()
-    const identity = createPlayerIdentity(fake.client)
-    const state = newGame()
-    const results = await Promise.all([identity.ensureCareer(state), identity.ensureCareer(state)])
-    expect(results).toEqual([
-      { careerId: 'career-of-anon-1', created: true },
-      { careerId: 'career-of-anon-1', created: true },
-    ])
-    await identity.ensureCareer(state)
-    expect(fake.calls.rpc).toBe(1)
-    expect(fake.careers.size).toBe(1)
-  })
-
-  it('returns the existing career when the server already has one (retry, another device)', async () => {
-    const fake = fakeClient({ session: 'user-1' })
-    fake.careers.set('user-1', 'career-1')
-    const identity = createPlayerIdentity(fake.client)
-    await expect(identity.ensureCareer(newGame())).resolves.toEqual({ careerId: 'career-1', created: false })
-  })
-
-  it('retries a failed career creation and creates it only once', async () => {
-    vi.useFakeTimers()
-    const fake = fakeClient()
-    fake.failures.rpc = 2
-    const identity = createPlayerIdentity(fake.client, 1_000)
-    await expect(identity.ensureCareer(newGame())).resolves.toBeNull()
-    await vi.advanceTimersByTimeAsync(1_000)
-    await vi.advanceTimersByTimeAsync(2_000)
-    expect(fake.calls.rpc).toBe(3)
-    expect(fake.careers.size).toBe(1)
-    await expect(identity.ensureCareer(newGame())).resolves.toEqual({ careerId: 'career-of-anon-1', created: true })
-    expect(fake.calls.rpc).toBe(3)
-    identity.stop()
-  })
-
+describe('player identity — local save', () => {
   it('never reads, changes or deletes the local save', async () => {
     const raw = JSON.stringify({ schemaVersion: 2, savedAt: 'x', state: newGame() })
     localStorage.setItem(SAVE_KEY, raw)
     const fake = fakeClient()
     const identity = createPlayerIdentity(fake.client)
     await identity.start()
-    await identity.ensureCareer(newGame('climber'))
     expect(localStorage.getItem(SAVE_KEY)).toBe(raw)
   })
 })

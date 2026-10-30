@@ -9,6 +9,7 @@ import {
   SCHEMA_VERSION,
   type GameRepository,
 } from '../../repositories/gameRepository'
+import { createCloudSync, type CloudSync, type RemoteCareerStore } from '../../repositories/cloudSync'
 import type { PlayerIdentity } from '../../repositories/supabase/playerIdentity'
 import { newGame, T0, TEST_IDENTITY, withAthlete } from '../../test/gameFixtures'
 import { GameProvider } from './GameProvider'
@@ -22,7 +23,7 @@ function renderProvider(repository: GameRepository, identity: PlayerIdentity | n
     return <p data-testid="phase">{game.current.phase.kind}</p>
   }
   render(
-    <GameProvider repository={repository} clock={() => T0} identity={identity}>
+    <GameProvider repository={repository} clock={() => T0} identity={identity} cloud={null}>
       <Probe />
     </GameProvider>,
   )
@@ -159,47 +160,126 @@ describe('GameProvider — asynchronous loading and saving', () => {
   })
 })
 
-/** A stand-in for the Supabase identity that records what the game asks of it. */
+/** A stand-in for the Supabase identity. */
 function fakeIdentity() {
   return {
     start: vi.fn(async () => 'user-1'),
-    ensureCareer: vi.fn<PlayerIdentity['ensureCareer']>(async () => ({ careerId: 'career-1', created: true })),
     status: () => 'signed-in' as const,
     stop: vi.fn(),
   } satisfies PlayerIdentity
 }
 
-describe('GameProvider — anonymous identity (Phase 2A)', () => {
-  it('signs in at startup but never creates a remote career for an existing local career', async () => {
+/** A cloud that behaves like save_my_career (versions, conflicts); `down` simulates offline. */
+function fakeCloudStore(initial: GameState | null = null) {
+  let career: { version: number; state: GameState } | null = initial ? { version: 1, state: initial } : null
+  const network = { down: false }
+  const saves: number[] = []
+  const store: RemoteCareerStore = {
+    userId: async () => {
+      if (network.down) throw new TypeError('Failed to fetch')
+      return 'user-1'
+    },
+    fetch: async () => {
+      if (network.down) throw new TypeError('Failed to fetch')
+      return career && { version: career.version, schemaVersion: 2, state: structuredClone(career.state), updatedAt: 1 }
+    },
+    save: async (state, baseVersion) => {
+      if (network.down) throw new TypeError('Failed to fetch')
+      if ((career?.version ?? null) !== baseVersion) return { saved: false, version: career?.version ?? null }
+      career = { version: (career?.version ?? 0) + 1, state: structuredClone(state) }
+      saves.push(career.version)
+      return { saved: true, version: career.version }
+    },
+  }
+  return { store, network, saves, remote: () => career }
+}
+
+function renderWithCloud(repository: GameRepository, cloud: CloudSync) {
+  const game: { current: GameContextValue | null } = { current: null }
+  function Probe() {
+    game.current = useGame()
+    return <p data-testid="phase">{game.current.phase.kind}</p>
+  }
+  render(
+    <GameProvider repository={repository} clock={() => T0} identity={fakeIdentity()} cloud={cloud}>
+      <Probe />
+    </GameProvider>,
+  )
+  return { game: () => game.current!, phase: () => screen.getByTestId('phase').textContent }
+}
+
+const localRepo = () => createLocalStorageGameRepository(localStorage, () => T0)
+
+describe('GameProvider — cloud saves (Phase 2C)', () => {
+  it('plays the local career at once and uploads it when the cloud has none (first migration)', async () => {
     const saved = withAthlete(newGame(), { xp: 300 })
     const raw = JSON.stringify({ schemaVersion: SCHEMA_VERSION, savedAt: 'x', state: saved })
     localStorage.setItem(SAVE_KEY, raw)
-    const identity = fakeIdentity()
-    const view = renderProvider(createLocalStorageGameRepository(localStorage, () => T0), identity)
+    const cloud = fakeCloudStore()
+    const view = renderWithCloud(localRepo(), createCloudSync({ store: cloud.store, storage: localStorage, debounceMs: 0 }))
     await waitFor(() => expect(view.phase()).toBe('playing'))
-    expect(identity.start).toHaveBeenCalled()
-    expect(identity.ensureCareer).not.toHaveBeenCalled()
+    await waitFor(() => expect(cloud.remote()?.state).toEqual(saved))
+    expect(view.game().cloudStatus).toBe('synced')
     // The local career is kept exactly as it was.
     expect(localStorage.getItem(SAVE_KEY)).toBe(raw)
   })
 
-  it('creates the remote career from a new career, which stays saved locally', async () => {
-    const identity = fakeIdentity()
-    const view = renderProvider(createLocalStorageGameRepository(localStorage, () => T0), identity)
-    await waitFor(() => expect(view.phase()).toBe('new-career'))
-    await act(async () => view.game().startCareer('climber', TEST_IDENTITY))
-    expect(identity.ensureCareer).toHaveBeenCalledTimes(1)
-    const created = identity.ensureCareer.mock.calls[0]![0]
-    await waitFor(() => expect(JSON.parse(localStorage.getItem(SAVE_KEY)!).state).toEqual(created))
+  it('restores the cloud career on a device with none, instead of offering a new career', async () => {
+    const cloudCareer = withAthlete(newGame('climber'), { xp: 500 })
+    const cloud = fakeCloudStore(cloudCareer)
+    const view = renderWithCloud(localRepo(), createCloudSync({ store: cloud.store, storage: localStorage }))
+    await waitFor(() => expect(view.phase()).toBe('playing'))
+    const phase = view.game().phase
+    expect(phase.kind === 'playing' && phase.state.athlete).toMatchObject({ profile: 'climber', xp: 500 })
+    expect(view.game().cloudNotice).toBe('restored')
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(SAVE_KEY)!).state.athlete.xp).toBe(500))
+    expect(cloud.saves).toEqual([])
   })
 
-  it('plays normally while the identity is still failing', async () => {
-    const identity = { ...fakeIdentity(), start: vi.fn(async () => null), ensureCareer: vi.fn<PlayerIdentity['ensureCareer']>(async () => null) }
+  it('a new career on a new device is created in the cloud once', async () => {
+    const cloud = fakeCloudStore()
+    const view = renderWithCloud(localRepo(), createCloudSync({ store: cloud.store, storage: localStorage, debounceMs: 0 }))
+    await waitFor(() => expect(view.phase()).toBe('new-career'))
+    await act(async () => view.game().startCareer('climber', TEST_IDENTITY))
+    await waitFor(() => expect(cloud.remote()?.state.athlete.profile).toBe('climber'))
+    expect(cloud.saves).toEqual([1])
+  })
+
+  it('asks the player when the device and the cloud hold different careers, and keeps the chosen one', async () => {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ schemaVersion: 2, savedAt: 'x', state: withAthlete(newGame(), { xp: 300 }) }))
+    const cloud = fakeCloudStore(withAthlete(newGame('climber'), { xp: 900 }))
+    const view = renderWithCloud(localRepo(), createCloudSync({ store: cloud.store, storage: localStorage }))
+    await waitFor(() => expect(view.game().syncConflict).not.toBeNull())
+    // Nothing was overwritten while waiting for the choice.
+    expect(cloud.remote()!.state.athlete.xp).toBe(900)
+    expect(JSON.parse(localStorage.getItem(SAVE_KEY)!).state.athlete.xp).toBe(300)
+    await act(async () => {
+      await view.game().resolveSyncConflict('cloud')
+    })
+    const phase = view.game().phase
+    expect(phase.kind === 'playing' && phase.state.athlete.xp).toBe(900)
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(SAVE_KEY)!).state.athlete.xp).toBe(900))
+    expect(JSON.parse(localStorage.getItem('trailgame.save.backup')!).state.athlete.xp).toBe(300)
+    expect(view.game().syncConflict).toBeNull()
+  })
+
+  it('plays normally offline: saves locally and reports the upload as pending', async () => {
+    const cloud = fakeCloudStore()
+    cloud.network.down = true
     const store = controlledRepository(null)
-    const view = renderProvider(store.repo, identity)
+    const view = renderWithCloud(store.repo, createCloudSync({ store: cloud.store, storage: localStorage, debounceMs: 0, retryMs: 60_000 }))
     await store.finishLoad()
+    await waitFor(() => expect(view.phase()).toBe('new-career'))
     await act(async () => view.game().startCareer('climber', TEST_IDENTITY))
     expect(view.phase()).toBe('playing')
     await waitFor(() => expect(store.stored()?.athlete.profile).toBe('climber'))
+    expect(view.game().cloudStatus).toBe('pending')
+    expect(cloud.remote()).toBeNull()
+  })
+
+  it('without Supabase the cloud is off and nothing changes', async () => {
+    const view = renderProvider(controlledRepository(null).repo)
+    expect(view.game().cloudStatus).toBe('off')
+    expect(view.game().syncConflict).toBeNull()
   })
 })

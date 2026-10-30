@@ -26,7 +26,8 @@ export interface SaveQueue {
  */
 export function createSaveQueue(
   repository: GameRepository,
-  onResult: (saved: boolean) => void,
+  /** After each write: whether it worked, and the state written. */
+  onResult: (saved: boolean, state: GameState) => void,
   retryMs = SAVE_RETRY_MS,
 ): SaveQueue {
   let tail: Promise<void> = Promise.resolve()
@@ -67,9 +68,9 @@ export function createSaveQueue(
       // A newer state queued while this one was being written stays queued.
       if (latest === state) latest = null
       retryDelay = retryMs
-      onResult(true)
+      onResult(true, state)
     } catch {
-      onResult(false)
+      onResult(false, state)
       scheduleRetry()
     }
   }

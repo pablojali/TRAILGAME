@@ -15,9 +15,14 @@ import {
   IncompatibleSaveError,
   type GameRepository,
 } from '../../repositories/gameRepository'
+import type { CloudSync } from '../../repositories/cloudSync'
 import { createSaveQueue } from '../../repositories/saveQueue'
+import { getCloudSync } from '../../repositories/supabase/cloudSave'
 import { getPlayerIdentity, type PlayerIdentity } from '../../repositories/supabase/playerIdentity'
-import { GameContext, type DecayNotice, type GameContextValue, type GamePhase } from './gameContext'
+import { GameContext, type CloudNotice, type DecayNotice, type GameContextValue, type GamePhase } from './gameContext'
+
+/** With no career on this device, how long the game waits for one in the cloud before offering a new career. */
+export const CLOUD_RESTORE_WAIT_MS = 3_000
 
 interface GameProviderProps {
   children: ReactNode
@@ -30,9 +35,11 @@ interface GameProviderProps {
    * Supabase. It runs beside the game and never blocks it or touches the local save.
    */
   identity?: PlayerIdentity | null
+  /** Cloud saves; defaults to the configured ones, or none (null) without Supabase. */
+  cloud?: CloudSync | null
 }
 
-export function GameProvider({ children, repository, clock = Date.now, identity }: GameProviderProps) {
+export function GameProvider({ children, repository, clock = Date.now, identity, cloud }: GameProviderProps) {
   // Latest clock, also read by the repository (decay reference fallback when loading).
   const clockRef = useRef(clock)
   useEffect(() => {
@@ -44,10 +51,19 @@ export function GameProvider({ children, repository, clock = Date.now, identity 
   const [decayNotice, setDecayNotice] = useState<DecayNotice | null>(null)
   const [lastExecution, setLastExecution] = useState<ExecutionResult | null>(null)
   const [loadAttempt, setLoadAttempt] = useState(0)
-  // One queue for the provider's lifetime: saves never overlap and keep their order.
-  const [queue] = useState(() => createSaveQueue(repo, (saved) => setSaveFailed(!saved)))
-  useEffect(() => () => queue.dispose(), [queue])
   const [player] = useState(() => (identity === undefined ? getPlayerIdentity() : identity))
+  const [sync] = useState(() => (cloud === undefined ? getCloudSync() : cloud))
+  const [syncTick, setSyncTick] = useState(0)
+  const [cloudNotice, setCloudNotice] = useState<CloudNotice | null>(null)
+  // One queue for the provider's lifetime: saves never overlap and keep their order. Every career
+  // stored on this device is then uploaded by the cloud sync (local first, cloud after).
+  const [queue] = useState(() =>
+    createSaveQueue(repo, (saved, state) => {
+      setSaveFailed(!saved)
+      if (saved) sync?.localSaved(state)
+    }),
+  )
+  useEffect(() => () => queue.dispose(), [queue])
 
   // Anonymous sign-in in the background (Phase 2A): reuses the stored session, never blocks play.
   useEffect(() => {
@@ -71,13 +87,46 @@ export function GameProvider({ children, repository, clock = Date.now, identity 
     [queue, setPhaseNow],
   )
 
+  /** Plays a career that came from the cloud (restored, chosen, or newer from another device). */
+  const adoptCloudCareer = useCallback(
+    (state: GameState, notice: CloudNotice) => {
+      const decayed = applyFitnessDecay(state, clockRef.current())
+      setLastExecution(null)
+      setDecayNotice(decayed.periods > 0 ? { periods: decayed.periods, fitnessLost: decayed.fitnessLost } : null)
+      commit({ kind: 'playing', state: decayed.state })
+      setCloudNotice(notice)
+    },
+    [commit],
+  )
+
+  useEffect(() => {
+    sync?.connect({
+      adopt: (state) => adoptCloudCareer(state, phaseRef.current.kind === 'playing' ? 'updated' : 'restored'),
+      changed: () => setSyncTick((n) => n + 1),
+    })
+    function onOnline() {
+      sync?.retry()
+    }
+    window.addEventListener('online', onOnline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      sync?.stop()
+    }
+  }, [sync, adoptCloudCareer])
+
   // Initial load. Game actions are refused until it finishes (no career is being played yet).
   useEffect(() => {
     let cancelled = false
     repo.load().then(
-      (state) => {
+      async (state) => {
         if (cancelled) return
         if (state === null) {
+          // No career here: a career saved in the cloud is restored (adopt) if it arrives soon;
+          // otherwise the player can start one, and the cloud keeps being checked.
+          if (sync) {
+            await Promise.race([sync.start(null), new Promise((resolve) => setTimeout(resolve, CLOUD_RESTORE_WAIT_MS))])
+            if (cancelled || phaseRef.current.kind !== 'loading') return
+          }
           setPhaseNow({ kind: 'new-career', replacing: null })
           return
         }
@@ -88,6 +137,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity 
         // Decay applied while loading is saved once.
         if (decayed.state !== state) commit({ kind: 'playing', state: decayed.state })
         else setPhaseNow({ kind: 'playing', state })
+        // Compared with the cloud in the background; play does not wait.
+        void sync?.start(decayed.state)
       },
       (error: unknown) => {
         if (cancelled) return
@@ -101,7 +152,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity 
     return () => {
       cancelled = true
     }
-  }, [repo, commit, setPhaseNow, loadAttempt])
+  }, [repo, commit, setPhaseNow, loadAttempt, sync])
 
   const retryLoad = useCallback(() => {
     if (phaseRef.current.kind !== 'load-failed') return
@@ -129,21 +180,21 @@ export function GameProvider({ children, repository, clock = Date.now, identity 
       if (document.visibilityState !== 'visible') return
       currentState()
       queue.retry()
+      sync?.retry()
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
-  }, [currentState, queue])
+  }, [currentState, queue, sync])
 
   const startCareer = useCallback(
     (profile: ProfileId, identity: AthleteIdentity) => {
       setLastExecution(null)
       setDecayNotice(null)
       const state = createInitialGameState(profile, clockRef.current(), identity)
+      // Saved locally, then uploaded by the cloud sync (created there once).
       commit({ kind: 'playing', state })
-      // The remote career is created once, from this new career; the local save stays the game's.
-      void player?.ensureCareer(state)
     },
-    [commit, player],
+    [commit],
   )
 
   const beginRestart = useCallback(() => {
@@ -161,6 +212,17 @@ export function GameProvider({ children, repository, clock = Date.now, identity 
     setDecayNotice(null)
     setLastExecution(null)
   }, [queue, setPhaseNow])
+
+  const resolveSyncConflict = useCallback(
+    async (choice: 'local' | 'cloud') => {
+      if (!sync) return false
+      const result = await sync.resolve(choice)
+      if (!result.ok) return false
+      if (result.adopt) adoptCloudCareer(result.adopt, 'restored')
+      return true
+    },
+    [sync, adoptCloudCareer],
+  )
 
   const planSession = useCallback(
     (ref: DayRef, session: SessionType) => {
@@ -266,6 +328,12 @@ export function GameProvider({ children, repository, clock = Date.now, identity 
       phase,
       saveFailed,
       retryLoad,
+      cloudStatus: sync ? sync.status() : 'off',
+      syncConflict: sync ? sync.conflict() : null,
+      resolveSyncConflict,
+      retrySync: () => sync?.retry(),
+      cloudNotice,
+      dismissCloudNotice: () => setCloudNotice(null),
       decayNotice,
       dismissDecayNotice: () => setDecayNotice(null),
       lastExecution,
@@ -285,6 +353,11 @@ export function GameProvider({ children, repository, clock = Date.now, identity 
       phase,
       saveFailed,
       retryLoad,
+      sync,
+      // Re-read the sync status when it reports a change.
+      syncTick,
+      resolveSyncConflict,
+      cloudNotice,
       decayNotice,
       lastExecution,
       startCareer,

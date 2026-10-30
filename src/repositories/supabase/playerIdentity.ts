@@ -1,5 +1,3 @@
-import type { GameState } from '../../game-engine/gameState'
-import { SCHEMA_VERSION } from '../gameRepository'
 import { supabaseConfigFromEnv } from './supabaseEnv'
 import { loadSupabaseClient } from './supabaseLoader'
 
@@ -9,19 +7,9 @@ export interface IdentityClient {
     getSession(): Promise<{ data: { session: { user: { id: string } } | null }; error: unknown }>
     signInAnonymously(): Promise<{ data: { user: { id: string } | null }; error: unknown }>
   }
-  rpc(
-    fn: 'create_my_career',
-    args: { initial_state: GameState; initial_schema_version: number },
-  ): PromiseLike<{ data: { career_id: string; created: boolean }[] | null; error: unknown }>
 }
 
 export type IdentityStatus = 'idle' | 'connecting' | 'signed-in' | 'retrying'
-
-export interface RemoteCareer {
-  careerId: string
-  /** False when the career already existed (a retry, another device, a later call). */
-  created: boolean
-}
 
 export interface PlayerIdentity {
   /**
@@ -30,11 +18,6 @@ export interface PlayerIdentity {
    * Resolves with the user id, or null after a failed attempt.
    */
   start(): Promise<string | null>
-  /**
-   * Creates the player's remote career from a brand-new local career, once. Safe to call again:
-   * the server returns the existing career. Never throws; on failure it retries in the background.
-   */
-  ensureCareer(initialState: GameState): Promise<RemoteCareer | null>
   status(): IdentityStatus
   /** Stops background retries. */
   stop(): void
@@ -44,20 +27,15 @@ export const IDENTITY_RETRY_MS = 2_000
 export const IDENTITY_RETRY_MAX_MS = 60_000
 
 /**
- * The player's identity for Phase 2A (anonymous first, account linking later). It only signs in
- * and creates the remote career; gameplay still reads and writes localStorage, and nothing here
- * reads, changes or deletes the local save. Future account linking (email, Apple, Google) keeps
- * the same user id, so the same career, with Supabase's identity linking.
+ * The player's Supabase identity (anonymous first; linked to email or Google in Settings). It only
+ * signs in: the cloud career is created and saved by the cloud sync (src/repositories/cloudSync.ts),
+ * and nothing here reads, changes or deletes the local save.
  */
 export function createPlayerIdentity(client: IdentityClient, retryMs = IDENTITY_RETRY_MS): PlayerIdentity {
   let userId: string | null = null
   let state: IdentityStatus = 'idle'
   /** One sign-in at a time: StrictMode double effects and repeated starts share it. */
   let signingIn: Promise<string> | null = null
-  let career: RemoteCareer | null = null
-  let creating: Promise<RemoteCareer> | null = null
-  /** A new career still to be created remotely after a failure. */
-  let pendingCareer: GameState | null = null
   let retryTimer: ReturnType<typeof setTimeout> | null = null
   let retryDelay = retryMs
 
@@ -88,35 +66,6 @@ export function createPlayerIdentity(client: IdentityClient, retryMs = IDENTITY_
     return signingIn
   }
 
-  function createCareer(initialState: GameState): Promise<RemoteCareer> {
-    if (career) return Promise.resolve(career)
-    if (!creating) {
-      creating = (async () => {
-        await session()
-        const { data, error } = await client.rpc('create_my_career', {
-          initial_state: initialState,
-          initial_schema_version: SCHEMA_VERSION,
-        })
-        if (error) throw error
-        const row = data?.[0]
-        if (!row) throw new Error('create_my_career returned nothing')
-        return { careerId: row.career_id, created: row.created }
-      })().then(
-        (result) => {
-          career = result
-          pendingCareer = null
-          creating = null
-          return result
-        },
-        (error: unknown) => {
-          creating = null
-          throw error
-        },
-      )
-    }
-    return creating
-  }
-
   function scheduleRetry() {
     state = 'retrying'
     if (retryTimer !== null) return
@@ -127,11 +76,10 @@ export function createPlayerIdentity(client: IdentityClient, retryMs = IDENTITY_
     retryDelay = Math.min(retryDelay * 2, IDENTITY_RETRY_MAX_MS)
   }
 
-  /** Signs in and creates a pending career; on failure, tries again later. */
+  /** Signs in; on failure, tries again later. */
   async function attempt(): Promise<string | null> {
     try {
       const id = await session()
-      if (pendingCareer) await createCareer(pendingCareer)
       retryDelay = retryMs
       return id
     } catch {
@@ -142,12 +90,6 @@ export function createPlayerIdentity(client: IdentityClient, retryMs = IDENTITY_
 
   return {
     start: attempt,
-    async ensureCareer(initialState) {
-      if (career) return career
-      pendingCareer = initialState
-      await attempt()
-      return career
-    },
     status: () => state,
     stop() {
       if (retryTimer !== null) clearTimeout(retryTimer)
@@ -164,7 +106,6 @@ function lazyClient(): IdentityClient {
       getSession: async () => (await load()).auth.getSession(),
       signInAnonymously: async () => (await load()).auth.signInAnonymously(),
     },
-    rpc: async (fn, args) => (await load()).rpc(fn, args),
   }
 }
 

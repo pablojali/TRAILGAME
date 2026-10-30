@@ -7,7 +7,7 @@ import { Screen } from '../../components/Screen'
 import { ATTRIBUTE_LABELS, isAttributeId } from '../../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
-import { getEquipmentItem } from '../../domain/equipment/items'
+import { getEquipmentItem, itemName } from '../../domain/equipment/items'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
 import { INJURY_REST_DAYS } from '../../domain/training/injury'
@@ -112,7 +112,7 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
 
 function factorLabel(factor: ExplanationFactor, equipment: readonly string[] = []): string {
   if (factor.id === 'equipment') {
-    const names = equipment.map((id) => getEquipmentItem(id)?.label.toLowerCase()).filter(Boolean)
+    const names = equipment.map((id) => getEquipmentItem(id)).filter((item) => item !== undefined).map((item) => itemName(item).toLowerCase())
     return `Equipment (${names.join(', ')})`
   }
   if (factor.id === 'day-form') {

@@ -62,9 +62,13 @@ export const GROSS_PRIZES = {
 const BAND_LABELS = ['1st', '2nd', '3rd', '4th–10th', '11th or lower']
 /** Equipment race effects (owner approval, 29 October 2026): multipliers while equipped. */
 export const EQUIPMENT_EFFECTS = {
-  poles: { climb: 0.96 },
-  'trail-shoes': { technicalPenalty: 0.5 },
-  'hydration-backpack': { slowdown: 0.8 },
+  'trail-shoes-basic': { attributes: { speed: 1, technical: 1 } },
+  'trail-shoes': { attributes: { technical: 4 }, technicalPenalty: 0.7 },
+  'trail-shoes-light': { attributes: { speed: 3 }, descent: 0.98, technicalPenalty: 1.3 },
+  poles: { attributes: { climbing: 2, endurance: 1 }, runnable: 1.03 },
+  'poles-2': { attributes: { climbing: 3, endurance: 2 }, runnable: 1.01 },
+  'hydration-backpack': { attributes: { endurance: 2 }, slowdown: 0.9 },
+  'hydration-backpack-2': { attributes: { endurance: 3 }, slowdown: 0.85 },
 }
 
 /** Anti-farming multipliers in whole percent, by level difference 0 (or below), 1, 2, 3+. */
@@ -180,14 +184,21 @@ export function segmentAbility(segment, a) {
  * `dayForm` is a fraction (e.g. -0.02); 0 for option A.
  */
 export function raceSeconds(course, athlete, dayForm = 0) {
-  const a = athlete.attributes
+  // Equipment: attribute bonuses for the race only, plus multipliers.
+  const gear = { runnable: 1, descent: 1, climb: 1, technicalPenalty: 1, slowdown: 1 }
+  const bonus = Object.fromEntries(ATTRS.map((k) => [k, 0]))
+  for (const id of athlete.equipment ?? []) {
+    for (const [k, v] of Object.entries(EQUIPMENT_EFFECTS[id] ?? {})) {
+      if (k === 'attributes') for (const [attr, n] of Object.entries(v)) bonus[attr] += n
+      else gear[k] *= v
+    }
+  }
+  const a = Object.fromEntries(ATTRS.map((k) => [k, athlete.attributes[k] + bonus[k]]))
   const fitnessFactor = 1 + (C.fitnessSlope * (50 - athlete.fitness)) / 50
   // D9 (V1, approved): Consistency softens the effect of Fatigue.
   const fatigueScale = C.consistencySoftensFatigue ? Math.pow(C.abilityReference / a.consistency, C.abilityExponent) : 1
   const fatigueFactor = 1 + (C.fatigueSlope * athlete.fatigue * fatigueScale) / 100
   const durability = abilities.durability(a)
-  const gear = { climb: 1, technicalPenalty: 1, slowdown: 1 }
-  for (const id of athlete.equipment ?? []) for (const [k, v] of Object.entries(EQUIPMENT_EFFECTS[id] ?? {})) gear[k] *= v
   let minutes = 0
   let effortBefore = 0
   for (const s of course) {
@@ -195,8 +206,8 @@ export function raceSeconds(course, athlete, dayForm = 0) {
     const abilityFactor = Math.pow(C.abilityReference / segmentAbility(s, a), C.abilityExponent)
     const technicalFactor = s.type === 'descent' ? 1 + C.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * (1 - a.technical / 100) : 1
     const slowdown = 1 + C.slowdownRate * gear.slowdown * (effortBefore / C.slowdownReferenceEffortKm) * (C.abilityReference / durability)
-    const climbFactor = s.type === 'climb' ? gear.climb : 1
-    minutes += e * C.basePaceMinPerEffortKm * abilityFactor * technicalFactor * slowdown * climbFactor * fitnessFactor * fatigueFactor * (1 + dayForm)
+    const gearFactor = s.type === 'climb' ? gear.climb : s.type === 'descent' ? gear.descent : gear.runnable
+    minutes += e * C.basePaceMinPerEffortKm * abilityFactor * technicalFactor * slowdown * gearFactor * fitnessFactor * fatigueFactor * (1 + dayForm)
     effortBefore += e
   }
   return minutes * 60
@@ -695,21 +706,41 @@ function reportApprovedV1() {
 }
 
 function reportEquipment() {
-  p('## 10. Equipment race effects (approved 29 October 2026)')
+  p('## 10. Equipment race effects (owner decisions, 29 October 2026)')
   p()
-  p('All-rounder, Fitness 60, Fatigue 20: time change and position with each item equipped.')
+  p('All-rounder, Fitness 60, Fatigue 20: time change with each item equipped (negative = faster). Attribute bonuses apply only in the race.')
   p()
-  const ids = ['RACE-001', 'RACE-004', 'RACE-007', 'RACE-008', 'RACE-012']
-  p(`| Item | ${ids.join(' | ')} |`)
+  const ids = RACES.map((r) => r.id)
+  p(`| Item | ${ids.map((i) => i.slice(5)).join(' | ')} |`)
   p(`|---|${ids.map(() => '---:').join('|')}|`)
   const base = athlete('all-rounder', 60, 20)
-  for (const [label, equipment] of [['Poles', ['poles']], ['Trail shoes', ['trail-shoes']], ['Hydration backpack', ['hydration-backpack']], ['All three', ['poles', 'trail-shoes', 'hydration-backpack']]]) {
-    p(`| ${label} | ${ids.map((id) => {
-      const r = race(id)
-      const before = simulate(r, base)
-      const after = simulate(r, { ...base, equipment })
-      return `${pct1(after.timeS / before.timeS - 1)} (#${before.position}→#${after.position})`
-    }).join(' | ')} |`)
+  const items = [
+    ['Trail shoes lvl 1 (35)', 'trail-shoes-basic'], ['Technical trail shoes lvl 2 (70)', 'trail-shoes'], ['Light trail shoes lvl 2 (70)', 'trail-shoes-light'],
+    ['Poles lvl 1 (25)', 'poles'], ['Poles lvl 2 (50)', 'poles-2'], ['Backpack lvl 1 (30)', 'hydration-backpack'], ['Backpack lvl 2 (90)', 'hydration-backpack-2'],
+  ]
+  const time = (r, equipment) => raceSeconds(generateCourse(r), { ...base, equipment })
+  for (const [label, id] of items) {
+    p(`| ${label} | ${ids.map((rid) => { const r = race(rid); return pct1(time(r, [id]) / time(r, []) - 1) }).join(' | ')} |`)
+  }
+  p()
+  p('Best loadout per race (one item per slot, or none):')
+  p()
+  p('| Race | Best loadout | Time change | Position |')
+  p('|---|---|---:|---|')
+  const shoes = [null, 'trail-shoes-basic', 'trail-shoes', 'trail-shoes-light']
+  const poles = [null, 'poles', 'poles-2']
+  const packs = [null, 'hydration-backpack', 'hydration-backpack-2']
+  for (const rid of ids) {
+    const r = race(rid)
+    let best = null
+    for (const sh of shoes) for (const po of poles) for (const pa of packs) {
+      const eq = [sh, po, pa].filter(Boolean)
+      const t = time(r, eq)
+      if (!best || t < best.t - 1e-9) best = { t, eq }
+    }
+    const before = simulate(r, base)
+    const after = simulate(r, { ...base, equipment: best.eq })
+    p(`| ${rid} ${r.name} | ${best.eq.join(' + ') || 'none'} | ${pct1(best.t / time(r, []) - 1)} | #${before.position} → #${after.position} |`)
   }
   p()
 }

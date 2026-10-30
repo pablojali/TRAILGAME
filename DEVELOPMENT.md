@@ -592,6 +592,56 @@ On the working branch, not merged.
   Racing every week still piles up Fatigue: a race adds 10–14 and takes the Sunday rest. Racing
   every 2–3 weeks with a careful plan is sustainable; that choice is left to the player.
 
+### Equipment rules and strategic shop (owner, 29 October 2026)
+
+**Rules 1–4 are met and now pinned by tests** (`src/game-engine/equipmentRules.test.ts`):
+1. **Independent bonuses:** effects are race multipliers, never attribute points. Attributes, spent
+   points, levels and training stay identical with any equipment, before and after a race.
+2. **Only while equipped:** the simulation reads `state.equipment` when the race starts.
+3. **One per slot:** equipping another item replaces the previous one, and its bonus stops.
+4. **Inventory:** bought items stay in `ownedEquipment` when unequipped.
+
+**Rule 5 is not met yet: the current shop is a ladder.**
+- No item has a downside, so wearing everything is always best.
+- The trail shoes beat the starter shoes on every course.
+
+**Owner's catalog (29 October 2026), implemented.** It replaces the trade-off proposal and the
+first items:
+- **Two kinds of effect:** attribute bonuses that apply in the race only (rule 1), plus time
+  multipliers. Both are defined per item in `src/domain/equipment/items.ts`.
+- **Items bought before:** they keep their id and become Poles lvl 1, Hydration backpack lvl 1
+  and Technical trail shoes lvl 2. There is no refund (owner decision) and no save migration.
+
+| Item | Price | Race effect |
+|---|---:|---|
+| Trail shoes lvl 1 | 35 | Speed +1, Technical +1 |
+| Technical trail shoes lvl 2 | 70 | Technical +4, technical-descent penalty −30 % |
+| Light trail shoes lvl 2 | 70 | Speed +3, descents −2 %, technical-descent penalty +30 % |
+| Poles lvl 1 | 25 | Climbing +2, Endurance +1, flats +3 % |
+| Poles lvl 2 | 50 | Climbing +3, Endurance +2, flats +1 % |
+| Hydration backpack lvl 1 | 30 | Endurance +2, wear over distance −10 % |
+| Hydration backpack lvl 2 | 90 | Endurance +3, wear over distance −15 % |
+
+Effects per race and the best loadout are in `docs/race-simulation/results.md` §10; the prototype
+checks every item's effect against `src/`.
+
+**Findings (All-rounder, Fitness 60, Fatigue 20):**
+1. **The shoes are a real choice:**
+   - The light shoes are best on runnable courses (−3.9 % in RACE-001, almost nothing in ultras).
+   - The technical shoes are best on technical courses (−3.6 % in RACE-012, nothing in RACE-001).
+2. **Poles and backpack:** the attribute bonuses outweigh the flats cost, so they help almost
+   everywhere.
+   - Only Poles lvl 1 costs time in the flattest race (+0.2 % in RACE-001).
+   - Level 2 is better than level 1 in its slot, as decided ("an upgrade").
+3. **The full loadout is strong:**
+   - −7 % in Open races (6th → 1st in Forest First Steps) up to −14 % in the longest ultra.
+   - At these prices (25–90 coins) it is affordable early.
+
+Possible adjustments if wanted:
+- smaller attribute bonuses;
+- larger flats costs;
+- a level requirement for lvl 2 items.
+
 ### Recovery bonus on Rest (owner decision, 29 October 2026)
 
 After the M4.4 balance finding the owner kept the training values ("in real life you balance

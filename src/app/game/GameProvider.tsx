@@ -53,7 +53,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [player] = useState(() => (identity === undefined ? getPlayerIdentity() : identity))
   const [sync] = useState(() => (cloud === undefined ? getCloudSync() : cloud))
-  const [syncTick, setSyncTick] = useState(0)
+  const [syncView, setSyncView] = useState(() => ({ status: sync ? sync.status() : ('off' as const), conflict: sync?.conflict() ?? null }))
   const [cloudNotice, setCloudNotice] = useState<CloudNotice | null>(null)
   // One queue for the provider's lifetime: saves never overlap and keep their order. Every career
   // stored on this device is then uploaded by the cloud sync (local first, cloud after).
@@ -102,7 +102,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   useEffect(() => {
     sync?.connect({
       adopt: (state) => adoptCloudCareer(state, phaseRef.current.kind === 'playing' ? 'updated' : 'restored'),
-      changed: () => setSyncTick((n) => n + 1),
+      changed: () => setSyncView({ status: sync.status(), conflict: sync.conflict() }),
     })
     function onOnline() {
       sync?.retry()
@@ -328,8 +328,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       phase,
       saveFailed,
       retryLoad,
-      cloudStatus: sync ? sync.status() : 'off',
-      syncConflict: sync ? sync.conflict() : null,
+      cloudStatus: syncView.status,
+      syncConflict: syncView.conflict,
       resolveSyncConflict,
       retrySync: () => sync?.retry(),
       cloudNotice,
@@ -354,8 +354,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       saveFailed,
       retryLoad,
       sync,
-      // Re-read the sync status when it reports a change.
-      syncTick,
+      syncView,
       resolveSyncConflict,
       cloudNotice,
       decayNotice,

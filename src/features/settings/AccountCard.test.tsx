@@ -16,6 +16,8 @@ function fakeService(overrides: Partial<AccountService> = {}): AccountService {
     })),
     setPassword: vi.fn(async (): Promise<LinkResult> => ({ ok: true, status: ANONYMOUS })),
     startOAuthLink: vi.fn(async (): Promise<LinkResult> => ({ ok: true, status: ANONYMOUS })),
+    startOAuthSignIn: vi.fn(async (): Promise<LinkResult> => ({ ok: true, status: ANONYMOUS })),
+    signInWithPassword: vi.fn(async (): Promise<LinkResult> => ({ ok: true, status: ANONYMOUS, signedIn: true })),
     completeRedirect: vi.fn(async () => null),
     signOut: vi.fn(async () => {}),
     ...overrides,

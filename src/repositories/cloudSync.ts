@@ -227,8 +227,8 @@ export function createCloudSync({
   let timer: ReturnType<typeof setTimeout> | null = null
   let retryDelay = retryMs
 
+  /** Also reports a changed conflict while the status stays 'conflict'. */
   function setStatus(next: SyncStatus) {
-    if (state === next) return
     state = next
     handlers?.changed()
   }

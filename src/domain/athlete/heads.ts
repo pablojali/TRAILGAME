@@ -12,17 +12,9 @@ import type { Sex } from './athlete'
  * URL (src/components/avatar/Avatar.tsx).
  */
 export const HEAD_FILES: readonly string[] = [
-  'lvl1_men_head_01_tone1',
-  'lvl1_men_head_01_tone2',
-  'lvl1_men_head_01_tone3',
-  'lvl1_women_head_03_tone2',
-  'lvl1_women_head_03_tone3',
-  'lvl1_women_head_05_tone3',
-  'lvl2_women_head_01_tone2',
-  'lvl2_women_head_01_tone3',
-  'lvl2_women_head_02_tone2',
-  'lvl2_women_head_02_tone3',
-  'lvl2_women_head_03_tone3',
+  'lvl1_women_head_01_tone1',
+  'lvl1_women_head_01_tone2',
+  'lvl1_women_head_01_tone3',
 ]
 
 const NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/
@@ -39,9 +31,10 @@ export interface HeadDefinition {
   files: Partial<Record<number, string>>
 }
 
-function buildCatalog(): HeadDefinition[] {
+/** The catalog for a list of head file names (exported for tests with other art). */
+export function buildHeadCatalog(files: readonly string[]): HeadDefinition[] {
   const byId = new Map<string, HeadDefinition>()
-  for (const file of HEAD_FILES) {
+  for (const file of files) {
     const match = NAME.exec(file)
     if (!match) continue
     const [, level, sexName, design, tone] = match
@@ -60,7 +53,7 @@ function buildCatalog(): HeadDefinition[] {
 }
 
 /** Every head, in unlock order (level, then design). */
-export const HEADS: readonly HeadDefinition[] = buildCatalog()
+export const HEADS: readonly HeadDefinition[] = buildHeadCatalog(HEAD_FILES)
 
 export function getHead(sex: Sex, id: string): HeadDefinition | undefined {
   return HEADS.find((head) => head.sex === sex && head.id === id)

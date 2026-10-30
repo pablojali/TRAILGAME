@@ -952,6 +952,15 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### New women's bodies and head art (owner upload, 30 October 2026)
+
+- Women's bodies (tones 1–3) replaced by the owner: now bald, like the men's.
+- The 11 earlier heads were removed; one new head: `lvl1_women_head_01`, tones 1–3 (Hairstyle 1,
+  Level 1). Men have no head art for now (basic head only).
+- Careers that had chosen a removed head load with the basic head (`parseAppearance`).
+- Head rules that need more art (level locks, tones without art) are still tested with the earlier
+  11-head list (`src/domain/athlete/appearance.heads.test.ts`).
+
 ### App-style layout: no page scroll (owner request, 30 October 2026)
 
 Like a phone app, the page never scrolls: the top bar and the bottom navigation stay still and

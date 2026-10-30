@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { newGame, withAthlete } from '../../test/gameFixtures'
@@ -33,14 +33,14 @@ describe('Appearance', () => {
     expect(readSave()?.state.athlete.appearance).toEqual({ hair: 'natural', skin: 'tone-3', outfit: 'tshirt-orange' })
   })
 
-  it('shows Level 2 hairstyles locked at Level 1 and saves an unlocked one', async () => {
+  it('offers the hairstyles of the runner and saves the chosen one', async () => {
     const user = userEvent.setup()
     seedCareer() // Women, tone 2, Level 1.
     await renderApp('/appearance')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))
-    expect(screen.getByRole('radio', { name: 'Hairstyle 3, unlocks at Level 2' })).toBeDisabled()
+    expect(screen.getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['natural', 'head-l1-01'])
     await user.click(screen.getByRole('radio', { name: 'Hairstyle 1' }))
-    expect(readSave()?.state.athlete.appearance.hair).toBe('head-l1-03')
+    await waitFor(() => expect(readSave()?.state.athlete.appearance.hair).toBe('head-l1-01'))
     expect(screen.getByRole('img', { name: /hairstyle 1/ }).querySelector('image[data-layer="head"]')).not.toBeNull()
   })
 

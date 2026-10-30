@@ -45,12 +45,10 @@ Painting hair over a bald head does not look right, so a head part is a complete
 hair and ears together) drawn over the body's own head.
 
 - **Bodies keep a basic head** (owner decision, 30 October 2026), one body per sex and tone, for
-  example `men_body_tone2.png`: men bald, women with basic hair. With no head part chosen, the
+  example `men_body_tone2.png`: men and women bald (women's bodies redrawn bald on 30 October 2026). With no head part chosen, the
   runner shows that basic head ("As drawn", the default).
-- **A head must fully cover the basic head**, including the women's basic hair, so nothing of it
-  shows around the new head. A short haircut drawn over longer basic hair would leave the basic
-  hair visible: keep the women's basic hair close to the head (short, or tied back), or make
-  every women's head opaque wherever the basic hair reaches.
+- **A head must fully cover the basic head**, so nothing of it shows around the new head. With
+  bald bodies any haircut, short or long, covers the basic head.
 - **The neck stays the body's:** each head should end where it meets the body's neck, matching its
   tone, so the join does not show.
 

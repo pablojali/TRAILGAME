@@ -28,15 +28,11 @@ describe('setAppearance', () => {
     expect(setAppearance(level2, look('tshirt-orange'))).toEqual({ ok: false, error: 'locked' })
   })
 
-  it('refuses a head above the runner level, or one with no art in the runner skin tone', () => {
-    const female = newGame() // Women, tone 2.
-    expect(setAppearance(female, { hair: 'head-l2-01', skin: 'tone-2', outfit: 'none' })).toEqual({
-      ok: false,
-      error: 'locked',
-    })
-    expect(setAppearance(withAthlete(female, { xp: 100 }), { hair: 'head-l2-01', skin: 'tone-2', outfit: 'none' }).ok).toBe(true)
-    // Hairstyle 2 (head-l1-05) is drawn in tone 3 only.
-    expect(setAppearance(female, { hair: 'head-l1-05', skin: 'tone-2', outfit: 'none' })).toEqual({
+  it('accepts the current head for women and refuses it for men (no art for their sex)', () => {
+    // Level locks and tones without art: src/domain/athlete/appearance.heads.test.ts.
+    expect(setAppearance(newGame(), { hair: 'head-l1-01', skin: 'tone-1', outfit: 'none' }).ok).toBe(true)
+    const male = newGame('all-rounder', undefined, { name: 'Leo', sex: 'male' })
+    expect(setAppearance(male, { hair: 'head-l1-01', skin: 'tone-1', outfit: 'none' })).toEqual({
       ok: false,
       error: 'invalid',
     })

@@ -297,18 +297,10 @@ describe('localStorage game repository', () => {
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
-  it('round-trips the last played day; older saves have none; an invalid one is rejected', () => {
-    const repo = createLocalStorageGameRepository(memoryStorage())
+  it('drops the daily-reward field of saves from earlier the same day (lastPlayedDay)', () => {
     const state = progressedState(1)
-    expect(state.lastPlayedDay).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    repo.save(state)
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
-    const withoutField: Partial<GameState> = { ...state }
-    delete withoutField.lastPlayedDay
-    const old = memoryStorage({ [SAVE_KEY]: saveOf(withoutField) })
-    expect(createLocalStorageGameRepository(old).load(T0)).toEqual({ status: 'loaded', state: { ...state, lastPlayedDay: null } })
-    const bad = memoryStorage({ [SAVE_KEY]: saveOf({ ...state, lastPlayedDay: 'yesterday' }) })
-    expect(createLocalStorageGameRepository(bad).load(T0)).toMatchObject({ status: 'incompatible' })
+    const storage = memoryStorage({ [SAVE_KEY]: saveOf({ ...state, lastPlayedDay: '2026-10-30' }) })
+    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({ status: 'loaded', state })
   })
 
   it('round-trips an attribute above 100 (no upper limit since 30 October 2026)', () => {

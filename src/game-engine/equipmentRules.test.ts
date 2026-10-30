@@ -36,12 +36,16 @@ describe('equipment rules (owner, 29 October 2026)', () => {
     expect(state.athlete).toEqual(plain.athlete)
     expect(getEarnedAttributePoints(state.athlete.xp)).toBe(getEarnedAttributePoints(plain.athlete.xp))
 
-    // The attribute bonuses apply in the race only: base attributes are unchanged after it.
+    // The attribute bonuses apply in the race only: base attributes are unchanged after it, apart
+    // from the weekly Consistency (the race completes the week), as without equipment.
     const entered = enterRace(state, 'RACE-008', 300, T0)
     if (!entered.ok) throw new Error(entered.error)
     const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
     if (!raced.ok) throw new Error(raced.error)
-    expect(raced.value.state.athlete.attributes).toEqual(state.athlete.attributes)
+    expect(raced.value.state.athlete.attributes).toEqual({
+      ...state.athlete.attributes,
+      consistency: state.athlete.attributes.consistency + 0.1,
+    })
     expect(raced.value.state.athlete.spentAttributePoints).toBe(state.athlete.spentAttributePoints)
   })
 

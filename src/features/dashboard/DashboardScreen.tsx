@@ -14,6 +14,7 @@ import {
 import { getLevelProgress } from '../../domain/athlete/levels'
 import { PROFILES } from '../../domain/athlete/profiles'
 import { formatCoins } from '../../domain/economy/coins'
+import { getCareerProgress, WEEKS_PER_YEAR } from '../../domain/training/calendar'
 import { TRAINING_SESSIONS } from '../../domain/training/sessions'
 import { weekdayLong, weekdayShort } from '../../domain/training/weekdays'
 import { getUnspentAttributePoints } from '../../game-engine/attributes'
@@ -31,6 +32,7 @@ export function DashboardScreen() {
   const { state } = useCareer()
   const { athlete, week } = state
   const progress = getLevelProgress(athlete.xp)
+  const career = getCareerProgress(week.number)
   const unspent = getUnspentAttributePoints(athlete)
   const today = getCurrentDay(week)
   const todaySession = TRAINING_SESSIONS[today.session]
@@ -50,10 +52,29 @@ export function DashboardScreen() {
 
       {/* First screen: the runner with attributes on the left and condition on the right. */}
       <div className={styles.hero}>
-        {/* Week and day centred, coins on the right at the same height (owner request). */}
+        {/* Year progress on the left, day centred, coins on the right (owner requests). */}
         <div className={styles.topBar}>
+          <div className={styles.year}>
+            <span className={styles.yearLabel}>Year {career.year}</span>
+            <span className={styles.yearWeek}>
+              <span>
+                Week {career.weekOfYear} / {WEEKS_PER_YEAR}
+              </span>
+              <span className={styles.yearPercent}>{career.percent}%</span>
+            </span>
+            <Meter
+              label={`Year ${career.year} progress`}
+              value={career.weekOfYear}
+              min={0}
+              max={WEEKS_PER_YEAR}
+              valueText={`Week ${career.weekOfYear} of ${WEEKS_PER_YEAR}, ${career.percent}% of the year`}
+              className={styles.yearMeter}
+            />
+          </div>
           <p className={styles.when}>
-            Week {week.number} · {weekdayLong(today.day)}
+            {/* Short day name on small phones, so the year block keeps its room. */}
+            <span className={styles.dayLong}>{weekdayLong(today.day)}</span>
+            <span className={styles.dayShort}>{weekdayShort(today.day)}</span>
           </p>
           <p className={styles.balance}>
             <Coins amount={state.coins} />

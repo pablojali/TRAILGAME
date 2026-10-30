@@ -72,7 +72,7 @@ const COMPLETE_COOLDOWN_MS = 700
 function effectsText(outcome: DayOutcome) {
   const gain = outcome.attributeGain
   const trained = gain ? ` · ${ATTRIBUTE_LABELS[gain.attribute]} ${formatDelta(gain.amount)}` : ''
-  const daily = outcome.consistencyGain ? ` · Consistency ${formatDelta(outcome.consistencyGain)} (first day played today)` : ''
+  const daily = outcome.consistencyGain ? ` · Consistency ${formatDelta(outcome.consistencyGain)} (week completed)` : ''
   return `XP ${formatDelta(outcome.xpGained)} · Fitness ${formatDelta(outcome.fitnessChange)} · Fatigue ${formatDelta(outcome.fatigueChange)}${trained}${daily}`
 }
 

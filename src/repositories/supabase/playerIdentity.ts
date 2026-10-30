@@ -1,6 +1,7 @@
 import type { GameState } from '../../game-engine/gameState'
 import { SCHEMA_VERSION } from '../gameRepository'
 import { supabaseConfigFromEnv } from './supabaseEnv'
+import { loadSupabaseClient } from './supabaseLoader'
 
 /** The parts of the Supabase client used here (the real client fits; tests pass a fake). */
 export interface IdentityClient {
@@ -155,16 +156,9 @@ export function createPlayerIdentity(client: IdentityClient, retryMs = IDENTITY_
   }
 }
 
-/**
- * The shared Supabase client, loaded on first use: the library is downloaded in the background
- * after the game has started, not with the game's first screen.
- */
+/** The shared Supabase client, loaded on first use (supabaseLoader). */
 function lazyClient(): IdentityClient {
-  const load = async () => {
-    const client = (await import('./supabaseClient')).getSupabaseClient()
-    if (!client) throw new Error('Supabase is not configured')
-    return client as unknown as IdentityClient
-  }
+  const load = async () => (await loadSupabaseClient()) as unknown as IdentityClient
   return {
     auth: {
       getSession: async () => (await load()).auth.getSession(),

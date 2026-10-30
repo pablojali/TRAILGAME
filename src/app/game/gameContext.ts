@@ -11,6 +11,10 @@ import type { DayRef, ExecutionResult, TrainingError } from '../../game-engine/t
 import type { IncompatibleReason } from '../../repositories/gameRepository'
 
 export type GamePhase =
+  /** The saved career is being read; game actions are refused until it is. */
+  | { kind: 'loading' }
+  /** The save could not be read (not an incompatible save, e.g. storage unavailable). */
+  | { kind: 'load-failed' }
   /** No career yet: the player must choose a profile. `replacing` explains what will be overwritten. */
   | { kind: 'new-career'; replacing: IncompatibleReason | null }
   /** A save exists that cannot be loaded; nothing has been written. */
@@ -26,6 +30,8 @@ export interface GameContextValue {
   phase: GamePhase
   /** True if the most recent change could not be saved. */
   saveFailed: boolean
+  /** After `load-failed`, reads the save again. */
+  retryLoad(): void
   /** Fitness lost to inactivity when the game was last loaded or resumed. */
   decayNotice: DecayNotice | null
   dismissDecayNotice(): void

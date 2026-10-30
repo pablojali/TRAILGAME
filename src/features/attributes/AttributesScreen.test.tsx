@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { PROFILES } from '../../domain/athlete/profiles'
@@ -21,7 +21,7 @@ describe('AttributesScreen', () => {
   it('shows the six attributes and no points for a new career', async () => {
     seedCareer(newGame('endurance'))
     const user = userEvent.setup()
-    renderApp('/attributes')
+    await renderApp('/attributes')
     expect(screen.getByRole('heading', { level: 1, name: 'Attributes' })).toBeInTheDocument()
     expect(pointsLeft()).toBe('0')
     expect(value('Endurance')).toBe('20.0')
@@ -37,7 +37,7 @@ describe('AttributesScreen', () => {
   it('spends one point per click, gives feedback and persists', async () => {
     seedCareer(withAthlete(newGame('climber'), { xp: 260 }))
     const user = userEvent.setup()
-    const first = renderApp('/attributes')
+    const first = await renderApp('/attributes')
     expect(pointsLeft()).toBe('4')
 
     await user.click(addButton('Speed'))
@@ -54,7 +54,7 @@ describe('AttributesScreen', () => {
     })
     first.unmount()
 
-    renderApp('/attributes')
+    await renderApp('/attributes')
     expect(pointsLeft()).toBe('1')
     expect(value('Speed')).toBe('15.0')
   })
@@ -62,7 +62,7 @@ describe('AttributesScreen', () => {
   it('disables every increase once the points run out', async () => {
     seedCareer(withAthlete(newGame(), { xp: 100 }))
     const user = userEvent.setup()
-    renderApp('/attributes')
+    await renderApp('/attributes')
     await user.click(addButton('Climbing'))
     await user.click(addButton('Climbing'))
     expect(pointsLeft()).toBe('0')
@@ -72,18 +72,20 @@ describe('AttributesScreen', () => {
     expect(readSave()!.state.athlete.spentAttributePoints).toBe(2)
   })
 
-  it('never spends more points than available, even with rapid repeated clicks', () => {
+  it('never spends more points than available, even with rapid repeated clicks', async () => {
     seedCareer(withAthlete(newGame(), { xp: 100 }))
-    renderApp('/attributes')
+    await renderApp('/attributes')
     const button = addButton('Speed')
     fireEvent.click(button)
     fireEvent.click(button)
     fireEvent.click(button)
     fireEvent.click(button)
-    expect(readSave()!.state.athlete).toMatchObject({
-      spentAttributePoints: 2,
-      attributes: { ...PROFILES['all-rounder'].attributes, speed: 18 },
-    })
+    await waitFor(() =>
+      expect(readSave()!.state.athlete).toMatchObject({
+        spentAttributePoints: 2,
+        attributes: { ...PROFILES['all-rounder'].attributes, speed: 18 },
+      }),
+    )
     expect(pointsLeft()).toBe('0')
   })
 
@@ -94,7 +96,7 @@ describe('AttributesScreen', () => {
   it('works with the keyboard', async () => {
     seedCareer(withAthlete(newGame(), { xp: 100 }))
     const user = userEvent.setup()
-    renderApp('/attributes')
+    await renderApp('/attributes')
     addButton('Endurance').focus()
     await user.keyboard('{Enter}')
     await user.keyboard(' ')
@@ -107,7 +109,7 @@ describe('AttributesScreen', () => {
   it('is reachable from the Dashboard', async () => {
     seedCareer(withAthlete(newGame(), { xp: 100 }))
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await user.click(screen.getByRole('link', { name: /attribute points? to spend/ }))
     expect(screen.getByRole('heading', { level: 1, name: 'Attributes' })).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Back to Dashboard' }))

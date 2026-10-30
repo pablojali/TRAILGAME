@@ -1,20 +1,9 @@
 import { useId } from 'react'
 import { bodyId, outfitTint, type Appearance } from '../../domain/athlete/appearance'
-import { headArt } from '../../domain/athlete/heads'
 import type { Sex } from '../../domain/athlete/athlete'
 import { getEquipmentItem } from '../../domain/equipment/items'
+import { art, headArt } from './avatarArt'
 import styles from './Avatar.module.css'
-
-/**
- * The owner's layered artwork, prepared by scripts/prepare_avatar_art.py. Every layer shares one
- * 640 × 960 canvas, so layers line up when stacked:
- * `bodies/{sex}-{tone}`, `clothing/{outfit}` and `footwear/{item}`.
- */
-const ART = import.meta.glob<string>('/assets/runner/avatar/**/*.webp', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-})
 
 /** Crops of the shared canvas: the whole runner, head and shoulders, the torso, and the feet. */
 const VIEWBOXES = {
@@ -38,10 +27,6 @@ const FACE_TRANSFORM = `translate(${140 - FACE_SCALE * FACE_LEFT}px, ${-FACE_SCA
 function tintMatrix(hex: string): string {
   const [r, g, b] = [1, 3, 5].map((i) => (parseInt(hex.slice(i, i + 2), 16) / 255).toFixed(3))
   return `${r} 0 0 0 0  0 ${g} 0 0 0  0 0 ${b} 0 0  0 0 0 1 0`
-}
-
-function art(path: string): string | undefined {
-  return ART[`/assets/runner/avatar/${path}.webp`]
 }
 
 interface AvatarProps {

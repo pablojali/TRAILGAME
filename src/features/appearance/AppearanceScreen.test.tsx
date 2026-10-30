@@ -8,7 +8,7 @@ describe('Appearance', () => {
   it('is reached from Equipment', async () => {
     const user = userEvent.setup()
     seedCareer()
-    renderApp('/equipment')
+    await renderApp('/equipment')
     await user.click(screen.getByRole('link', { name: 'Change look' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Appearance' })).toBeInTheDocument()
   })
@@ -17,7 +17,7 @@ describe('Appearance', () => {
     const user = userEvent.setup()
     // Level 3 (250 XP): red and orange are unlocked, yellow (Level 4) is not.
     seedCareer(withAthlete(newGame(), { xp: 250 }))
-    renderApp('/appearance')
+    await renderApp('/appearance')
     await user.click(screen.getByRole('tab', { name: 'Clothing' }))
 
     expect(screen.getByRole('radio', { name: 'Orange T-shirt' })).toBeEnabled()
@@ -36,7 +36,7 @@ describe('Appearance', () => {
   it('shows Level 2 hairstyles locked at Level 1 and saves an unlocked one', async () => {
     const user = userEvent.setup()
     seedCareer() // Women, tone 2, Level 1.
-    renderApp('/appearance')
+    await renderApp('/appearance')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))
     expect(screen.getByRole('radio', { name: 'Hairstyle 3, unlocks at Level 2' })).toBeDisabled()
     await user.click(screen.getByRole('radio', { name: 'Hairstyle 1' }))
@@ -47,7 +47,7 @@ describe('Appearance', () => {
   it('zooms in on the face while choosing a hairstyle', async () => {
     const user = userEvent.setup()
     seedCareer()
-    renderApp('/appearance')
+    await renderApp('/appearance')
     const preview = () => screen.getByRole('img', { name: /avatar preview/i })
     expect(preview()).not.toHaveAttribute('data-focus')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))

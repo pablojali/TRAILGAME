@@ -269,3 +269,10 @@
     padding: var(--space-5) var(--space-6);
   }
 }
+
+/* Shown for the moment the saved career takes to load. */
+.loading {
+  margin: auto;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}

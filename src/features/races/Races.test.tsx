@@ -20,7 +20,7 @@ describe('Race Hub', () => {
   it('shows one category at a time in tabs, with level and coin balance', async () => {
     const user = userEvent.setup()
     seedCareer()
-    const { router } = renderApp('/races')
+    const { router } = await renderApp('/races')
     expect(screen.getByRole('heading', { level: 1, name: 'Races' })).toBeInTheDocument()
     expect(screen.getByText('Level 1').parentElement).toHaveTextContent('Level 1·25 coins')
     expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Open', 'Trail', 'Mountain', 'Elite'])
@@ -38,7 +38,7 @@ describe('Race Hub', () => {
   it('shows free Open races, standard fees at level and Early entry below it, never locked', async () => {
     const user = userEvent.setup()
     seedCareer(level11(0))
-    renderApp('/races')
+    await renderApp('/races')
     // Level 11: the Trail tab first (the first category with a race at or above the level).
     expect(screen.getByRole('tab', { name: 'Trail' })).toHaveAttribute('aria-selected', 'true')
     expect(within(card('Ridge Runner')).getByText('50 coins')).toBeInTheDocument()
@@ -51,30 +51,30 @@ describe('Race Hub', () => {
     expect(card('Beyond the Skyline')).toHaveAttribute('href', '/races/RACE-012')
   })
 
-  it('opens the tab of a pending entry and keeps the tab in the URL', () => {
+  it('opens the tab of a pending entry and keeps the tab in the URL', async () => {
     const entered = enterRace(level11(500), 'RACE-007', 300, 0)
     if (!entered.ok) throw new Error(entered.error)
     seedCareer(entered.state)
-    const first = renderApp('/races')
+    const first = await renderApp('/races')
     expect(screen.getByRole('tab', { name: 'Mountain' })).toHaveAttribute('aria-selected', 'true')
     first.unmount()
-    renderApp('/races?category=elite')
+    await renderApp('/races?category=elite')
     expect(screen.getByRole('tab', { name: 'Elite' })).toHaveAttribute('aria-selected', 'true')
   })
 
   it('is reachable from the navigation', async () => {
     const user = userEvent.setup()
     seedCareer()
-    const { router } = renderApp('/')
+    const { router } = await renderApp('/')
     await user.click(screen.getByRole('link', { name: 'Races' }))
     expect(router.state.location.pathname).toBe('/races')
   })
 })
 
 describe('Race Detail', () => {
-  it('shows the course, both fees with the applicable one, and potential prizes', () => {
+  it('shows the course, both fees with the applicable one, and potential prizes', async () => {
     seedCareer(level11(0))
-    renderApp('/races/RACE-007')
+    await renderApp('/races/RACE-007')
     expect(screen.getByRole('heading', { level: 1, name: 'Summit Quest' })).toBeInTheDocument()
     expect(screen.getByText('Mountain race')).toBeInTheDocument()
     expect(screen.getByText('22 km')).toBeInTheDocument()
@@ -95,19 +95,19 @@ describe('Race Detail', () => {
     expect(screen.getByText(/At your level: 100% of prizes and XP/)).toBeInTheDocument()
   })
 
-  it('explains reduced and zero rewards for easy races', () => {
+  it('explains reduced and zero rewards for easy races', async () => {
     seedCareer(withAthlete(newGame(), { xp: 3_850 })) // level 12
-    const view = renderApp('/races/RACE-004')
+    const view = await renderApp('/races/RACE-004')
     expect(screen.getByText('At your level: 75% of prizes and XP.')).toBeInTheDocument()
     view.unmount()
-    renderApp('/races/RACE-001')
+    await renderApp('/races/RACE-001')
     expect(screen.getByText(/At your level: 0% of prizes and XP — this race is too easy/)).toBeInTheDocument()
   })
 
   it('blocks entry without enough coins and shows the shortfall', async () => {
     const user = userEvent.setup()
     seedCareer(level11(40))
-    renderApp('/races/RACE-004')
+    await renderApp('/races/RACE-004')
     const enter = screen.getByRole('button', { name: 'Enter race' })
     expect(enter).toHaveAttribute('aria-disabled', 'true')
     expect(enter).toHaveAccessibleDescription('You need 10 coins more.')
@@ -119,7 +119,7 @@ describe('Race Detail', () => {
   it('confirms a free entry, records it once and keeps it after a reload', async () => {
     const user = userEvent.setup()
     seedCareer()
-    const first = renderApp('/races/RACE-001')
+    const first = await renderApp('/races/RACE-001')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     expect(screen.getByRole('heading', { name: 'Confirm entry to Forest First Steps' })).toHaveFocus()
     expect(screen.getByText(/Balance stays 25 coins/)).toBeInTheDocument()
@@ -130,7 +130,7 @@ describe('Race Detail', () => {
     expect(readSave()!.state.raceEntries).toHaveLength(1)
     first.unmount()
 
-    renderApp('/races/RACE-001')
+    await renderApp('/races/RACE-001')
     expect(screen.getByText('Entry fee paid: free entry.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Enter race' })).not.toBeInTheDocument()
     expect(readSave()!.state.raceEntries).toHaveLength(1)
@@ -139,7 +139,7 @@ describe('Race Detail', () => {
   it('shows fee, balance and remaining balance, and deducts the fee only on confirm, once', async () => {
     const user = userEvent.setup()
     seedCareer(level11(300))
-    renderApp('/races/RACE-004')
+    await renderApp('/races/RACE-004')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     expect(screen.getByText('Pay 50 coins.').parentElement).toHaveTextContent(
       'Pay 50 coins. Balance 300 coins → 250 coins. Not refundable.',
@@ -155,7 +155,7 @@ describe('Race Detail', () => {
   it('charges the early-entry fee below the recommended level', async () => {
     const user = userEvent.setup()
     seedCareer(level11(1500))
-    renderApp('/races/RACE-010')
+    await renderApp('/races/RACE-010')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Pay 700 coins and enter' }))
     expect(readSave()!.state).toMatchObject({ coins: 800, raceEntries: [{ entryType: 'early', feePaid: 700 }] })
@@ -164,16 +164,16 @@ describe('Race Detail', () => {
   it('Cancel charges nothing', async () => {
     const user = userEvent.setup()
     seedCareer(level11(300))
-    renderApp('/races/RACE-004')
+    await renderApp('/races/RACE-004')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(screen.getByRole('button', { name: 'Enter race' })).toBeInTheDocument()
     expect(readSave()!.state).toMatchObject({ coins: 300, raceEntries: [] })
   })
 
-  it('shows a not-found screen for an unknown race', () => {
+  it('shows a not-found screen for an unknown race', async () => {
     seedCareer()
-    renderApp('/races/RACE-999')
+    await renderApp('/races/RACE-999')
     expect(screen.getByRole('heading', { level: 1, name: 'Race not found' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to races' })).toHaveAttribute('href', '/races')
   })
@@ -190,7 +190,7 @@ describe('Race day and results', () => {
   it('enters for this week’s Sunday and allows one race per week', async () => {
     const user = userEvent.setup()
     seedCareer()
-    renderApp('/races/RACE-001')
+    await renderApp('/races/RACE-001')
     expect(screen.getByText('Sunday, week 1')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
@@ -205,7 +205,7 @@ describe('Race day and results', () => {
   it('runs a race once on Sunday, shows the result with rewards and explanation, and keeps it after a reload', async () => {
     const user = userEvent.setup()
     seedCareer(onSunday(newGame()))
-    const first = renderApp('/races/RACE-001')
+    const first = await renderApp('/races/RACE-001')
     await enterAndStart(user)
 
     const save = readSave()!.state
@@ -243,7 +243,7 @@ describe('Race day and results', () => {
     first.unmount()
 
     // Reopening the result never awards again.
-    renderApp('/races/results/entry-1')
+    await renderApp('/races/results/entry-1')
     expect(screen.getByRole('heading', { level: 1, name: `${ordinal(result.position)} of 50` })).toBeInTheDocument()
     expect(readSave()!.state).toEqual(save)
   })
@@ -253,13 +253,13 @@ describe('Race day and results', () => {
     const entered = enterRace(newGame(), 'RACE-001', 0, 0)
     if (!entered.ok) throw new Error(entered.error)
     seedCareer(entered.state)
-    const monday = renderApp('/training')
+    const monday = await renderApp('/training')
     await user.click(screen.getByRole('button', { name: /^Sunday, Race: Forest First Steps, planned/ }))
     expect(screen.getByText(/Race day: Forest First Steps replaces this day’s session/)).toBeInTheDocument()
     monday.unmount()
 
     seedCareer(onSunday(entered.state))
-    const sunday = renderApp('/training')
+    const sunday = await renderApp('/training')
     expect(screen.getByRole('heading', { name: 'Race: Forest First Steps' })).toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Start race' }))
@@ -270,11 +270,11 @@ describe('Race day and results', () => {
     expect(screen.getByRole('button', { name: 'Enter race' })).toBeInTheDocument()
   })
 
-  it('shows race day on the Dashboard on Sunday', () => {
+  it('shows race day on the Dashboard on Sunday', async () => {
     const entered = enterRace(newGame(), 'RACE-001', 0, 0)
     if (!entered.ok) throw new Error(entered.error)
     seedCareer(onSunday(entered.state))
-    renderApp('/')
+    await renderApp('/')
     expect(screen.getByRole('region', { name: 'Today' })).toHaveTextContent('Today · Race: Forest First Steps')
     expect(screen.getByRole('link', { name: 'Go to race' })).toHaveAttribute('href', '/races/RACE-001')
   })
@@ -283,7 +283,7 @@ describe('Race day and results', () => {
     const user = userEvent.setup()
     // Level 6 (2 above Forest First Steps) and Fatigue 90: +10 race Fatigue reaches 100.
     seedCareer(onSunday(withAthlete(newGame(), { xp: 1000, fatigue: 90 })))
-    renderApp('/races/RACE-001')
+    await renderApp('/races/RACE-001')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     expect(screen.getByRole('note')).toHaveTextContent('Injury warning: Fatigue would reach 100 (above 95)')
@@ -302,7 +302,7 @@ describe('Race day and results', () => {
       forcedRestDays: 1,
       week: { ...sunday.week, days: sunday.week.days.map((d, i) => (i === 6 ? { ...d, session: 'rest' as const } : d)) },
     })
-    renderApp('/races/RACE-001')
+    await renderApp('/races/RACE-001')
     expect(screen.getByText('Sunday, week 2')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
@@ -310,15 +310,15 @@ describe('Race day and results', () => {
     expect(screen.queryByRole('button', { name: /^Start race/ })).not.toBeInTheDocument()
   })
 
-  it('shows not-found and not-raced-yet states for result links', () => {
+  it('shows not-found and not-raced-yet states for result links', async () => {
     seedCareer()
-    const view = renderApp('/races/results/entry-7')
+    const view = await renderApp('/races/results/entry-7')
     expect(screen.getByRole('heading', { level: 1, name: 'Result not found' })).toBeInTheDocument()
     view.unmount()
     const pending = enterRace(newGame(), 'RACE-001', 0, 0)
     if (!pending.ok) throw new Error(pending.error)
     seedCareer(pending.state)
-    renderApp('/races/results/entry-1')
+    await renderApp('/races/results/entry-1')
     expect(screen.getByRole('heading', { level: 1, name: 'Not raced yet' })).toBeInTheDocument()
   })
 })

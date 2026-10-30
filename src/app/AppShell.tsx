@@ -3,19 +3,22 @@ import { NavLink, Outlet, ScrollRestoration } from 'react-router'
 import { Icon } from '../components/Icon'
 import { CareerCreationScreen } from '../features/career-setup/CareerCreationScreen'
 import { IncompatibleSaveScreen } from '../features/career-setup/IncompatibleSaveScreen'
+import button from '../components/Button.module.css'
+import { Screen } from '../components/Screen'
 import { useGame } from './game/gameContext'
 import { GameNotices } from './game/GameNotices'
 import { NAV_ITEMS } from './navigation'
 import styles from './AppShell.module.css'
 
 export function AppShell() {
-  const { phase } = useGame()
+  const { phase, retryLoad } = useGame()
   const main = useRef<HTMLElement>(null)
   const previousPhase = useRef(phase.kind)
 
   // When the setup flow changes (career started, restart, reset), move focus to the new content.
+  // Finishing the initial load is not a change the player made, so focus stays where it was.
   useEffect(() => {
-    if (previousPhase.current !== phase.kind) main.current?.focus()
+    if (previousPhase.current !== phase.kind && previousPhase.current !== 'loading') main.current?.focus()
     previousPhase.current = phase.kind
   }, [phase.kind])
 
@@ -70,6 +73,18 @@ export function AppShell() {
           {phase.kind === 'playing' && <Outlet />}
           {phase.kind === 'incompatible' && <IncompatibleSaveScreen reason={phase.reason} />}
           {phase.kind === 'new-career' && <CareerCreationScreen replacing={phase.replacing} />}
+          {phase.kind === 'loading' && (
+            <p role="status" className={styles.loading}>
+              Loading your career…
+            </p>
+          )}
+          {phase.kind === 'load-failed' && (
+            <Screen title="Could not load your career" description="Your saved career could not be read." showDescription>
+              <button type="button" className={`${button.button} ${button.primary}`} onClick={retryLoad}>
+                Try again
+              </button>
+            </Screen>
+          )}
         </div>
       </main>
 

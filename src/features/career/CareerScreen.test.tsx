@@ -17,9 +17,9 @@ function race(state: GameState, raceId: string, fitness: number): GameState {
 }
 
 describe('Career', () => {
-  it('explains that medals and results come with the first race', () => {
+  it('explains that medals and results come with the first race', async () => {
     seedCareer()
-    renderApp('/career')
+    await renderApp('/career')
     expect(screen.getByRole('heading', { level: 1, name: 'Career' })).toBeInTheDocument()
     expect(screen.getByText(/No races yet/)).toBeInTheDocument()
     expect(within(screen.getByRole('table')).getByRole('row', { name: 'Total 0 0 0 0' })).toBeInTheDocument()
@@ -35,7 +35,7 @@ describe('Career', () => {
     expect(first.result.position).toBe(1)
     expect(second.result.position).toBeGreaterThan(10)
     seedCareer(state)
-    renderApp('/career')
+    await renderApp('/career')
 
     const table = screen.getByRole('table')
     expect(within(table).getByRole('row', { name: 'Open 1 0 0 2' })).toBeInTheDocument()

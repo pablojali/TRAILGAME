@@ -12,7 +12,7 @@ describe('Equipment', () => {
   it('lists the starter shoes, equips them on the avatar and takes them off, saving each change', async () => {
     const user = userEvent.setup()
     seedCareer()
-    const view = renderApp('/equipment')
+    const view = await renderApp('/equipment')
     expect(screen.getByRole('heading', { level: 1, name: 'Equipment' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Equipped' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Put on an item you own')).toBeInTheDocument()
@@ -28,14 +28,14 @@ describe('Equipment', () => {
     expect(readSave()!.state.equipment).toEqual(['starter-shoes'])
     view.unmount()
 
-    renderApp('/')
+    await renderApp('/')
     expect(screen.getByRole('img', { name: /wearing starter shoes/ })).toBeInTheDocument()
   })
 
   it('takes the shoes off', async () => {
     const user = userEvent.setup()
     seedCareer({ ...newGame(), equipment: ['starter-shoes'] })
-    renderApp('/equipment')
+    await renderApp('/equipment')
     await user.click(screen.getByRole('button', { name: 'Change shoes' }))
     await user.click(screen.getByRole('button', { name: 'Take off starter shoes' }))
     expect(readSave()!.state.equipment).toEqual([])
@@ -45,7 +45,7 @@ describe('Equipment', () => {
   it('buys from the shop with a confirmation, then the item can be equipped', async () => {
     const user = userEvent.setup()
     seedCareer({ ...newGame(), coins: 60 })
-    renderApp('/equipment')
+    await renderApp('/equipment')
     expect(screen.getByText('Balance').parentElement).toHaveTextContent('Balance 60 coins')
     // Poles: nothing owned yet, so the row offers the shop for that slot.
     await user.click(screen.getByRole('button', { name: 'Shop poles' }))

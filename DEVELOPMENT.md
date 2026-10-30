@@ -110,6 +110,7 @@ Exact versions pinned in `package.json` / `package-lock.json` at project initial
 | vitest | 4.1.12 | 3.x has open security advisories (tinypool, @vitest/mocker) |
 | eslint / typescript-eslint | 9.39.5 / 8.72.0 | Flat config |
 | @testing-library/react / jsdom | 16.3.3 / 26.1.0 | |
+| @supabase/supabase-js | 2.118.0 | M7 foundation (30 October 2026); see docs/SUPABASE_SETUP.md |
 
 Deviations / notes:
 - CI and `.nvmrc` use Node 24. `package.json` `engines` allows Node ≥ 22.12 (Vite 7 minimum); the M0 checks were run locally on Node 22.22.0.
@@ -927,6 +928,30 @@ Fitness 0 by week 6:
 - **Open races** at levels 4, 6 and 8 (were 1, 4 and 8). Open entry stays free; a new runner
   (Fitness 20) now finishes about 24th in Forest First Steps instead of 19th.
 
+### Async persistence and Supabase foundation (M7 phase 1, 30 October 2026)
+
+- **Repository is asynchronous** (`src/repositories/gameRepository.ts`): `load(): Promise<GameState | null>`,
+  `save(state): Promise<void>`, `clear(): Promise<void>`. An incompatible save rejects with
+  `IncompatibleSaveError` (its reason drives the blocking screen); a failed write rejects with
+  `SaveError`. localStorage stays the only implementation; the save format (key `trailgame.save`,
+  schema v2) is unchanged.
+- **Loading phase:** `GameProvider` starts in `loading` ("Loading your career…") and refuses game
+  actions until the save is read. Fitness decay is applied once after loading and saved. A save
+  that cannot be read for another reason shows "Could not load your career" with **Try again**.
+- **Save queue** (`src/repositories/saveQueue.ts`): one write at a time, in order; rapid changes
+  are coalesced to the latest state, so an older state never overwrites a newer one. A failed save
+  keeps the latest state, shows the existing "could not be saved" notice and is retried (2 s,
+  doubling up to 30 s, on the next change or when the app becomes visible). Reset demo is queued
+  after earlier writes, and writes queued before it are dropped, so an old save cannot bring a
+  reset career back.
+- **Head catalog as data:** `src/domain/athlete/heads.ts` lists the prepared head file names
+  (`HEAD_FILES`); the domain and game engine use no Vite runtime API. The avatar turns a file name
+  into its bundled URL (`src/components/avatar/avatarArt.ts`). When a head file is added or removed,
+  update `HEAD_FILES`; a test fails until it matches `assets/runner/avatar/heads`.
+- **Supabase foundation:** one client in `src/repositories/supabase/`, configured by
+  `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
+  connection check: docs/SUPABASE_SETUP.md.
+
 ### App-style layout: no page scroll (owner request, 30 October 2026)
 
 Like a phone app, the page never scrolls: the top bar and the bottom navigation stay still and
@@ -1107,7 +1132,7 @@ later milestones were renumbered (PWA M5, native packaging M6, Strava/VTL M8).
 
 ### M7 — Persistence and account
 
-**Status:** Future milestone; not started. Originally planned as M2; scope unchanged.
+**Status:** Phase 1 done (30 October 2026): async repository, save queue, Supabase client and connection check (docs/SUPABASE_SETUP.md). Tables, auth and remote saves not started. Originally planned as M2.
 
 **Goal:** save player progress reliably.
 

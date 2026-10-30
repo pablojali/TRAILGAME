@@ -5,7 +5,16 @@ import { allocateAttributePoint } from '../game-engine/attributes'
 import { enterRace, raceCurrentDay } from '../game-engine/races'
 import { execute, newGame, onSunday, T0, withAthlete } from '../test/gameFixtures'
 import { M1_SAVE } from '../test/legacySaves'
-import { createLocalStorageGameRepository, LEGACY_DEFAULT_SEX, SAVE_KEY, SCHEMA_VERSION } from './gameRepository'
+import {
+  createLocalStorageGameRepository,
+  IncompatibleSaveError,
+  LEGACY_DEFAULT_SEX,
+  SaveError,
+  SAVE_KEY,
+  SCHEMA_VERSION,
+  type GameRepository,
+  type LoadResult,
+} from './gameRepository'
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial))
@@ -33,51 +42,62 @@ function progressedState(days: number): GameState {
   return state
 }
 
+/** The repository's load as a result: empty, loaded, or incompatible with its reason. */
+async function loadResult(repo: GameRepository): Promise<LoadResult> {
+  try {
+    const state = await repo.load()
+    return state === null ? { status: 'empty' } : { status: 'loaded', state }
+  } catch (error) {
+    if (error instanceof IncompatibleSaveError) return { status: 'incompatible', reason: error.reason }
+    throw error
+  }
+}
+
 function saveOf(state: unknown, schemaVersion: unknown = SCHEMA_VERSION) {
   return JSON.stringify({ schemaVersion, savedAt: '2026-01-01T00:00:00.000Z', state })
 }
 
 describe('localStorage game repository', () => {
-  it('reports an empty store without creating a career', () => {
+  it('reports an empty store without creating a career', async () => {
     const storage = memoryStorage()
-    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({ status: 'empty' })
+    expect(await loadResult(createLocalStorageGameRepository(storage, () => T0))).toEqual({ status: 'empty' })
     expect(storage.data.size).toBe(0)
   })
 
-  it('round-trips a v2 career', () => {
+  it('round-trips a v2 career', async () => {
     const storage = memoryStorage()
     const repo = createLocalStorageGameRepository(storage)
     const state = progressedState(3)
 
-    expect(repo.save(state)).toBe(true)
+    await expect(repo.save(state)).resolves.toBeUndefined()
     expect(JSON.parse(storage.data.get(SAVE_KEY)!)).toMatchObject({ schemaVersion: 2 })
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state })
   })
 
-  it('round-trips spent attribute points and a later week', () => {
+  it('round-trips spent attribute points and a later week', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const leveled = withAthlete(progressedState(9), { xp: 260 })
     const result = allocateAttributePoint(leveled, 'speed', 0)
     if (!result.ok) throw new Error(result.error)
-    repo.save(result.state)
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state: result.state })
+    await repo.save(result.state)
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state: result.state })
   })
 
-  it('round-trips the cosmetic sex and name', () => {
+  it('round-trips the cosmetic sex and name', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = newGame('endurance', T0, { name: 'Leo', sex: 'male' })
-    repo.save(state)
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    await repo.save(state)
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state })
   })
 
-  it('loads a v2 career saved before the sex field existed, as male, without rewriting it', () => {
+  it('loads a v2 career saved before the sex field existed, as male, without rewriting it', async () => {
     const state = progressedState(3)
     const athleteWithoutSex: Partial<GameState['athlete']> = { ...state.athlete }
     delete athleteWithoutSex.sex
     delete athleteWithoutSex.appearance
     const raw = saveOf({ ...state, athlete: athleteWithoutSex })
     const storage = memoryStorage({ [SAVE_KEY]: raw })
-    const result = createLocalStorageGameRepository(storage).load(T0)
+    const result = (await loadResult(createLocalStorageGameRepository(storage, () => T0)))
     expect(LEGACY_DEFAULT_SEX).toBe('male')
     expect(result).toEqual({
       status: 'loaded',
@@ -86,13 +106,13 @@ describe('localStorage game repository', () => {
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
-  it('loads a career saved before appearance existed with the default appearance, without rewriting it', () => {
+  it('loads a career saved before appearance existed with the default appearance, without rewriting it', async () => {
     const state = progressedState(3)
     const athleteWithoutAppearance: Partial<GameState['athlete']> = { ...state.athlete, sex: 'male' }
     delete athleteWithoutAppearance.appearance
     const raw = saveOf({ ...state, athlete: athleteWithoutAppearance })
     const storage = memoryStorage({ [SAVE_KEY]: raw })
-    const result = createLocalStorageGameRepository(storage).load(T0)
+    const result = (await loadResult(createLocalStorageGameRepository(storage, () => T0)))
     expect(result).toEqual({
       status: 'loaded',
       state: { ...state, athlete: { ...state.athlete, sex: 'male', appearance: defaultAppearance() } },
@@ -100,27 +120,27 @@ describe('localStorage game repository', () => {
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
-  it('loads a career saved before races existed with the starting 25 coins and no entries, without rewriting it', () => {
+  it('loads a career saved before races existed with the starting 25 coins and no entries, without rewriting it', async () => {
     const state = progressedState(2)
     const withoutRaces: Partial<GameState> = { ...state }
     delete withoutRaces.coins
     delete withoutRaces.raceEntries
     const raw = saveOf(withoutRaces)
     const storage = memoryStorage({ [SAVE_KEY]: raw })
-    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({
+    expect(await loadResult(createLocalStorageGameRepository(storage, () => T0))).toEqual({
       status: 'loaded',
       state: { ...state, coins: 25, raceEntries: [] },
     })
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
-  it('round-trips coins and race entries', () => {
+  it('round-trips coins and race entries', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     // Level 11: Ridge Runner's standard fee (50).
     const entered = enterRace({ ...withAthlete(newGame(), { xp: 3_250 }), coins: 300 }, 'RACE-004', 50, T0)
     if (!entered.ok) throw new Error(entered.error)
-    repo.save(entered.state)
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state: entered.state })
+    await repo.save(entered.state)
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state: entered.state })
   })
 
   it.each([
@@ -131,25 +151,25 @@ describe('localStorage game repository', () => {
     ['an unknown entry type', { raceEntries: [{ ...ENTRY, entryType: 'vip' }] }],
     ['a duplicated entry id', { raceEntries: [ENTRY, { ...ENTRY, raceId: 'RACE-002' }] }],
     ['two pending entries for one race', { raceEntries: [ENTRY, { ...ENTRY, id: 'entry-2' }] }],
-  ])('rejects %s as invalid data', (_, overrides) => {
+  ])('rejects %s as invalid data', async (_, overrides) => {
     const raw = saveOf({ ...newGame(), ...overrides })
-    expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)).toEqual({
+    expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw }), () => T0))).toEqual({
       status: 'incompatible',
       reason: 'malformed',
     })
   })
 
-  it('round-trips a raced day with its finished entry and result', () => {
+  it('round-trips a raced day with its finished entry and result', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const entered = enterRace(newGame(), 'RACE-001', 0, T0)
     if (!entered.ok) throw new Error(entered.error)
     const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0 + 1000)
     if (!raced.ok) throw new Error(raced.error)
-    repo.save(raced.value.state)
-    expect(repo.load(T0 + 1000)).toEqual({ status: 'loaded', state: raced.value.state })
+    await repo.save(raced.value.state)
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state: raced.value.state })
   })
 
-  it('rejects inconsistent race results', () => {
+  it('rejects inconsistent race results', async () => {
     const entered = enterRace(newGame(), 'RACE-001', 0, T0)
     if (!entered.ok) throw new Error(entered.error)
     const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0 + 1000)
@@ -166,7 +186,7 @@ describe('localStorage game repository', () => {
         ),
       },
     }
-    expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(state) })).load(T0).status).toBe('loaded')
+    expect((await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(state) }), () => T0))).status).toBe('loaded')
     const finished = state.raceEntries[0]!
     if (finished.status !== 'finished') throw new Error('not finished')
     const variants: unknown[] = [
@@ -183,52 +203,52 @@ describe('localStorage game repository', () => {
     ]
     for (const variant of variants) {
       const raw = saveOf(variant)
-      expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)).toEqual({
+      expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw }), () => T0))).toEqual({
         status: 'incompatible',
         reason: 'malformed',
       })
     }
   })
 
-  it('round-trips a chosen appearance', () => {
+  it('round-trips a chosen appearance', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = newGame('climber', T0, {
       name: 'Ana',
       sex: 'female',
       appearance: { hair: 'natural', skin: 'tone-3', outfit: 'white-tshirt' },
     })
-    repo.save(state)
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    await repo.save(state)
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state })
   })
 
   it.each([
     ['not an object', 'braid'],
     ['unknown values', { hair: 'mohawk', skin: 'blue', outfit: 'tuxedo' }],
     ['Stage A placeholder values', { hair: 'curly', skin: 'tone-2', outfit: 'basic' }],
-  ])('never rejects a career for an invalid appearance (%s): it uses the defaults', (_, appearance) => {
+  ])('never rejects a career for an invalid appearance (%s): it uses the defaults', async (_, appearance) => {
     const state = newGame()
     const raw = saveOf({ ...state, athlete: { ...state.athlete, appearance } })
-    const result = createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)
+    const result = (await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw }), () => T0)))
     expect(result.status).toBe('loaded')
     const loaded = result.status === 'loaded' ? result.state.athlete.appearance : null
     expect(loaded).toEqual({ hair: 'natural', skin: 'tone-2', outfit: 'none' })
   })
 
-  it('loads a career saved before equipment existed with nothing equipped, without rewriting it', () => {
+  it('loads a career saved before equipment existed with nothing equipped, without rewriting it', async () => {
     const state = progressedState(2)
     const withoutEquipment: Partial<GameState> = { ...state }
     delete withoutEquipment.equipment
     const raw = saveOf(withoutEquipment)
     const storage = memoryStorage({ [SAVE_KEY]: raw })
-    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({ status: 'loaded', state: { ...state, equipment: [] } })
+    expect(await loadResult(createLocalStorageGameRepository(storage, () => T0))).toEqual({ status: 'loaded', state: { ...state, equipment: [] } })
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
-  it('loads a career saved before the shop existed owning the starter shoes, and rejects inconsistent ownership', () => {
+  it('loads a career saved before the shop existed owning the starter shoes, and rejects inconsistent ownership', async () => {
     const state = progressedState(1)
     const withoutOwned: Partial<GameState> = { ...state }
     delete withoutOwned.ownedEquipment
-    expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(withoutOwned) })).load(T0)).toEqual({
+    expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(withoutOwned) }), () => T0))).toEqual({
       status: 'loaded',
       state: { ...state, ownedEquipment: ['starter-shoes'] },
     })
@@ -238,43 +258,43 @@ describe('localStorage game repository', () => {
       { ...newGame(), ownedEquipment: ['starter-shoes', 'jetpack'] },
       { ...newGame(), equipment: ['poles'] }, // equipped but not owned
     ]) {
-      expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(variant) })).load(T0)).toEqual({
+      expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(variant) }), () => T0))).toEqual({
         status: 'incompatible',
         reason: 'malformed',
       })
     }
   })
 
-  it('round-trips equipped items and rejects unknown or duplicated ones', () => {
+  it('round-trips equipped items and rejects unknown or duplicated ones', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = { ...newGame(), equipment: ['starter-shoes'] }
-    repo.save(state)
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    await repo.save(state)
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state })
     for (const equipment of [['jetpack'], ['starter-shoes', 'starter-shoes'], 'starter-shoes']) {
       const raw = saveOf({ ...newGame(), equipment })
-      expect(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)).toEqual({
+      expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw }), () => T0))).toEqual({
         status: 'incompatible',
         reason: 'malformed',
       })
     }
   })
 
-  it('round-trips an injury: forced Rest days and the injured outcome', () => {
+  it('round-trips an injury: forced Rest days and the injured outcome', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const injured = execute(withAthlete(newGame(), { fatigue: 95 })).state
     expect(injured.forcedRestDays).toBe(5)
     expect(injured.week.days[0]!.outcome?.injured).toBe(true)
-    repo.save(injured)
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state: injured })
+    await repo.save(injured)
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state: injured })
   })
 
-  it('loads a career saved before the injury rule existed with no forced Rest days', () => {
+  it('loads a career saved before the injury rule existed with no forced Rest days', async () => {
     const state = progressedState(2)
     const withoutField: Partial<GameState> = { ...state }
     delete withoutField.forcedRestDays
     const raw = saveOf(withoutField)
     const storage = memoryStorage({ [SAVE_KEY]: raw })
-    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({ status: 'loaded', state })
+    expect(await loadResult(createLocalStorageGameRepository(storage, () => T0))).toEqual({ status: 'loaded', state })
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
@@ -284,72 +304,72 @@ describe('localStorage game repository', () => {
     ['after a Rest day', 3, false],
     ['on Monday (unknown)', 0, false],
     ['on Monday of week 2 (unknown)', 7, false],
-  ])('loads a career saved before recovery Rest existed: previous day %s', (_, days, expected) => {
+  ])('loads a career saved before recovery Rest existed: previous day %s', async (_, days, expected) => {
     const state = progressedState(days)
     const withoutField: Partial<GameState> = { ...state }
     delete withoutField.previousDayActive
     const raw = saveOf(withoutField)
     const storage = memoryStorage({ [SAVE_KEY]: raw })
-    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({
+    expect(await loadResult(createLocalStorageGameRepository(storage, () => T0))).toEqual({
       status: 'loaded',
       state: { ...state, previousDayActive: expected },
     })
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
-  it('drops the daily-reward field of saves from earlier the same day (lastPlayedDay)', () => {
+  it('drops the daily-reward field of saves from earlier the same day (lastPlayedDay)', async () => {
     const state = progressedState(1)
     const storage = memoryStorage({ [SAVE_KEY]: saveOf({ ...state, lastPlayedDay: '2026-10-30' }) })
-    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({ status: 'loaded', state })
+    expect(await loadResult(createLocalStorageGameRepository(storage, () => T0))).toEqual({ status: 'loaded', state })
   })
 
-  it('round-trips an attribute above 100 (no upper limit since 30 October 2026)', () => {
+  it('round-trips an attribute above 100 (no upper limit since 30 October 2026)', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = newGame()
     state.athlete.attributes.speed = 120.3
-    repo.save(state)
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    await repo.save(state)
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state })
   })
 
-  it('round-trips decimal Fitness, attributes trained by sessions and their outcomes (30 October 2026)', () => {
+  it('round-trips decimal Fitness, attributes trained by sessions and their outcomes (30 October 2026)', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = progressedState(4) // Easy run, Intervals, Rest, Hills
     expect(state.athlete.fitness).toBe(21.75)
     expect(state.athlete.attributes).toMatchObject({ endurance: 16.1, speed: 13.1, climbing: 20.1 })
     expect(state.week.days[0]!.outcome!.attributeGain).toEqual({ attribute: 'endurance', amount: 0.1 })
-    repo.save(state)
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    await repo.save(state)
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state })
   })
 
-  it('round-trips the previous day and rejects a non-boolean one', () => {
+  it('round-trips the previous day and rejects a non-boolean one', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = progressedState(2)
-    repo.save(state)
-    expect(repo.load(T0)).toEqual({ status: 'loaded', state })
+    await repo.save(state)
+    expect(await loadResult(repo)).toEqual({ status: 'loaded', state })
     const storage = memoryStorage({ [SAVE_KEY]: saveOf({ ...state, previousDayActive: 'yes' }) })
-    expect(createLocalStorageGameRepository(storage).load(T0)).toMatchObject({ status: 'incompatible' })
+    expect(await loadResult(createLocalStorageGameRepository(storage, () => T0))).toMatchObject({ status: 'incompatible' })
   })
 
-  it('clear removes the saved career', () => {
+  it('clear removes the saved career', async () => {
     const storage = memoryStorage()
     const repo = createLocalStorageGameRepository(storage)
-    repo.save(progressedState(2))
+    await repo.save(progressedState(2))
     repo.clear()
     expect(storage.data.has(SAVE_KEY)).toBe(false)
-    expect(repo.load(T0)).toEqual({ status: 'empty' })
+    expect(await loadResult(repo)).toEqual({ status: 'empty' })
   })
 
-  it('detects an M1 (v1) save and leaves it untouched', () => {
+  it('detects an M1 (v1) save and leaves it untouched', async () => {
     const storage = memoryStorage({ [SAVE_KEY]: M1_SAVE })
     const repo = createLocalStorageGameRepository(storage)
-    expect(repo.load(T0)).toEqual({ status: 'incompatible', reason: 'legacy-v1' })
+    expect(await loadResult(repo)).toEqual({ status: 'incompatible', reason: 'legacy-v1' })
     expect(storage.data.get(SAVE_KEY)).toBe(M1_SAVE)
   })
 
-  it.each([0, 3, 99, 2.5])('reports schema version %s as unsupported', (version) => {
+  it.each([0, 3, 99, 2.5])('reports schema version %s as unsupported', async (version) => {
     const raw = saveOf(progressedState(1), version)
     const storage = memoryStorage({ [SAVE_KEY]: raw })
-    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({
+    expect(await loadResult(createLocalStorageGameRepository(storage, () => T0))).toEqual({
       status: 'incompatible',
       reason: 'unsupported-version',
     })
@@ -400,50 +420,50 @@ describe('localStorage game repository', () => {
     ['a future day with an outcome', saveOf({ ...valid, week: { ...valid.week, currentDayIndex: 1 } })],
   ]
 
-  it.each(malformed)('reports %s as malformed without deleting it', (_, raw) => {
+  it.each(malformed)('reports %s as malformed without deleting it', async (_, raw) => {
     const storage = memoryStorage({ [SAVE_KEY]: raw })
-    expect(createLocalStorageGameRepository(storage).load(T0)).toEqual({
+    expect(await loadResult(createLocalStorageGameRepository(storage, () => T0))).toEqual({
       status: 'incompatible',
       reason: 'malformed',
     })
     expect(storage.data.get(SAVE_KEY)).toBe(raw)
   })
 
-  it('accepts the valid fixture used for the malformed cases', () => {
+  it('accepts the valid fixture used for the malformed cases', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(valid) }))
-    expect(repo.load(T0).status).toBe('loaded')
+    expect((await loadResult(repo)).status).toBe('loaded')
   })
 
   it.each([
     ['missing', undefined],
     ['null', null],
     ['a string', '2026-01-01'],
-  ])('replaces a %s decay reference with the load time', (_, reference) => {
+  ])('replaces a %s decay reference with the load time', async (_, reference) => {
     const raw = saveOf({ ...valid, fitnessDecayReference: reference })
-    const result = createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0 + 5)
+    const result = (await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw }), () => T0 + 5)))
     expect(result).toMatchObject({ status: 'loaded', state: { fitnessDecayReference: T0 + 5 } })
   })
 
-  it('keeps a future decay reference for the decay rule to handle', () => {
+  it('keeps a future decay reference for the decay rule to handle', async () => {
     const raw = saveOf({ ...valid, fitnessDecayReference: T0 + 1e9 })
-    const result = createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw })).load(T0)
+    const result = (await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw }), () => T0)))
     expect(result).toMatchObject({ status: 'loaded', state: { fitnessDecayReference: T0 + 1e9 } })
   })
 
-  it('works without storage', () => {
+  it('works without storage', async () => {
     const repo = createLocalStorageGameRepository(null)
-    expect(repo.load(T0)).toEqual({ status: 'empty' })
-    expect(repo.save(newGame())).toBe(false)
-    expect(() => repo.clear()).not.toThrow()
+    expect(await loadResult(repo)).toEqual({ status: 'empty' })
+    await expect(repo.save(newGame())).rejects.toBeInstanceOf(SaveError)
+    await expect(repo.clear()).resolves.toBeUndefined()
   })
 
-  it('reports a failed save and survives a throwing storage', () => {
+  it('reports a failed save and survives a throwing storage', async () => {
     const fail = () => {
       throw new Error('blocked')
     }
     const repo = createLocalStorageGameRepository({ getItem: fail, setItem: fail, removeItem: fail })
-    expect(repo.load(T0)).toEqual({ status: 'empty' })
-    expect(repo.save(newGame())).toBe(false)
-    expect(() => repo.clear()).not.toThrow()
+    expect(await loadResult(repo)).toEqual({ status: 'empty' })
+    await expect(repo.save(newGame())).rejects.toBeInstanceOf(SaveError)
+    await expect(repo.clear()).resolves.toBeUndefined()
   })
 })

@@ -40,9 +40,9 @@ async function createCareer(user: User, profile: ProfileId, sex: Sex, name: stri
 }
 
 describe('career creation — profile step', () => {
-  it('shows the creation flow on every route, without navigation and without saving', () => {
+  it('shows the creation flow on every route, without navigation and without saving', async () => {
     for (const path of ['/', '/training', '/races', '/attributes']) {
-      const view = renderApp(path)
+      const view = await renderApp(path)
       expect(screen.getByRole('heading', { level: 1, name: 'Choose your athlete' })).toBeInTheDocument()
       expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument()
       view.unmount()
@@ -50,8 +50,8 @@ describe('career creation — profile step', () => {
     expect(localStorage.getItem(SAVE_KEY)).toBeNull()
   })
 
-  it('preselects Female and the first profile, with a confirm button naming it', () => {
-    renderApp('/')
+  it('preselects Female and the first profile, with a confirm button naming it', async () => {
+    await renderApp('/')
     expect(screen.getByRole('radio', { name: 'Female' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'Male' })).not.toBeChecked()
     expect(slides()).toHaveLength(4)
@@ -60,8 +60,8 @@ describe('career creation — profile step', () => {
     expect(screen.getByRole('button', { name: 'Show Climber' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('shows each profile with name, description, six bars, strengths, weaknesses and 96 points', () => {
-    renderApp('/')
+  it('shows each profile with name, description, six bars, strengths, weaknesses and 96 points', async () => {
+    await renderApp('/')
     const [climber, , allRounder] = slides()
     const card = within(climber!)
     expect(card.getByRole('heading', { name: 'Climber' })).toBeInTheDocument()
@@ -77,8 +77,8 @@ describe('career creation — profile step', () => {
     expect(allRounder).not.toHaveTextContent(/▲|▼/)
   })
 
-  it.each(PROFILE_IDS)('the %s card shows its exact starting attributes', (id) => {
-    renderApp('/')
+  it.each(PROFILE_IDS)('the %s card shows its exact starting attributes', async (id) => {
+    await renderApp('/')
     const card = slides()[PROFILE_IDS.indexOf(id)]!
     for (const meter of within(card).getAllByRole('meter')) {
       const label = meter.getAttribute('aria-label')!.toLowerCase() as keyof typeof PROFILES.climber.attributes
@@ -88,7 +88,7 @@ describe('career creation — profile step', () => {
 
   it('switches profile with the dots', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await user.click(screen.getByRole('button', { name: 'Show Endurance' }))
     expect(selectedSlide()).toHaveAccessibleName('Endurance, 4 of 4')
     expect(chooseButton()).toHaveTextContent('Choose Endurance')
@@ -98,7 +98,7 @@ describe('career creation — profile step', () => {
 
   it('switches profile with the arrow keys and by tapping another card', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     screen.getByRole('region', { name: /Starting profiles/ }).focus()
     await user.keyboard('{ArrowRight}{ArrowRight}')
     expect(chooseButton()).toHaveTextContent('Choose All-rounder')
@@ -113,7 +113,7 @@ describe('career creation — profile step', () => {
 
   it('changes every runner image when the sex changes', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     const art = () => slides().map((s) => within(s).getByRole('img'))
     // Climber has final artwork; the other profiles still show labelled placeholders.
     expect(art().map((img) => img.getAttribute('aria-label') ?? img.getAttribute('alt'))).toEqual([
@@ -140,7 +140,7 @@ describe('career creation — appearance step', () => {
 
   it('opens after choosing a profile, with the same sex choice, a preview and focus on the heading', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await user.click(screen.getByRole('radio', { name: 'Male' }))
     await user.click(chooseButton())
 
@@ -155,7 +155,7 @@ describe('career creation — appearance step', () => {
 
   it('shows one body per skin tone for each sex and keeps a valid tone when the sex changes', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await user.click(chooseButton())
     expect(screen.getAllByRole('radio', { name: /Skin tone/ })).toHaveLength(3)
     expect(avatar().querySelector('[data-layer="body"]')!.getAttribute('href')).toMatch(/female-2/)
@@ -174,7 +174,7 @@ describe('career creation — appearance step', () => {
 
   it('offers the basic head and the Level 1 heads of the skin tone, zoomed in on the face', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await user.click(chooseButton())
     expect(avatar()).not.toHaveAttribute('data-focus')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))
@@ -196,7 +196,7 @@ describe('career creation — appearance step', () => {
 
   it('offers no shirt (default) or the white T-shirt, and no shoes', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await user.click(chooseButton())
     await user.click(screen.getByRole('tab', { name: 'Clothing' }))
     expect(screen.getByRole('radio', { name: 'No shirt' })).toBeChecked()
@@ -211,7 +211,7 @@ describe('career creation — appearance step', () => {
 
   it('switches tabs with the arrow keys', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await user.click(chooseButton())
     screen.getByRole('tab', { name: 'Skin' }).focus()
     await user.keyboard('{ArrowRight}')
@@ -223,7 +223,7 @@ describe('career creation — appearance step', () => {
 
   it('saves the chosen appearance with the new career', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await user.click(screen.getByRole('radio', { name: 'Male' }))
     await user.click(chooseButton())
     await user.click(screen.getByRole('radio', { name: 'Skin tone 1' }))
@@ -241,7 +241,7 @@ describe('career creation — appearance step', () => {
 describe('career creation — name step', () => {
   it('opens after the appearance step, with a preview and focus on the heading', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await user.click(screen.getByRole('radio', { name: 'Male' }))
     await user.click(screen.getByRole('button', { name: 'Show Sprinter' }))
     await user.click(screen.getByRole('button', { name: 'Choose Sprinter' }))
@@ -256,7 +256,7 @@ describe('career creation — name step', () => {
 
   it('Back returns step by step with the same choices', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await user.click(screen.getByRole('radio', { name: 'Male' }))
     await user.click(screen.getByRole('button', { name: 'Show All-rounder' }))
     await user.click(screen.getByRole('button', { name: 'Choose All-rounder' }))
@@ -274,7 +274,7 @@ describe('career creation — name step', () => {
 
   it.each(['', '   '])('rejects the empty name %j and saves nothing', async (name) => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await chooseAndContinue(user)
     if (name) await user.type(screen.getByLabelText('Runner name'), name)
     await user.click(screen.getByRole('button', { name: 'Start career' }))
@@ -285,7 +285,7 @@ describe('career creation — name step', () => {
 
   it('limits the name to 16 characters and trims spaces', async () => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await chooseAndContinue(user)
     const input = screen.getByLabelText('Runner name')
     expect(input).toHaveAttribute('maxLength', '16')
@@ -299,7 +299,7 @@ describe('career creation — name step', () => {
     PROFILE_IDS.flatMap((profile) => (['female', 'male'] as const).map((sex) => [profile, sex] as const)),
   )('creates a %s %s career with the approved initial state', async (profile, sex) => {
     const user = userEvent.setup()
-    renderApp('/')
+    await renderApp('/')
     await createCareer(user, profile, sex, 'Alex')
 
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
@@ -323,18 +323,18 @@ describe('career creation — name step', () => {
 
   it('opens the Dashboard after starting, whichever route showed the flow', async () => {
     const user = userEvent.setup()
-    const { router } = renderApp('/career')
+    const { router } = await renderApp('/career')
     await createCareer(user, 'endurance', 'female', 'Ana')
     expect(router.state.location.pathname).toBe('/')
   })
 
   it('keeps the new career after a reload', async () => {
     const user = userEvent.setup()
-    const first = renderApp('/')
+    const first = await renderApp('/')
     await createCareer(user, 'endurance', 'male', 'Leo')
     first.unmount()
 
-    renderApp('/')
+    await renderApp('/')
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: 'Leo - Endurance (Lv 1)' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /^Leo, male runner/ })).toBeInTheDocument()
@@ -343,10 +343,10 @@ describe('career creation — name step', () => {
 })
 
 describe('incompatible save', () => {
-  it('blocks every route with a warning for an M1 save, hides navigation and does not change it', () => {
+  it('blocks every route with a warning for an M1 save, hides navigation and does not change it', async () => {
     localStorage.setItem(SAVE_KEY, M1_SAVE)
     for (const path of ['/', '/training', '/career', '/equipment']) {
-      const view = renderApp(path)
+      const view = await renderApp(path)
       expect(screen.getByRole('heading', { level: 1, name: "Your saved career can't continue" })).toBeInTheDocument()
       expect(screen.getByRole('alert')).toHaveTextContent('created with an earlier version')
       expect(screen.getByRole('button', { name: 'Restart Career' })).toBeInTheDocument()
@@ -360,7 +360,7 @@ describe('incompatible save', () => {
   it('Exit leaves the old save untouched, and the warning returns on the next visit', async () => {
     const user = userEvent.setup()
     localStorage.setItem(SAVE_KEY, M1_SAVE)
-    const first = renderApp('/')
+    const first = await renderApp('/')
     await user.click(screen.getByRole('button', { name: 'Exit' }))
     expect(screen.getByRole('heading', { name: 'Save left untouched' })).toHaveFocus()
     expect(screen.getByText(/You can close this page/)).toBeInTheDocument()
@@ -370,7 +370,7 @@ describe('incompatible save', () => {
     expect(screen.getByRole('button', { name: 'Restart Career' })).toBeInTheDocument()
     first.unmount()
 
-    renderApp('/')
+    await renderApp('/')
     expect(screen.getByRole('button', { name: 'Restart Career' })).toBeInTheDocument()
     expect(localStorage.getItem(SAVE_KEY)).toBe(M1_SAVE)
   })
@@ -378,7 +378,7 @@ describe('incompatible save', () => {
   it('Restart requires acknowledgement and writes nothing until the new career is started', async () => {
     const user = userEvent.setup()
     localStorage.setItem(SAVE_KEY, M1_SAVE)
-    renderApp('/')
+    await renderApp('/')
 
     await user.click(screen.getByRole('button', { name: 'Restart Career' }))
     expect(screen.getByRole('heading', { name: 'Confirm restart' })).toHaveFocus()
@@ -409,7 +409,7 @@ describe('incompatible save', () => {
   it('Cancel on the confirmation step returns to the warning', async () => {
     const user = userEvent.setup()
     localStorage.setItem(SAVE_KEY, M1_SAVE)
-    renderApp('/')
+    await renderApp('/')
     await user.click(screen.getByRole('button', { name: 'Restart Career' }))
     await user.click(screen.getByRole('checkbox'))
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -420,28 +420,28 @@ describe('incompatible save', () => {
   it('cannot be bypassed by reloading during creation', async () => {
     const user = userEvent.setup()
     localStorage.setItem(SAVE_KEY, M1_SAVE)
-    const first = renderApp('/')
+    const first = await renderApp('/')
     await user.click(screen.getByRole('button', { name: 'Restart Career' }))
     await user.click(screen.getByRole('checkbox'))
     await user.click(screen.getByRole('button', { name: 'Continue to profile selection' }))
     await user.click(chooseButton())
     first.unmount()
 
-    renderApp('/')
+    await renderApp('/')
     expect(screen.getByRole('button', { name: 'Restart Career' })).toBeInTheDocument()
   })
 
   it('does not show the warning again after the reset flow is completed', async () => {
     const user = userEvent.setup()
     localStorage.setItem(SAVE_KEY, M1_SAVE)
-    const first = renderApp('/')
+    const first = await renderApp('/')
     await user.click(screen.getByRole('button', { name: 'Restart Career' }))
     await user.click(screen.getByRole('checkbox'))
     await user.click(screen.getByRole('button', { name: 'Continue to profile selection' }))
     await createCareer(user, 'sprinter', 'male', 'Leo')
     first.unmount()
 
-    renderApp('/')
+    await renderApp('/')
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Restart Career' })).not.toBeInTheDocument()
   })
@@ -449,9 +449,9 @@ describe('incompatible save', () => {
   it.each([
     ['damaged data', '{"schemaVersion":2,"state":{"athlete":', 'damaged or incomplete'],
     ['an unsupported version', JSON.stringify({ schemaVersion: 7, state: {} }), 'different version'],
-  ])('shows the warning for %s without deleting it', (_, raw, text) => {
+  ])('shows the warning for %s without deleting it', async (_, raw, text) => {
     localStorage.setItem(SAVE_KEY, raw)
-    renderApp('/')
+    await renderApp('/')
     expect(screen.getByRole('alert')).toHaveTextContent(text)
     expect(localStorage.getItem(SAVE_KEY)).toBe(raw)
   })

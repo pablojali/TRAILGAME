@@ -952,6 +952,19 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Phase 2B: account linking (30 October 2026)
+
+- Settings → **Account**: guest (anonymous) or linked; link an email (confirmation link, then an
+  optional password) or Google to the **same** Supabase user, so the user id, career and local
+  progress are kept. `src/repositories/supabase/accountLinking.ts`; one shared client through
+  `supabaseLoader.ts`. Optional; never blocks play; no game data is read or written.
+- After a Google redirect the result is verified with the Auth server (same user id, Google
+  identity present); errors (identity used by another account, cancelled, linking disabled) leave
+  the guest account as it was. Accounts are never merged.
+- Apple: prepared in the service, not offered (needs Apple configuration). Sign out: in the
+  service, not offered (no sign-in screen yet).
+- Dashboard steps (manual linking, SMTP, redirect URLs, Google client): docs/SUPABASE_SETUP.md.
+
 ### Phase 2A: Supabase database and anonymous sign-in (30 October 2026)
 
 - Migration `supabase/migrations/20261030170516_player_foundation.sql`: `profiles`, `careers` (one

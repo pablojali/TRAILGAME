@@ -2,14 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
-import { Screen } from '../../components/Screen'
+import { Screen, ScrollPanel } from '../../components/Screen'
+import { getAccountService, type AccountService } from '../../repositories/supabase/accountLinking'
+import { AccountCard } from './AccountCard'
 import styles from './SettingsScreen.module.css'
 
-/** Settings, behind the top bar's icon. For now only the demo reset (moved from the Dashboard). */
-export function SettingsScreen() {
+/**
+ * Settings, behind the top bar's icon: the account (Phase 2B, when Supabase is configured) and the
+ * demo reset. `accountService` is for tests; the app uses the configured one.
+ */
+export function SettingsScreen({ accountService = getAccountService() }: { accountService?: AccountService | null }) {
   return (
     <Screen title="Settings" description="Game options.">
-      <ResetDemo />
+      <ScrollPanel label="Settings">
+        {accountService && <AccountCard service={accountService} />}
+        <ResetDemo />
+      </ScrollPanel>
     </Screen>
   )
 }

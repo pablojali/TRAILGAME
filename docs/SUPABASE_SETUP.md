@@ -89,6 +89,63 @@ create a career); it checks the caller and accepts only a brand-new career.
 - **Account linking later** (email, Apple, Google) will link the identity to the same anonymous
   user, so the user id, career id and all progress stay the same.
 
+## Phase 2B: linking the guest account (email, Google)
+
+**Settings → Account** shows whether the player is a guest (anonymous) or has a linked account,
+and links an email or a Google account to **the same Supabase user**: the user id, profile,
+career and local progress stay as they are. It is optional and never blocks play.
+
+| Part | File |
+|---|---|
+| Linking service (status, email, password, Google, redirect check) | `src/repositories/supabase/accountLinking.ts` |
+| Shared client loader (one client for identity and linking) | `src/repositories/supabase/supabaseLoader.ts` |
+| Account card in Settings | `src/features/settings/AccountCard.tsx` |
+
+- **Email:** `updateUser({ email })` on the signed-in guest; Supabase emails a confirmation link
+  (back to `/settings`). Until it is opened the account stays a guest ("Check your inbox"). Once
+  confirmed the account is permanent and the card offers an optional password (`updateUser({
+  password })`, at least 8 characters; Supabase only allows a password after the email is
+  confirmed). An email that belongs to another account is refused (`email_exists`): accounts are
+  never merged and neither career changes.
+- **Google:** `linkIdentity({ provider: 'google' })` from the current session. Before leaving, the
+  app remembers the user id in sessionStorage (no tokens); on return to `/settings` it asks the
+  Auth server for the user (`getUser`) and reports success only if it is the same id and now has a
+  Google identity. A Google account already linked to another player (`identity_already_exists`),
+  a cancelled sign-in or any other error leaves the guest account as it was.
+- **Apple:** not offered yet (no Apple configuration). The service accepts `apple` for
+  `linkIdentity`, so adding it is configuration plus one button (see below).
+- **Sign out:** the service has it, but Settings does not offer it yet: there is no sign-in screen,
+  so a player who signed out could not get back to their account on this device.
+- Nothing here touches the local save, creates a career or writes game data; passwords and tokens
+  are passed to Supabase and never stored or logged by the app.
+
+### Owner steps in the Supabase dashboard (Phase 2B)
+
+1. **Allow manual linking** (required for both email and Google on a guest): **Authentication →
+   Sign In / Providers → "Allow manual linking"** (also called Enable Manual Linking) → on.
+2. **Email provider:** on (default), with **Confirm email** on (default; keep it on).
+3. **Email delivery:** the built-in email service only sends to the project's team members
+   (others get "Emails cannot be sent to that address yet") and only a few per hour. For real
+   players, set up **custom SMTP** (Authentication → Emails → SMTP Settings; e.g. Resend, Brevo,
+   Postmark) and then raise **Authentication → Rate Limits → emails per hour**.
+4. **URL Configuration** (Authentication → URL Configuration):
+   - **Site URL:** `https://trailgame-f01.pages.dev`
+   - **Redirect URLs:** `https://trailgame-f01.pages.dev/**`, `https://*.trailgame-f01.pages.dev/**`
+     (Cloudflare preview deployments), `http://localhost:5173/**` (`npm run dev`) and
+     `http://localhost:4173/**` (`npm run preview`).
+5. **Google** (Authentication → Sign In / Providers → Google):
+   - In Google Cloud Console → APIs & Services → Credentials, create an **OAuth client ID** of type
+     **Web application**. Authorized redirect URI:
+     `https://zalyfrjfmsirvsrkdroy.supabase.co/auth/v1/callback`. Authorized JavaScript origins:
+     `https://trailgame-f01.pages.dev`. Set up the OAuth consent screen (app name, support email).
+   - Paste the **Client ID** and **Client Secret** into Supabase's Google provider and enable it.
+     The secret stays in Supabase; it is never in the app.
+6. **Apple (later):** an Apple Developer account; a **Services ID** (web) with the return URL
+   `https://zalyfrjfmsirvsrkdroy.supabase.co/auth/v1/callback`, a **Sign in with Apple key**
+   (.p8), the Team ID and Key ID. In Supabase's Apple provider, add the Services ID and the
+   generated client secret (it expires every 6 months and must be renewed). Apple requires Sign
+   in with Apple in iOS apps that offer Google, so it is needed before the App Store release.
+
 ### Existing local careers (Phase 2C)
 
 A career already saved on the device is left untouched and no remote career is created for it.
@@ -98,5 +155,6 @@ new careers). Until then the local save stays the only copy of that career.
 
 ## Not done yet (next phases)
 
-Remote saves (Phase 2B), the import of existing local careers (Phase 2C), account linking with
-email/Apple/Google, Edge Functions for coins, XP and race results, writing the coin ledger.
+Remote saves and the import of existing local careers (Phase 2C and later), Sign in with Apple, a
+sign-in screen for linked accounts on a new device, Edge Functions for coins, XP and race results,
+writing the coin ledger.

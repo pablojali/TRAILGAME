@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { GameState } from '../../game-engine/gameState'
 import {
   createLocalStorageGameRepository,
@@ -9,19 +9,20 @@ import {
   SCHEMA_VERSION,
   type GameRepository,
 } from '../../repositories/gameRepository'
+import type { PlayerIdentity } from '../../repositories/supabase/playerIdentity'
 import { newGame, T0, TEST_IDENTITY, withAthlete } from '../../test/gameFixtures'
 import { GameProvider } from './GameProvider'
 import { useGame, type GameContextValue } from './gameContext'
 
 /** Exposes the game context to the test and shows the phase. */
-function renderProvider(repository: GameRepository) {
+function renderProvider(repository: GameRepository, identity: PlayerIdentity | null = null) {
   const game: { current: GameContextValue | null } = { current: null }
   function Probe() {
     game.current = useGame()
     return <p data-testid="phase">{game.current.phase.kind}</p>
   }
   render(
-    <GameProvider repository={repository} clock={() => T0}>
+    <GameProvider repository={repository} clock={() => T0} identity={identity}>
       <Probe />
     </GameProvider>,
   )
@@ -155,5 +156,50 @@ describe('GameProvider — asynchronous loading and saving', () => {
     })
     await waitFor(() => expect(view.game().saveFailed).toBe(false))
     expect(store.stored()?.athlete.spentAttributePoints).toBe(2)
+  })
+})
+
+/** A stand-in for the Supabase identity that records what the game asks of it. */
+function fakeIdentity() {
+  return {
+    start: vi.fn(async () => 'user-1'),
+    ensureCareer: vi.fn<PlayerIdentity['ensureCareer']>(async () => ({ careerId: 'career-1', created: true })),
+    status: () => 'signed-in' as const,
+    stop: vi.fn(),
+  } satisfies PlayerIdentity
+}
+
+describe('GameProvider — anonymous identity (Phase 2A)', () => {
+  it('signs in at startup but never creates a remote career for an existing local career', async () => {
+    const saved = withAthlete(newGame(), { xp: 300 })
+    const raw = JSON.stringify({ schemaVersion: SCHEMA_VERSION, savedAt: 'x', state: saved })
+    localStorage.setItem(SAVE_KEY, raw)
+    const identity = fakeIdentity()
+    const view = renderProvider(createLocalStorageGameRepository(localStorage, () => T0), identity)
+    await waitFor(() => expect(view.phase()).toBe('playing'))
+    expect(identity.start).toHaveBeenCalled()
+    expect(identity.ensureCareer).not.toHaveBeenCalled()
+    // The local career is kept exactly as it was.
+    expect(localStorage.getItem(SAVE_KEY)).toBe(raw)
+  })
+
+  it('creates the remote career from a new career, which stays saved locally', async () => {
+    const identity = fakeIdentity()
+    const view = renderProvider(createLocalStorageGameRepository(localStorage, () => T0), identity)
+    await waitFor(() => expect(view.phase()).toBe('new-career'))
+    await act(async () => view.game().startCareer('climber', TEST_IDENTITY))
+    expect(identity.ensureCareer).toHaveBeenCalledTimes(1)
+    const created = identity.ensureCareer.mock.calls[0]![0]
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(SAVE_KEY)!).state).toEqual(created))
+  })
+
+  it('plays normally while the identity is still failing', async () => {
+    const identity = { ...fakeIdentity(), start: vi.fn(async () => null), ensureCareer: vi.fn<PlayerIdentity['ensureCareer']>(async () => null) }
+    const store = controlledRepository(null)
+    const view = renderProvider(store.repo, identity)
+    await store.finishLoad()
+    await act(async () => view.game().startCareer('climber', TEST_IDENTITY))
+    expect(view.phase()).toBe('playing')
+    await waitFor(() => expect(store.stored()?.athlete.profile).toBe('climber'))
   })
 })

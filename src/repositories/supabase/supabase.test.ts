@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createSupabaseClient, getSupabaseClient, supabaseConfigFromEnv } from './supabaseClient'
+import { createSupabaseClient, getSupabaseClient } from './supabaseClient'
+import { supabaseConfigFromEnv } from './supabaseEnv'
 import { checkSupabaseConnection, isSecretKey, readSupabaseConfig } from './supabaseConfig'
 
 /** A JWT-shaped key with this payload (signature not checked here). */

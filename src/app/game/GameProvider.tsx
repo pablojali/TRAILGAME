@@ -16,6 +16,7 @@ import {
   type GameRepository,
 } from '../../repositories/gameRepository'
 import { createSaveQueue } from '../../repositories/saveQueue'
+import { getPlayerIdentity, type PlayerIdentity } from '../../repositories/supabase/playerIdentity'
 import { GameContext, type DecayNotice, type GameContextValue, type GamePhase } from './gameContext'
 
 interface GameProviderProps {
@@ -24,9 +25,14 @@ interface GameProviderProps {
   repository?: GameRepository
   /** Current time in epoch ms. Override for tests; defaults to Date.now. */
   clock?: () => number
+  /**
+   * The player's Supabase identity; defaults to the configured one, or none (null) without
+   * Supabase. It runs beside the game and never blocks it or touches the local save.
+   */
+  identity?: PlayerIdentity | null
 }
 
-export function GameProvider({ children, repository, clock = Date.now }: GameProviderProps) {
+export function GameProvider({ children, repository, clock = Date.now, identity }: GameProviderProps) {
   // Latest clock, also read by the repository (decay reference fallback when loading).
   const clockRef = useRef(clock)
   useEffect(() => {
@@ -41,6 +47,13 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
   // One queue for the provider's lifetime: saves never overlap and keep their order.
   const [queue] = useState(() => createSaveQueue(repo, (saved) => setSaveFailed(!saved)))
   useEffect(() => () => queue.dispose(), [queue])
+  const [player] = useState(() => (identity === undefined ? getPlayerIdentity() : identity))
+
+  // Anonymous sign-in in the background (Phase 2A): reuses the stored session, never blocks play.
+  useEffect(() => {
+    void player?.start()
+    return () => player?.stop()
+  }, [player])
 
   // Latest phase, read synchronously so rapid repeated actions see each other's result.
   const phaseRef = useRef(phase)
@@ -125,9 +138,12 @@ export function GameProvider({ children, repository, clock = Date.now }: GamePro
     (profile: ProfileId, identity: AthleteIdentity) => {
       setLastExecution(null)
       setDecayNotice(null)
-      commit({ kind: 'playing', state: createInitialGameState(profile, clockRef.current(), identity) })
+      const state = createInitialGameState(profile, clockRef.current(), identity)
+      commit({ kind: 'playing', state })
+      // The remote career is created once, from this new career; the local save stays the game's.
+      void player?.ensureCareer(state)
     },
-    [commit],
+    [commit, player],
   )
 
   const beginRestart = useCallback(() => {

@@ -952,6 +952,20 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Phase 2A: Supabase database and anonymous sign-in (30 October 2026)
+
+- Migration `supabase/migrations/20261030170516_player_foundation.sql`: `profiles`, `careers` (one
+  per user), `race_entries`, `owned_equipment`, `coin_transactions`; RLS read-only for the owner,
+  no client writes; `create_my_career` creates a new career once (idempotent, new careers only).
+- `src/repositories/supabase/playerIdentity.ts`: reuses the stored session or signs in
+  anonymously once, retries in the background, creates the remote career when a new career
+  starts. `GameProvider` takes it as `identity` (null without Supabase); localStorage stays the
+  game's only save and is never touched by it.
+- `npm run db:test` checks the migration and RLS on a throwaway local PostgreSQL (two players,
+  signed-out access, client writes refused). Not part of `npm run check` (needs PostgreSQL).
+- Owner steps (apply the migration, enable anonymous sign-ins) and the Phase 2C plan for existing
+  local careers: docs/SUPABASE_SETUP.md.
+
 ### New women's bodies and head art (owner upload, 30 October 2026)
 
 - Women's bodies (tones 1–3) replaced by the owner: now bald, like the men's.

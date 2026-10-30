@@ -43,6 +43,7 @@ describe('Career', () => {
     expect(within(table).getByRole('img', { name: 'Gold' })).toBeInTheDocument()
 
     // Personal best: the win, and the faster time (the same race).
+    await user.click(screen.getByRole('tab', { name: 'Bests' }))
     expect(screen.getByRole('link', { name: 'Best position in Forest First Steps: 1st' })).toHaveAttribute(
       'href',
       `/races/results/${first.id}`,
@@ -50,6 +51,7 @@ describe('Career', () => {
     expect(screen.getByText(/· Open · 2 runs/)).toBeInTheDocument()
 
     // History: newest first, each row links to its result.
+    await user.click(screen.getByRole('tab', { name: 'History' }))
     const history = screen.getByRole('heading', { name: 'Race history' }).closest('article')!
     const rows = within(history).getAllByRole('link')
     expect(rows.map((row) => row.getAttribute('href'))).toEqual([

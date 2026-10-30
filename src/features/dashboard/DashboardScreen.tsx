@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { useCareer, useGame } from '../../app/game/gameContext'
+import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
-import { Card, Meter } from '../../components/Card'
+import { Meter } from '../../components/Card'
 import { Coins } from '../../components/Coins'
 import { formatDelta, formatStat } from '../../components/format'
 import {
@@ -13,13 +12,12 @@ import {
 } from '../../domain/athlete/athlete'
 import { getLevelProgress } from '../../domain/athlete/levels'
 import { PROFILES } from '../../domain/athlete/profiles'
-import { formatCoins } from '../../domain/economy/coins'
 import { getCareerProgress, WEEKS_PER_YEAR } from '../../domain/training/calendar'
 import { TRAINING_SESSIONS } from '../../domain/training/sessions'
 import { weekdayLong, weekdayShort } from '../../domain/training/weekdays'
 import { getUnspentAttributePoints } from '../../game-engine/attributes'
-import { getCurrentDay, getDayStatus } from '../../game-engine/gameState'
-import { previewSession, summarizeWeek } from '../../game-engine/training'
+import { getCurrentDay } from '../../game-engine/gameState'
+import { previewSession } from '../../game-engine/training'
 import { getRace } from '../../domain/races/races'
 import { getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedule'
 import { DashboardRunner } from './DashboardRunner'
@@ -37,11 +35,10 @@ export function DashboardScreen() {
   const today = getCurrentDay(week)
   const todaySession = TRAINING_SESSIONS[today.session]
   const effects = previewSession(state, today.session)
-  const summary = summarizeWeek(state)
   const fatigueHigh = athlete.fatigue >= HIGH_FATIGUE
-  const pendingRaces = state.raceEntries.filter((entry) => entry.status === 'pending').length
   const scheduled = getScheduledEntry(state)
-  const todayRace = isRaceDayToday(state) && scheduled ? getRace(scheduled.raceId) : undefined
+  const scheduledRace = scheduled ? getRace(scheduled.raceId) : undefined
+  const todayRace = isRaceDayToday(state) ? scheduledRace : undefined
 
   return (
     <section className={styles.screen} aria-labelledby="dashboard-title">
@@ -174,152 +171,40 @@ export function DashboardScreen() {
             </dl>
           </section>
         </div>
-      </div>
 
-      {/* Below the first screen: actions and summaries. */}
-      <div className={styles.cards}>
-        <Card title="Attribute points">
-          <div className={styles.pointsRow}>
-            <p>
-              <strong className={styles.points}>{unspent}</strong> unspent attribute{' '}
-              {unspent === 1 ? 'point' : 'points'}
+        {/* Today: what to do next, one tap away (the page does not scroll). */}
+        <section className={styles.today} aria-label="Today">
+          <div className={styles.todayText}>
+            <p className={styles.todayTitle}>
+              Today · {todayRace ? `Race: ${todayRace.name}` : todaySession.label}
             </p>
-            <Link
-              to="/attributes"
-              className={`${button.button} ${unspent > 0 ? button.primary : button.secondary}`}
-            >
-              {unspent > 0 ? 'Allocate points' : 'View attributes'}
-            </Link>
-          </div>
-        </Card>
-
-        <Card title={`Today · ${weekdayShort(today.day)}`}>
-          {todayRace ? (
-            <>
-              <p className={styles.session}>Race: {todayRace.name}</p>
-              <p className={styles.muted}>Race day: the race takes today’s training day.</p>
-              <Link to={`/races/${todayRace.id}`} className={`${button.button} ${button.primary}`}>
-                Go to race
-              </Link>
-            </>
-          ) : (
-            <>
-              <p className={styles.session}>{todaySession.label}</p>
-              <p className={`${styles.muted} ${styles.effects}`}>
-                <span>XP {formatDelta(effects.xpGained)}</span> ·{' '}
-                <span>Fitness {formatDelta(effects.fitnessChange)}</span> ·{' '}
-                <span>Fatigue {formatDelta(effects.fatigueChange)}</span>
-                {effects.attributeGain && (
-                  <>
-                    {' '}
-                    ·{' '}
-                    <span>
-                      {ATTRIBUTE_LABELS[effects.attributeGain.attribute]} {formatDelta(effects.attributeGain.amount)}
-                    </span>
-                  </>
-                )}
+            {todayRace ? (
+              <p className={styles.todayLine}>Race day: the race takes today’s training day.</p>
+            ) : (
+              <p className={styles.todayLine}>
+                XP {formatDelta(effects.xpGained)} · Fitness {formatDelta(effects.fitnessChange)} · Fatigue{' '}
+                {formatDelta(effects.fatigueChange)}
+                {effects.attributeGain &&
+                  ` · ${ATTRIBUTE_LABELS[effects.attributeGain.attribute]} ${formatDelta(effects.attributeGain.amount)}`}
               </p>
-              <Link to="/training" className={`${button.button} ${button.primary}`}>
-                Go to training
+            )}
+            {!todayRace && scheduledRace && (
+              <p className={styles.todayLine}>Sunday: {scheduledRace.name}</p>
+            )}
+            {unspent > 0 && (
+              <Link to="/attributes" className={styles.todayLink}>
+                {unspent} attribute {unspent === 1 ? 'point' : 'points'} to spend ›
               </Link>
-            </>
-          )}
-        </Card>
-
-        <Card title="Races">
-          <p className={styles.muted}>
-            <strong>{formatCoins(state.coins)}</strong>
-            {pendingRaces > 0 && ` · race on Sunday`}
-          </p>
-          <Link to="/races" className={`${button.button} ${button.secondary}`}>
-            Race Hub
+            )}
+          </div>
+          <Link
+            to={todayRace ? `/races/${todayRace.id}` : '/training'}
+            className={`${button.button} ${button.primary} ${styles.todayButton}`}
+          >
+            {todayRace ? 'Go to race' : 'Train'}
           </Link>
-        </Card>
-
-        <Card title={`Week ${week.number}`}>
-          <p>
-            <strong>
-              {summary.completedDays} of {summary.totalDays}
-            </strong>{' '}
-            days completed
-          </p>
-          <ol className={styles.weekDots} aria-hidden="true">
-            {week.days.map((day, index) => (
-              <li key={day.day} className={styles[getDayStatus(week, index)]}>
-                <span className={styles.weekDotLabel}>{weekdayShort(day.day).charAt(0)}</span>
-              </li>
-            ))}
-          </ol>
-          <p className={styles.muted}>
-            {summary.xpGained} XP earned this week
-          </p>
-        </Card>
-
-        <ResetDemo />
+        </section>
       </div>
     </section>
-  )
-}
-
-function ResetDemo() {
-  const { resetCareer } = useGame()
-  const [confirming, setConfirming] = useState(false)
-  const resetButton = useRef<HTMLButtonElement>(null)
-  const confirmButton = useRef<HTMLButtonElement>(null)
-  // Keeps keyboard focus on the visible control when the buttons swap.
-  const focusTarget = useRef<'reset' | 'confirm' | null>(null)
-
-  useEffect(() => {
-    if (focusTarget.current === 'reset') resetButton.current?.focus()
-    if (focusTarget.current === 'confirm') confirmButton.current?.focus()
-    focusTarget.current = null
-  }, [confirming])
-
-  function toggle(next: boolean) {
-    focusTarget.current = next ? 'confirm' : 'reset'
-    setConfirming(next)
-  }
-
-  return (
-    <Card title="Demo">
-      {confirming ? (
-        <>
-          <p className={styles.muted}>
-            This erases all saved progress. You will then choose a new starting profile.
-          </p>
-          <div className={styles.actions}>
-            <button
-              ref={confirmButton}
-              type="button"
-              className={`${button.button} ${button.danger}`}
-              onClick={resetCareer}
-            >
-              Confirm reset
-            </button>
-            <button
-              type="button"
-              className={`${button.button} ${button.secondary}`}
-              onClick={() => toggle(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          <p className={styles.muted}>Start over with a new career and starting profile.</p>
-          <div className={styles.actions}>
-            <button
-              ref={resetButton}
-              type="button"
-              className={`${button.button} ${button.secondary}`}
-              onClick={() => toggle(true)}
-            >
-              Reset demo
-            </button>
-          </div>
-        </>
-      )}
-    </Card>
   )
 }

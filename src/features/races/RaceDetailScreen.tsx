@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
-import { Screen } from '../../components/Screen'
+import { Screen, ScrollPanel } from '../../components/Screen'
 import { getLevel } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
 import { getEntryFee, getGrossPrizes, getRewardMultiplier, getShortfall } from '../../domain/races/access'
@@ -48,11 +48,16 @@ function RaceDetail({ race }: { race: Race }) {
   const prizes = getGrossPrizes(race)
 
   return (
-    <Screen eyebrow={`${category.label} race`} title={race.name} description={courseText(race)}>
-      <Link to="/races" className={styles.back}>
-        ← All races
-      </Link>
-
+    <Screen
+      eyebrow={`${category.label} race`}
+      title={race.name}
+      description={courseText(race)}
+      aside={
+        <Link to={`/races?category=${race.category}`} className={styles.back}>
+          ← All races
+        </Link>
+      }
+    >
       <dl className={styles.facts}>
         <div>
           <dt>Distance</dt>
@@ -74,55 +79,60 @@ function RaceDetail({ race }: { race: Race }) {
         </div>
       </dl>
 
-      <Card title="Entry fee">
-        <ul className={styles.fees}>
-          <FeeRow
-            label={`Standard (level ${race.recommendedLevel} or higher)`}
-            amount={category.standardFee}
-            applies={fee.type !== 'early'}
-          />
-          <FeeRow
-            label={`Early entry (below level ${race.recommendedLevel})`}
-            amount={category.earlyEntryFee}
-            applies={fee.type === 'early'}
-          />
-        </ul>
-      </Card>
+      {/* Fees, prizes and past results scroll here; the entry action stays in view below. */}
+      <ScrollPanel label="Fees, prizes and your results">
+        <Card title="Entry fee">
+          <ul className={styles.fees}>
+            <FeeRow
+              label={`Standard (level ${race.recommendedLevel} or higher)`}
+              amount={category.standardFee}
+              applies={fee.type !== 'early'}
+            />
+            <FeeRow
+              label={`Early entry (below level ${race.recommendedLevel})`}
+              amount={category.earlyEntryFee}
+              applies={fee.type === 'early'}
+            />
+          </ul>
+        </Card>
 
-      <Card title="Potential prizes">
-        <table className={styles.prizes}>
-          <caption className={styles.srOnly}>Gross coin prizes by finishing position</caption>
-          <thead>
-            <tr>
-              <th scope="col">Position</th>
-              <th scope="col">Gross prize</th>
-            </tr>
-          </thead>
-          <tbody>
-            {PRIZE_BANDS.map((band, i) => (
-              <tr key={band.label}>
-                <th scope="row">{band.label}</th>
-                <td>{formatCoins(prizes[i]!)}</td>
+        <Card title="Potential prizes">
+          <table className={styles.prizes}>
+            <caption className={styles.srOnly}>Gross coin prizes by finishing position</caption>
+            <thead>
+              <tr>
+                <th scope="col">Position</th>
+                <th scope="col">Gross prize</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className={styles.muted}>
-          Prizes are before the entry fee. XP and prizes are reduced when your level is above the
-          recommended level:{' '}
-          {REWARD_MULTIPLIERS.slice(1)
-            .map((row, i, rows) => `+${row.levelDifference}${i === rows.length - 1 ? ' or more' : ''} → ${percentText(row.coins)}`)
-            .join(', ')}
-          .
-        </p>
-        <p className={multiplier.coins < 1 ? styles.warning : styles.muted}>
-          At your level: {percentText(multiplier.coins)} of prizes and XP
-          {multiplier.coins === 0 ? ' — this race is too easy for your level.' : '.'}
-        </p>
-      </Card>
+            </thead>
+            <tbody>
+              {PRIZE_BANDS.map((band, i) => (
+                <tr key={band.label}>
+                  <th scope="row">{band.label}</th>
+                  <td>{formatCoins(prizes[i]!)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className={styles.muted}>
+            Prizes are before the entry fee. XP and prizes are reduced when your level is above the
+            recommended level:{' '}
+            {REWARD_MULTIPLIERS.slice(1)
+              .map((row, i, rows) => `+${row.levelDifference}${i === rows.length - 1 ? ' or more' : ''} → ${percentText(row.coins)}`)
+              .join(', ')}
+            .
+          </p>
+          <p className={multiplier.coins < 1 ? styles.warning : styles.muted}>
+            At your level: {percentText(multiplier.coins)} of prizes and XP
+            {multiplier.coins === 0 ? ' — this race is too easy for your level.' : '.'}
+          </p>
+        </Card>
+        <PastResults race={race} />
+      </ScrollPanel>
 
-      <EntryPanel race={race} />
-      <PastResults race={race} />
+      <div className={styles.entry}>
+        <EntryPanel race={race} />
+      </div>
     </Screen>
   )
 }
@@ -183,16 +193,16 @@ function EntryPanel({ race }: { race: Race }) {
 
   if (entry) {
     return (
-      <Card title="Entered">
+      <section className={styles.entryBar} aria-label="Your entry">
         <h2 ref={panel} tabIndex={-1} className={styles.srOnly}>
           Race entry confirmed
         </h2>
-        <p role="status">
+        <p role="status" className={styles.entryTitle}>
           {justEntered ? 'Entry confirmed. ' : ''}
           Entry fee paid: {entry.feePaid === 0 ? 'free entry' : formatCoins(entry.feePaid)}.
         </p>
         <RaceDayPanel race={race} entryId={entry.id} />
-      </Card>
+      </section>
     )
   }
 
@@ -200,36 +210,33 @@ function EntryPanel({ race }: { race: Race }) {
   const scheduledRace = scheduled && getRace(scheduled.raceId)
   if (scheduled && scheduledRace) {
     return (
-      <Card title="Enter this race">
-        <p className={styles.warning}>
-          You are already entered in {scheduledRace.name} on Sunday. Races are run on Sundays, one per week.
+      <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label="Enter this race">
+        <p className={`${styles.entryText} ${styles.warning}`}>
+          You are already entered in {scheduledRace.name} on Sunday. One race per week.
         </p>
         <Link to={`/races/${scheduledRace.id}`} className={`${button.button} ${button.secondary}`}>
-          Go to {scheduledRace.name}
+          Go to race<span className={styles.srOnly}> {scheduledRace.name}</span>
         </Link>
-      </Card>
+      </section>
     )
   }
 
+  // A compact bar under the race details (owner request: the entry must not cover them).
   if (!confirming) {
     return (
-      <Card title="Enter this race">
-        <p className={styles.muted}>
-          Races are run on Sundays: this one would be on Sunday of week {getRaceWeek(state)}, instead of that
-          day’s session.
-        </p>
-        <p>
-          {feeText(fee)}
-          {fee.type === 'early' && <span className={styles.muted}> (your level is below {race.recommendedLevel})</span>}
-        </p>
-        {shortfall > 0 && (
-          <p className={styles.warning} id="race-shortfall">
-            Not enough coins: you need {formatCoins(shortfall)} more (balance {formatCoins(state.coins)}).
-          </p>
-        )}
+      <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label="Enter this race">
+        <div className={styles.entryText}>
+          <p className={styles.entryTitle}>Sunday, week {getRaceWeek(state)}</p>
+          <p>{feeText(fee)}</p>
+          {shortfall > 0 && (
+            <p className={styles.warning} id="race-shortfall">
+              You need {formatCoins(shortfall)} more.
+            </p>
+          )}
+        </div>
         <button
           type="button"
-          className={`${button.button} ${button.primary} ${button.block}`}
+          className={`${button.button} ${button.primary}`}
           aria-disabled={shortfall > 0 || undefined}
           aria-describedby={shortfall > 0 ? 'race-shortfall' : undefined}
           onClick={() => {
@@ -240,30 +247,27 @@ function EntryPanel({ race }: { race: Race }) {
         >
           Enter race
         </button>
-      </Card>
+      </section>
     )
   }
 
   return (
-    <Card title="Confirm entry">
+    <section className={styles.entryBar} aria-label="Confirm entry">
       <h2 ref={panel} tabIndex={-1} className={styles.srOnly}>
         Confirm entry to {race.name}
       </h2>
-      <dl className={styles.confirm}>
-        <div>
-          <dt>Entry fee</dt>
-          <dd>{fee.fee === 0 ? 'Free' : formatCoins(fee.fee)}</dd>
-        </div>
-        <div>
-          <dt>Your balance</dt>
-          <dd>{formatCoins(state.coins)}</dd>
-        </div>
-        <div>
-          <dt>Balance after entry</dt>
-          <dd>{formatCoins(state.coins - fee.fee)}</dd>
-        </div>
-      </dl>
-      <p className={styles.muted}>Entry fees are not refunded.</p>
+      <p>
+        {fee.fee === 0 ? (
+          <>
+            <strong>Free entry.</strong> Balance stays {formatCoins(state.coins)}.
+          </>
+        ) : (
+          <>
+            <strong>Pay {formatCoins(fee.fee)}.</strong> Balance {formatCoins(state.coins)} →{' '}
+            {formatCoins(state.coins - fee.fee)}. Not refundable.
+          </>
+        )}
+      </p>
       {message && (
         <p role="alert" className={styles.warning}>
           {message}
@@ -289,6 +293,6 @@ function EntryPanel({ race }: { race: Race }) {
           {fee.fee === 0 ? 'Confirm free entry' : `Pay ${formatCoins(fee.fee)} and enter`}
         </button>
       </div>
-    </Card>
+    </section>
   )
 }

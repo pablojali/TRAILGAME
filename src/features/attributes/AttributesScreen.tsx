@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
-import { Card, Meter } from '../../components/Card'
+import { Meter } from '../../components/Card'
 import { Screen } from '../../components/Screen'
 import {
   ATTRIBUTE_IDS,
@@ -52,12 +52,14 @@ export function AttributesScreen() {
       eyebrow="Athlete"
       title="Attributes"
       description={`Spend attribute points one at a time. You earn ${ATTRIBUTE_POINTS_PER_LEVEL} points each time you level up. Spent points cannot be refunded.`}
+      aside={
+        <p className={styles.summary}>
+          <span className={styles.points}>{unspent}</span>
+          <span>{unspent === 1 ? 'point' : 'points'} to spend</span>
+        </p>
+      }
     >
-      <div className={styles.summary}>
-        <span className={styles.points}>{unspent}</span>
-        <span>{unspent === 1 ? 'attribute point' : 'attribute points'} to spend</span>
-      </div>
-      <Card title="Current attributes">
+      <section className={styles.panel} aria-label="Current attributes">
         <ul className={styles.list}>
           {ATTRIBUTE_IDS.map((id) => {
             const label = ATTRIBUTE_LABELS[id]
@@ -100,7 +102,7 @@ export function AttributesScreen() {
           Recovery: every {RECOVERY_BONUS_STEP} points above your starting {startRecovery} make Rest recover{' '}
           {RECOVERY_BONUS_FATIGUE} more Fatigue. Rest now: Fatigue {formatDelta(getRestFatigueDelta(athlete))}.
         </p>
-      </Card>
+      </section>
 
       <Link to="/" className={`${button.button} ${button.secondary} ${styles.back}`}>
         Back to Dashboard

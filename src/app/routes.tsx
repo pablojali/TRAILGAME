@@ -8,6 +8,7 @@ import { NotFoundScreen } from '../features/not-found/NotFoundScreen'
 import { RaceDetailScreen } from '../features/races/RaceDetailScreen'
 import { RaceResultScreen } from '../features/races/RaceResultScreen'
 import { RacesScreen } from '../features/races/RacesScreen'
+import { SettingsScreen } from '../features/settings/SettingsScreen'
 import { TrainingScreen } from '../features/training/TrainingScreen'
 import { AppShell } from './AppShell'
 import { GameProvider } from './game/GameProvider'
@@ -30,6 +31,7 @@ export const routes: RouteObject[] = [
       { path: 'races/results/:entryId', element: <RaceResultScreen /> },
       { path: 'career', element: <CareerScreen /> },
       { path: 'attributes', element: <AttributesScreen /> },
+      { path: 'settings', element: <SettingsScreen /> },
       { path: '*', element: <NotFoundScreen /> },
     ],
   },

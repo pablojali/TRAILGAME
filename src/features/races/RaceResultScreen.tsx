@@ -1,9 +1,11 @@
-import { Link, useLocation, useParams } from 'react-router'
+import { useEffect, useRef } from 'react'
+import { Link, useLocation, useParams, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
 import { formatDelta, formatStat } from '../../components/format'
-import { Screen } from '../../components/Screen'
+import { Screen, ScrollPanel } from '../../components/Screen'
+import { Tabs } from '../../components/Tabs'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
 import { ATTRIBUTE_LABELS, isAttributeId } from '../../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
@@ -50,6 +52,12 @@ export function RaceResultScreen() {
   return <Result race={race} entry={entry} />
 }
 
+const RESULT_TABS = [
+  { id: 'result', label: 'Result' },
+  { id: 'why', label: 'Why' },
+  { id: 'standings', label: 'Full results' },
+] as const
+
 function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
   const { result } = entry
   const location = useLocation()
@@ -62,57 +70,77 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
     athlete.appearance.skin,
   )
 
+  const [params, setParams] = useSearchParams()
+  const tab = RESULT_TABS.find((t) => t.id === params.get('tab'))?.id ?? 'result'
+
   return (
     <Screen
       eyebrow={`${race.name} · Result`}
       title={`${ordinal(result.position)} of ${result.fieldSize}`}
       description={`${RACE_CATEGORY_CONFIG[race.category].label} race · Week ${result.week}, ${weekdayLong(result.day)}`}
+      showDescription
     >
-      <p className={styles.headline}>
-        <span className={styles.time}>{raceTimeText(result.timeS)}</span>
-        <span className={styles.muted}>{PRIZE_BANDS[result.band]!.label} prize band</span>
-      </p>
+      <Tabs
+        label="Race result"
+        tabs={RESULT_TABS}
+        value={tab}
+        // Keep the router state, so the level-up message survives switching tabs.
+        onChange={(next) => setParams(next === 'result' ? {} : { tab: next }, { replace: true, state: location.state })}
+      >
+        {tab === 'result' && (
+          <ScrollPanel label="Result">
+            <p className={styles.headline}>
+              <span className={styles.time}>{raceTimeText(result.timeS)}</span>
+              <span className={styles.muted}>{PRIZE_BANDS[result.band]!.label} prize band</span>
+            </p>
 
-      {levelsGained > 0 && (
-        <p role="status" className={styles.warning}>
-          Level up! +{levelsGained * ATTRIBUTE_POINTS_PER_LEVEL} attribute points.{' '}
-          <Link to="/attributes">Allocate points</Link>
-          {unlocks.length > 0 && (
-            <>
-              {' '}
-              New look unlocked: {unlocks.join(', ')}. <Link to="/appearance">Change look</Link>
-            </>
-          )}
-        </p>
-      )}
+            {levelsGained > 0 && (
+              <p role="status" className={styles.warning}>
+                Level up! +{levelsGained * ATTRIBUTE_POINTS_PER_LEVEL} attribute points.{' '}
+                <Link to="/attributes">Allocate points</Link>
+                {unlocks.length > 0 && (
+                  <>
+                    {' '}
+                    New look unlocked: {unlocks.join(', ')}. <Link to="/appearance">Change look</Link>
+                  </>
+                )}
+              </p>
+            )}
 
-      <Card title="What shaped your time">
-        <Performance result={result} />
-      </Card>
+            <Card title="Rewards">
+              <Rewards race={race} entry={entry} />
+            </Card>
 
-      <Standings race={race} entry={entry} name={athlete.name} />
-
-      <Card title="Rewards">
-        <Rewards race={race} entry={entry} />
-      </Card>
-
-      <Card title="Condition">
-        <p>
-          Fatigue {formatDelta(result.fatigueChange)}
-          {result.fitnessChange !== 0 && ` · Fitness ${formatDelta(result.fitnessChange)}`}
-        </p>
-        {result.injured ? (
-          <p className={styles.warning}>
-            Injured: Fatigue went above 95. No XP, Fitness lost and {INJURY_REST_DAYS} forced rest days. Your result
-            and prize still count.
-          </p>
-        ) : (
-          <p className={styles.muted}>The race took this training day and counts as training for Fitness decay.</p>
+            <Card title="Condition">
+              <p>
+                Fatigue {formatDelta(result.fatigueChange)}
+                {result.fitnessChange !== 0 && ` · Fitness ${formatDelta(result.fitnessChange)}`}
+              </p>
+              {result.injured ? (
+                <p className={styles.warning}>
+                  Injured: Fatigue went above 95. No XP, Fitness lost and {INJURY_REST_DAYS} forced rest days. Your
+                  result and prize still count.
+                </p>
+              ) : (
+                <p className={styles.muted}>
+                  The race took this training day and counts as training for Fitness decay.
+                </p>
+              )}
+            </Card>
+          </ScrollPanel>
         )}
-      </Card>
+        {tab === 'why' && (
+          <ScrollPanel label="What shaped your time">
+            <Card title="What shaped your time">
+              <Performance result={result} />
+            </Card>
+          </ScrollPanel>
+        )}
+        {tab === 'standings' && <Standings race={race} entry={entry} name={athlete.name} />}
+      </Tabs>
 
       <div className={styles.links}>
-        <Link to="/races" className={`${button.button} ${button.primary}`}>
+        <Link to={`/races?category=${race.category}`} className={`${button.button} ${button.primary}`}>
           Back to races
         </Link>
         <Link to="/training" className={`${button.button} ${button.secondary}`}>
@@ -227,46 +255,51 @@ function Rewards({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
   )
 }
 
-/** All 50 finishers, one click away (collapsed by default). */
+/** All 50 finishers, in their own tab; the table scrolls inside the screen. */
 function Standings({ race, entry, name }: { race: Race; entry: FinishedRaceEntry; name: string }) {
   const rows = getStandings(race, entry.result)
   const winner = rows[0]!.timeS
   const prizes = GROSS_PRIZES[race.category]
+  const you = useRef<HTMLTableRowElement>(null)
+  // Open the table at the player's row.
+  useEffect(() => you.current?.scrollIntoView?.({ block: 'center' }), [])
   return (
-    <details className={styles.standings}>
-      <summary className={styles.standingsSummary}>Full results · {rows.length} runners</summary>
-      <table className={styles.standingsTable}>
-        <caption className={styles.srOnly}>Full results of {race.name}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Pos.</th>
-            <th scope="col">Runner</th>
-            <th scope="col">Time</th>
-            <th scope="col">Gap</th>
-            <th scope="col">Prize</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const band = PRIZE_BANDS.findIndex((b) => row.position >= b.from && (b.to === null || row.position <= b.to))
-            const firstOfBand = PRIZE_BANDS[band]!.from === row.position
-            return (
-              <tr
-                key={row.position}
-                className={`${row.runner === 'you' ? styles.youRow : ''} ${firstOfBand && row.position > 1 ? styles.bandStart : ''}`}
-                aria-current={row.runner === 'you' ? 'true' : undefined}
-              >
-                <td>{row.position}</td>
-                <th scope="row">{row.runner === 'you' ? `${name} (you)` : `Rival ${row.runner}`}</th>
-                <td>{raceTimeText(row.timeS)}</td>
-                <td>{row.position === 1 ? '—' : `+${durationText(row.timeS - winner)}`}</td>
-                <td>{prizes[band]}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-      <p className={styles.muted}>Prizes are gross coins by position, before the reward multiplier.</p>
-    </details>
+    <>
+      <ScrollPanel label={`Full results · ${rows.length} runners`}>
+        <table className={styles.standingsTable}>
+          <caption className={styles.srOnly}>Full results of {race.name}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Pos.</th>
+              <th scope="col">Runner</th>
+              <th scope="col">Time</th>
+              <th scope="col">Gap</th>
+              <th scope="col">Prize</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const band = PRIZE_BANDS.findIndex((b) => row.position >= b.from && (b.to === null || row.position <= b.to))
+              const firstOfBand = PRIZE_BANDS[band]!.from === row.position
+              return (
+                <tr
+                  key={row.position}
+                  ref={row.runner === 'you' ? you : undefined}
+                  className={`${row.runner === 'you' ? styles.youRow : ''} ${firstOfBand && row.position > 1 ? styles.bandStart : ''}`}
+                  aria-current={row.runner === 'you' ? 'true' : undefined}
+                >
+                  <td>{row.position}</td>
+                  <th scope="row">{row.runner === 'you' ? `${name} (you)` : `Rival ${row.runner}`}</th>
+                  <td>{raceTimeText(row.timeS)}</td>
+                  <td>{row.position === 1 ? '—' : `+${durationText(row.timeS - winner)}`}</td>
+                  <td>{prizes[band]}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </ScrollPanel>
+      <p className={styles.standingsNote}>Prizes are gross coins by position, before the reward multiplier.</p>
+    </>
   )
 }

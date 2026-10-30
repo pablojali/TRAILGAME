@@ -74,7 +74,7 @@ milestone that needs them.
 - The career is saved under the localStorage key `trailgame.save` with `schemaVersion: 2`. Loading
   never deletes data: M1 (v1) saves, unknown versions and damaged data show a blocking screen with
   **Restart Career** and **Exit**.
-- **Reset demo** (Dashboard) deletes the career and returns to profile selection.
+- **Reset demo** (Settings, the icon at the top right) deletes the career and returns to profile selection.
 - Rest reduces Fatigue by 8 (plus 2 for every 3 Recovery points above the profile's starting value) and Fitness by 2. Completing a session that leaves Fatigue above 95 injures the runner:
   no XP, −15 Fitness and 5 forced Rest days (`src/domain/training/injury.ts`).
 - The runner's name, sex and appearance (hairstyle, skin tone, outfit) are cosmetic. Careers saved
@@ -133,8 +133,9 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
    Then **Continue** and enter a name (1–16 characters). Nothing is saved until **Start career**;
    the name then appears on the Dashboard.
 2. Dashboard: the first screen shows "Name - Profile · Lv N" over the runner's avatar (as
-   customized; men in socks and women barefoot until shoes are equipped in **Equipment**), attributes on the left and Level/XP/Fitness/Fatigue on the right, without scrolling;
-   attribute points, Today, the week and Reset demo are below it.
+   customized; men in socks and women barefoot until shoes are equipped in **Equipment**), attributes on the left and Level/XP/Fitness/Fatigue on the right;
+   the **Today** strip below it shows today's session and effects, unspent attribute points and
+   **Train** (or **Go to race** on race day). No screen scrolls; long lists scroll in their panel.
 3. Training: the Mon–Sun strip is on top and the selected day's full detail below it, without
    scrolling or popups. Tap a day's tab to see its detail; today's detail has the session selector,
    effects and the complete button. A double tap on complete only completes one day.
@@ -149,8 +150,8 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
    and reload — Fitness drops by 3 once, with a notice; reloading again changes nothing.
 9. Old save: put an M1 save in `trailgame.save` and reload — the blocking screen appears on every
    tab. **Exit** keeps the save. **Restart Career** → tick the box → choose a profile → new career.
-10. **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
-11. Races: the **Races** tab (or **Race Hub** on the Dashboard) shows Level, coins (25) and 12 races in
+10. Settings (top right) → **Reset demo** → **Confirm reset** returns to profile selection with no saved career.
+11. Races: the **Races** tab shows Level, coins (25) and 12 races in tabs
     Open, Trail, Mountain and Elite; at level 1 Trail and above show "Early entry". Open
     **Forest First Steps** → **Enter race** → the confirmation shows fee, balance and balance after
     entry → **Confirm free entry**. Reload: still entered, and **Enter race** is gone.
@@ -181,12 +182,12 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
     injury and the button reads **Start race anyway — injury**. The result shows "0 (injured)" XP,
     "Rewards reduced to 40%" (level 3 in a level-1 race) and 5 forced rest days. During forced rest
     the race panel says racing is locked.
-15. Shop: **Equipment** shows the balance, **Your equipment** (starter shoes: **Equip** /
-    **Take off**) and the **Shop** (7 items, 25–90 coins, lvl 1 and lvl 2). With 25 coins only
-    Poles lvl 1 can be bought; the others say "You need … more". Set `state.coins` to 150 and
-    reload: **Buy** Poles lvl 2 → the confirmation shows the balance before → after → **Pay 50
-    coins** charges once. Poles move
-    to **Your equipment** and can be equipped. Each item shows its race effect, and an equipped item
+15. Shop: **Equipment** shows the balance and two tabs. **Equipped**: the runner and one row per
+    slot (Shoes: **Change** → **Equip starter shoes** / **Take off**). **Shop**: 7 items, 25–90
+    coins, lvl 1 and lvl 2, filtered by Shoes / Poles / Backpack. With 25 coins only Poles lvl 1 can
+    be bought; the others say "You need … more". Set `state.coins` to 150 and reload: **Buy** Poles
+    lvl 2 → the confirmation shows the balance before → after → **Pay 50 coins** charges once. The
+    poles leave the Shop and can be put on in **Equipped** (Poles → **Change**). Each item shows its race effect, and an equipped item
     can appear as "Equipment (…)" in a race result's explanation.
 16. Look: in creation, the **Hair** tab zooms the preview in on the face; **Skin** and
     **Clothing** zoom back out. **Equipment** → **Change look** opens **Appearance** with the same

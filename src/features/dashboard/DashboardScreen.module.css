@@ -1,7 +1,8 @@
 .screen {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  min-height: 0;
 }
 
 .srOnly {
@@ -17,18 +18,15 @@
 }
 
 /*
- * First screen: fills the visible height between the brand bar (53px) and the bottom navigation,
- * so the runner and the key numbers are visible without scrolling. Cards follow below.
+ * The whole Dashboard fits the screen: year bar, the runner between attributes and condition, then
+ * the Today strip. The runner takes whatever height is left.
  */
 .hero {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  height: calc(
-    100dvh - 53px - var(--bottom-nav-height) - 1px - 2 * var(--space-4) - env(safe-area-inset-top) -
-      env(safe-area-inset-bottom)
-  );
-  min-height: 400px;
+  min-height: 360px;
 }
 
 .topBar {
@@ -262,90 +260,52 @@
   text-transform: uppercase;
 }
 
-/* Cards below the first screen. */
-.cards {
+/* Today: the next action, under the runner (owner request: the Dashboard fits one screen). */
+.today {
+  flex: none;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
-}
-
-.pointsRow {
-  display: flex;
-  flex-wrap: wrap;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
 }
 
-.points {
-  color: var(--accent-secondary);
-  font-size: var(--font-size-lg);
-}
-
-.session {
-  font-size: var(--font-size-lg);
-  font-weight: 800;
-}
-
-.muted {
-  color: var(--text-muted);
-}
-
-.effects span {
-  white-space: nowrap;
-}
-
-.weekDots {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.weekDots li {
+.todayText {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 2px;
+  min-width: 0;
 }
 
-.weekDots li::after {
-  content: '';
-  width: 100%;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--surface-raised);
+.todayTitle {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.weekDotLabel {
+.todayLine {
   color: var(--text-muted);
   font-size: var(--font-size-xs);
 }
 
-.weekDots .completed::after {
-  background: var(--brand-text);
-}
-
-.weekDots .current::after {
-  background: var(--accent);
-}
-
-.weekDots .current .weekDotLabel {
+.todayLink {
   color: var(--accent);
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-decoration: none;
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
+.todayButton {
+  min-width: 88px;
 }
 
 @media (min-width: 768px) {
   .hero {
-    height: calc(100dvh - 2 * var(--space-6));
     max-height: 760px;
   }
 
@@ -359,9 +319,6 @@
     font-size: var(--font-size-sm);
   }
 
-  .cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .balance {

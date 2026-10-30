@@ -1,21 +1,26 @@
-.layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
-}
-
-.previewColumn {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+/* The runner takes the height the slot rows leave (the page does not scroll). */
+.previewArea {
+  position: relative;
+  flex: 1;
+  min-height: 180px;
 }
 
 .preview {
-  position: relative;
-  height: min(48dvh, 420px);
+  position: absolute;
+  inset: 0;
   margin: 0;
   border-radius: var(--radius-lg);
   background: radial-gradient(ellipse at 50% 55%, rgb(240 124 42 / 0.14), transparent 70%);
+}
+
+.lookButton {
+  position: absolute;
+  right: 0;
+  bottom: var(--space-2);
+  min-height: 36px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
 }
 
 .previewArt {
@@ -23,6 +28,104 @@
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+.slots {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slot {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.slotWorn {
+  border-color: var(--accent);
+}
+
+.slotRow {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+.slotLabel {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.slotItem {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+}
+
+.slotItem > span {
+  font-size: var(--font-size-xs);
+}
+
+.slotAction {
+  min-height: 36px;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2);
+  list-style: none;
+}
+
+.choice {
+  min-height: 36px;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.choiceOn {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.status {
+  flex: none;
+  min-height: 1.2em;
+  color: var(--brand-text);
+  font-size: var(--font-size-xs);
+}
+
+.status:empty {
+  display: none;
 }
 
 .balance {
@@ -54,16 +157,7 @@
   gap: var(--space-4);
 }
 
-.owned {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
 
-.sectionTitle {
-  font-size: var(--font-size-md);
-  font-weight: 800;
-}
 
 .items {
   display: flex;
@@ -85,9 +179,6 @@
   background: var(--surface);
 }
 
-.equipped {
-  border-color: var(--accent);
-}
 
 .itemArt {
   display: block;
@@ -167,11 +258,4 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-
-@media (min-width: 768px) {
-  .layout {
-    grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr);
-    align-items: start;
-  }
 }

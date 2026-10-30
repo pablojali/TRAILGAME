@@ -33,18 +33,23 @@ assets/runner/
 - **Number:** two digits (01, 02…), one design per number. The same number across tones is the
   same design: `lvl1_men_head_01_tone1.png` … `lvl1_men_head_01_tone4.png`.
 - **Tone:** heads only (`tone1` to `tone3` for women, `tone1` to `tone4` for men, matching the
-  bodies). A runner with skin tone 2 is offered every head in `tone2`; a head design missing
+  bodies `men_body_tone{n}.png` / `women_body_tone{n}.png`). A runner with skin tone 2 is offered every head in `tone2`; a head design missing
   for that tone is not offered.
 
-## Heads replace the whole head
+## Heads are drawn over the body's basic head
 
-Painting hair over a bald head does not look right, so a head part replaces the complete head:
-face, hair and ears together.
+Painting hair over a bald head does not look right, so a head part is a complete head (face,
+hair and ears together) drawn over the body's own head.
 
-- Bodies then need to be **headless**, one per sex and tone, for example `men_body_tone2.png`.
-  The current bodies have their head painted in and stay as they are until the headless ones
-  arrive.
-- Each head should cover the neck down to where it meets the body, so the join does not show.
+- **Bodies keep a basic head** (owner decision, 30 October 2026), one body per sex and tone, for
+  example `men_body_tone2.png`: men bald, women with basic hair. With no head part chosen, the
+  runner shows that basic head ("As drawn", the default).
+- **A head must fully cover the basic head**, including the women's basic hair, so nothing of it
+  shows around the new head. A short haircut drawn over longer basic hair would leave the basic
+  hair visible: keep the women's basic hair close to the head (short, or tied back), or make
+  every women's head opaque wherever the basic hair reaches.
+- **The neck stays the body's:** each head should end where it meets the body's neck, matching its
+  tone, so the join does not show.
 
 ## Canvas
 

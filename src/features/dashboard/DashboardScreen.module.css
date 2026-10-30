@@ -301,3 +301,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.coins {
+  color: #f2c531;
+}

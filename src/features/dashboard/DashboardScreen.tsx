@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { useCareer, useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card, Meter } from '../../components/Card'
+import { Coins } from '../../components/Coins'
 import { formatDelta } from '../../components/format'
 import {
   ATTRIBUTE_IDS,
@@ -125,6 +126,12 @@ export function DashboardScreen() {
                 <dd className={styles.value}>{athlete.fitness}</dd>
                 <dd>
                   <Meter label="Fitness" value={athlete.fitness} max={STAT_MAX} className={styles.fitnessMeter} />
+                </dd>
+              </div>
+              <div className={styles.stat}>
+                <dt>Coins</dt>
+                <dd className={`${styles.value} ${styles.coins}`}>
+                  <Coins amount={state.coins} />
                 </dd>
               </div>
               <div className={`${styles.stat} ${fatigueHigh ? styles.fatigueHigh : ''}`}>

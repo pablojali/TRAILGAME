@@ -577,7 +577,7 @@ The proposed starting equipment is:
 
 Equipment should eventually have meaningful gameplay effects rather than serving only as decoration.
 
-**Shop (owner decisions, 29 October 2026):** runners own the starter shoes and can buy, in coins: Trail shoes lvl 1 (35: Speed +1, Technical +1), Technical trail shoes lvl 2 (70: Technical +4, technical descents 30% easier), Light trail shoes lvl 2 (70: Speed +3, descents 2% faster, technical descents 30% harder), Poles lvl 1 (25: Climbing +2, Endurance +1, flats 3% slower), Poles lvl 2 (50: Climbing +3, Endurance +2, flats 1% slower), Hydration backpack lvl 1 (30: Endurance +2, 10% less wear) and lvl 2 (90: Endurance +3, 15% less wear). Attribute bonuses apply in races only. Items are worn on the avatar. Equipment never affects training.
+**Shop (owner decisions, 29 October 2026):** runners own the starter shoes and can buy, in coins: Trail shoes lvl 1 (35: Speed +1, Technical +1), Technical trail shoes lvl 2 (70: Technical +4, technical descents 30% easier), Light trail shoes lvl 2 (70: Speed +3, descents 2% faster, technical descents 30% harder), Poles lvl 1 (25: Climbing +2, flats 1% slower), Poles lvl 2 (50: Climbing +3, Endurance +1, flats 1% slower), Hydration backpack lvl 1 (30: Endurance +1, 10% less wear) and lvl 2 (90: Endurance +2, 15% less wear) — values after the balance review approved on 30 October 2026. Attribute bonuses apply in races only. Items are worn on the avatar. Equipment never affects training.
 
 **Equipment rules (owner, 29 October 2026):**
 
@@ -1006,7 +1006,7 @@ To be decided by the owner/PM before or during M4.1; not part of the PM text abo
 3. **Milestone number:** `DEVELOPMENT.md` §11 already uses M4 for "PWA release candidate".
 4. **Entry before simulation:** in M4.1 there is no race result, so what a confirmed entry does until M4.2/M4.3 must be defined.
 
-**Later owner decisions (29 October 2026):** recommended levels per category Open 1–10, Trail 11–20, Mountain 21–30, Elite 31–50 (races at 1/4/8, 11/14/18, 21/25/28, 31/40/50), levels up to 50, and every entry fee halved (Trail 50/125, Mountain 125/300, Elite 300/700). The field's typical runner reaches Fitness 90 at level 30. These supersede point (1) below and the fee table in §10.3.
+**Later owner decisions (29 October 2026):** recommended levels per category Open 1–10, Trail 11–20, Mountain 21–30, Elite 31–50 (races at 4/6/8 since 30 October 2026, were 1/4/8; 11/14/18, 21/25/28, 31/40/50), levels up to 50, and every entry fee halved (Trail 50/125, Mountain 125/300, Elite 300/700). The field's typical runner reaches Fitness 90 at level 30. These supersede point (1) below and the fee table in §10.3.
 
 **Owner decisions (29 October 2026):** (1) keep the level cap at 5 for now — no progression change in M4; (2) the starting balance is **0 coins**, for new careers and older saves (this replaces the 100 coins proposed in §9.1); (3) races are M4 and the later milestones were renumbered in `DEVELOPMENT.md` (PWA M5, native packaging M6, Strava/VTL M8); (4) a confirmed entry charges the fee once and is saved as **pending** until results exist.
 

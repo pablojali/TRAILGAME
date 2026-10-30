@@ -1,6 +1,11 @@
 # Equipment balance review (PM request, 30 October 2026)
 
-Analysis only: no production code was changed. Proposed adjustment under review:
+**Outcome (owner, 30 October 2026):** approved, with Poles lvl 1 slowing flats by 1 % instead of 3 %
+(never slower than no poles: −0.1 % to −1.0 % in every race and profile). The avatar fix is
+implemented. Open races later moved to levels 4/6/8, so the RACE-001 to RACE-002 rows below
+(computed at levels 1 and 4) are out of date.
+
+Proposed adjustment under review:
 
 | Item | Current | Proposed |
 |---|---|---|

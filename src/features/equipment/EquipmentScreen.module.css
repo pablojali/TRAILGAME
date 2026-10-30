@@ -26,8 +26,26 @@
 }
 
 .balance {
-  color: var(--accent-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: #f2c531;
+  font-size: var(--font-size-lg);
   font-weight: 800;
+}
+
+.balanceLabel {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.nameRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-2);
 }
 
 .columns {
@@ -110,7 +128,7 @@
 }
 
 .price {
-  color: var(--accent-secondary);
+  color: #f2c531;
   font-weight: 800;
 }
 

@@ -42,6 +42,10 @@ export interface EquipmentItem {
 }
 
 /**
+ * Balance review (PM proposal, owner approval 30 October 2026): poles and backpacks lose 1
+ * Endurance each (Poles lvl 1 none), and Poles lvl 1 slow flats by 1% instead of 3% so they are
+ * never worse than no poles. Shoes and prices unchanged.
+ *
  * Owner decisions (29 October 2026). Items bought before this catalog keep their id and become
  * Poles lvl 1, Hydration backpack lvl 1 and Technical trail shoes lvl 2 (no refund).
  */
@@ -90,8 +94,8 @@ export const EQUIPMENT_ITEMS: readonly EquipmentItem[] = [
     level: 1,
     description: 'Folding poles that help on climbs.',
     price: 25,
-    raceEffect: { attributes: { climbing: 2, endurance: 1 }, runnable: 1.03 },
-    effectText: 'Races: Climbing +2, Endurance +1, but flats 3% slower.',
+    raceEffect: { attributes: { climbing: 2 }, runnable: 1.01 },
+    effectText: 'Races: Climbing +2, but flats 1% slower.',
   },
   {
     id: 'poles-2',
@@ -100,8 +104,8 @@ export const EQUIPMENT_ITEMS: readonly EquipmentItem[] = [
     level: 2,
     description: 'Light carbon poles.',
     price: 50,
-    raceEffect: { attributes: { climbing: 3, endurance: 2 }, runnable: 1.01 },
-    effectText: 'Races: Climbing +3, Endurance +2, but flats 1% slower.',
+    raceEffect: { attributes: { climbing: 3, endurance: 1 }, runnable: 1.01 },
+    effectText: 'Races: Climbing +3, Endurance +1, but flats 1% slower.',
   },
   {
     id: 'hydration-backpack',
@@ -110,8 +114,8 @@ export const EQUIPMENT_ITEMS: readonly EquipmentItem[] = [
     level: 1,
     description: 'Carries water and food for long races.',
     price: 30,
-    raceEffect: { attributes: { endurance: 2 }, slowdown: 0.9 },
-    effectText: 'Races: Endurance +2, 10% less wear over distance.',
+    raceEffect: { attributes: { endurance: 1 }, slowdown: 0.9 },
+    effectText: 'Races: Endurance +1, 10% less wear over distance.',
   },
   {
     id: 'hydration-backpack-2',
@@ -120,8 +124,8 @@ export const EQUIPMENT_ITEMS: readonly EquipmentItem[] = [
     level: 2,
     description: 'A larger, better-fitting race vest.',
     price: 90,
-    raceEffect: { attributes: { endurance: 3 }, slowdown: 0.85 },
-    effectText: 'Races: Endurance +3, 15% less wear over distance.',
+    raceEffect: { attributes: { endurance: 2 }, slowdown: 0.85 },
+    effectText: 'Races: Endurance +2, 15% less wear over distance.',
   },
 ]
 

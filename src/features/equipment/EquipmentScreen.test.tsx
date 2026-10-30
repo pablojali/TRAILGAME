@@ -42,13 +42,15 @@ describe('Equipment', () => {
     const user = userEvent.setup()
     seedCareer({ ...newGame(), coins: 60 })
     renderApp('/equipment')
-    expect(screen.getByText('60 coins')).toBeInTheDocument()
+    expect(screen.getByText('Balance').parentElement).toHaveTextContent('Balance 60 coins')
     expect(screen.getByRole('heading', { name: 'Shop' })).toBeInTheDocument()
     // Each item says what it does in races, with its level.
-    expect(screen.getByText('Races: Climbing +2, Endurance +1, but flats 3% slower.')).toBeInTheDocument()
+    expect(screen.getByText('Races: Climbing +2, but flats 1% slower.')).toBeInTheDocument()
     expect(screen.getByText('Races: Speed +3, descents 2% faster, but technical descents 30% harder.')).toBeInTheDocument()
-    expect(screen.getByText('Races: Endurance +3, 15% less wear over distance.')).toBeInTheDocument()
-    expect(screen.getByText('Poles · Lvl 2')).toBeInTheDocument()
+    expect(screen.getByText('Races: Endurance +2, 15% less wear over distance.')).toBeInTheDocument()
+    // The price is next to the name, with the coin symbol.
+    expect(screen.getByText('Poles · Lvl 2').parentElement).toHaveTextContent('Poles · Lvl 2 50 coins')
+    expect(screen.getByText('Poles · Lvl 2').parentElement!.querySelector('svg')).toBeInTheDocument()
     // Not enough for the backpack lvl 2 (90): the button is inactive and says why.
     const pack = screen.getByRole('button', { name: 'Buy hydration backpack · lvl 2' })
     expect(pack).toHaveAttribute('aria-disabled', 'true')

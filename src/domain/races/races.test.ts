@@ -12,9 +12,10 @@ describe('race catalog', () => {
     expect(RACES).toHaveLength(12)
     expect(RACES.map((r) => r.id)).toEqual(Array.from({ length: 12 }, (_, i) => `RACE-${String(i + 1).padStart(3, '0')}`))
     expect(RACES.map((r) => [r.name, r.category, r.distanceKm, r.elevationGainM, r.recommendedLevel])).toEqual([
-      // Recommended levels: owner decision of 29 October 2026 (Open 1–10, Trail 11–20, Mountain 21–30, Elite 31–50).
-      ['Forest First Steps', 'open', 5, 120, 1],
-      ['Riverside Trail', 'open', 8, 220, 4],
+      // Recommended levels: owner decisions of 29 October 2026 (Open 1–10, Trail 11–20, Mountain 21–30,
+      // Elite 31–50) and 30 October 2026 (Open races at 4, 6 and 8).
+      ['Forest First Steps', 'open', 5, 120, 4],
+      ['Riverside Trail', 'open', 8, 220, 6],
       ['Pine Loop Challenge', 'open', 10, 350, 8],
       ['Ridge Runner', 'trail', 12, 550, 11],
       ['Stone Path Classic', 'trail', 15, 750, 14],
@@ -33,7 +34,7 @@ describe('race catalog', () => {
 
   it('uses the category fees halved by the owner (29 October 2026)', () => {
     expect(RACE_CATEGORY_CONFIG).toEqual({
-      open: { label: 'Open', recommendedLevel: 1, standardFee: 0, earlyEntryFee: 0 },
+      open: { label: 'Open', recommendedLevel: 4, standardFee: 0, earlyEntryFee: 0 },
       trail: { label: 'Trail', recommendedLevel: 11, standardFee: 50, earlyEntryFee: 125 },
       mountain: { label: 'Mountain', recommendedLevel: 21, standardFee: 125, earlyEntryFee: 300 },
       elite: { label: 'Elite', recommendedLevel: 31, standardFee: 300, earlyEntryFee: 700 },
@@ -91,7 +92,7 @@ describe('anti-farming multipliers', () => {
   })
 
   it('gives 0 % at 3 or more levels above the recommendation', () => {
-    expect(getRewardMultiplier(race('RACE-001'), 4)).toMatchObject({ levelDifference: 3, xp: 0, coins: 0 })
-    expect(getRewardMultiplier(race('RACE-001'), 5)).toMatchObject({ levelDifference: 4, xp: 0, coins: 0 })
+    expect(getRewardMultiplier(race('RACE-001'), 7)).toMatchObject({ levelDifference: 3, xp: 0, coins: 0 })
+    expect(getRewardMultiplier(race('RACE-001'), 8)).toMatchObject({ levelDifference: 4, xp: 0, coins: 0 })
   })
 })

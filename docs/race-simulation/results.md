@@ -63,10 +63,10 @@ No day form; V1 included (approved model). "Before V1" values are those publishe
 
 | # | Athlete | Race | Time | Position | Before V1 | Difference |
 |---|---|---|---:|---:|---|---|
-| 1 | All-rounder, F20, Fa0 (new career) | RACE-001 | 0:45:41 | 19 | 0:45:41 / 19 | none |
+| 1 | All-rounder, F20, Fa0 (new career) | RACE-001 | 0:45:41 | 24 | 0:45:41 / 19 | +0 s, position 19 → 24 |
 | 2 | All-rounder, F80, Fa10 | RACE-001 | 0:37:04 | 1 | 0:36:58 / 1 | +6 s |
-| 3 | Sprinter, F60, Fa20 | RACE-001 | 0:40:54 | 3 | 0:40:49 / 3 | +5 s |
-| 4 | Climber, F60, Fa20 | RACE-001 | 0:43:01 | 11 | 0:42:46 / 11 | +15 s |
+| 3 | Sprinter, F60, Fa20 | RACE-001 | 0:40:54 | 11 | 0:40:49 / 3 | +5 s, position 3 → 11 |
+| 4 | Climber, F60, Fa20 | RACE-001 | 0:43:01 | 17 | 0:42:46 / 11 | +15 s, position 11 → 17 |
 | 5 | All-rounder, F60, Fa0 | RACE-004 | 1:55:17 | 20 | 1:55:17 / 13 | +0 s, position 13 → 20 |
 | 6 | All-rounder, F60, Fa80 | RACE-004 | 2:25:12 | 47 | 2:22:57 / 39 | +135 s, position 39 → 47 |
 | 7 | Climber, F60, Fa20 | RACE-007 | 4:24:01 | 47 | 4:22:26 / 41 | +95 s, position 41 → 47 |
@@ -80,8 +80,8 @@ No day form; V1 included (approved model). "Before V1" values are those publishe
 
 | Race | New career (All-rounder F20 Fa0) | All-rounder F50 Fa30 | Best Climber | Best Endurance | Best Sprinter | Field winner | Field reference | Field last |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| RACE-001 | 19 | 16 | 1 | 1 | 1 | 0:40:40 | 0:47:47 | 0:59:28 |
-| RACE-002 | 24 | 22 | 1 | 1 | 1 | 1:04:17 | 1:15:33 | 1:34:02 |
+| RACE-001 | 24 | 22 | 1 | 1 | 1 | 0:38:45 | 0:45:32 | 0:56:41 |
+| RACE-002 | 28 | 26 | 1 | 1 | 1 | 1:02:16 | 1:13:10 | 1:31:04 |
 | RACE-003 | 32 | 30 | 1 | 1 | 1 | 1:21:31 | 1:35:47 | 1:59:13 |
 | RACE-004 | 38 | 35 | 1 | 1 | 1 | 1:41:48 | 1:59:37 | 2:28:54 |
 | RACE-005 | 44 | 41 | 1 | 1 | 1 | 2:09:15 | 2:31:52 | 3:09:02 |
@@ -97,8 +97,8 @@ No day form; V1 included (approved model). "Before V1" values are those publishe
 
 | Race | Climber | Sprinter | All-rounder | Endurance | Spread fastest–slowest |
 |---|---|---|---|---|---:|
-| RACE-001 | 0:43:01 #11 | **0:40:54 #3** | 0:41:42 #6 | 0:41:52 #7 | 5.2% |
-| RACE-002 | 1:11:07 #17 | **1:08:23 #12** | 1:09:13 #13 | 1:09:20 #13 | 4.0% |
+| RACE-001 | 0:43:01 #17 | **0:40:54 #11** | 0:41:42 #13 | 0:41:52 #14 | 5.2% |
+| RACE-002 | 1:11:07 #21 | **1:08:23 #16** | 1:09:13 #17 | 1:09:20 #18 | 4.0% |
 | RACE-003 | 1:34:59 #23 | 1:33:59 #22 | **1:33:38 #21** | 1:33:49 #22 | 1.4% |
 | RACE-004 | 2:03:46 #28 | 2:03:40 #28 | **2:02:46 #27** | 2:02:57 #27 | 0.8% |
 | RACE-005 | **2:44:11 #33** | 2:47:01 #35 | 2:44:16 #33 | 2:44:41 #33 | 1.7% |
@@ -116,45 +116,45 @@ Baseline: All-rounder (all attributes 16), Fitness 50, Fatigue 20, no day form. 
 
 | Input | Value | Short RACE-001 | Medium RACE-004 | Medium technical RACE-007 | Ultra RACE-012 |
 |---|---:|---:|---:|---:|---:|
-| Baseline | — | 0:43:26 #12 | 2:07:53 #32 | 4:36:32 #50 | 19:35:16 #50 |
-| Fitness | 0 | +20.0% #34 | +20.0% #50 | +20.0% #50 | +20.0% #50 |
-| Fitness | 20 | +12.0% #26 | +12.0% #45 | +12.0% #50 | +12.0% #50 |
+| Baseline | — | 0:43:26 #18 | 2:07:53 #32 | 4:36:32 #50 | 19:35:16 #50 |
+| Fitness | 0 | +20.0% #40 | +20.0% #50 | +20.0% #50 | +20.0% #50 |
+| Fitness | 20 | +12.0% #32 | +12.0% #45 | +12.0% #50 | +12.0% #50 |
 | Fitness | 80 | −12.0% #1 | −12.0% #17 | −12.0% #37 | −12.0% #50 |
 | Fitness | 100 | −20.0% #1 | −20.0% #3 | −20.0% #26 | −20.0% #50 |
-| Fatigue | 0 | −6.1% #2 | −6.1% #24 | −6.1% #45 | −6.1% #50 |
-| Fatigue | 50 | +9.1% #23 | +9.1% #42 | +9.1% #50 | +9.1% #50 |
-| Fatigue | 80 | +18.3% #32 | +18.3% #50 | +18.3% #50 | +18.3% #50 |
-| Fatigue | 100 | +24.4% #38 | +24.4% #50 | +24.4% #50 | +24.4% #50 |
-| Endurance | 1 | +12.3% #26 | +14.8% #48 | +21.3% #50 | +44.3% #50 |
-| Endurance | 8 | +5.6% #19 | +6.4% #39 | +8.3% #50 | +15.5% #50 |
-| Endurance | 24 | −4.5% #6 | −4.8% #26 | −5.6% #45 | −9.1% #50 |
-| Endurance | 28 | −6.4% #1 | −6.9% #24 | −7.9% #42 | −12.4% #50 |
+| Fatigue | 0 | −6.1% #10 | −6.1% #24 | −6.1% #45 | −6.1% #50 |
+| Fatigue | 50 | +9.1% #29 | +9.1% #42 | +9.1% #50 | +9.1% #50 |
+| Fatigue | 80 | +18.3% #38 | +18.3% #50 | +18.3% #50 | +18.3% #50 |
+| Fatigue | 100 | +24.4% #44 | +24.4% #50 | +24.4% #50 | +24.4% #50 |
+| Endurance | 1 | +12.3% #32 | +14.8% #48 | +21.3% #50 | +44.3% #50 |
+| Endurance | 8 | +5.6% #25 | +6.4% #39 | +8.3% #50 | +15.5% #50 |
+| Endurance | 24 | −4.5% #12 | −4.8% #26 | −5.6% #45 | −9.1% #50 |
+| Endurance | 28 | −6.4% #10 | −6.9% #24 | −7.9% #42 | −12.4% #50 |
 | Endurance | 100 | −26.8% #1 | −27.2% #1 | −28.4% #13 | −35.6% #41 |
-| Climbing | 1 | +6.8% #20 | +13.7% #47 | +18.2% #50 | +21.5% #50 |
-| Climbing | 8 | +3.0% #16 | +5.7% #38 | +7.3% #50 | +8.3% #50 |
-| Climbing | 24 | −2.3% #9 | −4.0% #27 | −4.8% #46 | −5.3% #50 |
-| Climbing | 28 | −3.2% #8 | −5.6% #25 | −6.7% #44 | −7.4% #50 |
+| Climbing | 1 | +6.8% #26 | +13.7% #47 | +18.2% #50 | +21.5% #50 |
+| Climbing | 8 | +3.0% #22 | +5.7% #38 | +7.3% #50 | +8.3% #50 |
+| Climbing | 24 | −2.3% #15 | −4.0% #27 | −4.8% #46 | −5.3% #50 |
+| Climbing | 28 | −3.2% #14 | −5.6% #25 | −6.7% #44 | −7.4% #50 |
 | Climbing | 100 | −11.8% #1 | −18.6% #6 | −21.8% #23 | −23.3% #50 |
 | Speed | 1 | +38.6% #50 | +25.3% #50 | +17.4% #50 | +12.1% #50 |
-| Speed | 8 | +13.7% #28 | +9.5% #42 | +6.9% #50 | +4.8% #50 |
-| Speed | 24 | −8.5% #1 | −6.3% #24 | −4.8% #46 | −3.5% #50 |
+| Speed | 8 | +13.7% #33 | +9.5% #42 | +6.9% #50 | +4.8% #50 |
+| Speed | 24 | −8.5% #6 | −6.3% #24 | −4.8% #46 | −3.5% #50 |
 | Speed | 28 | −11.8% #1 | −8.9% #21 | −6.8% #44 | −5.0% #50 |
 | Speed | 100 | −37.6% #1 | −30.9% #1 | −25.4% #18 | −20.0% #50 |
-| Technical | 1 | +0.0% #12 | +2.5% #35 | +6.7% #50 | +14.5% #50 |
-| Technical | 8 | +0.0% #12 | +1.2% #33 | +3.0% #50 | +5.3% #50 |
-| Technical | 24 | +0.0% #12 | −1.1% #31 | −2.2% #49 | −3.4% #50 |
-| Technical | 28 | +0.0% #12 | −1.6% #30 | −3.1% #48 | −4.7% #50 |
-| Technical | 100 | +0.0% #12 | −7.2% #23 | −12.0% #37 | −15.6% #50 |
-| Recovery | 1 | +0.8% #13 | +2.1% #34 | +5.2% #50 | +15.5% #50 |
-| Recovery | 8 | +0.3% #13 | +0.9% #33 | +2.2% #50 | +6.5% #50 |
-| Recovery | 24 | −0.2% #12 | −0.6% #31 | −1.4% #50 | −4.3% #50 |
-| Recovery | 28 | −0.3% #12 | −0.8% #31 | −2.0% #50 | −6.0% #50 |
-| Recovery | 100 | −0.9% #11 | −2.4% #29 | −5.9% #45 | −17.6% #50 |
-| Consistency | 1 | +10.0% #24 | +10.0% #43 | +10.0% #50 | +10.0% #50 |
-| Consistency | 8 | +1.7% #14 | +1.7% #34 | +1.7% #50 | +1.7% #50 |
-| Consistency | 24 | −0.8% #11 | −0.8% #31 | −0.8% #50 | −0.8% #50 |
-| Consistency | 28 | −1.1% #11 | −1.1% #31 | −1.1% #50 | −1.1% #50 |
-| Consistency | 100 | −2.9% #8 | −2.9% #28 | −2.9% #49 | −2.9% #50 |
+| Technical | 1 | +0.0% #18 | +2.5% #35 | +6.7% #50 | +14.5% #50 |
+| Technical | 8 | +0.0% #18 | +1.2% #33 | +3.0% #50 | +5.3% #50 |
+| Technical | 24 | +0.0% #18 | −1.1% #31 | −2.2% #49 | −3.4% #50 |
+| Technical | 28 | +0.0% #18 | −1.6% #30 | −3.1% #48 | −4.7% #50 |
+| Technical | 100 | +0.0% #18 | −7.2% #23 | −12.0% #37 | −15.6% #50 |
+| Recovery | 1 | +0.8% #19 | +2.1% #34 | +5.2% #50 | +15.5% #50 |
+| Recovery | 8 | +0.3% #19 | +0.9% #33 | +2.2% #50 | +6.5% #50 |
+| Recovery | 24 | −0.2% #18 | −0.6% #31 | −1.4% #50 | −4.3% #50 |
+| Recovery | 28 | −0.3% #18 | −0.8% #31 | −2.0% #50 | −6.0% #50 |
+| Recovery | 100 | −0.9% #17 | −2.4% #29 | −5.9% #45 | −17.6% #50 |
+| Consistency | 1 | +10.0% #30 | +10.0% #43 | +10.0% #50 | +10.0% #50 |
+| Consistency | 8 | +1.7% #20 | +1.7% #34 | +1.7% #50 | +1.7% #50 |
+| Consistency | 24 | −0.8% #17 | −0.8% #31 | −0.8% #50 | −0.8% #50 |
+| Consistency | 28 | −1.1% #17 | −1.1% #31 | −1.1% #50 | −1.1% #50 |
+| Consistency | 100 | −2.9% #15 | −2.9% #28 | −2.9% #49 | −2.9% #50 |
 
 ### 5.1 Same budget, different inputs
 
@@ -207,20 +207,20 @@ Share of the time change from +1 point in each attribute, at the baseline. A sma
 
 Sum of single effects: +2:38. Real total gap: +2:41. The difference, +0:03, is the interaction between the inputs, because they multiply. That is why the screen never adds the effects up.
 
-**Sprinter, F35, Fa60 in RACE-001** — time 0:50:28; field reference (level 1) 0:47:47; total gap +2:41.
+**Sprinter, F35, Fa60 in RACE-001** — time 0:50:28; field reference (level 4) 0:45:32; total gap +4:55.
 
 | Input | Athlete | Reference | Effect measured alone |
 |---|---:|---:|---:|
 | Fatigue | 60 | 20 | +5:18 |
-| Speed | 20 | 16 | −2:38 |
-| Fitness | 35 | 25 | −1:54 |
-| Endurance | 13 | 16 | +0:54 |
-| Climbing | 12 | 16 | +0:42 |
-| Consistency | 18 | 16 | −0:20 |
-| Technical | 17 | 16 | none |
-| Recovery | 16 | 16 | none |
+| Speed | 20 | 17 | −1:55 |
+| Endurance | 13 | 17 | +1:10 |
+| Climbing | 12 | 17 | +0:51 |
+| Fitness | 35 | 31.72 | −0:37 |
+| Consistency | 18 | 17 | −0:10 |
+| Recovery | 16 | 17 | +0:01 |
+| Technical | 17 | 17 | none |
 
-Sum of single effects: +2:01. Real total gap: +2:41. The difference, +0:40, is the interaction between the inputs, because they multiply. That is why the screen never adds the effects up.
+Sum of single effects: +4:39. Real total gap: +4:55. The difference, +0:17, is the interaction between the inputs, because they multiply. That is why the screen never adds the effects up.
 
 ## 7. Rewards
 
@@ -262,8 +262,8 @@ Multiplier by level difference: level 1 in a level-3 race → 100%; level 3 in a
 | Situation | Fee paid (entry type) | Level at start | Position | Gross | Mult. | Coins | XP | Net coins |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | Level 1 wins Forest First Steps | 0 (free) | 1 | 1 | 100 | 100% | 100 | 30 | 100 |
-| Level 3 wins Forest First Steps (too easy) | 0 (free) | 3 | 1 | 100 | 40% | 40 | 12 | 40 |
-| Level 4 wins Forest First Steps (0 %) | 0 (free) | 4 | 1 | 100 | 0% | 0 | 0 | 0 |
+| Level 6 wins Forest First Steps (too easy) | 0 (free) | 6 | 1 | 100 | 40% | 40 | 12 | 40 |
+| Level 7 wins Forest First Steps (0 %) | 0 (free) | 7 | 1 | 100 | 0% | 0 | 0 | 0 |
 | Level 3, 5th in Ridge Runner | 100 (standard) | 3 | 5 | 75 | 100% | 75 | 15 | -25 |
 | Entered early at level 2, raced at level 3, 2nd in Wildwood Ascent | 250 (early) | 3 | 2 | 210 | 100% | 210 | 42 | -40 |
 | Level 4, 1st in Ridge Runner (75 %, odd rounding) | 100 (standard) | 4 | 1 | 300 | 100% | 300 | 60 | 200 |
@@ -309,26 +309,26 @@ All-rounder, Fitness 60, Fatigue 20: time change with each item equipped (negati
 | Trail shoes lvl 1 (35) | −1.3% | −1.2% | −1.1% | −1.1% | −1.0% | −0.9% | −1.0% | −1.1% | −0.9% | −1.0% | −1.0% | −1.0% |
 | Technical trail shoes lvl 2 (70) | +0.0% | +0.0% | −0.8% | −1.1% | −2.2% | −1.1% | −2.4% | −3.5% | −2.3% | −3.7% | −3.7% | −3.6% |
 | Light trail shoes lvl 2 (70) | −3.9% | −3.7% | −2.7% | −2.5% | −1.6% | −2.1% | −1.2% | −0.4% | −1.1% | −0.1% | −0.2% | −0.1% |
-| Poles lvl 1 (25) | +0.2% | +0.0% | −0.3% | −0.9% | −1.1% | −1.3% | −1.6% | −1.7% | −1.9% | −2.1% | −2.2% | −2.5% |
-| Poles lvl 2 (50) | −1.6% | −1.9% | −2.3% | −2.6% | −2.8% | −3.2% | −3.3% | −3.4% | −3.8% | −3.9% | −4.2% | −4.6% |
-| Backpack lvl 1 (30) | −1.3% | −1.5% | −1.6% | −1.6% | −1.9% | −2.1% | −2.4% | −2.6% | −3.2% | −3.6% | −4.2% | −5.1% |
-| Backpack lvl 2 (90) | −2.0% | −2.2% | −2.3% | −2.4% | −2.8% | −3.1% | −3.5% | −3.9% | −4.7% | −5.2% | −6.2% | −7.3% |
+| Poles lvl 1 (25) | −0.1% | −0.3% | −0.6% | −0.8% | −1.0% | −1.1% | −1.2% | −1.2% | −1.3% | −1.3% | −1.3% | −1.4% |
+| Poles lvl 2 (50) | −1.0% | −1.3% | −1.7% | −2.0% | −2.2% | −2.4% | −2.6% | −2.6% | −2.9% | −3.0% | −3.1% | −3.4% |
+| Backpack lvl 1 (30) | −0.7% | −0.9% | −0.9% | −1.0% | −1.2% | −1.4% | −1.6% | −1.9% | −2.3% | −2.6% | −3.2% | −3.9% |
+| Backpack lvl 2 (90) | −1.4% | −1.6% | −1.7% | −1.8% | −2.1% | −2.5% | −2.8% | −3.1% | −3.9% | −4.3% | −5.2% | −6.3% |
 
 Best loadout per race (one item per slot, or none):
 
 | Race | Best loadout | Time change | Position |
 |---|---|---:|---|
-| RACE-001 Forest First Steps | trail-shoes-light + poles-2 + hydration-backpack-2 | −6.9% | #6 → #1 |
-| RACE-002 Riverside Trail | trail-shoes-light + poles-2 + hydration-backpack-2 | −7.2% | #13 → #1 |
-| RACE-003 Pine Loop Challenge | trail-shoes-light + poles-2 + hydration-backpack-2 | −6.8% | #21 → #13 |
-| RACE-004 Ridge Runner | trail-shoes-light + poles-2 + hydration-backpack-2 | −6.9% | #27 → #18 |
-| RACE-005 Stone Path Classic | trail-shoes + poles-2 + hydration-backpack-2 | −7.4% | #33 → #24 |
-| RACE-006 Wildwood Ascent | trail-shoes-light + poles-2 + hydration-backpack-2 | −7.8% | #41 → #31 |
-| RACE-007 Summit Quest | trail-shoes + poles-2 + hydration-backpack-2 | −8.7% | #47 → #37 |
-| RACE-008 Alpine Traverse | trail-shoes + poles-2 + hydration-backpack-2 | −10.1% | #50 → #44 |
-| RACE-009 Sky Ridge Ultra | trail-shoes + poles-2 + hydration-backpack-2 | −10.1% | #50 → #50 |
-| RACE-010 High Peaks Challenge | trail-shoes + poles-2 + hydration-backpack-2 | −11.9% | #50 → #50 |
-| RACE-011 Legends of the Crest | trail-shoes + poles-2 + hydration-backpack-2 | −13.0% | #50 → #50 |
-| RACE-012 Beyond the Skyline | trail-shoes + poles-2 + hydration-backpack-2 | −14.4% | #50 → #50 |
+| RACE-001 Forest First Steps | trail-shoes-light + poles-2 + hydration-backpack-2 | −6.0% | #13 → #4 |
+| RACE-002 Riverside Trail | trail-shoes-light + poles-2 + hydration-backpack-2 | −6.2% | #17 → #9 |
+| RACE-003 Pine Loop Challenge | trail-shoes-light + poles-2 + hydration-backpack-2 | −5.8% | #21 → #14 |
+| RACE-004 Ridge Runner | trail-shoes-light + poles-2 + hydration-backpack-2 | −5.9% | #27 → #20 |
+| RACE-005 Stone Path Classic | trail-shoes + poles-2 + hydration-backpack-2 | −6.3% | #33 → #26 |
+| RACE-006 Wildwood Ascent | trail-shoes-light + poles-2 + hydration-backpack-2 | −6.7% | #41 → #33 |
+| RACE-007 Summit Quest | trail-shoes + poles-2 + hydration-backpack-2 | −7.5% | #47 → #38 |
+| RACE-008 Alpine Traverse | trail-shoes + poles-2 + hydration-backpack-2 | −8.9% | #50 → #45 |
+| RACE-009 Sky Ridge Ultra | trail-shoes + poles-2 + hydration-backpack-2 | −8.7% | #50 → #50 |
+| RACE-010 High Peaks Challenge | trail-shoes + poles-2 + hydration-backpack-2 | −10.5% | #50 → #50 |
+| RACE-011 Legends of the Crest | trail-shoes + poles-2 + hydration-backpack-2 | −11.4% | #50 → #50 |
+| RACE-012 Beyond the Skyline | trail-shoes + poles-2 + hydration-backpack-2 | −12.6% | #50 → #50 |
 
 **Checks: all passed.**

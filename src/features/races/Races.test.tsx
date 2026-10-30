@@ -264,15 +264,15 @@ describe('Race day and results', () => {
 
   it('warns before an injuring race and explains reduced rewards', async () => {
     const user = userEvent.setup()
-    // Level 3 (2 above Forest First Steps) and Fatigue 90: +10 race Fatigue reaches 100.
-    seedCareer(onSunday(withAthlete(newGame(), { xp: 250, fatigue: 90 })))
+    // Level 6 (2 above Forest First Steps) and Fatigue 90: +10 race Fatigue reaches 100.
+    seedCareer(onSunday(withAthlete(newGame(), { xp: 1000, fatigue: 90 })))
     renderApp('/races/RACE-001')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     expect(screen.getByRole('note')).toHaveTextContent('Injury warning: Fatigue would reach 100 (above 95)')
     await user.click(screen.getByRole('button', { name: 'Start race anyway — injury' }))
     expect(screen.getByText('0 (injured)')).toBeInTheDocument()
-    expect(screen.getByText(/Rewards reduced to 40%: you were level 3, 2 above the recommended level 1/)).toBeInTheDocument()
+    expect(screen.getByText(/Rewards reduced to 40%: you were level 6, 2 above the recommended level 4/)).toBeInTheDocument()
     expect(screen.getByText(/Injured: Fatigue went above 95/)).toBeInTheDocument()
     expect(readSave()!.state.forcedRestDays).toBe(5)
   })

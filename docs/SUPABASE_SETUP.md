@@ -36,16 +36,20 @@ If the variables are missing or invalid, the game starts and plays exactly as be
 
 ### Owner steps in the Supabase dashboard
 
-1. **Apply the migration** `supabase/migrations/20261030120000_player_foundation.sql`: open
-   **SQL Editor → New query**, paste the whole file and **Run** (or `supabase db push` with the
-   Supabase CLI linked to the project). It only creates new tables and one function; it deletes
-   nothing. Run it once.
+1. **Migration:** applied to the project on 30 October 2026 through the Supabase connector
+   (version 20261030170516, the file's name). Verified there: RLS on all five tables, two test
+   players isolated from each other, client writes refused, anon refused (test data rolled
+   back). Future migrations: `supabase db push`, or the SQL Editor for a single file.
 2. **Enable anonymous sign-ins:** **Authentication → Sign In / Providers → Allow anonymous
    sign-ins** (on).
 3. Recommended against abuse (anonymous accounts can be created by anyone with the public key):
    **Authentication → Rate Limits** (keep the default limit on anonymous sign-ins), and later a
    CAPTCHA (**Authentication → Attack Protection**). Old unused anonymous users can be cleaned up
    later with a scheduled job.
+
+Supabase's security advisor reports one expected warning: `create_my_career` is a
+`security definer` function signed-in players can call. That is its purpose (the only way to
+create a career); it checks the caller and accepts only a brand-new career.
 
 ### How to check it worked
 
@@ -61,7 +65,7 @@ If the variables are missing or invalid, the game starts and plays exactly as be
 
 | Part | File |
 |---|---|
-| Tables, RLS policies and `create_my_career` | `supabase/migrations/20261030120000_player_foundation.sql` |
+| Tables, RLS policies and `create_my_career` | `supabase/migrations/20261030170516_player_foundation.sql` |
 | Anonymous sign-in and remote career creation | `src/repositories/supabase/playerIdentity.ts` |
 | Database checks on a local PostgreSQL | `npm run db:test` (`scripts/test-db.sh`, `supabase/tests/`) |
 

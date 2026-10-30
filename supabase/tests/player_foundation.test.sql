@@ -1,4 +1,4 @@
--- Checks for 20261030120000_player_foundation.sql: career creation, RLS between two players, and
+-- Checks for 20261030170516_player_foundation.sql: career creation, RLS between two players, and
 -- that clients cannot write. Run by scripts/test-db.sh on a throwaway local database.
 \set ON_ERROR_STOP on
 

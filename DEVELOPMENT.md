@@ -954,7 +954,7 @@ Fitness 0 by week 6:
 
 ### Phase 2A: Supabase database and anonymous sign-in (30 October 2026)
 
-- Migration `supabase/migrations/20261030120000_player_foundation.sql`: `profiles`, `careers` (one
+- Migration `supabase/migrations/20261030170516_player_foundation.sql`: `profiles`, `careers` (one
   per user), `race_entries`, `owned_equipment`, `coin_transactions`; RLS read-only for the owner,
   no client writes; `create_my_career` creates a new career once (idempotent, new careers only).
 - `src/repositories/supabase/playerIdentity.ts`: reuses the stored session or signs in

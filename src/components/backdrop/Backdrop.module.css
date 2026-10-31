@@ -40,3 +40,14 @@
     object-position: center;
   }
 }
+
+/* The owner's races picture has bright snowy peaks behind the title and tabs: darker at the top. */
+.backdrop[data-scene='races'][data-art='image'] .veil {
+  background: linear-gradient(
+    180deg,
+    rgb(8 10 12 / 0.75) 0%,
+    rgb(8 10 12 / 0.55) 22%,
+    rgb(8 10 12 / 0.25) 45%,
+    rgb(8 10 12 / 0.7) 100%
+  );
+}

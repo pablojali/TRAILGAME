@@ -8,6 +8,9 @@ in the meantime; as soon as a file with the right name is in the right folder, t
 Format: **JPG** (or PNG/WebP), sRGB. Large files are converted to light WebP before release, so
 upload the best quality you have.
 
+**In the game (31 October 2026):** `dashboard.jpg`, `equipment.jpg`, `races.jpg` and
+`career.jpg`. Still drawn in code: Training, Settings and the 12 race photos.
+
 ## Backgrounds: `assets/ui/backgrounds/`
 
 Portrait, **1080 × 2340 px** (phone, about 9 : 19.5). The picture fills the whole screen behind

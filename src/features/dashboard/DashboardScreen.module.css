@@ -182,6 +182,7 @@
 }
 
 .nameplateRole {
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.9);
   color: var(--accent-secondary);
   font-size: var(--font-size-sm);
   font-weight: 700;

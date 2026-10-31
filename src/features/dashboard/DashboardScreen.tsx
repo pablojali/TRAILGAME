@@ -3,7 +3,8 @@ import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
 import { Coins } from '../../components/Coins'
-import { RadarChart, radarScale } from '../../components/RadarChart'
+import { RadarChart } from '../../components/RadarChart'
+import { radarScale } from '../../components/radarScale'
 import { formatDelta, formatStat } from '../../components/format'
 import {
   ATTRIBUTE_IDS,

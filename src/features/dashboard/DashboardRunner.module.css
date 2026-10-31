@@ -6,8 +6,6 @@
   aspect-ratio: 360 / 920;
   max-width: 100%;
   margin: 0;
-  /* Soft glow so the runner stands out on the dark UI. */
-  background: radial-gradient(ellipse at 50% 55%, rgb(240 124 42 / 0.16), transparent 70%);
 }
 
 .layer {

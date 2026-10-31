@@ -952,6 +952,29 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Illustrated screens, season and achievements (owner mockups, 31 October 2026)
+
+- **Backgrounds:** every section has a full-screen scene behind the bars and cards
+  (`src/components/backdrop/`): the owner's image when it exists (`assets/ui/backgrounds/`,
+  list and sizes in `docs/UI_ART_SPEC.md`), otherwise a scene drawn in code (sunset and morning
+  mountains, cabin, topographic map, starry summit). Over a scene, bars and cards are dark glass.
+  New logo in the top bar (orange mountains).
+- **Dashboard:** "Higher / Further / Stronger" over the sky, name plate under it, the runner
+  centre-left, a spider chart of the six attributes (the values stay available to screen readers
+  as meters), a condition panel (Level, XP with progress to the next level, Fitness, Fatigue) and
+  decorative weather next to the day (`features/dashboard/weather.ts`: the same for the same game
+  day, colder in winter weeks; no effect on the game).
+- **Equipment:** the runner with Change look and a chart of the race attributes with the worn
+  equipment's bonuses; each slot shows the item's picture.
+- **Races:** each card has the race's picture (owner photo in `assets/ui/races/{race id}`, or a
+  drawn landscape by category) and an elevation profile drawn from the simulated course.
+- **Career:** Season card (the career year: week, races, medals, best finish) and tabs
+  Achievements, Trophies (the medal table), Bests and History. Achievements
+  (`src/game-engine/achievements.ts`) have levels with targets: races finished (all, trail,
+  mountain, elite), podiums, wins, XP, level and training weeks. Like the other career figures
+  they are read from the saved career: nothing new is stored and they give no rewards. "Rank"
+  in the mockup is shown as the season's best finish (there is no ranking between players).
+
 ### Owner's shirts, shoes and men's art (31 October 2026)
 
 Art rules: `docs/AVATAR_ART_SPEC.md`. Prepared by `scripts/prepare_avatar_art.py`, which now also

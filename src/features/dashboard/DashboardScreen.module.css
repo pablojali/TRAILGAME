@@ -92,6 +92,9 @@
 
 .when {
   grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   text-align: center;
   color: var(--accent-secondary);
   font-size: var(--font-size-xs);
@@ -104,37 +107,76 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 96px) minmax(0, 1fr) minmax(0, 96px);
-  grid-template-rows: minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 148px);
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: var(--space-2);
 }
 
-/* Spans the whole stage, under the side cards, so the runner can use the full height. */
-.center {
-  grid-column: 1 / -1;
+/* Motto and name plate over the sky, top left (owner mockup, 31 October 2026). */
+.intro {
+  grid-column: 1;
   grid-row: 1;
-  z-index: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  height: 100%;
-  min-height: 0;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
 }
 
-/* Video-game style name plate over the runner's head. */
+.motto {
+  font-size: var(--font-size-lg);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgb(0 0 0 / 0.6);
+}
+
+.radar {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  z-index: 1;
+  /* Wider than its column, over the sky: the labels need room around the chart. */
+  width: 200px;
+  padding: 14px 30px 2px;
+}
+
+/* The runner: under the motto, using the height that is left, beside the condition panel. */
+.center {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  z-index: 0;
+  display: flex;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+  padding-right: 120px;
+}
+
+.condition {
+  grid-column: 2;
+  grid-row: 2;
+  z-index: 1;
+  align-self: center;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  backdrop-filter: blur(6px);
+}
+
+/* Name plate under the motto. */
 .nameplate {
   display: flex;
   flex-direction: column;
-  align-items: center;
   max-width: 100%;
   line-height: 1.1;
-  text-align: center;
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.8);
 }
 
 .nameplateName {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-md);
   font-weight: 800;
   overflow-wrap: anywhere;
 }
@@ -145,26 +187,6 @@
   font-weight: 700;
 }
 
-.left {
-  grid-column: 1;
-  grid-row: 1;
-  z-index: 1;
-}
-
-.right {
-  grid-column: 3;
-  grid-row: 1;
-  z-index: 1;
-}
-
-/* Narrow, semi-transparent side cards. Minimum text size 12px. */
-.side {
-  padding: var(--space-2) 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: rgb(26 32 29 / 0.85);
-  font-size: var(--font-size-xs);
-}
 
 .sideList {
   display: flex;
@@ -175,23 +197,6 @@
   list-style: none;
 }
 
-.attributeName {
-  display: block;
-  color: var(--text-muted);
-  font-weight: 700;
-}
-
-/* Bar and value on the line below the full attribute name. */
-.attributeRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.side .attributeRow [role='meter'] {
-  flex: 1;
-  margin-top: 0;
-}
 
 .value {
   color: var(--text);
@@ -199,14 +204,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-.side [role='meter'] {
-  height: 4px;
-  margin-top: 2px;
+.condition [role='meter'] {
+  height: 5px;
+  margin-top: 4px;
 }
 
-.side [role='meter'].sideMeter {
-  color: var(--brand-text);
-}
 
 .stat {
   display: flex;
@@ -225,22 +227,35 @@
 }
 
 .stat .value {
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-xl);
+  line-height: 1.15;
+}
+
+.stat dt {
+  font-size: var(--font-size-xs);
+}
+
+.condition .sideList {
+  gap: var(--space-3);
 }
 
 .statNote {
-  color: var(--text-muted);
+  margin-top: 2px;
+  color: var(--accent-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.side [role='meter'].xpMeter {
+.condition [role='meter'].xpMeter {
   color: var(--accent-secondary);
 }
 
-.side [role='meter'].fitnessMeter {
+.condition [role='meter'].fitnessMeter {
   color: var(--brand-text);
 }
 
-.side [role='meter'].fatigueMeter {
+.condition [role='meter'].fatigueMeter {
   color: var(--accent);
 }
 
@@ -261,8 +276,17 @@
 }
 
 /* Today: the next action, under the runner (owner request: the Dashboard fits one screen). */
+.weather {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
 .today {
   flex: none;
+  backdrop-filter: blur(6px);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -310,13 +334,12 @@
   }
 
   .stage {
-    grid-template-columns: minmax(0, 160px) minmax(0, 1fr) minmax(0, 160px);
-    gap: var(--space-4);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 200px);
+    column-gap: var(--space-4);
   }
 
-  .side {
-    padding: var(--space-3);
-    font-size: var(--font-size-sm);
+  .center {
+    padding-right: 0;
   }
 
 }

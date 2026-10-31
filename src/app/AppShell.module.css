@@ -4,11 +4,23 @@
  * (very small screens, large system fonts) rather than clipping.
  */
 .shell {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100dvh;
   overflow: hidden;
 }
+
+/*
+ * Over a screen background (owner request, 31 October 2026): bars and cards become dark glass, so
+ * the scene shows through while text stays readable.
+ */
+.scenic {
+  --surface: rgb(14 18 20 / 0.66);
+  --surface-raised: rgb(32 38 40 / 0.72);
+  --border: rgb(255 255 255 / 0.12);
+}
+
 
 .skipLink {
   position: absolute;
@@ -40,14 +52,15 @@
   border-bottom: 1px solid var(--border);
 }
 
+.scenic .brandBar {
+  background: rgb(8 10 12 / 0.35);
+  border-bottom-color: transparent;
+}
+
 .brandMark {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 26px;
   flex: none;
-  border-radius: var(--radius-sm);
-  background:
-    linear-gradient(160deg, transparent 55%, var(--accent) 55%, var(--accent) 62%, transparent 62%),
-    linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
 }
 
 .brandName {
@@ -78,6 +91,7 @@
   flex: 1;
   min-height: 0;
   position: relative;
+  z-index: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--space-3) var(--space-4);
@@ -101,6 +115,11 @@
   background: var(--bg-sunken);
   border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+.scenic .nav {
+  background: rgb(8 10 12 / 0.82);
+  backdrop-filter: blur(10px);
 }
 
 .navList {

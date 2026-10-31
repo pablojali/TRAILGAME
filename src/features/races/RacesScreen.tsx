@@ -8,6 +8,8 @@ import { getEntryFee } from '../../domain/races/access'
 import { isRaceCategory, RACE_CATEGORIES, RACE_CATEGORY_CONFIG, type RaceCategory } from '../../domain/races/categories'
 import { getRace, RACES } from '../../domain/races/races'
 import { getPendingEntry } from '../../game-engine/races'
+import { ElevationProfile } from './ElevationProfile'
+import { RacePhoto } from './RacePhoto'
 import { courseText, feeText } from './raceText'
 import styles from './Races.module.css'
 
@@ -58,15 +60,24 @@ export function RacesScreen() {
             return (
               <li key={race.id}>
                 <Link to={`/races/${race.id}`} className={styles.raceCard}>
-                  <span className={styles.raceName}>{race.name}</span>
-                  <span className={styles.raceMeta}>
-                    {courseText(race)} · Rec. Lv {race.recommendedLevel}
-                  </span>
-                  <span className={styles.raceTags}>
-                    <span className={`${styles.tag} ${fee.type === 'early' ? styles.tagEarly : ''}`}>
-                      {feeText(fee)}
+                  <RacePhoto race={race} />
+                  <span className={styles.raceBody}>
+                    <span className={styles.raceName}>{race.name}</span>
+                    <span className={styles.raceMeta}>
+                      {courseText(race)} · Rec. Lv {race.recommendedLevel}
                     </span>
-                    {entered && <span className={`${styles.tag} ${styles.tagEntered}`}>Entered</span>}
+                    <span className={styles.raceFoot}>
+                      <span className={styles.raceTags}>
+                        <span className={`${styles.tag} ${fee.type === 'early' ? styles.tagEarly : ''}`}>
+                          {feeText(fee)}
+                        </span>
+                        {entered && <span className={`${styles.tag} ${styles.tagEntered}`}>Entered</span>}
+                      </span>
+                      <ElevationProfile race={race} />
+                    </span>
+                  </span>
+                  <span className={styles.chevron} aria-hidden="true">
+                    ›
                   </span>
                 </Link>
               </li>

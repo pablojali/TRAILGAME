@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { NavLink, Outlet, ScrollRestoration } from 'react-router'
+import { NavLink, Outlet, ScrollRestoration, useLocation } from 'react-router'
+import { Backdrop } from '../components/backdrop/Backdrop'
+import { sceneForPath } from '../components/backdrop/backdrops'
 import { Icon } from '../components/Icon'
 import { CareerCreationScreen } from '../features/career-setup/CareerCreationScreen'
 import { IncompatibleSaveScreen } from '../features/career-setup/IncompatibleSaveScreen'
@@ -14,6 +16,7 @@ import styles from './AppShell.module.css'
 
 export function AppShell() {
   const { phase, retryLoad } = useGame()
+  const { pathname } = useLocation()
   const main = useRef<HTMLElement>(null)
   const previousPhase = useRef(phase.kind)
 
@@ -28,13 +31,18 @@ export function AppShell() {
   const inSetup = phase.kind !== 'playing'
 
   return (
-    <div className={`${styles.shell} ${inSetup ? styles.setup : ''}`}>
+    <div className={`${styles.shell} ${inSetup ? styles.setup : styles.scenic}`}>
+      {!inSetup && <Backdrop scene={sceneForPath(pathname)} />}
       <a href="#main-content" className={styles.skipLink}>
         Skip to content
       </a>
 
       <header className={styles.brandBar}>
-        <span className={styles.brandMark} aria-hidden="true" />
+        <svg className={styles.brandMark} viewBox="0 0 32 24" aria-hidden="true">
+          <path d="M1 22 L11 7 L16 14 L21 6 L31 22 Z" fill="#f07c2a" />
+          <path d="M11 7 L14 11.5 L12 11 L10 13 L8.5 11 Z M21 6 L24.5 11.5 L22.5 10.5 L20.5 12.5 L18.6 9.8 Z" fill="#f2efe6" />
+          <path d="M1 22 L11 7 L16 14 L21 6 L31 22" fill="none" stroke="#7a3510" strokeWidth="1" />
+        </svg>
         <span className={styles.brandName}>Trail Manager</span>
         {!inSetup && <SyncIndicator />}
         {!inSetup && (

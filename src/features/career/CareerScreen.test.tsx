@@ -22,6 +22,13 @@ describe('Career', () => {
     await renderApp('/career')
     expect(screen.getByRole('heading', { level: 1, name: 'Career' })).toBeInTheDocument()
     expect(screen.getByText(/No races yet/)).toBeInTheDocument()
+    // Season 1, no results yet; achievements first, none reached.
+    expect(screen.getByRole('heading', { level: 2, name: 'Season 1' })).toBeInTheDocument()
+    expect(screen.getByRole('meter', { name: 'Season 1 progress' })).toHaveAttribute('aria-valuetext', 'Week 1 of 52')
+    expect(screen.getByText('Best finish').nextElementSibling).toHaveTextContent('—')
+    expect(screen.getByRole('tab', { name: 'Achievements' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('meter', { name: 'Race Starter, level 1' })).toHaveAttribute('aria-valuetext', '0 of 1')
+    await userEvent.setup().click(screen.getByRole('tab', { name: 'Trophies' }))
     expect(within(screen.getByRole('table')).getByRole('row', { name: 'Total 0 0 0 0' })).toBeInTheDocument()
   })
 
@@ -37,6 +44,13 @@ describe('Career', () => {
     seedCareer(state)
     await renderApp('/career')
 
+    // Season: two races, one medal, best finish 1st. Achievements: Race Starter level 1 reached.
+    expect(screen.getByText(/2 races · 1 medal/)).toBeInTheDocument()
+    expect(screen.getByText('Best finish').nextElementSibling).toHaveTextContent('#1')
+    expect(screen.getByRole('meter', { name: 'Race Starter, level 2' })).toHaveAttribute('aria-valuetext', '2 of 5')
+    expect(screen.getByRole('meter', { name: 'Champion, level 2' })).toHaveAttribute('aria-valuetext', '1 of 3')
+
+    await user.click(screen.getByRole('tab', { name: 'Trophies' }))
     const table = screen.getByRole('table')
     expect(within(table).getByRole('row', { name: 'Open 1 0 0 2' })).toBeInTheDocument()
     expect(within(table).getByRole('row', { name: 'Total 1 0 0 2' })).toBeInTheDocument()

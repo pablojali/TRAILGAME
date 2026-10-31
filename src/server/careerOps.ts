@@ -70,8 +70,8 @@ export type CareerOpRequest =
   /** `price`: the price the player saw; the catalog's price is charged, and a different one refused. */
   | ({ action: 'buy'; operationId: string; itemId: string; price: number } & WithSnapshot)
   | ({ action: 'equip'; operationId: string; itemId: string; equipped: boolean } & WithSnapshot)
-  /** `fee`: the fee the player saw; the race's current fee is charged, and a different one refused. */
-  | ({ action: 'enter-race'; operationId: string; raceId: string; fee: number } & WithSnapshot)
+  /** Free; the server checks the runner's level against the race's minimum. */
+  | ({ action: 'enter-race'; operationId: string; raceId: string } & WithSnapshot)
   | ({ action: 'save'; snapshot: unknown } & WithSnapshot)
   | { action: 'new-career'; baseVersion: number | null; profile: ProfileId; identity: AthleteIdentity }
 
@@ -154,7 +154,7 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       return { ok: true, state: changed.state }
     }
     case 'enter-race': {
-      const entered = enterRace(career, request.raceId, request.fee, now)
+      const entered = enterRace(career, request.raceId, now)
       if (!entered.ok) return { ok: false, error: entered.error }
       return { ok: true, state: entered.state, result: { entry: entered.entry } }
     }
@@ -185,7 +185,7 @@ function validRequest(body: unknown): body is CareerOpRequest {
     case 'equip':
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.itemId === 'string' && typeof request.equipped === 'boolean'
     case 'enter-race':
-      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.raceId === 'string' && Number.isInteger(request.fee)
+      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.raceId === 'string'
     case 'save':
       return base && request.snapshot !== undefined
     case 'new-career': {

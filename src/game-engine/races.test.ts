@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { STARTING_COINS } from '../domain/economy/coins'
 import { getRace, RACES } from '../domain/races/races'
-import { currentRef, execute, newGame, onSunday, T0, withAthlete, withSession } from '../test/gameFixtures'
+import { currentRef, execute, newGame, onSunday, T0, withAthlete, withEntry, withSession } from '../test/gameFixtures'
 import type { GameState } from './gameState'
 import {
   enterRace,
@@ -28,8 +28,9 @@ describe('enterRace', () => {
     expect(newGame()).toMatchObject({ coins: 25, raceEntries: [] })
   })
 
-  it('enters a free Open race without changing the balance', () => {
-    const result = enterRace(newGame(), 'RACE-001', 0, T0 + 5)
+  it('enters a race for free at or above its minimum level, without changing the balance', () => {
+    // Forest First Steps (recommended Level 4) opens at Level 2 (100 XP).
+    const result = enterRace(withAthlete(newGame(), { xp: 100 }), 'RACE-001', T0 + 5)
     if (!result.ok) throw new Error(result.error)
     expect(result.state.coins).toBe(25)
     expect(result.entry).toEqual({
@@ -37,45 +38,38 @@ describe('enterRace', () => {
       raceId: 'RACE-001',
       entryType: 'free',
       feePaid: 0,
-      levelAtEntry: 1,
+      levelAtEntry: 2,
       enteredAt: T0 + 5,
       status: 'pending',
     })
     expect(getPendingEntry(result.state, 'RACE-001')).toEqual(result.entry)
   })
 
-  it('charges the standard fee exactly once', () => {
-    const first = enterRace(atLevel11(500), 'RACE-004', 50, T0)
-    if (!first.ok) throw new Error(first.error)
-    expect(first.state.coins).toBe(450)
-    expect(first.entry).toMatchObject({ entryType: 'standard', feePaid: 50, levelAtEntry: 11 })
-    // A repeated confirmation (double tap, reload) is rejected and charges nothing.
-    expect(enterRace(first.state, 'RACE-004', 50, T0)).toEqual({ ok: false, error: 'already-entered' })
+  it('rejects a runner below the minimum level (2 below the recommended), changing nothing', () => {
+    expect(enterRace(newGame(), 'RACE-001', T0)).toEqual({ ok: false, error: 'level-too-low' })
+    // Wildwood Ascent is recommended at Level 18, so it opens at 16: a Level 11 runner cannot enter.
+    expect(enterRace(atLevel11(0), 'RACE-006', T0)).toEqual({ ok: false, error: 'level-too-low' })
+    expect(enterRace(atLevel11(0), 'RACE-012', T0)).toEqual({ ok: false, error: 'level-too-low' })
   })
 
-  it('charges the early-entry fee below the recommended level, and allows one race per week', () => {
-    const first = enterRace(atLevel11(1000), 'RACE-006', 125, T0)
+  it('enters once, free even with no coins, and allows one race per week', () => {
+    const first = enterRace(atLevel11(0), 'RACE-004', T0)
     if (!first.ok) throw new Error(first.error)
-    expect(first.entry).toMatchObject({ entryType: 'early', feePaid: 125 })
-    expect(first.state.coins).toBe(875)
+    expect(first.state.coins).toBe(0)
+    expect(first.entry).toMatchObject({ entryType: 'free', feePaid: 0, levelAtEntry: 11 })
+    // A repeated confirmation (double tap, reload) is rejected.
+    expect(enterRace(first.state, 'RACE-004', T0)).toEqual({ ok: false, error: 'already-entered' })
     // Races are run on Sundays, one per week: a second entry waits until this one is run.
-    expect(enterRace(first.state, 'RACE-007', 300, T0)).toEqual({ ok: false, error: 'race-scheduled' })
+    expect(enterRace(first.state, 'RACE-005', T0)).toEqual({ ok: false, error: 'race-scheduled' })
   })
 
-  it('rejects entry without enough coins and never makes the balance negative', () => {
-    const state = atLevel11(49)
-    expect(enterRace(state, 'RACE-004', 50, T0)).toEqual({ ok: false, error: 'insufficient-coins' })
-    expect(enterRace(newGame(), 'RACE-012', 700, T0)).toEqual({ ok: false, error: 'insufficient-coins' })
-  })
-
-  it('rejects a fee that no longer applies, and unknown races', () => {
-    expect(enterRace(atLevel11(500), 'RACE-004', 125, T0)).toEqual({ ok: false, error: 'fee-changed' })
-    expect(enterRace(newGame(), 'RACE-999', 0, T0)).toEqual({ ok: false, error: 'unknown-race' })
+  it('rejects unknown races', () => {
+    expect(enterRace(newGame(), 'RACE-999', T0)).toEqual({ ok: false, error: 'unknown-race' })
   })
 
   it('does not change athlete, training or decay values', () => {
     const state = atLevel11(500)
-    const result = enterRace(state, 'RACE-004', 50, T0 + 1000)
+    const result = enterRace(state, 'RACE-004', T0 + 1000)
     if (!result.ok) throw new Error(result.error)
     expect(result.state.athlete).toEqual(state.athlete)
     expect(result.state.week).toEqual(state.week)
@@ -84,10 +78,10 @@ describe('enterRace', () => {
   })
 
   it('keeps coins and entries when a training day is completed', () => {
-    const entered = enterRace(atLevel11(500), 'RACE-004', 50, T0)
+    const entered = enterRace(atLevel11(500), 'RACE-004', T0)
     if (!entered.ok) throw new Error(entered.error)
     const after = execute(entered.state).state
-    expect(after.coins).toBe(450)
+    expect(after.coins).toBe(500)
     expect(after.raceEntries).toEqual(entered.state.raceEntries)
   })
 })
@@ -95,10 +89,8 @@ describe('enterRace', () => {
 describe('raceCurrentDay', () => {
   const DAY = 24 * 60 * 60 * 1000
 
-  function entered(state: GameState, raceId: string, fee: number) {
-    const result = enterRace(state, raceId, fee, T0)
-    if (!result.ok) throw new Error(result.error)
-    return result
+  function entered(state: GameState, raceId: string) {
+    return withEntry(state, raceId)
   }
 
   function race(state: GameState, entryId: string, now = T0 + 1000) {
@@ -106,13 +98,13 @@ describe('raceCurrentDay', () => {
   }
 
   /** Entered, then moved to race Sunday. */
-  function enteredOnSunday(state: GameState, raceId: string, fee: number) {
-    const result = entered(state, raceId, fee)
+  function enteredOnSunday(state: GameState, raceId: string) {
+    const result = entered(state, raceId)
     return { ...result, state: onSunday(result.state) }
   }
 
   it('gives the weekly Consistency when the race completes the week', () => {
-    const { state, entry } = enteredOnSunday(newGame(), 'RACE-001', 0)
+    const { state, entry } = enteredOnSunday(newGame(), 'RACE-001')
     const result = race(state, entry.id)
     if (!result.ok) throw new Error(result.error)
     expect(result.value.state.week.number).toBe(2)
@@ -120,7 +112,7 @@ describe('raceCurrentDay', () => {
   })
 
   it('runs on Sundays only; on race Sunday the day cannot be trained or re-planned', () => {
-    const { state, entry } = entered(newGame(), 'RACE-001', 0)
+    const { state, entry } = entered(newGame(), 'RACE-001')
     expect(getScheduledEntry(state)).toEqual(entry)
     expect(getRaceWeek(state)).toBe(1)
     expect(race(state, entry.id)).toEqual({ ok: false, error: 'not-race-day' })
@@ -135,7 +127,7 @@ describe('raceCurrentDay', () => {
   })
 
   it('moves the race to the next Sunday when Sunday is a forced Rest day, keeping the entry', () => {
-    const { state, entry } = entered(newGame(), 'RACE-001', 0)
+    const { state, entry } = entered(newGame(), 'RACE-001')
     const sunday = onSunday(state)
     const forced = {
       ...sunday,
@@ -151,7 +143,7 @@ describe('raceCurrentDay', () => {
   })
 
   it('runs the race instead of the planned session and applies everything once', () => {
-    const { state, entry } = enteredOnSunday(newGame('all-rounder'), 'RACE-001', 0)
+    const { state, entry } = enteredOnSunday(newGame('all-rounder'), 'RACE-001')
     const result = race(state, entry.id, T0 + 5000)
     if (!result.ok) throw new Error(result.error)
     const { state: after, entry: finished } = result.value
@@ -183,7 +175,7 @@ describe('raceCurrentDay', () => {
   })
 
   it('cannot be applied twice', () => {
-    const { state, entry } = enteredOnSunday(newGame(), 'RACE-001', 0)
+    const { state, entry } = enteredOnSunday(newGame(), 'RACE-001')
     const ref = currentRef(state)
     const first = raceCurrentDay(state, ref, entry.id, T0)
     if (!first.ok) throw new Error(first.error)
@@ -196,12 +188,12 @@ describe('raceCurrentDay', () => {
 
   it('is locked during forced Rest days', () => {
     const injured = execute(withAthlete(newGame(), { fatigue: 95 })).state
-    const { state, entry } = enteredOnSunday(injured, 'RACE-001', 0)
+    const { state, entry } = enteredOnSunday(injured, 'RACE-001')
     expect(race(state, entry.id)).toEqual({ ok: false, error: 'forced-rest' })
   })
 
   it('applies the injury rule after a race: no XP, −15 Fitness, 5 forced Rest days; result and coins count', () => {
-    const { state, entry } = enteredOnSunday(withAthlete(newGame(), { fitness: 60, fatigue: 90 }), 'RACE-001', 0)
+    const { state, entry } = enteredOnSunday(withAthlete(newGame(), { fitness: 60, fatigue: 90 }), 'RACE-001')
     expect(previewRaceDay(state, getRace('RACE-001')!)).toEqual({ fatigueChange: 10, injured: true })
     const result = race(state, entry.id)
     if (!result.ok) throw new Error(result.error)
@@ -216,7 +208,7 @@ describe('raceCurrentDay', () => {
 
   it('judges rewards at the level when the race starts, not at entry', () => {
     // Entered at level 1 (free Open race), raced at level 7: 3 above the recommended level 4.
-    const { state, entry } = enteredOnSunday(newGame(), 'RACE-001', 0)
+    const { state, entry } = enteredOnSunday(newGame(), 'RACE-001')
     const levelled = withAthlete(state, { xp: 1350, fitness: 95 })
     const result = race(levelled, entry.id)
     if (!result.ok) throw new Error(result.error)
@@ -224,20 +216,28 @@ describe('raceCurrentDay', () => {
     expect(result.value.entry.result).toMatchObject({ levelAtStart: 7, multiplierPct: 0, coinsAwarded: 0, xpAwarded: 0 })
   })
 
-  it('subtracts the fee paid at entry in the net coin change, and adds the prize to the balance', () => {
-    const { state, entry } = enteredOnSunday(atLevel11(300), 'RACE-004', 50)
-    expect(state.coins).toBe(250)
+  it('adds the prize to the balance; with a free entry the net coin change is the prize', () => {
+    const { state, entry } = enteredOnSunday(atLevel11(300), 'RACE-004')
+    expect(state.coins).toBe(300)
     const result = race(state, entry.id)
     if (!result.ok) throw new Error(result.error)
     const r = result.value.entry.result
-    expect(r.netCoins).toBe(r.coinsAwarded - 50)
-    expect(result.value.state.coins).toBe(250 + r.coinsAwarded)
+    expect(r.netCoins).toBe(r.coinsAwarded)
+    expect(result.value.state.coins).toBe(300 + r.coinsAwarded)
+  })
+
+  it('still subtracts the fee of an entry paid before entries became free', () => {
+    const { state, entry } = enteredOnSunday(atLevel11(300), 'RACE-004')
+    const paid = { ...entry, entryType: 'standard' as const, feePaid: 50 }
+    const result = race({ ...state, raceEntries: [paid] }, paid.id)
+    if (!result.ok) throw new Error(result.error)
+    expect(result.value.entry.result.netCoins).toBe(result.value.entry.result.coinsAwarded - 50)
   })
 
   it('levels up through race XP with the existing rules, and rolls the week over on day 7', () => {
     let state = withAthlete(newGame(), { xp: 95, fitness: 95 })
     for (let i = 0; i < 6; i++) state = execute(withSession(state, 'rest'), T0 + i * DAY).state
-    const { state: ready, entry } = entered(state, 'RACE-001', 0)
+    const { state: ready, entry } = entered(state, 'RACE-001')
     const result = race(ready, entry.id, T0 + 7 * DAY)
     if (!result.ok) throw new Error(result.error)
     expect(result.value.entry.result.position).toBe(1)
@@ -247,11 +247,11 @@ describe('raceCurrentDay', () => {
   })
 
   it('lets a finished race be entered again', () => {
-    const { state, entry } = enteredOnSunday(newGame(), 'RACE-001', 0)
+    const { state, entry } = enteredOnSunday(withAthlete(newGame(), { xp: 100 }), 'RACE-001')
     const result = race(state, entry.id)
     if (!result.ok) throw new Error(result.error)
     expect(getPendingEntry(result.value.state, 'RACE-001')).toBeUndefined()
-    const again = enterRace(result.value.state, 'RACE-001', 0, T0 + 1)
+    const again = enterRace(result.value.state, 'RACE-001', T0 + 1)
     if (!again.ok) throw new Error(again.error)
     expect(again.entry.id).toBe('entry-2')
   })
@@ -285,8 +285,7 @@ describe('race rewards', () => {
 
 describe('full results', () => {
   it('lists all 50 runners in time order with the athlete at the stored position', () => {
-    const entered = enterRace(newGame(), 'RACE-001', 0, T0)
-    if (!entered.ok) throw new Error(entered.error)
+    const entered = withEntry(newGame(), 'RACE-001')
     const result = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
     if (!result.ok) throw new Error(result.error)
     const stored = result.value.entry.result
@@ -355,8 +354,7 @@ describe('reward tables (Game Design Bible §10.8–§10.9, D5) — every band a
 describe('race day with equipment', () => {
   it('applies and stores the equipped items, and explains them', () => {
     const owned = { ...withAthlete(newGame(), { fitness: 60, fatigue: 20 }), coins: 500, ownedEquipment: ['starter-shoes', 'poles', 'hydration-backpack'], equipment: ['poles', 'hydration-backpack'] }
-    const entered = enterRace(owned, 'RACE-001', 0, T0)
-    if (!entered.ok) throw new Error(entered.error)
+    const entered = withEntry(owned, 'RACE-001')
     const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
     if (!raced.ok) throw new Error(raced.error)
     const result = raced.value.entry.result

@@ -1,15 +1,13 @@
 import { formatCoins } from '../../domain/economy/coins'
-import type { EntryFee } from '../../domain/races/access'
 import type { Race } from '../../domain/races/races'
 
 export function courseText(race: Race): string {
   return `${race.distanceKm} km · ${race.elevationGainM.toLocaleString('en-US')} m D+`
 }
 
-/** Short fee label for the athlete's applicable fee. */
-export function feeText(fee: EntryFee): string {
-  if (fee.type === 'free') return 'Free'
-  return `${fee.type === 'early' ? 'Early entry · ' : ''}${formatCoins(fee.fee)}`
+/** What an entry cost: free since 1 November 2026, the fee for older entries. */
+export function feePaidText(feePaid: number): string {
+  return feePaid === 0 ? 'free entry' : formatCoins(feePaid)
 }
 
 export function percentText(multiplier: number): string {

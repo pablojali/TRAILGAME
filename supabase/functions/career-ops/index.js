@@ -520,12 +520,6 @@ function getCurrentDay(week) {
 }
 
 // src/domain/races/categories.ts
-var RACE_CATEGORY_CONFIG = {
-  open: { label: "Open", recommendedLevel: 4, standardFee: 0, earlyEntryFee: 0 },
-  trail: { label: "Trail", recommendedLevel: 11, standardFee: 50, earlyEntryFee: 125 },
-  mountain: { label: "Mountain", recommendedLevel: 21, standardFee: 125, earlyEntryFee: 300 },
-  elite: { label: "Elite", recommendedLevel: 31, standardFee: 300, earlyEntryFee: 700 }
-};
 var PRIZE_BANDS = [
   { from: 1, to: 1, label: "1st" },
   { from: 2, to: 2, label: "2nd" },
@@ -549,12 +543,12 @@ var REWARD_MULTIPLIERS = [
 ];
 
 // src/domain/races/access.ts
-function getEntryFee(race, level) {
-  const config2 = RACE_CATEGORY_CONFIG[race.category];
-  if (level >= race.recommendedLevel) {
-    return { type: config2.standardFee === 0 ? "free" : "standard", fee: config2.standardFee };
-  }
-  return { type: config2.earlyEntryFee === 0 ? "free" : "early", fee: config2.earlyEntryFee };
+var LEVELS_BELOW_RECOMMENDED = 2;
+function getMinimumLevel(race) {
+  return Math.max(1, race.recommendedLevel - LEVELS_BELOW_RECOMMENDED);
+}
+function canEnterAtLevel(race, level) {
+  return level >= getMinimumLevel(race);
 }
 function getRewardMultiplier(race, level) {
   const levelDifference = level - race.recommendedLevel;
@@ -963,29 +957,23 @@ function getPendingEntry(state, raceId) {
 function getEntry(state, entryId) {
   return state.raceEntries.find((entry) => entry.id === entryId);
 }
-function enterRace(state, raceId, confirmedFee, now) {
+function enterRace(state, raceId, now) {
   const race = getRace(raceId);
   if (!race) return { ok: false, error: "unknown-race" };
   if (getPendingEntry(state, raceId)) return { ok: false, error: "already-entered" };
   if (getScheduledEntry(state)) return { ok: false, error: "race-scheduled" };
   const level = getLevel(state.athlete.xp);
-  const { type, fee } = getEntryFee(race, level);
-  if (fee !== confirmedFee) return { ok: false, error: "fee-changed" };
-  if (fee > state.coins) return { ok: false, error: "insufficient-coins" };
+  if (!canEnterAtLevel(race, level)) return { ok: false, error: "level-too-low" };
   const entry = {
     id: `entry-${state.raceEntries.length + 1}`,
     raceId,
-    entryType: type,
-    feePaid: fee,
+    entryType: "free",
+    feePaid: 0,
     levelAtEntry: level,
     enteredAt: now,
     status: "pending"
   };
-  return {
-    ok: true,
-    entry,
-    state: { ...state, coins: state.coins - fee, raceEntries: [...state.raceEntries, entry] }
-  };
+  return { ok: true, entry, state: { ...state, raceEntries: [...state.raceEntries, entry] } };
 }
 function getPrizeBand(position) {
   const index = PRIZE_BANDS.findIndex((band) => position >= band.from && (band.to === null || position <= band.to));
@@ -1289,7 +1277,7 @@ function compute(request, career, now) {
       return { ok: true, state: changed.state };
     }
     case "enter-race": {
-      const entered = enterRace(career, request.raceId, request.fee, now);
+      const entered = enterRace(career, request.raceId, now);
       if (!entered.ok) return { ok: false, error: entered.error };
       return { ok: true, state: entered.state, result: { entry: entered.entry } };
     }
@@ -1317,7 +1305,7 @@ function validRequest(body) {
     case "equip":
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.itemId === "string" && typeof request.equipped === "boolean";
     case "enter-race":
-      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.raceId === "string" && Number.isInteger(request.fee);
+      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.raceId === "string";
     case "save":
       return base && request.snapshot !== void 0;
     case "new-career": {

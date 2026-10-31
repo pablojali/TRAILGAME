@@ -1,5 +1,5 @@
 import { ATTRIBUTE_POINTS_PER_LEVEL, getLevel } from '../domain/athlete/levels'
-import { getEntryFee, getRewardMultiplier } from '../domain/races/access'
+import { canEnterAtLevel, getRewardMultiplier } from '../domain/races/access'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_XP_BAND_PCT, RACE_XP_BASE } from '../domain/races/categories'
 import { getRace, type Race } from '../domain/races/races'
 import { RACE_SIMULATION } from '../domain/races/simulationConfig'
@@ -11,13 +11,12 @@ import { checkDay, completeCurrentDay, statChange, type DayRef, type TrainingErr
 
 export type RaceEntryError =
   | 'unknown-race'
-  /** The race already has a pending entry: entering again would charge twice. */
+  /** The race already has a pending entry. */
   | 'already-entered'
-  | 'insufficient-coins'
-  /** The fee the player confirmed is not the fee that applies now (e.g. the level changed). */
-  | 'fee-changed'
   /** Another race is already scheduled for the coming Sunday (one race per week). */
   | 'race-scheduled'
+  /** The athlete is more than 2 levels below the race's recommended level. */
+  | 'level-too-low'
 
 export type RaceEntryResult = { ok: true; state: GameState; entry: RaceEntry } | { ok: false; error: RaceEntryError }
 
@@ -38,34 +37,28 @@ export function getEntry(state: GameState, entryId: string): RaceEntry | undefin
 }
 
 /**
- * Enters a race and pays its fee once (Game Design Bible §10.3). `confirmedFee` is the fee the
- * player saw when confirming; the entry is rejected if it no longer applies. A repeated request is
- * rejected because the race already has a pending entry, so the fee cannot be charged twice.
+ * Enters a race (free; owner decision, 1 November 2026). The athlete's level must be at least the
+ * race's minimum (2 below its recommended level). A repeated request is rejected because the race
+ * already has a pending entry. Coins never change.
  */
-export function enterRace(state: GameState, raceId: string, confirmedFee: number, now: number): RaceEntryResult {
+export function enterRace(state: GameState, raceId: string, now: number): RaceEntryResult {
   const race = getRace(raceId)
   if (!race) return { ok: false, error: 'unknown-race' }
   if (getPendingEntry(state, raceId)) return { ok: false, error: 'already-entered' }
   if (getScheduledEntry(state)) return { ok: false, error: 'race-scheduled' }
   const level = getLevel(state.athlete.xp)
-  const { type, fee } = getEntryFee(race, level)
-  if (fee !== confirmedFee) return { ok: false, error: 'fee-changed' }
-  if (fee > state.coins) return { ok: false, error: 'insufficient-coins' }
+  if (!canEnterAtLevel(race, level)) return { ok: false, error: 'level-too-low' }
 
   const entry: RaceEntry = {
     id: `entry-${state.raceEntries.length + 1}`,
     raceId,
-    entryType: type,
-    feePaid: fee,
+    entryType: 'free',
+    feePaid: 0,
     levelAtEntry: level,
     enteredAt: now,
     status: 'pending',
   }
-  return {
-    ok: true,
-    entry,
-    state: { ...state, coins: state.coins - fee, raceEntries: [...state.raceEntries, entry] },
-  }
+  return { ok: true, entry, state: { ...state, raceEntries: [...state.raceEntries, entry] } }
 }
 
 /** Position band index into `PRIZE_BANDS`. */

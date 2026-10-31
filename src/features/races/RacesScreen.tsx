@@ -4,13 +4,13 @@ import { Coins } from '../../components/Coins'
 import { Screen } from '../../components/Screen'
 import { Tabs } from '../../components/Tabs'
 import { getLevel } from '../../domain/athlete/levels'
-import { getEntryFee } from '../../domain/races/access'
+import { canEnterAtLevel, getMinimumLevel } from '../../domain/races/access'
 import { isRaceCategory, RACE_CATEGORIES, RACE_CATEGORY_CONFIG, type RaceCategory } from '../../domain/races/categories'
 import { getRace, RACES } from '../../domain/races/races'
 import { getPendingEntry } from '../../game-engine/races'
 import { ElevationProfile } from './ElevationProfile'
 import { RacePhoto } from './RacePhoto'
-import { courseText, feeText } from './raceText'
+import { courseText } from './raceText'
 import styles from './Races.module.css'
 
 /** The category shown first: the one with the pending entry, else the first with a race at or above the level. */
@@ -38,7 +38,7 @@ export function RacesScreen() {
   return (
     <Screen
       title="Races"
-      description="Pick a race to see its course, fees and prizes. Races below your level are never locked: enter early for a higher fee."
+      description="Pick a race to see its course and prizes. Entry is free; each race opens 2 levels below its recommended level."
       aside={
         <p className={styles.balance}>
           <span>Level {level}</span>
@@ -55,7 +55,7 @@ export function RacesScreen() {
       >
         <ul className={styles.raceList}>
           {races.map((race) => {
-            const fee = getEntryFee(race, level)
+            const open = canEnterAtLevel(race, level)
             const entered = getPendingEntry(state, race.id)
             return (
               <li key={race.id}>
@@ -68,8 +68,8 @@ export function RacesScreen() {
                     </span>
                     <span className={styles.raceFoot}>
                       <span className={styles.raceTags}>
-                        <span className={`${styles.tag} ${fee.type === 'early' ? styles.tagEarly : ''}`}>
-                          {feeText(fee)}
+                        <span className={`${styles.tag} ${open ? '' : styles.tagEarly}`}>
+                          {open ? 'Free' : `From Lv ${getMinimumLevel(race)}`}
                         </span>
                         {entered && <span className={`${styles.tag} ${styles.tagEntered}`}>Entered</span>}
                       </span>

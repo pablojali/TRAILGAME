@@ -381,7 +381,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   )
 
   const enter = useCallback(
-    async (raceId: string, confirmedFee: number): Promise<RaceEntryError | ServerError | null> => {
+    async (raceId: string): Promise<RaceEntryError | ServerError | null> => {
       const state = currentState()
       if (!state) return 'unknown-race'
       if (ops) {
@@ -391,11 +391,10 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
           baseVersion: sync?.knownVersion() ?? null,
           snapshot: state,
           raceId,
-          fee: confirmedFee,
         }))
         return response.ok ? null : serverError<RaceEntryError>(response.error)
       }
-      const result = enterRace(state, raceId, confirmedFee, clockRef.current())
+      const result = enterRace(state, raceId, clockRef.current())
       if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.state })
       return null

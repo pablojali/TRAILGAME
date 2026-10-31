@@ -2,14 +2,13 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { GameState } from '../../game-engine/gameState'
-import { enterRace, raceCurrentDay } from '../../game-engine/races'
-import { currentRef, newGame, onSunday, T0, withAthlete } from '../../test/gameFixtures'
+import { raceCurrentDay } from '../../game-engine/races'
+import { currentRef, newGame, onSunday, T0, withAthlete, withEntry } from '../../test/gameFixtures'
 import { renderApp, seedCareer } from '../../test/renderApp'
 
 /** Enters and runs a race on Sunday with the given form; returns the state after the race. */
 function race(state: GameState, raceId: string, fitness: number): GameState {
-  const entered = enterRace(withAthlete(state, { fitness, fatigue: 0 }), raceId, 0, T0)
-  if (!entered.ok) throw new Error(entered.error)
+  const entered = withEntry(withAthlete(state, { fitness, fatigue: 0 }), raceId)
   const sunday = onSunday(entered.state)
   const raced = raceCurrentDay(sunday, currentRef(sunday), entered.entry.id, T0)
   if (!raced.ok) throw new Error(raced.error)

@@ -962,8 +962,11 @@ Fitness 0 by week 6:
   keeps only name, sex, look and today's plan).
 - The device's Buy, Equip/Take off and race entry wait for the server, with a pending label and
   double-tap guard; nothing is applied locally on failure.
-- Existing entry fees and the absence of level locks are kept (the brief assumed free entry with
-  minimum levels; see docs/SUPABASE_SETUP.md).
+- **Correction (same day): NPC race entry is free, and each race opens 2 levels below its
+  recommended level** (owner decision; `getMinimumLevel` in `src/domain/races/access.ts`). This
+  replaces the M4 fees (standard and early entry) and the "no level locks" rule (Game Design
+  Bible §10.3); old paid entries keep their fee in their results. Prizes and reward multipliers
+  are unchanged. The server checks the level from its own career (`level-too-low`).
 - Migration `20261101090000_economy_operations.sql` (operation kinds). Details and deployment:
   docs/SUPABASE_SETUP.md.
 

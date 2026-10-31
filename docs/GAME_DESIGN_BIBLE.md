@@ -723,7 +723,7 @@ M4 introduces four race categories. The values below are initial balancing value
 
 1. If the athlete's level is at or above the race's recommended level, the standard entry fee applies.
 2. If the athlete's level is below the recommended level, the player may enter by paying the higher early-entry fee.
-3. There are no hard level locks in M4. Any category, including Elite, may be attempted from the beginning if the player can afford the applicable fee.
+3. There are no hard level locks in M4. Any category, including Elite, may be attempted from the beginning if the player can afford the applicable fee. **Superseded on 1 November 2026:** NPC race entry is free and each race opens 2 levels below its recommended level (DEVELOPMENT.md, Phase 3B.2).
 4. Open races are always free to enter.
 5. If the player cannot afford the applicable fee, entry must be disabled and the shortfall clearly displayed.
 6. Before confirmation, show the applicable fee, current coin balance, and remaining balance.

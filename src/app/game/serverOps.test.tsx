@@ -209,13 +209,13 @@ describe('server-authoritative training (client and server together)', () => {
   it('runs the race and spends attribute points on the server', async () => {
     const sunday = onSunday(withAthlete(newGame(), { xp: 100 }))
     const w = world(sunday)
-    const entered = enterRace(sunday, 'RACE-001', 0, T0)
+    const entered = enterRace(sunday, 'RACE-001', T0)
     if (!entered.ok) throw new Error(entered.error)
     seedLocal(sunday)
     const view = renderGame(w)
     await ready(view, w)
     await act(async () => {
-      expect(await view.game().enterRace('RACE-001', 0)).toBeNull()
+      expect(await view.game().enterRace('RACE-001')).toBeNull()
     })
     // The entry is the server's (Phase 3B.2).
     expect(w.server()!.raceEntries).toMatchObject([{ raceId: 'RACE-001', status: 'pending' }])

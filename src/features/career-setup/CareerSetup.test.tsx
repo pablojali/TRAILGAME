@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { defaultAppearance } from '../../domain/athlete/appearance'
@@ -37,6 +37,12 @@ async function createCareer(user: User, profile: ProfileId, sex: Sex, name: stri
   await user.click(screen.getByRole('button', { name: 'Continue' }))
   await user.type(screen.getByLabelText('Runner name'), name)
   await user.click(screen.getByRole('button', { name: 'Start career' }))
+  await started()
+}
+
+/** The career is started asynchronously (by the server when one is configured). */
+async function started() {
+  await waitFor(() => expect(screen.queryByText('Starting…')).toBeNull())
 }
 
 describe('career creation — profile step', () => {
@@ -234,6 +240,7 @@ describe('career creation — appearance step', () => {
     expect(screen.getByRole('img')).toHaveAccessibleName('Your runner: Climber, male')
     await user.type(screen.getByLabelText('Runner name'), 'Leo')
     await user.click(screen.getByRole('button', { name: 'Start career' }))
+    await started()
     expect(readSave()!.state.athlete.appearance).toEqual({ hair: 'natural', skin: 'tone-1', outfit: 'white-tshirt' })
     expect(readSave()!.state.equipment).toEqual([])
   })
@@ -293,6 +300,7 @@ describe('career creation — name step', () => {
     expect(input).toHaveAccessibleDescription('1–16 characters.')
     await user.type(input, '  Marta  ')
     await user.click(screen.getByRole('button', { name: 'Start career' }))
+    await started()
     expect(readSave()!.state.athlete.name).toBe('Marta')
   })
 
@@ -400,6 +408,7 @@ describe('incompatible save', () => {
 
     await user.type(screen.getByLabelText('Runner name'), 'Marta')
     await user.click(screen.getByRole('button', { name: 'Start career' }))
+    await started()
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
     expect(readSave()).toMatchObject({
       schemaVersion: 2,

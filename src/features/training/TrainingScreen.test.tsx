@@ -33,6 +33,12 @@ async function completeToday(user: User) {
   // Wait out the double-tap pause left by a previous completion.
   await within(detail()).findByRole('button', { name: /^(Complete|Take rest)/ }, { timeout: 1500 })
   await user.click(within(detail()).getByRole('button', { name: /^(Complete|Take rest)/ }))
+  await confirmed()
+}
+
+/** The day is confirmed asynchronously (by the server when one is configured). */
+async function confirmed() {
+  await waitFor(() => expect(screen.queryByText('Saving…')).toBeNull())
 }
 
 describe('TrainingScreen — week strip and day detail', () => {
@@ -283,6 +289,7 @@ describe('TrainingScreen — injury', () => {
     const user = userEvent.setup()
     await renderApp('/training')
     await user.click(within(detail()).getByRole('button', { name: 'Complete anyway — injury' }))
+    await confirmed()
 
     expect(feedback()).toHaveTextContent('Injured! Monday: Easy run')
     expect(feedback()).toHaveTextContent('XP 0 · Fitness −15 · Fatigue +5 · 5 forced rest days')

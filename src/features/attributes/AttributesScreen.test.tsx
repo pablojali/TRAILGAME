@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { PROFILES } from '../../domain/athlete/profiles'
@@ -17,6 +17,14 @@ function addButton(label: string) {
   return screen.getByRole('button', { name: `Add 1 point to ${label}` })
 }
 
+/** Adds a point and lets the asynchronous confirmation (the server's, when one is configured) land. */
+async function add(user: ReturnType<typeof userEvent.setup>, label: string) {
+  await user.click(addButton(label))
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+}
+
 describe('AttributesScreen', () => {
   it('shows the six attributes and no points for a new career', async () => {
     seedCareer(newGame('endurance'))
@@ -29,7 +37,7 @@ describe('AttributesScreen', () => {
     for (const label of ['Endurance', 'Climbing', 'Speed', 'Technical', 'Recovery', 'Consistency']) {
       expect(addButton(label)).toHaveAttribute('aria-disabled', 'true')
     }
-    await user.click(addButton('Speed'))
+    await add(user, 'Speed')
     expect(screen.getByText('No attribute points left to spend.')).toBeInTheDocument()
     expect(readSave()!.state.athlete.attributes).toEqual(PROFILES.endurance.attributes)
   })
@@ -40,14 +48,14 @@ describe('AttributesScreen', () => {
     const first = await renderApp('/attributes')
     expect(pointsLeft()).toBe('4')
 
-    await user.click(addButton('Speed'))
-    expect(value('Speed')).toBe('14.0')
+    await add(user, 'Speed')
+    await waitFor(() => expect(value('Speed')).toBe('14.0'))
     expect(pointsLeft()).toBe('3')
     expect(screen.getByText('Speed increased to 14.0. 3 points left.')).toBeInTheDocument()
 
-    await user.click(addButton('Speed'))
-    await user.click(addButton('Recovery'))
-    expect(screen.getByText('Recovery increased to 15.0. 1 point left.')).toBeInTheDocument()
+    await add(user, 'Speed')
+    await add(user, 'Recovery')
+    expect(await screen.findByText('Recovery increased to 15.0. 1 point left.')).toBeInTheDocument()
     expect(readSave()!.state.athlete).toMatchObject({
       spentAttributePoints: 3,
       attributes: { ...PROFILES.climber.attributes, speed: 15, recovery: 15 },
@@ -63,11 +71,11 @@ describe('AttributesScreen', () => {
     seedCareer(withAthlete(newGame(), { xp: 100 }))
     const user = userEvent.setup()
     await renderApp('/attributes')
-    await user.click(addButton('Climbing'))
-    await user.click(addButton('Climbing'))
-    expect(pointsLeft()).toBe('0')
+    await add(user, 'Climbing')
+    await add(user, 'Climbing')
+    await waitFor(() => expect(pointsLeft()).toBe('0'))
     expect(addButton('Climbing')).toHaveAttribute('aria-disabled', 'true')
-    await user.click(addButton('Climbing'))
+    await add(user, 'Climbing')
     expect(value('Climbing')).toBe('18.0')
     expect(readSave()!.state.athlete.spentAttributePoints).toBe(2)
   })

@@ -166,6 +166,7 @@ describe('DashboardScreen — Today strip (one screen, no cards)', () => {
     seedCareer()
     await renderApp('/training')
     await user.click(screen.getByRole('button', { name: 'Complete Easy run' }))
+    await waitFor(() => expect(screen.queryByText('Saving…')).toBeNull())
     await user.click(screen.getByRole('link', { name: 'Dashboard' }))
     expect(stat('XP')).toBe('9')
     expect(stat('Fitness')).toBe('20.5')

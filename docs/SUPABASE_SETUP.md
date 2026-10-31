@@ -291,8 +291,7 @@ XP and level, Fitness, Fatigue, attributes and spent points, the week (completed
 outcomes), forced rest, decay reference, finished race entries and their results. A `save` never
 changes them: the server keeps its own values and returns its career, which the device adopts.
 
-Still owned by the device (not part of this phase): coins, purchases, equipment and race entry
-(fees). They are accepted as sent in a `save`. Moving them to the server is the next step.
+Since Phase 3B.2 (below) the server also keeps coins, owned and worn items and race entries.
 
 ### On the device
 
@@ -310,7 +309,6 @@ Still owned by the device (not part of this phase): coins, purchases, equipment 
 
 - A career that exists only on a device (never uploaded) is accepted once by the first `save`,
   when the player has no cloud career yet. Careers created from now on are created by the server.
-- Coins and equipment are still client-owned (see above).
 - Without Supabase configuration (local development, tests) the game runs the engine on the device.
 
 ### Deployment (owner steps)
@@ -333,7 +331,63 @@ merged.
 5. Security advisor afterwards: "RLS enabled, no policy" on `career_operations` is intended (no
    client may read or write it). The `save_my_career` / `create_my_career` warnings disappear.
 
+## Phase 3B.2: server-authoritative economy and equipment
+
+Purchases, equipping and race entry run in `career-ops` like training and race days, with the
+same flow (verified user, operation id, version check, `commit_career`, stored response). Race
+prizes were already paid by the server since Phase 3B.1 (`race`).
+
+### Actions added
+
+- `buy` `{operationId, baseVersion, itemId, price}`: the engine's `buyItem` on the server's
+  career. The item must exist, not be owned yet, and cost what the catalog says: `price` is only
+  the price the player saw, and any other value is refused (`price-changed`); the catalog price
+  is charged from the server's coins (`insufficient-coins` otherwise).
+- `equip` `{operationId, baseVersion, itemId, equipped}`: `setItemEquipped`; the item must be
+  owned, and it replaces the item worn in the same slot.
+- `enter-race` `{operationId, baseVersion, raceId, fee}`: `enterRace`; the race must exist, not be
+  entered already, and no other race may be scheduled that week; the fee is the race's current
+  fee for the runner's level (`fee` is only what the player saw, `fee-changed` otherwise), paid
+  from the server's coins.
+
+### Fields the server keeps (in addition to Phase 3B.1)
+
+Coins, owned items, worn items and race entries (pending and finished). A `save` or a snapshot
+sent with an operation now only brings the name, sex, look and today's planned session; coins,
+items or entries in it are ignored.
+
+### Game rules kept as they are
+
+The brief for this phase described race entry as free with minimum levels. The game's existing
+rules are kept instead (no balance changes): Open races are free; Trail, Mountain and Elite cost
+50/125/300 coins, or 125/300/700 for an early entry below the recommended level; there are no
+level locks.
+
+### On the device
+
+Buy, Equip/Take off and race entry wait for the server ("Paying…", "Saving…", "Entering…"); a
+second tap meanwhile does nothing. On failure nothing is bought, charged, worn or entered; the
+screen says why, and the same button retries with the same operation id. No offline queue.
+
+### Database
+
+Migration `20261101090000_economy_operations.sql`: the operation kinds allowed in
+`career_operations` (`buy`, `equip`, `enter-race` added). Nothing else changes.
+
+### Deployment (owner steps, in this order)
+
+1. Apply `20261101090000_economy_operations.sql` (SQL Editor, or by me with the connector).
+   Without it, purchases, equipping and entries fail with "The server could not complete…" and
+   change nothing.
+2. Redeploy the Edge Function `career-ops` with the new `supabase/functions/career-ops/index.js`
+   (Edge Functions → career-ops → Code → replace everything → Deploy).
+3. Merge to main.
+
+Until step 3, the released app still buys, equips and enters on the device; with the new function
+(step 2) its coins, items and entries are then replaced by the server's on the next sync, so do
+steps 2 and 3 together.
+
 ## Not done yet (next phases)
 
-Sign in with Apple, server-side economy (coins, purchases, race entry fees) and the coin ledger,
-sign-out, native packaging.
+Sign in with Apple, the coin ledger (`coin_transactions` stays empty), sign-out, native
+packaging.

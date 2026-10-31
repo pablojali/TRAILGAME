@@ -215,8 +215,10 @@ describe('server-authoritative training (client and server together)', () => {
     const view = renderGame(w)
     await ready(view, w)
     await act(async () => {
-      expect(view.game().enterRace('RACE-001', 0)).toBeNull()
+      expect(await view.game().enterRace('RACE-001', 0)).toBeNull()
     })
+    // The entry is the server's (Phase 3B.2).
+    expect(w.server()!.raceEntries).toMatchObject([{ raceId: 'RACE-001', status: 'pending' }])
     const entryId = view.playing().raceEntries[0]!.id
     let raced: Awaited<ReturnType<GameContextValue['raceDay']>> | undefined
     await act(async () => {
@@ -230,6 +232,50 @@ describe('server-authoritative training (client and server together)', () => {
       expect(await view.game().allocateAttributePoint('speed', spent)).toBeNull()
     })
     expect(w.server()!.athlete.spentAttributePoints).toBe(spent + 1)
+  })
+
+  it('buys and equips on the server; offline nothing is bought or charged', async () => {
+    const w = world({ ...newGame(), coins: 100 })
+    seedLocal({ ...newGame(), coins: 100 })
+    const view = renderGame(w)
+    await ready(view, w)
+    w.network.down = true
+    await act(async () => {
+      expect(await view.game().buyItem('poles', 25)).toBe('offline')
+    })
+    expect(view.playing()).toMatchObject({ coins: 100, ownedEquipment: ['starter-shoes'] })
+    expect(w.server()!.coins).toBe(100)
+    w.network.down = false
+    await act(async () => {
+      expect(await view.game().buyItem('poles', 25)).toBeNull()
+    })
+    expect(w.server()).toMatchObject({ coins: 75, ownedEquipment: ['starter-shoes', 'poles'] })
+    expect(view.playing()).toEqual(w.server())
+    // The retry reused the operation id of the attempt that never reached the server.
+    expect(w.requests.filter((r) => r.startsWith('buy'))).toHaveLength(1)
+    await act(async () => {
+      expect(await view.game().setItemEquipped('poles', true)).toBeNull()
+    })
+    expect(w.server()!.equipment).toEqual(['poles'])
+    await act(async () => {
+      expect(await view.game().buyItem('hydration-backpack-2', 90)).toBe('insufficient-coins')
+    })
+    expect(w.server()!.coins).toBe(75)
+  })
+
+  it('coins edited on the device are replaced by the server\'s on the next upload', async () => {
+    const w = world({ ...newGame(), coins: 25 })
+    seedLocal({ ...newGame(), coins: 25 })
+    const view = renderGame(w)
+    await ready(view, w)
+    // A look change is uploaded with a snapshot whose coins were edited on the device.
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ schemaVersion: 2, savedAt: 'x', state: { ...view.playing(), coins: 9_999 } }))
+    await act(async () => {
+      view.game().setAppearance({ ...view.playing().athlete.appearance, outfit: 'shirt-l1-01' })
+    })
+    await waitFor(() => expect(w.server()!.athlete.appearance.outfit).toBe('shirt-l1-01'))
+    expect(w.server()!.coins).toBe(25)
+    await waitFor(() => expect(view.playing().coins).toBe(25))
   })
 
   it('a new career is created by the server', async () => {

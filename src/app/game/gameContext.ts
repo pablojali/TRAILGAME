@@ -70,12 +70,12 @@ export interface GameContextValue {
   /** Server-decided with Supabase: nothing is awarded unless the server confirms. */
   executeDay(ref: DayRef): Promise<TrainingError | ServerError | null>
   allocateAttributePoint(attribute: AttributeId, expectedSpent: number): Promise<AllocationError | ServerError | null>
-  /** Pays `confirmedFee` once and records a pending entry. */
-  enterRace(raceId: string, confirmedFee: number): RaceEntryError | null
-  /** Buys an item once for `confirmedPrice` coins. */
-  buyItem(itemId: string, confirmedPrice: number): BuyError | null
-  /** Puts an owned item on (replacing the same slot) or takes it off. Cosmetic for now. */
-  setItemEquipped(itemId: string, equipped: boolean): EquipError | null
+  /** Pays `confirmedFee` once and records a pending entry. Server-decided with Supabase (Phase 3B.2). */
+  enterRace(raceId: string, confirmedFee: number): Promise<RaceEntryError | ServerError | null>
+  /** Buys an item once for `confirmedPrice` coins. Server-decided with Supabase (Phase 3B.2). */
+  buyItem(itemId: string, confirmedPrice: number): Promise<BuyError | ServerError | null>
+  /** Puts an owned item on (replacing the same slot) or takes it off. Server-decided with Supabase. */
+  setItemEquipped(itemId: string, equipped: boolean): Promise<EquipError | ServerError | null>
   /** Changes the runner's look. Options above the runner's level are refused. */
   setAppearance(appearance: Appearance): AppearanceError | null
   /** Races a pending entry on the current day, once. Returns the result or the reason it failed. */

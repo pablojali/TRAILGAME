@@ -12,11 +12,14 @@ import { getRace, type Race } from '../../domain/races/races'
 import { weekdayShort } from '../../domain/training/weekdays'
 import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
 import { getFinishedEntries, getPendingEntry, type RaceEntryError } from '../../game-engine/races'
+import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import { RaceDayPanel } from './RaceDayPanel'
 import { courseText, feeText, ordinal, percentText, raceTimeText } from './raceText'
 import styles from './Races.module.css'
 
-const ERRORS: Record<RaceEntryError, string> = {
+const ERRORS: Record<RaceEntryError | ServerError, string> = {
+  offline: 'Could not reach the server, so you were not entered and nothing was charged. Check your connection and try again.',
+  'server-error': 'The server could not complete the entry, so you were not entered and nothing was charged. Try again.',
   'unknown-race': 'This race does not exist.',
   'already-entered': 'You have already entered this race.',
   'insufficient-coins': 'You do not have enough coins for this entry.',
@@ -183,6 +186,9 @@ function EntryPanel({ race }: { race: Race }) {
   const entry = getPendingEntry(state, race.id)
   const [confirming, setConfirming] = useState(false)
   const [message, setMessage] = useState('')
+  // The entry waits for the server; a second tap meanwhile does nothing.
+  const [entering, setEntering] = useState(false)
+  const pending = useRef(false)
   const [justEntered, setJustEntered] = useState(false)
   const panel = useRef<HTMLHeadingElement>(null)
 
@@ -274,14 +280,26 @@ function EntryPanel({ race }: { race: Race }) {
         </p>
       )}
       <div className={styles.actions}>
-        <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => setConfirming(false)}>
+        <button
+          type="button"
+          className={`${button.button} ${button.secondary}`}
+          aria-disabled={entering || undefined}
+          onClick={() => !entering && setConfirming(false)}
+        >
           Cancel
         </button>
         <button
           type="button"
           className={`${button.button} ${button.primary} ${styles.grow}`}
-          onClick={() => {
-            const error = enterRace(race.id, fee.fee)
+          aria-disabled={entering || undefined}
+          onClick={async () => {
+            if (pending.current) return
+            pending.current = true
+            setEntering(true)
+            setMessage('')
+            const error = await enterRace(race.id, fee.fee)
+            pending.current = false
+            setEntering(false)
             if (error) {
               setMessage(ERRORS[error])
               return
@@ -290,7 +308,7 @@ function EntryPanel({ race }: { race: Race }) {
             setConfirming(false)
           }}
         >
-          {fee.fee === 0 ? 'Confirm free entry' : `Pay ${formatCoins(fee.fee)} and enter`}
+          {entering ? 'Entering…' : fee.fee === 0 ? 'Confirm free entry' : `Pay ${formatCoins(fee.fee)} and enter`}
         </button>
       </div>
     </section>

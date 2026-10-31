@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { newGame } from '../../test/gameFixtures'
-import { readSave, renderApp, seedCareer } from '../../test/renderApp'
+import { readSave, renderApp, seedCareer, settled } from '../../test/renderApp'
 
 function layers(name: RegExp) {
   return [...screen.getByRole('img', { name }).querySelectorAll('svg image')].map((i) => i.getAttribute('data-layer'))
@@ -22,6 +22,7 @@ describe('Equipment', () => {
     await user.click(change)
     expect(change).toHaveAttribute('aria-expanded', 'true')
     await user.click(screen.getByRole('button', { name: 'Equip starter shoes' }))
+    await settled()
     expect(screen.getByText('Starter shoes', { selector: 'strong' })).toBeInTheDocument()
     expect(screen.getByText('Starter shoes equipped.')).toHaveAttribute('role', 'status')
     expect(layers(/with the equipment worn/)).toEqual(['body', 'starter-shoes'])
@@ -38,6 +39,7 @@ describe('Equipment', () => {
     await renderApp('/equipment')
     await user.click(screen.getByRole('button', { name: 'Change shoes' }))
     await user.click(screen.getByRole('button', { name: 'Take off starter shoes' }))
+    await settled()
     expect(readSave()!.state.equipment).toEqual([])
     expect(screen.getByText('Starter shoes taken off.')).toHaveAttribute('role', 'status')
   })
@@ -72,6 +74,7 @@ describe('Equipment', () => {
     expect(screen.getByText('Balance 60 coins → 10 coins.')).toBeInTheDocument()
     expect(readSave()!.state.coins).toBe(60)
     await user.dblClick(screen.getByRole('button', { name: 'Pay 50 coins' }))
+    await settled()
     expect(readSave()!.state).toMatchObject({ coins: 10, ownedEquipment: ['starter-shoes', 'poles-2'], equipment: [] })
     expect(screen.getByText('Poles · Lvl 2 bought for 50 coins.')).toBeInTheDocument()
 
@@ -80,6 +83,7 @@ describe('Equipment', () => {
     await user.click(screen.getByRole('tab', { name: 'Equipped' }))
     await user.click(screen.getByRole('button', { name: 'Change poles' }))
     await user.click(screen.getByRole('button', { name: 'Equip poles · lvl 2' }))
+    await settled()
     expect(readSave()!.state.equipment).toEqual(['poles-2'])
   })
 

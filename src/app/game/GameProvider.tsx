@@ -6,8 +6,8 @@ import { applyFitnessDecay } from '../../game-engine/fitnessDecay'
 import { createInitialGameState, type AthleteIdentity, type GameState } from '../../game-engine/gameState'
 import type { Appearance } from '../../domain/athlete/appearance'
 import { setAppearance } from '../../game-engine/appearance'
-import { buyItem, setItemEquipped } from '../../game-engine/equipment'
-import { enterRace, raceCurrentDay, type RaceDayError, type RaceDayResult } from '../../game-engine/races'
+import { buyItem, setItemEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
+import { enterRace, raceCurrentDay, type RaceDayError, type RaceDayResult, type RaceEntryError } from '../../game-engine/races'
 import * as engine from '../../game-engine/training'
 import type { DayRef, ExecutionResult, TrainingError } from '../../game-engine/training'
 import {
@@ -381,15 +381,26 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   )
 
   const enter = useCallback(
-    (raceId: string, confirmedFee: number) => {
+    async (raceId: string, confirmedFee: number): Promise<RaceEntryError | ServerError | null> => {
       const state = currentState()
-      if (!state) return 'unknown-race' as const
+      if (!state) return 'unknown-race'
+      if (ops) {
+        const response = await runServerOp(`enter:${raceId}`, (operationId) => ({
+          action: 'enter-race',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          raceId,
+          fee: confirmedFee,
+        }))
+        return response.ok ? null : serverError<RaceEntryError>(response.error)
+      }
       const result = enterRace(state, raceId, confirmedFee, clockRef.current())
       if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.state })
       return null
     },
-    [commit, currentState],
+    [commit, currentState, ops, runServerOp, sync],
   )
 
   const race = useCallback(
@@ -423,27 +434,49 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   )
 
   const equip = useCallback(
-    (itemId: string, equipped: boolean) => {
+    async (itemId: string, equipped: boolean): Promise<EquipError | ServerError | null> => {
       const state = currentState()
-      if (!state) return 'unknown-item' as const
+      if (!state) return 'unknown-item'
+      if (ops) {
+        const response = await runServerOp(`equip:${itemId}:${equipped}`, (operationId) => ({
+          action: 'equip',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          itemId,
+          equipped,
+        }))
+        return response.ok ? null : serverError<EquipError>(response.error)
+      }
       const result = setItemEquipped(state, itemId, equipped)
       if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.state })
       return null
     },
-    [commit, currentState],
+    [commit, currentState, ops, runServerOp, sync],
   )
 
   const buy = useCallback(
-    (itemId: string, confirmedPrice: number) => {
+    async (itemId: string, confirmedPrice: number): Promise<BuyError | ServerError | null> => {
       const state = currentState()
-      if (!state) return 'unknown-item' as const
+      if (!state) return 'unknown-item'
+      if (ops) {
+        const response = await runServerOp(`buy:${itemId}`, (operationId) => ({
+          action: 'buy',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          itemId,
+          price: confirmedPrice,
+        }))
+        return response.ok ? null : serverError<BuyError>(response.error)
+      }
       const result = buyItem(state, itemId, confirmedPrice)
       if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.state })
       return null
     },
-    [commit, currentState],
+    [commit, currentState, ops, runServerOp, sync],
   )
 
   const changeAppearance = useCallback(

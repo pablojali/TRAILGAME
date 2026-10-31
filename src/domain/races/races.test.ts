@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getEntryFee, getGrossPrizes, getRewardMultiplier, getShortfall } from './access'
+import { canEnterAtLevel, getGrossPrizes, getMinimumLevel, getRewardMultiplier } from './access'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_CATEGORY_CONFIG } from './categories'
 import { getRace, isRaceId, RACES, type Race } from './races'
 
@@ -32,12 +32,12 @@ describe('race catalog', () => {
     expect(isRaceId('RACE-013')).toBe(false)
   })
 
-  it('uses the category fees halved by the owner (29 October 2026)', () => {
+  it('has no entry fees (NPC races are free since 1 November 2026)', () => {
     expect(RACE_CATEGORY_CONFIG).toEqual({
-      open: { label: 'Open', recommendedLevel: 4, standardFee: 0, earlyEntryFee: 0 },
-      trail: { label: 'Trail', recommendedLevel: 11, standardFee: 50, earlyEntryFee: 125 },
-      mountain: { label: 'Mountain', recommendedLevel: 21, standardFee: 125, earlyEntryFee: 300 },
-      elite: { label: 'Elite', recommendedLevel: 31, standardFee: 300, earlyEntryFee: 700 },
+      open: { label: 'Open', recommendedLevel: 4 },
+      trail: { label: 'Trail', recommendedLevel: 11 },
+      mountain: { label: 'Mountain', recommendedLevel: 21 },
+      elite: { label: 'Elite', recommendedLevel: 31 },
     })
   })
 
@@ -53,27 +53,20 @@ describe('race catalog', () => {
   })
 })
 
-describe('entry fees', () => {
-  it('keeps Open races free at any level, including below the recommended level', () => {
-    expect(getEntryFee(race('RACE-001'), 1)).toEqual({ type: 'free', fee: 0 })
-    expect(getEntryFee(race('RACE-003'), 1)).toEqual({ type: 'free', fee: 0 })
+describe('race entry (free, from 2 levels below the recommended level; 1 November 2026)', () => {
+  it('opens each race 2 levels below its recommended level, never below level 1', () => {
+    expect(RACES.map((r) => [r.id, getMinimumLevel(r)])).toEqual(RACES.map((r) => [r.id, Math.max(1, r.recommendedLevel - 2)]))
+    expect(getMinimumLevel(race('RACE-001'))).toBe(2)
+    expect(getMinimumLevel(race('RACE-004'))).toBe(9)
+    expect(getMinimumLevel(race('RACE-012'))).toBe(48)
   })
 
-  it('charges the standard fee at or above the recommended level', () => {
-    expect(getEntryFee(race('RACE-004'), 11)).toEqual({ type: 'standard', fee: 50 })
-    expect(getEntryFee(race('RACE-004'), 20)).toEqual({ type: 'standard', fee: 50 })
-  })
-
-  it('charges the early-entry fee below the recommended level, with no level lock (Elite included)', () => {
-    expect(getEntryFee(race('RACE-006'), 11)).toEqual({ type: 'early', fee: 125 })
-    expect(getEntryFee(race('RACE-009'), 20)).toEqual({ type: 'early', fee: 300 })
-    expect(getEntryFee(race('RACE-012'), 1)).toEqual({ type: 'early', fee: 700 })
-  })
-
-  it('reports the shortfall', () => {
-    expect(getShortfall(250, 100)).toBe(150)
-    expect(getShortfall(100, 100)).toBe(0)
-    expect(getShortfall(0, 0)).toBe(0)
+  it('lets a runner enter from the minimum level up', () => {
+    expect(canEnterAtLevel(race('RACE-001'), 1)).toBe(false)
+    expect(canEnterAtLevel(race('RACE-001'), 2)).toBe(true)
+    expect(canEnterAtLevel(race('RACE-004'), 8)).toBe(false)
+    expect(canEnterAtLevel(race('RACE-004'), 9)).toBe(true)
+    expect(canEnterAtLevel(race('RACE-004'), 50)).toBe(true)
   })
 })
 

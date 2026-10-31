@@ -345,10 +345,10 @@ prizes were already paid by the server since Phase 3B.1 (`race`).
   is charged from the server's coins (`insufficient-coins` otherwise).
 - `equip` `{operationId, baseVersion, itemId, equipped}`: `setItemEquipped`; the item must be
   owned, and it replaces the item worn in the same slot.
-- `enter-race` `{operationId, baseVersion, raceId, fee}`: `enterRace`; the race must exist, not be
-  entered already, and no other race may be scheduled that week; the fee is the race's current
-  fee for the runner's level (`fee` is only what the player saw, `fee-changed` otherwise), paid
-  from the server's coins.
+- `enter-race` `{operationId, baseVersion, raceId}`: `enterRace`; the race must exist, not be
+  entered already, no other race may be scheduled that week, and the runner's level (from the
+  server's career) must be at least the race's minimum: 2 below its recommended level
+  (`level-too-low` otherwise). Entry is free: coins never change (correction of 1 November 2026).
 
 ### Fields the server keeps (in addition to Phase 3B.1)
 
@@ -356,18 +356,20 @@ Coins, owned items, worn items and race entries (pending and finished). A `save`
 sent with an operation now only brings the name, sex, look and today's planned session; coins,
 items or entries in it are ignored.
 
-### Game rules kept as they are
+### Race entry rules (3B.2 correction, 1 November 2026)
 
-The brief for this phase described race entry as free with minimum levels. The game's existing
-rules are kept instead (no balance changes): Open races are free; Trail, Mountain and Elite cost
-50/125/300 coins, or 125/300/700 for an early entry below the recommended level; there are no
-level locks.
+NPC race entry is free and each race opens 2 levels below its recommended level (owner decision):
+Forest First Steps (recommended 4) from Level 2, Ridge Runner (11) from 9, Beyond the Skyline
+(50) from 48. The earlier fees (50/125/300, early entry 125/300/700) and the absence of level
+locks are gone. Entries paid before keep their fee in their results. Prizes are unchanged.
 
 ### On the device
 
 Buy, Equip/Take off and race entry wait for the server ("Paying…", "Saving…", "Entering…"); a
 second tap meanwhile does nothing. On failure nothing is bought, charged, worn or entered; the
 screen says why, and the same button retries with the same operation id. No offline queue.
+Races below the runner's minimum level show "From Lv N" on the list and a disabled Enter button
+("Opens at level N") on the race.
 
 ### Database
 
@@ -386,6 +388,10 @@ Migration `20261101090000_economy_operations.sql`: the operation kinds allowed i
 Until step 3, the released app still buys, equips and enters on the device; with the new function
 (step 2) its coins, items and entries are then replaced by the server's on the next sync, so do
 steps 2 and 3 together.
+
+The 3B.2 correction (free entry, minimum levels) needs no database change: only a redeploy of
+`career-ops` with the new `index.js` and a merge, together (the released app still sends a fee
+and shows fees; the new function ignores the fee, never charges and checks the level).
 
 ## Not done yet (next phases)
 

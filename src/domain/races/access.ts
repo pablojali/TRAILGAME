@@ -1,26 +1,27 @@
-import { GROSS_PRIZES, RACE_CATEGORY_CONFIG, REWARD_MULTIPLIERS } from './categories'
+import { GROSS_PRIZES, REWARD_MULTIPLIERS } from './categories'
 import type { Race } from './races'
 
-/** `free`: Open races. `standard`: at or above the recommended level. `early`: below it. */
+/**
+ * How an entry was made. `free`: every entry since 1 November 2026 (NPC races are free).
+ * `standard` / `early`: entries paid before then (at or above / below the recommended level),
+ * kept for saved results.
+ */
 export type EntryType = 'free' | 'standard' | 'early'
 
-export interface EntryFee {
-  type: EntryType
-  fee: number
+/**
+ * Levels below a race's recommended level at which it opens (owner decision, 1 November 2026:
+ * a race can be entered from 2 levels below its recommended level).
+ */
+export const LEVELS_BELOW_RECOMMENDED = 2
+
+/** The lowest level that may enter a race. */
+export function getMinimumLevel(race: Race): number {
+  return Math.max(1, race.recommendedLevel - LEVELS_BELOW_RECOMMENDED)
 }
 
-/** The fee that applies to an athlete of `level` (§10.3). There are no level locks. */
-export function getEntryFee(race: Race, level: number): EntryFee {
-  const config = RACE_CATEGORY_CONFIG[race.category]
-  if (level >= race.recommendedLevel) {
-    return { type: config.standardFee === 0 ? 'free' : 'standard', fee: config.standardFee }
-  }
-  return { type: config.earlyEntryFee === 0 ? 'free' : 'early', fee: config.earlyEntryFee }
-}
-
-/** Coins still needed to pay `fee`, or 0 if the balance covers it. */
-export function getShortfall(fee: number, coins: number): number {
-  return Math.max(0, fee - coins)
+/** True if an athlete of `level` may enter the race. Entry is always free. */
+export function canEnterAtLevel(race: Race, level: number): boolean {
+  return level >= getMinimumLevel(race)
 }
 
 /** Anti-farming multipliers for an athlete of `level` in `race` (§10.9). */

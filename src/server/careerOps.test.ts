@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { GameState } from '../game-engine/gameState'
-import { enterRace } from '../game-engine/races'
 import { executeCurrentDay } from '../game-engine/training'
 import { applyFitnessDecay } from '../game-engine/fitnessDecay'
-import { newGame, onSunday, T0, withAthlete } from '../test/gameFixtures'
+import { newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
+import { getRace } from '../domain/races/races'
+import { getRaceRewards } from '../game-engine/races'
 import { handleCareerOp, type CareerOpsDeps, type CareerOpsStore, type CareerRecord, type OperationKind } from './careerOps'
 
 const NOW = T0 + 60 * 60 * 1000
@@ -203,8 +204,7 @@ describe('career-ops: race days and attribute points on the server', () => {
   it('runs the race entered on the server, once', async () => {
     const memory = memoryStore()
     const sunday = onSunday(newGame())
-    const entered = enterRace(sunday, 'RACE-001', 0, T0)
-    if (!entered.ok) throw new Error(entered.error)
+    const entered = withEntry(sunday, 'RACE-001')
     memory.seed('ana', entered.state)
     const body = { action: 'race', operationId: op(5), baseVersion: 1, ref: ref(sunday), entryId: entered.entry.id }
     const response = await handleCareerOp('token-ana', body, deps(memory))
@@ -352,49 +352,77 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     expect(memory.stateOf('ana').equipment).toEqual(['poles'])
   })
 
-  it('enters a race with the current fee, once; refuses unknown races, other fees and a second entry', async () => {
+  it('enters an eligible runner for free, once, without touching coins', async () => {
     const memory = memoryStore()
-    // Level 1: Forest First Steps (Open) is free; Ridge Runner (Trail, Level 11) is an early entry.
-    memory.seed('ana', rich(100))
-    const response = await call(memory, { action: 'enter-race', operationId: op(1), raceId: 'RACE-001', fee: 0 })
+    // Level 2 (100 XP): Forest First Steps (recommended Level 4) opens at Level 2.
+    memory.seed('ana', { ...withAthlete(newGame(), { xp: 100 }), coins: 40 })
+    const body = { action: 'enter-race', operationId: op(1), raceId: 'RACE-001' }
+    const response = await call(memory, body)
     if (!response.body.ok) throw new Error(response.body.error)
-    expect(response.body.state.raceEntries).toMatchObject([{ raceId: 'RACE-001', status: 'pending', feePaid: 0 }])
-    expect(response.body.state.coins).toBe(100)
+    expect(response.body.state.raceEntries).toMatchObject([{ raceId: 'RACE-001', status: 'pending', entryType: 'free', feePaid: 0 }])
+    expect(response.body.state.coins).toBe(40)
     expect(response.body.result).toMatchObject({ entry: { raceId: 'RACE-001' } })
-    expect((await call(memory, { action: 'enter-race', operationId: op(1), raceId: 'RACE-001', fee: 0 })).body).toMatchObject({ ok: true, duplicate: true })
-    expect((await call(memory, { action: 'enter-race', operationId: op(2), raceId: 'RACE-001', fee: 0, baseVersion: 2 })).body).toMatchObject({ ok: false, error: 'already-entered' })
-    expect((await call(memory, { action: 'enter-race', operationId: op(3), raceId: 'RACE-004', fee: 0, baseVersion: 2 })).body).toMatchObject({ ok: false, error: 'race-scheduled' })
-    expect((await call(memory, { action: 'enter-race', operationId: op(4), raceId: 'RACE-999', fee: 0, baseVersion: 2 })).body).toMatchObject({ ok: false, error: 'unknown-race' })
-    expect(memory.stateOf('ana').raceEntries).toHaveLength(1)
+    // The same request again: answered from the record.
+    expect((await call(memory, body)).body).toMatchObject({ ok: true, duplicate: true, state: { coins: 40 } })
+    // A new request for the same race: already entered, nothing charged or added.
+    expect((await call(memory, { ...body, operationId: op(2), baseVersion: 2 })).body).toMatchObject({ ok: false, error: 'already-entered', state: { coins: 40 } })
+    expect((await call(memory, { action: 'enter-race', operationId: op(3), raceId: 'RACE-002', baseVersion: 2 })).body).toMatchObject({ ok: false, error: 'race-scheduled' })
+    expect((await call(memory, { action: 'enter-race', operationId: op(4), raceId: 'RACE-999', baseVersion: 2 })).body).toMatchObject({ ok: false, error: 'unknown-race' })
+    expect(memory.stateOf('ana')).toMatchObject({ coins: 40, raceEntries: [{ raceId: 'RACE-001' }] })
+    expect(memory.commits()).toBe(1)
   })
 
-  it('charges the race\'s fee from the server\'s coins and refuses a fee the client chose', async () => {
+  it('rejects a runner below the race\'s minimum level, changing nothing', async () => {
     const memory = memoryStore()
     memory.seed('ana', rich(1000))
-    const early = await call(memory, { action: 'enter-race', operationId: op(1), raceId: 'RACE-004', fee: 0 })
-    expect(early.body).toMatchObject({ ok: false, error: 'fee-changed' })
-    const memory2 = memoryStore()
-    memory2.seed('ana', rich(0))
-    const broke = await call(memory2, { action: 'enter-race', operationId: op(2), raceId: 'RACE-004', fee: (await feeOf('RACE-004', 1)) })
-    expect(broke.body).toMatchObject({ ok: false, error: 'insufficient-coins' })
-    const paid = await call(memory, { action: 'enter-race', operationId: op(3), raceId: 'RACE-004', fee: await feeOf('RACE-004', 1) })
-    if (!paid.body.ok) throw new Error(paid.body.error)
-    expect(paid.body.state.coins).toBe(1000 - (await feeOf('RACE-004', 1)))
-    expect(paid.body.state.raceEntries).toMatchObject([{ raceId: 'RACE-004', entryType: 'early' }])
+    // Level 1: Forest First Steps opens at Level 2, Ridge Runner at 9.
+    expect((await call(memory, { action: 'enter-race', operationId: op(1), raceId: 'RACE-001' })).body).toMatchObject({ ok: false, error: 'level-too-low' })
+    expect((await call(memory, { action: 'enter-race', operationId: op(2), raceId: 'RACE-004' })).body).toMatchObject({ ok: false, error: 'level-too-low' })
+    expect(memory.stateOf('ana')).toMatchObject({ coins: 1000, raceEntries: [] })
+    expect(memory.commits()).toBe(0)
+  })
+
+  it('takes the level from the server\'s career: a level, fee or entry sent by the client changes nothing', async () => {
+    const memory = memoryStore()
+    memory.seed('ana', rich(10))
+    const forged = { ...withAthlete(newGame(), { xp: 63_700 }), coins: 10 }
+    const response = await call(memory, {
+      action: 'enter-race',
+      operationId: op(1),
+      raceId: 'RACE-012',
+      level: 50,
+      minimumLevel: 1,
+      fee: 0,
+      snapshot: forged,
+    })
+    expect(response.body).toMatchObject({ ok: false, error: 'level-too-low', state: { coins: 10, raceEntries: [], athlete: { xp: 0 } } })
+    expect(memory.commits()).toBe(0)
+  })
+
+  it('creates one entry when the same registration arrives twice at once', async () => {
+    const memory = memoryStore()
+    memory.seed('ana', withAthlete(newGame(), { xp: 100 }))
+    const [a, b] = await Promise.all([
+      call(memory, { action: 'enter-race', operationId: op(1), raceId: 'RACE-001' }),
+      call(memory, { action: 'enter-race', operationId: op(2), raceId: 'RACE-001' }),
+    ])
+    const outcomes = [a.body, b.body].map((body) => (body.ok ? 'ok' : body.error)).sort()
+    expect(outcomes).toEqual(['already-entered', 'ok'])
+    expect(memory.stateOf('ana').raceEntries).toHaveLength(1)
+    expect(memory.commits()).toBe(1)
   })
 
   it('pays race prizes on the server, once, from the server\'s entry (never the client\'s)', async () => {
     const memory = memoryStore()
-    const sunday = { ...onSunday(newGame()), coins: 0 }
+    const sunday = { ...onSunday(withAthlete(newGame(), { xp: 100 })), coins: 0 }
     memory.seed('ana', sunday)
     // An entry forged on the device is ignored: the server has no pending entry, so no race.
-    const forged = enterRace(sunday, 'RACE-001', 0, T0)
-    if (!forged.ok) throw new Error(forged.error)
+    const forged = withEntry(sunday, 'RACE-001')
     expect(
       (await call(memory, { action: 'race', operationId: op(1), ref: ref(sunday), entryId: forged.entry.id, snapshot: forged.state })).body,
     ).toMatchObject({ ok: false, error: 'unknown-entry' })
     // Entered on the server, then raced: the prize is the engine's, paid once.
-    const entered = await call(memory, { action: 'enter-race', operationId: op(2), raceId: 'RACE-001', fee: 0 })
+    const entered = await call(memory, { action: 'enter-race', operationId: op(2), raceId: 'RACE-001' })
     if (!entered.body.ok) throw new Error(entered.body.error)
     const entryId = entered.body.state.raceEntries[0]!.id
     const body = { action: 'race', operationId: op(3), ref: ref(sunday), entryId, baseVersion: 2 }
@@ -403,6 +431,9 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     const result = raced.body.state.raceEntries[0]!
     if (result.status !== 'finished') throw new Error('not finished')
     expect(raced.body.state.coins).toBe(result.result.coinsAwarded)
+    // Prizes unchanged by free entry: the engine's catalog prizes for the position and level.
+    const rewards = getRaceRewards(getRace('RACE-001')!, result.result.position, result.result.levelAtStart)
+    expect(result.result).toMatchObject({ coinsAwarded: rewards.coinsAwarded, grossPrize: rewards.grossPrize, netCoins: rewards.coinsAwarded })
     expect((await call(memory, body)).body).toMatchObject({ ok: true, duplicate: true })
     expect((await call(memory, { ...body, operationId: op(4), baseVersion: 3 })).body).toMatchObject({ ok: false })
     expect(memory.stateOf('ana').coins).toBe(result.result.coinsAwarded)
@@ -419,9 +450,3 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     expect(memory.stateOf('ana').coins).toBe(100)
   })
 })
-
-async function feeOf(raceId: string, level: number): Promise<number> {
-  const { getEntryFee } = await import('../domain/races/access')
-  const { getRace } = await import('../domain/races/races')
-  return getEntryFee(getRace(raceId)!, level).fee
-}

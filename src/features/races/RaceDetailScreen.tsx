@@ -6,7 +6,7 @@ import { Card } from '../../components/Card'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { getLevel } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
-import { getEntryFee, getGrossPrizes, getRewardMultiplier, getShortfall } from '../../domain/races/access'
+import { canEnterAtLevel, getGrossPrizes, getMinimumLevel, getRewardMultiplier } from '../../domain/races/access'
 import { PRIZE_BANDS, RACE_CATEGORY_CONFIG, REWARD_MULTIPLIERS } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
 import { weekdayShort } from '../../domain/training/weekdays'
@@ -14,16 +14,15 @@ import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
 import { getFinishedEntries, getPendingEntry, type RaceEntryError } from '../../game-engine/races'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import { RaceDayPanel } from './RaceDayPanel'
-import { courseText, feeText, ordinal, percentText, raceTimeText } from './raceText'
+import { courseText, feePaidText, ordinal, percentText, raceTimeText } from './raceText'
 import styles from './Races.module.css'
 
 const ERRORS: Record<RaceEntryError | ServerError, string> = {
-  offline: 'Could not reach the server, so you were not entered and nothing was charged. Check your connection and try again.',
-  'server-error': 'The server could not complete the entry, so you were not entered and nothing was charged. Try again.',
+  offline: 'Could not reach the server, so you were not entered. Check your connection and try again.',
+  'server-error': 'The server could not complete the entry, so you were not entered. Try again.',
   'unknown-race': 'This race does not exist.',
   'already-entered': 'You have already entered this race.',
-  'insufficient-coins': 'You do not have enough coins for this entry.',
-  'fee-changed': 'The entry fee changed. Check the new fee and confirm again.',
+  'level-too-low': 'Your level is too low for this race. Train to reach its minimum level.',
   'race-scheduled': 'You already have a race this Sunday. Races are one per week.',
 }
 
@@ -46,7 +45,7 @@ function RaceDetail({ race }: { race: Race }) {
   const { state } = useCareer()
   const level = getLevel(state.athlete.xp)
   const category = RACE_CATEGORY_CONFIG[race.category]
-  const fee = getEntryFee(race, level)
+  const minimum = getMinimumLevel(race)
   const multiplier = getRewardMultiplier(race, level)
   const prizes = getGrossPrizes(race)
 
@@ -84,19 +83,19 @@ function RaceDetail({ race }: { race: Race }) {
 
       {/* Fees, prizes and past results scroll here; the entry action stays in view below. */}
       <ScrollPanel label="Fees, prizes and your results">
-        <Card title="Entry fee">
+        <Card title="Entry">
           <ul className={styles.fees}>
-            <FeeRow
-              label={`Standard (level ${race.recommendedLevel} or higher)`}
-              amount={category.standardFee}
-              applies={fee.type !== 'early'}
-            />
-            <FeeRow
-              label={`Early entry (below level ${race.recommendedLevel})`}
-              amount={category.earlyEntryFee}
-              applies={fee.type === 'early'}
-            />
+            <li className={canEnterAtLevel(race, level) ? styles.feeApplies : undefined}>
+              <span>Open from level {minimum}</span>
+              <span className={styles.feeAmount}>
+                Free
+                {canEnterAtLevel(race, level) && <span className={styles.appliesTag}>You can enter</span>}
+              </span>
+            </li>
           </ul>
+          <p className={styles.muted}>
+            Entry is free. A race opens 2 levels below its recommended level ({race.recommendedLevel}).
+          </p>
         </Card>
 
         <Card title="Potential prizes">
@@ -165,24 +164,12 @@ function PastResults({ race }: { race: Race }) {
   )
 }
 
-function FeeRow({ label, amount, applies }: { label: string; amount: number; applies: boolean }) {
-  return (
-    <li className={applies ? styles.feeApplies : undefined}>
-      <span>{label}</span>
-      <span className={styles.feeAmount}>
-        {amount === 0 ? 'Free' : formatCoins(amount)}
-        {applies && <span className={styles.appliesTag}>Your fee</span>}
-      </span>
-    </li>
-  )
-}
-
-/** Entry with an explicit confirmation; the fee is charged once, only on confirm. */
+/** Entry with an explicit confirmation. Free; open from the race's minimum level. */
 function EntryPanel({ race }: { race: Race }) {
   const { state, enterRace } = useCareer()
   const level = getLevel(state.athlete.xp)
-  const fee = getEntryFee(race, level)
-  const shortfall = getShortfall(fee.fee, state.coins)
+  const minimum = getMinimumLevel(race)
+  const tooLow = level < minimum
   const entry = getPendingEntry(state, race.id)
   const [confirming, setConfirming] = useState(false)
   const [message, setMessage] = useState('')
@@ -205,7 +192,7 @@ function EntryPanel({ race }: { race: Race }) {
         </h2>
         <p role="status" className={styles.entryTitle}>
           {justEntered ? 'Entry confirmed. ' : ''}
-          Entry fee paid: {entry.feePaid === 0 ? 'free entry' : formatCoins(entry.feePaid)}.
+          Entry fee paid: {feePaidText(entry.feePaid)}.
         </p>
         <RaceDayPanel race={race} entryId={entry.id} />
       </section>
@@ -233,20 +220,20 @@ function EntryPanel({ race }: { race: Race }) {
       <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label="Enter this race">
         <div className={styles.entryText}>
           <p className={styles.entryTitle}>Sunday, week {getRaceWeek(state)}</p>
-          <p>{feeText(fee)}</p>
-          {shortfall > 0 && (
-            <p className={styles.warning} id="race-shortfall">
-              You need {formatCoins(shortfall)} more.
+          <p>Free</p>
+          {tooLow && (
+            <p className={styles.warning} id="race-level">
+              Opens at level {minimum} (you: {level}).
             </p>
           )}
         </div>
         <button
           type="button"
           className={`${button.button} ${button.primary}`}
-          aria-disabled={shortfall > 0 || undefined}
-          aria-describedby={shortfall > 0 ? 'race-shortfall' : undefined}
+          aria-disabled={tooLow || undefined}
+          aria-describedby={tooLow ? 'race-level' : undefined}
           onClick={() => {
-            if (shortfall > 0) return
+            if (tooLow) return
             setMessage('')
             setConfirming(true)
           }}
@@ -263,16 +250,7 @@ function EntryPanel({ race }: { race: Race }) {
         Confirm entry to {race.name}
       </h2>
       <p>
-        {fee.fee === 0 ? (
-          <>
-            <strong>Free entry.</strong> Balance stays {formatCoins(state.coins)}.
-          </>
-        ) : (
-          <>
-            <strong>Pay {formatCoins(fee.fee)}.</strong> Balance {formatCoins(state.coins)} →{' '}
-            {formatCoins(state.coins - fee.fee)}. Not refundable.
-          </>
-        )}
+        <strong>Free entry.</strong> Balance stays {formatCoins(state.coins)}.
       </p>
       {message && (
         <p role="alert" className={styles.warning}>
@@ -297,7 +275,7 @@ function EntryPanel({ race }: { race: Race }) {
             pending.current = true
             setEntering(true)
             setMessage('')
-            const error = await enterRace(race.id, fee.fee)
+            const error = await enterRace(race.id)
             pending.current = false
             setEntering(false)
             if (error) {
@@ -308,7 +286,7 @@ function EntryPanel({ race }: { race: Race }) {
             setConfirming(false)
           }}
         >
-          {entering ? 'Entering…' : fee.fee === 0 ? 'Confirm free entry' : `Pay ${formatCoins(fee.fee)} and enter`}
+          {entering ? 'Entering…' : 'Confirm free entry'}
         </button>
       </div>
     </section>

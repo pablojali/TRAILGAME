@@ -1,6 +1,7 @@
 import type { ProfileId } from '../domain/athlete/athlete'
+import { getLevel } from '../domain/athlete/levels'
 import type { SessionType } from '../domain/training/sessions'
-import { createInitialGameState, type AthleteIdentity, type GameState } from '../game-engine/gameState'
+import { createInitialGameState, type AthleteIdentity, type GameState, type PendingRaceEntry } from '../game-engine/gameState'
 import { executeCurrentDay, planSession, type DayRef } from '../game-engine/training'
 
 /** Fixed creation time used by engine tests. */
@@ -52,4 +53,21 @@ export function onSunday(state: GameState): GameState {
       ),
     },
   }
+}
+
+/**
+ * A pending race entry made without the entry rules (level), for tests about race day, results
+ * and saves rather than about entering. Free, like every entry since 1 November 2026.
+ */
+export function withEntry(state: GameState, raceId: string, enteredAt = T0): { state: GameState; entry: PendingRaceEntry } {
+  const entry: PendingRaceEntry = {
+    id: `entry-${state.raceEntries.length + 1}`,
+    raceId,
+    entryType: 'free',
+    feePaid: 0,
+    levelAtEntry: getLevel(state.athlete.xp),
+    enteredAt,
+    status: 'pending',
+  }
+  return { state: { ...state, raceEntries: [...state.raceEntries, entry] }, entry }
 }

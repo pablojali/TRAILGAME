@@ -3,7 +3,7 @@ import { defaultAppearance } from '../domain/athlete/appearance'
 import type { GameState } from '../game-engine/gameState'
 import { allocateAttributePoint } from '../game-engine/attributes'
 import { enterRace, raceCurrentDay } from '../game-engine/races'
-import { execute, newGame, onSunday, T0, withAthlete } from '../test/gameFixtures'
+import { execute, newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
 import { M1_SAVE } from '../test/legacySaves'
 import {
   createLocalStorageGameRepository,
@@ -136,8 +136,8 @@ describe('localStorage game repository', () => {
 
   it('round-trips coins and race entries', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
-    // Level 11: Ridge Runner's standard fee (50).
-    const entered = enterRace({ ...withAthlete(newGame(), { xp: 3_250 }), coins: 300 }, 'RACE-004', 50, T0)
+    // Level 11: Ridge Runner (free entry).
+    const entered = enterRace({ ...withAthlete(newGame(), { xp: 3_250 }), coins: 300 }, 'RACE-004', T0)
     if (!entered.ok) throw new Error(entered.error)
     await repo.save(entered.state)
     expect(await loadResult(repo)).toEqual({ status: 'loaded', state: entered.state })
@@ -161,8 +161,7 @@ describe('localStorage game repository', () => {
 
   it('round-trips a raced day with its finished entry and result', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
-    const entered = enterRace(newGame(), 'RACE-001', 0, T0)
-    if (!entered.ok) throw new Error(entered.error)
+    const entered = withEntry(newGame(), 'RACE-001')
     const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0 + 1000)
     if (!raced.ok) throw new Error(raced.error)
     await repo.save(raced.value.state)
@@ -170,8 +169,7 @@ describe('localStorage game repository', () => {
   })
 
   it('rejects inconsistent race results', async () => {
-    const entered = enterRace(newGame(), 'RACE-001', 0, T0)
-    if (!entered.ok) throw new Error(entered.error)
+    const entered = withEntry(newGame(), 'RACE-001')
     const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0 + 1000)
     if (!raced.ok) throw new Error(raced.error)
     // The race ended the week; put a race-day outcome in the current week to test its link too.

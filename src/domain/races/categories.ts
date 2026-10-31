@@ -15,21 +15,18 @@ export interface RaceCategoryConfig {
   label: string
   /** Typical recommended level for the category; each race sets its own. */
   recommendedLevel: number
-  /** Fee when the athlete's level is at or above the race's recommended level. */
-  standardFee: number
-  /** Fee when the athlete's level is below the race's recommended level. */
-  earlyEntryFee: number
 }
 
 /**
  * Owner decisions (29 October 2026): levels per category Open 1–10, Trail 11–20, Mountain 21–30,
- * Elite 31–50 (Open races at 4, 6 and 8 since 30 October 2026), and every entry fee halved (was 100/250, 250/600, 600/1,400).
+ * Elite 31–50 (Open races at 4, 6 and 8 since 30 October 2026). Entry fees were removed on
+ * 1 November 2026 (NPC races are free; each race opens 2 levels below its recommended level).
  */
 export const RACE_CATEGORY_CONFIG: Record<RaceCategory, RaceCategoryConfig> = {
-  open: { label: 'Open', recommendedLevel: 4, standardFee: 0, earlyEntryFee: 0 },
-  trail: { label: 'Trail', recommendedLevel: 11, standardFee: 50, earlyEntryFee: 125 },
-  mountain: { label: 'Mountain', recommendedLevel: 21, standardFee: 125, earlyEntryFee: 300 },
-  elite: { label: 'Elite', recommendedLevel: 31, standardFee: 300, earlyEntryFee: 700 },
+  open: { label: 'Open', recommendedLevel: 4 },
+  trail: { label: 'Trail', recommendedLevel: 11 },
+  mountain: { label: 'Mountain', recommendedLevel: 21 },
+  elite: { label: 'Elite', recommendedLevel: 31 },
 }
 
 export interface PrizeBand {

@@ -70,8 +70,8 @@ export interface GameContextValue {
   /** Server-decided with Supabase: nothing is awarded unless the server confirms. */
   executeDay(ref: DayRef): Promise<TrainingError | ServerError | null>
   allocateAttributePoint(attribute: AttributeId, expectedSpent: number): Promise<AllocationError | ServerError | null>
-  /** Pays `confirmedFee` once and records a pending entry. Server-decided with Supabase (Phase 3B.2). */
-  enterRace(raceId: string, confirmedFee: number): Promise<RaceEntryError | ServerError | null>
+  /** Enters a race (free; level checked) once. Server-decided with Supabase (Phase 3B.2). */
+  enterRace(raceId: string): Promise<RaceEntryError | ServerError | null>
   /** Buys an item once for `confirmedPrice` coins. Server-decided with Supabase (Phase 3B.2). */
   buyItem(itemId: string, confirmedPrice: number): Promise<BuyError | ServerError | null>
   /** Puts an owned item on (replacing the same slot) or takes it off. Server-decided with Supabase. */

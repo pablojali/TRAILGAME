@@ -3,10 +3,10 @@ import { getEarnedAttributePoints } from '../domain/athlete/levels'
 import { getRaceEffect } from '../domain/equipment/items'
 import { getRace } from '../domain/races/races'
 import { SESSION_TYPES } from '../domain/training/sessions'
-import { execute, newGame, onSunday, T0, withAthlete, withSession } from '../test/gameFixtures'
+import { execute, newGame, onSunday, T0, withAthlete, withEntry, withSession } from '../test/gameFixtures'
 import { buyItem, setItemEquipped } from './equipment'
 import type { GameState } from './gameState'
-import { enterRace, raceCurrentDay } from './races'
+import { raceCurrentDay } from './races'
 import { simulateRace } from './raceSimulation'
 
 /** A career that owns every item, with the given items equipped. */
@@ -38,8 +38,7 @@ describe('equipment rules (owner, 29 October 2026)', () => {
 
     // The attribute bonuses apply in the race only: base attributes are unchanged after it, apart
     // from the weekly Consistency (the race completes the week), as without equipment.
-    const entered = enterRace(state, 'RACE-008', 300, T0)
-    if (!entered.ok) throw new Error(entered.error)
+    const entered = withEntry(state, 'RACE-008')
     const raced = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
     if (!raced.ok) throw new Error(raced.error)
     expect(raced.value.state.athlete.attributes).toEqual({

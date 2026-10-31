@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
@@ -26,6 +26,7 @@ import {
 import { getRace, type Race } from '../../domain/races/races'
 import { getRaceWeek, getScheduledEntry, RACE_DAY_INDEX } from '../../game-engine/raceSchedule'
 import { getEntry } from '../../game-engine/races'
+import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import { RaceDayPanel } from '../races/RaceDayPanel'
 import { isRecoveryRest, previewSession, type DayRef, type ExecutionResult, type TrainingError } from '../../game-engine/training'
 import { ordinal, raceTimeText } from '../races/raceText'
@@ -54,7 +55,9 @@ const STATUS_LABELS: Record<DayStatus, string> = {
   upcoming: 'Planned',
 }
 
-const ERROR_MESSAGES: Record<TrainingError, string> = {
+const ERROR_MESSAGES: Record<TrainingError | ServerError, string> = {
+  offline: 'Could not reach the server, so this day was not counted yet. Check your connection and try again.',
+  'server-error': 'The server could not complete this day, so it was not counted yet. Try again.',
   'day-completed': 'This day has already been completed.',
   'day-not-current': 'Only today’s session can be changed or completed.',
   'wrong-week': 'The training week has changed. Review today’s session and try again.',
@@ -109,6 +112,9 @@ export function TrainingScreen() {
   const [selected, setSelected] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(false)
+  // Waiting for the server to confirm the day (Phase 3B.1); also blocks a second tap meanwhile.
+  const [busy, setBusy] = useState(false)
+  const completing = useRef(false)
 
   useEffect(() => {
     if (!cooldown) return
@@ -169,13 +175,18 @@ export function TrainingScreen() {
         index={selectedIndex}
         error={error}
         cooldown={cooldown}
+        busy={busy}
         onPlan={(session) => {
           const failure = planSession(ref, session)
           setError(failure && ERROR_MESSAGES[failure])
         }}
-        onComplete={() => {
-          if (cooldown) return
-          const failure = executeDay(ref)
+        onComplete={async () => {
+          if (cooldown || completing.current) return
+          completing.current = true
+          setBusy(true)
+          const failure = await executeDay(ref)
+          completing.current = false
+          setBusy(false)
           setError(failure && ERROR_MESSAGES[failure])
           if (!failure) {
             setSelected(null)
@@ -196,12 +207,14 @@ interface DayDetailProps {
   index: number
   error: string | null
   cooldown: boolean
+  /** Waiting for the server to confirm the day. */
+  busy: boolean
   onPlan(session: SessionType): void
   onComplete(): void
 }
 
 /** The selected day's full detail, shown directly under the week strip. */
-function DayDetail({ state, index, error, cooldown, onPlan, onComplete }: DayDetailProps) {
+function DayDetail({ state, index, error, cooldown, busy, onPlan, onComplete }: DayDetailProps) {
   const { week } = state
   const day = week.days[index]!
   const status = getDayStatus(week, index)
@@ -239,6 +252,7 @@ function DayDetail({ state, index, error, cooldown, onPlan, onComplete }: DayDet
           selectId={selectId}
           error={error}
           cooldown={cooldown}
+          busy={busy}
           onPlan={onPlan}
           onComplete={onComplete}
         />
@@ -280,11 +294,12 @@ interface TodayActionsProps {
   selectId: string
   error: string | null
   cooldown: boolean
+  busy: boolean
   onPlan(session: SessionType): void
   onComplete(): void
 }
 
-function TodayActions({ state, selectId, error, cooldown, onPlan, onComplete }: TodayActionsProps) {
+function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComplete }: TodayActionsProps) {
   const { athlete, week } = state
   const today = week.days[week.currentDayIndex]!
   const session = TRAINING_SESSIONS[today.session]
@@ -380,10 +395,12 @@ function TodayActions({ state, selectId, error, cooldown, onPlan, onComplete }: 
       <button
         type="button"
         className={`${button.button} ${effects.injured ? button.danger : button.primary} ${button.block}`}
-        aria-disabled={cooldown || undefined}
+        aria-disabled={cooldown || busy || undefined}
         onClick={onComplete}
       >
-        {cooldown
+        {busy
+          ? 'Saving…'
+          : cooldown
           ? 'Saved ✓'
           : effects.injured
           ? 'Complete anyway — injury'

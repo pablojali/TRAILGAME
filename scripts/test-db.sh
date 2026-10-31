@@ -14,7 +14,7 @@ for test in supabase/tests/*.test.sql; do
   createdb "$DB"
   run supabase/tests/supabase_stub.sql
   for migration in supabase/migrations/*.sql; do run "$migration"; done
-  psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -o /dev/null -f "$test" 2>&1 | sed -e "s/^.*NOTICE:  //"
+  cat supabase/tests/helpers.sql "$test" | psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -o /dev/null 2>&1 | sed -e "s/^.*NOTICE:  //"
   dropdb "$DB"
   DB=""
 done

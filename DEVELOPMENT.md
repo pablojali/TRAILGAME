@@ -952,6 +952,22 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Phase 3B.1: server-authoritative progression (30 October 2026)
+
+- Training days, race days and attribute points are completed by the Edge Function `career-ops`
+  (`src/server/careerOps.ts`, bundled to `supabase/functions/career-ops/index.js` with
+  `npm run build:functions`), which runs the same engine as the device. Owner decision: race day
+  and attribute points move with training, because they change the same protected fields.
+- Every request carries a UUID operation id; `commit_career` (service role only) locks the career,
+  checks its version and stores the operation id, so a request is applied at most once.
+- Clients cannot write snapshots: `save_my_career` / `create_my_career` are removed; a cloud save
+  goes through the function, which keeps the server's progression and takes only the device's
+  own fields (name, look, coins, equipment, pending entries, today's plan).
+- On the device the actions wait for the server; on failure nothing is awarded and the player
+  retries. No offline queue. Coins, shop and race entry stay on the device for now.
+- `src/server` must not import React, Vite or browser APIs (a test rebuilds the bundle and
+  compares). Details and deployment: docs/SUPABASE_SETUP.md.
+
 ### Phase 2C: cloud saves (30 October 2026)
 
 - The career is saved locally first, then uploaded through `save_my_career` (optimistic

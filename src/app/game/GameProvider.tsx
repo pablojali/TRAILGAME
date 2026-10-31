@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { AttributeId, ProfileId } from '../../domain/athlete/athlete'
 import type { SessionType } from '../../domain/training/sessions'
-import { allocateAttributePoint } from '../../game-engine/attributes'
+import { allocateAttributePoint, type AllocationError } from '../../game-engine/attributes'
 import { applyFitnessDecay } from '../../game-engine/fitnessDecay'
 import { createInitialGameState, type AthleteIdentity, type GameState } from '../../game-engine/gameState'
 import type { Appearance } from '../../domain/athlete/appearance'
 import { setAppearance } from '../../game-engine/appearance'
 import { buyItem, setItemEquipped } from '../../game-engine/equipment'
-import { enterRace, raceCurrentDay } from '../../game-engine/races'
+import { enterRace, raceCurrentDay, type RaceDayError, type RaceDayResult } from '../../game-engine/races'
 import * as engine from '../../game-engine/training'
-import type { DayRef, ExecutionResult } from '../../game-engine/training'
+import type { DayRef, ExecutionResult, TrainingError } from '../../game-engine/training'
 import {
   createLocalStorageGameRepository,
   IncompatibleSaveError,
@@ -17,9 +17,18 @@ import {
 } from '../../repositories/gameRepository'
 import type { CloudSync } from '../../repositories/cloudSync'
 import { createSaveQueue } from '../../repositories/saveQueue'
-import { getCloudSync } from '../../repositories/supabase/cloudSave'
+import type { CareerOpRequest } from '../../server/careerOps'
+import type { CareerOpsCall, ServerError } from '../../repositories/supabase/careerOpsClient'
+import { getCareerOps, getCloudSync } from '../../repositories/supabase/cloudSave'
 import { getPlayerIdentity, type PlayerIdentity } from '../../repositories/supabase/playerIdentity'
-import { GameContext, type CloudNotice, type DecayNotice, type GameContextValue, type GamePhase } from './gameContext'
+import {
+  GameContext,
+  type CloudNotice,
+  type DecayNotice,
+  type GameContextValue,
+  type GamePhase,
+  type StartCareerError,
+} from './gameContext'
 
 /** With no career on this device, how long the game waits for one in the cloud before offering a new career. */
 export const CLOUD_RESTORE_WAIT_MS = 3_000
@@ -37,9 +46,36 @@ interface GameProviderProps {
   identity?: PlayerIdentity | null
   /** Cloud saves; defaults to the configured ones, or none (null) without Supabase. */
   cloud?: CloudSync | null
+  /**
+   * Server operations (Phase 3B.1): with them, training days, race days, attribute points and
+   * new careers are decided by the server; without (no Supabase), by the local engine.
+   */
+  ops?: CareerOpsCall | null
 }
 
-export function GameProvider({ children, repository, clock = Date.now, identity, cloud }: GameProviderProps) {
+/** A brand-new career (nothing earned yet): the only kind a device may put in place of the cloud's. */
+function isFreshCareer(state: GameState): boolean {
+  return (
+    state.athlete.xp === 0 &&
+    state.week.number === 1 &&
+    state.week.currentDayIndex === 0 &&
+    state.raceEntries.every((entry) => entry.status === 'pending')
+  )
+}
+
+/** Server errors that mean "try again" (the same operation id is reused, so it is never applied twice). */
+const RETRYABLE = new Set(['offline', 'server-error', 'busy'])
+
+/** A game-rule refusal from the server keeps its code; anything else is offline or a server error. */
+function serverError<T extends string>(error: string): T | ServerError {
+  if (error === 'offline') return 'offline'
+  if (RETRYABLE.has(error) || ['no-career', 'cloud-unreadable', 'forbidden', 'unauthorized', 'bad-request', 'conflict'].includes(error)) {
+    return 'server-error'
+  }
+  return error as T
+}
+
+export function GameProvider({ children, repository, clock = Date.now, identity, cloud, ops: opsProp }: GameProviderProps) {
   // Latest clock, also read by the repository (decay reference fallback when loading).
   const clockRef = useRef(clock)
   useEffect(() => {
@@ -53,6 +89,9 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [player] = useState(() => (identity === undefined ? getPlayerIdentity() : identity))
   const [sync] = useState(() => (cloud === undefined ? getCloudSync() : cloud))
+  const [ops] = useState(() => (opsProp === undefined ? getCareerOps() : opsProp))
+  /** Operation ids of server operations not yet answered, reused when the player retries. */
+  const pendingOps = useRef(new Map<string, string>())
   const [syncView, setSyncView] = useState(() => ({ status: sync ? sync.status() : ('off' as const), conflict: sync?.conflict() ?? null }))
   const [cloudNotice, setCloudNotice] = useState<CloudNotice | null>(null)
   // One queue for the provider's lifetime: saves never overlap and keep their order. Every career
@@ -89,19 +128,42 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
 
   /** Plays a career that came from the cloud (restored, chosen, or newer from another device). */
   const adoptCloudCareer = useCallback(
-    (state: GameState, notice: CloudNotice) => {
+    (state: GameState, notice: CloudNotice | null) => {
       const decayed = applyFitnessDecay(state, clockRef.current())
       setLastExecution(null)
       setDecayNotice(decayed.periods > 0 ? { periods: decayed.periods, fitnessLost: decayed.fitnessLost } : null)
       commit({ kind: 'playing', state: decayed.state })
-      setCloudNotice(notice)
+      if (notice) setCloudNotice(notice)
     },
     [commit],
   )
 
+  /**
+   * Runs a server operation (Phase 3B.1). On success the server's career becomes the active one
+   * (and the synced one). Nothing is awarded locally on failure; a retryable failure keeps the
+   * operation id so a retry can never apply it twice. A refusal by a game rule also returns the
+   * server's career, which replaces a stale local one.
+   */
+  const runServerOp = useCallback(
+    async (key: string, build: (operationId: string) => CareerOpRequest) => {
+      if (!ops) throw new Error('No server operations')
+      const operationId = pendingOps.current.get(key) ?? crypto.randomUUID()
+      pendingOps.current.set(key, operationId)
+      const response = await ops(build(operationId))
+      if (response.ok || !RETRYABLE.has(response.error)) pendingOps.current.delete(key)
+      const confirmed = response.ok ? response : 'state' in response && response.state && typeof response.version === 'number' ? response : null
+      if (confirmed && confirmed.state && typeof confirmed.version === 'number') {
+        sync?.confirmed(confirmed.state, confirmed.version)
+        commit({ kind: 'playing', state: confirmed.state })
+      }
+      return response
+    },
+    [ops, sync, commit],
+  )
+
   useEffect(() => {
     sync?.connect({
-      adopt: (state) => adoptCloudCareer(state, phaseRef.current.kind === 'playing' ? 'updated' : 'restored'),
+      adopt: (state, quiet) => adoptCloudCareer(state, quiet ? null : phaseRef.current.kind === 'playing' ? 'updated' : 'restored'),
       changed: () => setSyncView({ status: sync.status(), conflict: sync.conflict() }),
     })
     function onOnline() {
@@ -187,14 +249,29 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   }, [currentState, queue, sync])
 
   const startCareer = useCallback(
-    (profile: ProfileId, identity: AthleteIdentity) => {
+    async (profile: ProfileId, identity: AthleteIdentity): Promise<StartCareerError | null> => {
       setLastExecution(null)
       setDecayNotice(null)
-      const state = createInitialGameState(profile, clockRef.current(), identity)
-      // Saved locally, then uploaded by the cloud sync (created there once).
-      commit({ kind: 'playing', state })
+      if (!ops) {
+        // Local game: saved locally (and uploaded by the cloud sync, if any).
+        commit({ kind: 'playing', state: createInitialGameState(profile, clockRef.current(), identity) })
+        return null
+      }
+      // The server builds the career (and replaces the cloud one after a reset).
+      const response = await ops({ action: 'new-career', baseVersion: sync?.knownVersion() ?? null, profile, identity })
+      if (response.ok) {
+        sync?.confirmed(response.state, response.version)
+        commit({ kind: 'playing', state: response.state })
+        return null
+      }
+      if (response.error === 'conflict') {
+        // The account already has a cloud career: compare again (it is restored if this device has none).
+        sync?.refresh(phaseRef.current.kind === 'playing' ? phaseRef.current.state : null)
+        return 'cloud-career-exists'
+      }
+      return response.error === 'offline' ? 'offline' : 'server-error'
     },
-    [commit],
+    [commit, ops, sync],
   )
 
   const beginRestart = useCallback(() => {
@@ -216,12 +293,29 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   const resolveSyncConflict = useCallback(
     async (choice: 'local' | 'cloud') => {
       if (!sync) return false
+      const conflict = sync.conflict()
+      if (choice === 'local' && ops && conflict) {
+        // The server keeps progression: only a brand-new career may replace the cloud's, rebuilt there.
+        // A damaged cloud copy can also be replaced by a new career for this device's runner.
+        if (!isFreshCareer(conflict.local) && conflict.remote) return false
+        const { profile, name, sex, appearance } = conflict.local.athlete
+        const response = await ops({
+          action: 'new-career',
+          baseVersion: conflict.remoteVersion,
+          profile,
+          identity: { name, sex, appearance },
+        })
+        if (!response.ok) return false
+        sync.confirmed(response.state, response.version)
+        commit({ kind: 'playing', state: response.state })
+        return true
+      }
       const result = await sync.resolve(choice)
       if (!result.ok) return false
       if (result.adopt) adoptCloudCareer(result.adopt, 'restored')
       return true
     },
-    [sync, adoptCloudCareer],
+    [sync, adoptCloudCareer, ops, commit],
   )
 
   const planSession = useCallback(
@@ -237,28 +331,53 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   )
 
   const executeDay = useCallback(
-    (ref: DayRef) => {
+    async (ref: DayRef): Promise<TrainingError | ServerError | null> => {
       const state = currentState()
-      if (!state) return 'wrong-week' as const
+      if (!state) return 'wrong-week'
+      if (ops) {
+        const session = state.week.days[ref.dayIndex]?.session ?? 'rest'
+        const response = await runServerOp(`train:${ref.week}:${ref.dayIndex}`, (operationId) => ({
+          action: 'train',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          ref,
+          session,
+        }))
+        if (!response.ok) return serverError<TrainingError>(response.error)
+        setLastExecution({ ...(response.result as Omit<ExecutionResult, 'state'>), state: response.state })
+        return null
+      }
       const result = engine.executeCurrentDay(state, ref, clockRef.current())
       if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.value.state })
       setLastExecution(result.value)
       return null
     },
-    [commit, currentState],
+    [commit, currentState, ops, runServerOp, sync],
   )
 
   const allocate = useCallback(
-    (attribute: AttributeId, expectedSpent: number) => {
+    async (attribute: AttributeId, expectedSpent: number): Promise<AllocationError | ServerError | null> => {
       const state = currentState()
-      if (!state) return 'stale-request' as const
+      if (!state) return 'stale-request'
+      if (ops) {
+        const response = await runServerOp(`allocate:${expectedSpent}`, (operationId) => ({
+          action: 'allocate',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          attribute,
+          expectedSpent,
+        }))
+        return response.ok ? null : serverError<AllocationError>(response.error)
+      }
       const result = allocateAttributePoint(state, attribute, expectedSpent)
       if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.state })
       return null
     },
-    [commit, currentState],
+    [commit, currentState, ops, runServerOp, sync],
   )
 
   const enter = useCallback(
@@ -274,9 +393,25 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   )
 
   const race = useCallback(
-    (ref: DayRef, entryId: string) => {
+    async (
+      ref: DayRef,
+      entryId: string,
+    ): Promise<{ ok: true; value: RaceDayResult } | { ok: false; error: RaceDayError | ServerError }> => {
       const state = currentState()
       if (!state) return { ok: false as const, error: 'wrong-week' as const }
+      if (ops) {
+        const response = await runServerOp(`race:${entryId}`, (operationId) => ({
+          action: 'race',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          ref,
+          entryId,
+        }))
+        if (!response.ok) return { ok: false, error: serverError<RaceDayError>(response.error) }
+        setLastExecution(null)
+        return { ok: true, value: { ...(response.result as Omit<RaceDayResult, 'state'>), state: response.state } }
+      }
       const result = raceCurrentDay(state, ref, entryId, clockRef.current())
       if (!result.ok) return result
       commit({ kind: 'playing', state: result.value.state })
@@ -284,7 +419,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       setLastExecution(null)
       return result
     },
-    [commit, currentState],
+    [commit, currentState, ops, runServerOp, sync],
   )
 
   const equip = useCallback(
@@ -331,6 +466,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       cloudStatus: syncView.status,
       syncConflict: syncView.conflict,
       resolveSyncConflict,
+      canKeepDeviceCareer: !ops || (syncView.conflict ? isFreshCareer(syncView.conflict.local) : false),
       retrySync: () => sync?.retry(),
       cloudNotice,
       dismissCloudNotice: () => setCloudNotice(null),
@@ -354,6 +490,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       saveFailed,
       retryLoad,
       sync,
+      ops,
       syncView,
       resolveSyncConflict,
       cloudNotice,

@@ -12,7 +12,7 @@ import styles from './Cloud.module.css'
  * mixed.
  */
 export function ConflictDialog() {
-  const { syncConflict, resolveSyncConflict } = useGame()
+  const { syncConflict, resolveSyncConflict, canKeepDeviceCareer } = useGame()
   const titleId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
   const [working, setWorking] = useState(false)
@@ -25,6 +25,8 @@ export function ConflictDialog() {
   if (!syncConflict) return null
   const local = summarize(syncConflict.local, getLevel)
   const remote = syncConflict.remote && summarize(syncConflict.remote, getLevel)
+  // Progression is kept by the server: a device career that has progressed cannot replace it.
+  const keepLocal = canKeepDeviceCareer ? "Keep this device's career" : remote ? null : 'Start a new career with this runner'
 
   async function choose(choice: 'local' | 'cloud') {
     if (working) return
@@ -45,6 +47,13 @@ export function ConflictDialog() {
           This device and your account's cloud save have different careers. Choose the one to keep: it becomes your
           career on this device and in the cloud, and the other one is replaced. Careers are never mixed.
         </p>
+        {!canKeepDeviceCareer && (
+          <p className={styles.text}>
+            {remote
+              ? "Training, races and progress are confirmed by the server, so this device's career cannot replace the cloud career. A copy of it is kept on this device."
+              : "Training, races and progress are confirmed by the server, so this device's progress cannot be uploaded. You can start a new career with this runner's name and look."}
+          </p>
+        )}
         <div className={styles.options}>
           <Option title="This device" summary={local} />
           {remote ? (
@@ -57,18 +66,20 @@ export function ConflictDialog() {
           )}
         </div>
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={`${button.button} ${button.primary}`}
-            aria-disabled={working || undefined}
-            onClick={() => choose('local')}
-          >
-            Keep this device's career
-          </button>
+          {keepLocal && (
+            <button
+              type="button"
+              className={`${button.button} ${remote ? button.secondary : button.primary}`}
+              aria-disabled={working || undefined}
+              onClick={() => choose('local')}
+            >
+              {keepLocal}
+            </button>
+          )}
           {remote && (
             <button
               type="button"
-              className={`${button.button} ${button.secondary}`}
+              className={`${button.button} ${button.primary}`}
               aria-disabled={working || undefined}
               onClick={() => choose('cloud')}
             >

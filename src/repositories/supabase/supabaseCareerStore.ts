@@ -1,6 +1,5 @@
-import type { GameState } from '../../game-engine/gameState'
 import type { RemoteCareer, RemoteCareerStore, RemoteSaveResult } from '../cloudSync'
-import { SCHEMA_VERSION } from '../gameRepository'
+import type { CareerOpsCall } from './careerOpsClient'
 
 interface CareerRow {
   version: number
@@ -9,30 +8,22 @@ interface CareerRow {
   updated_at: string
 }
 
-interface SaveRow {
-  career_id: string | null
-  version: number | null
-  saved: boolean
-}
-
 /** The parts of the Supabase client used here (the real client fits; tests pass a fake). */
 export interface CareerStoreClient {
   from(table: 'careers'): {
     select(columns: string): { maybeSingle(): PromiseLike<{ data: CareerRow | null; error: unknown }> }
   }
-  rpc(
-    fn: 'save_my_career',
-    args: { snapshot: GameState; snapshot_schema_version: number; base_version: number | null },
-  ): PromiseLike<{ data: SaveRow[] | null; error: unknown }>
 }
 
 /**
- * The player's cloud career in Supabase (Phase 2C): read through RLS (own row only), written only
- * through `save_my_career`, which checks the version so a stale or foreign write changes nothing.
+ * The player's cloud career in Supabase: read through RLS (own row only), written only through
+ * the `career-ops` Edge Function (Phase 3B.1), which keeps the server's progression, takes the
+ * fields the client owns, and checks the version so a stale write changes nothing.
  */
 export function createSupabaseCareerStore(
   load: () => Promise<CareerStoreClient>,
   userId: () => Promise<string | null>,
+  careerOps: CareerOpsCall,
 ): RemoteCareerStore {
   return {
     async userId() {
@@ -55,16 +46,11 @@ export function createSupabaseCareerStore(
     },
 
     async save(state, baseVersion): Promise<RemoteSaveResult> {
-      const client = await load()
-      const { data, error } = await client.rpc('save_my_career', {
-        snapshot: state,
-        snapshot_schema_version: SCHEMA_VERSION,
-        base_version: baseVersion,
-      })
-      if (error) throw error
-      const row = data?.[0]
-      if (!row) throw new Error('save_my_career returned nothing')
-      return row.saved && row.version !== null ? { saved: true, version: row.version } : { saved: false, version: row.version }
+      const response = await careerOps({ action: 'save', baseVersion, snapshot: state })
+      if (response.ok) return { saved: true, version: response.version, state: response.state }
+      if (response.error === 'conflict') return { saved: false, version: 'version' in response ? (response.version ?? null) : null }
+      // Offline or a server failure: the sync keeps the save pending and retries.
+      throw new Error(`Cloud save failed: ${response.error}`)
     },
   }
 }

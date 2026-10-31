@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { useNavigate } from 'react-router'
-import { useGame } from '../../app/game/gameContext'
+import { useGame, type StartCareerError } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
 import { Avatar } from '../../components/avatar/Avatar'
@@ -353,11 +353,19 @@ interface NameStepProps {
   onBack(): void
 }
 
+const START_ERRORS: Record<StartCareerError, string> = {
+  offline: 'Could not reach the server to create your career. Check your connection and try again.',
+  'server-error': 'The server could not create your career. Try again.',
+  'cloud-career-exists': 'Your account already has a career. It is being loaded on this device.',
+}
+
 function NameStep({ headingRef, profile, sex, appearance, replacing, onBack }: NameStepProps) {
   const { startCareer } = useGame()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [showError, setShowError] = useState(false)
+  const [starting, setStarting] = useState(false)
+  const [startError, setStartError] = useState('')
   const inputId = useId()
   const hintId = useId()
   const errorId = useId()
@@ -389,14 +397,23 @@ function NameStep({ headingRef, profile, sex, appearance, replacing, onBack }: N
       <form
         className={styles.nameForm}
         noValidate
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault()
+          if (starting) return
           const clean = cleanAthleteName(name)
           if (!clean) {
             setShowError(true)
             return
           }
-          startCareer(profile, { name: clean, sex, appearance })
+          setStarting(true)
+          setStartError('')
+          // With cloud saves the server creates the career; nothing starts until it confirms.
+          const failure = await startCareer(profile, { name: clean, sex, appearance })
+          setStarting(false)
+          if (failure) {
+            setStartError(START_ERRORS[failure])
+            return
+          }
           // A new career always opens on the Dashboard, whichever route showed this flow.
           navigate('/')
         }}
@@ -430,12 +447,21 @@ function NameStep({ headingRef, profile, sex, appearance, replacing, onBack }: N
         {replacing && (
           <p className={styles.caution}>Starting a new career will replace your previous saved career.</p>
         )}
+        {startError && (
+          <p role="alert" className={styles.error}>
+            {startError}
+          </p>
+        )}
         <div className={styles.actions}>
           <button type="button" className={`${button.button} ${button.secondary}`} onClick={onBack}>
             Back
           </button>
-          <button type="submit" className={`${button.button} ${button.primary} ${styles.grow}`}>
-            Start career
+          <button
+            type="submit"
+            className={`${button.button} ${button.primary} ${styles.grow}`}
+            aria-disabled={starting || undefined}
+          >
+            {starting ? 'Starting…' : 'Start career'}
           </button>
         </div>
       </form>

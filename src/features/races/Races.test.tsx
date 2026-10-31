@@ -185,6 +185,8 @@ describe('Race day and results', () => {
     await user.click(screen.getByRole('button', { name: /^Confirm free entry|^Pay / }))
     expect(screen.getByText(/The race takes today’s training day: Sunday’s Rest is not done/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Start race/ }))
+    // The race is confirmed asynchronously (by the server when one is configured).
+    await screen.findByRole('tab', { name: 'Result' })
   }
 
   it('enters for this week’s Sunday and allows one race per week', async () => {

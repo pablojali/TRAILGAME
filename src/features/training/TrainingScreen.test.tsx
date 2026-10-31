@@ -153,8 +153,10 @@ describe('TrainingScreen — completing sessions', () => {
     await renderApp('/training')
     const complete = within(detail()).getByRole('button', { name: 'Complete Easy run' })
     fireEvent.click(complete)
+    // A second tap while the first is being saved does nothing.
+    fireEvent.click(complete)
     // The same button now belongs to the next day, but pauses briefly.
-    expect(complete).toHaveTextContent('Saved ✓')
+    await waitFor(() => expect(complete).toHaveTextContent('Saved ✓'))
     expect(complete).toHaveAttribute('aria-disabled', 'true')
     fireEvent.click(complete)
     await waitFor(() => expect(readSave()!.state.week.currentDayIndex).toBe(1))

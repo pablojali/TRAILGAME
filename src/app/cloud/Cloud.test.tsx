@@ -27,7 +27,7 @@ describe('conflict dialog', () => {
   it('shows both careers and keeps the one the player chooses', async () => {
     const user = userEvent.setup()
     const resolve = vi.fn(async () => true)
-    renderWith(<ConflictDialog />, { syncConflict: CONFLICT, resolveSyncConflict: resolve })
+    renderWith(<ConflictDialog />, { syncConflict: CONFLICT, resolveSyncConflict: resolve, canKeepDeviceCareer: true })
     const dialog = screen.getByRole('dialog', { name: 'Choose your career' })
     expect(within(dialog).getByRole('heading', { name: 'Choose your career' })).toHaveFocus()
     expect(dialog).toHaveTextContent('Careers are never mixed')
@@ -40,13 +40,28 @@ describe('conflict dialog', () => {
 
   it('says both careers are unchanged when the choice cannot be saved', async () => {
     const user = userEvent.setup()
-    renderWith(<ConflictDialog />, { syncConflict: CONFLICT, resolveSyncConflict: vi.fn(async () => false) })
+    renderWith(<ConflictDialog />, { syncConflict: CONFLICT, resolveSyncConflict: vi.fn(async () => false), canKeepDeviceCareer: true })
     await user.click(screen.getByRole('button', { name: "Keep this device's career" }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Both careers are unchanged')
   })
 
+  it('with server progression, a progressed device career cannot replace the cloud career', () => {
+    renderWith(<ConflictDialog />, { syncConflict: CONFLICT, resolveSyncConflict: vi.fn(), canKeepDeviceCareer: false })
+    expect(screen.getByText(/confirmed by the server/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: "Keep this device's career" })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Keep the cloud career' })).toBeInTheDocument()
+  })
+
+  it('with server progression and a damaged cloud copy, offers a new career for this runner', async () => {
+    const user = userEvent.setup()
+    const resolve = vi.fn(async () => true)
+    renderWith(<ConflictDialog />, { syncConflict: { ...CONFLICT, remote: null }, resolveSyncConflict: resolve, canKeepDeviceCareer: false })
+    await user.click(screen.getByRole('button', { name: 'Start a new career with this runner' }))
+    expect(resolve).toHaveBeenCalledWith('local')
+  })
+
   it('offers only this device when the cloud copy cannot be read', () => {
-    renderWith(<ConflictDialog />, { syncConflict: { ...CONFLICT, remote: null }, resolveSyncConflict: vi.fn() })
+    renderWith(<ConflictDialog />, { syncConflict: { ...CONFLICT, remote: null }, resolveSyncConflict: vi.fn(), canKeepDeviceCareer: true })
     expect(screen.getByText(/damaged or from another version/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Keep the cloud career' })).not.toBeInTheDocument()
   })

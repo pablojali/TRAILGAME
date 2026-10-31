@@ -57,13 +57,15 @@ export function onSunday(state: GameState): GameState {
 
 /**
  * A pending race entry made without the entry rules (level), for tests about race day, results
- * and saves rather than about entering. Free, like every entry since 1 November 2026.
+ * and saves rather than about entering. Typed like an entry made before the minimum levels (no
+ * fee paid), so race day does not check the level again; tests of that check build a `free`
+ * entry instead.
  */
 export function withEntry(state: GameState, raceId: string, enteredAt = T0): { state: GameState; entry: PendingRaceEntry } {
   const entry: PendingRaceEntry = {
     id: `entry-${state.raceEntries.length + 1}`,
     raceId,
-    entryType: 'free',
+    entryType: 'standard',
     feePaid: 0,
     levelAtEntry: getLevel(state.athlete.xp),
     enteredAt,

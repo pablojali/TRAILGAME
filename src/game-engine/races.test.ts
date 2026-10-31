@@ -246,6 +246,15 @@ describe('raceCurrentDay', () => {
     expect(result.value.state.week).toMatchObject({ number: 2, currentDayIndex: 0 })
   })
 
+  it('refuses to run a free entry below the race\'s minimum level; earlier paid entries still run', () => {
+    const made = withEntry(newGame(), 'RACE-001')
+    const free = { ...made.entry, entryType: 'free' as const }
+    const sunday = onSunday({ ...made.state, raceEntries: [free] })
+    expect(race(sunday, free.id)).toEqual({ ok: false, error: 'level-too-low' })
+    const early = { ...made.entry, entryType: 'early' as const, feePaid: 0 }
+    expect(race(onSunday({ ...made.state, raceEntries: [early] }), early.id).ok).toBe(true)
+  })
+
   it('lets a finished race be entered again', () => {
     const { state, entry } = enteredOnSunday(withAthlete(newGame(), { xp: 100 }), 'RACE-001')
     const result = race(state, entry.id)

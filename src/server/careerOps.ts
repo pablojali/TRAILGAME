@@ -197,6 +197,10 @@ function validRequest(body: unknown): body is CareerOpRequest {
   }
 }
 
+function hasStrategy(body: CareerOpRequest): boolean {
+  return body.action === 'race' && (body as { strategy?: unknown }).strategy !== undefined
+}
+
 export interface HttpResult {
   status: number
   body: CareerOpResponse
@@ -212,6 +216,8 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
   const userId = await deps.authenticate(token)
   if (!userId) return fail(401, 'unauthorized')
   if (!validRequest(body)) return fail(400, 'bad-request')
+  // The game has no race strategy yet (Game Design Bible §10.6): any strategy value is unsupported.
+  if (hasStrategy(body)) return fail(400, 'unsupported-strategy')
   const request = body
   const now = deps.now()
 

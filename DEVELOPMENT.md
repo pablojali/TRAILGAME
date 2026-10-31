@@ -952,6 +952,16 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Phase 3B.3: server-authoritative NPC races and results (1 November 2026)
+
+- Race execution, NPC ranking and rewards were already computed by the server since 3B.1, and
+  client snapshots lost coins, items and entries in 3B.2. 3B.3 adds a minimum-level check at race
+  time for free entries (`raceCurrentDay`, `level-too-low`) and refuses any race `strategy` value
+  (`unsupported-strategy`): the game has no strategy yet (Bible §10.6), and none was invented.
+- No DNF or category position exists; finishing position (field of 50) and injury are kept.
+- Tests: `src/server/careerOps.test.ts` ("NPC races on the server"), `src/game-engine/races.test.ts`.
+  The `withEntry` test fixture makes pre-minimum-level (`standard`) entries.
+
 ### Phase 3B.2: server-authoritative economy and equipment (1 November 2026)
 
 - `career-ops` gains `buy`, `equip` and `enter-race` (`src/server/careerOps.ts`), run with the

@@ -4,7 +4,8 @@ import { executeCurrentDay } from '../game-engine/training'
 import { applyFitnessDecay } from '../game-engine/fitnessDecay'
 import { newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
 import { getRace } from '../domain/races/races'
-import { getRaceRewards } from '../game-engine/races'
+import { getRaceRewards, raceCurrentDay } from '../game-engine/races'
+import { rivalTimes } from '../game-engine/raceSimulation'
 import { handleCareerOp, type CareerOpsDeps, type CareerOpsStore, type CareerRecord, type OperationKind } from './careerOps'
 
 const NOW = T0 + 60 * 60 * 1000
@@ -203,7 +204,7 @@ describe('career-ops: training on the server', () => {
 describe('career-ops: race days and attribute points on the server', () => {
   it('runs the race entered on the server, once', async () => {
     const memory = memoryStore()
-    const sunday = onSunday(newGame())
+    const sunday = onSunday(withAthlete(newGame(), { xp: 100 }))
     const entered = withEntry(sunday, 'RACE-001')
     memory.seed('ana', entered.state)
     const body = { action: 'race', operationId: op(5), baseVersion: 1, ref: ref(sunday), entryId: entered.entry.id }
@@ -448,5 +449,200 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     expect((await call(memory, { action: 'buy', operationId: op(1), itemId: 'poles', price: 25 }, 'ana')).status).toBe(403)
     expect((await handleCareerOp(null, { action: 'buy', operationId: op(2), baseVersion: 1, itemId: 'poles', price: 25 }, deps(memory))).status).toBe(401)
     expect(memory.stateOf('ana').coins).toBe(100)
+  })
+})
+
+describe('career-ops: NPC races on the server (Phase 3B.3)', () => {
+  /** A level-2 runner on race Sunday with a free entry for Forest First Steps, as the server holds it. */
+  function sundayEntry(overrides: Partial<GameState['athlete']> = {}) {
+    const made = withEntry(withAthlete(newGame(), { xp: 100, ...overrides }), 'RACE-001')
+    const entry = { ...made.entry, entryType: 'free' as const }
+    return { state: { ...onSunday({ ...made.state, raceEntries: [entry] }), coins: 5 }, entry }
+  }
+  const raceBody = (n: number, career: GameState, entryId: string, extra: Record<string, unknown> = {}) => ({
+    action: 'race',
+    operationId: op(n),
+    baseVersion: 1,
+    ref: ref(career),
+    entryId,
+    ...extra,
+  })
+  /** What the engine gives on the server's career (decay applied, as the server does). */
+  function engineResult(career: GameState, entryId: string) {
+    const expected = raceCurrentDay(applyFitnessDecay(career, NOW).state, ref(career), entryId, NOW)
+    if (!expected.ok) throw new Error(expected.error)
+    return expected.value
+  }
+
+  it('runs a registered race with the engine on the server\'s career: result, XP, coins, Fitness, Fatigue, history', async () => {
+    const memory = memoryStore()
+    const { state, entry } = sundayEntry()
+    memory.seed('ana', state)
+    const response = await handleCareerOp('token-ana', raceBody(1, state, entry.id), deps(memory))
+    if (!response.body.ok) throw new Error(response.body.error)
+    const expected = engineResult(state, entry.id)
+    expect(response.body.state).toEqual(expected.state)
+    expect(memory.stateOf('ana')).toEqual(expected.state)
+    const finished = response.body.state.raceEntries[0]!
+    if (finished.status !== 'finished') throw new Error('not finished')
+    expect(finished.result).toEqual(expected.entry.result)
+    expect(response.body.state.coins).toBe(5 + expected.entry.result.coinsAwarded)
+    expect(response.body.state.athlete.xp).toBe(100 + expected.entry.result.xpAwarded)
+    expect(response.body.state.athlete.fatigue).toBe(state.athlete.fatigue + expected.entry.result.fatigueChange)
+    // Sunday's race completes the week: the next week starts.
+    expect(response.body.state.week).toMatchObject({ number: 2, currentDayIndex: 0 })
+  })
+
+  it('ranks the runner among the NPC rivals computed by the server', async () => {
+    const memory = memoryStore()
+    const { state, entry } = sundayEntry()
+    memory.seed('ana', state)
+    const response = await handleCareerOp('token-ana', raceBody(1, state, entry.id), deps(memory))
+    if (!response.body.ok) throw new Error(response.body.error)
+    const finished = response.body.state.raceEntries[0]!
+    if (finished.status !== 'finished') throw new Error('not finished')
+    const { result } = finished
+    expect(result.rivalTimesS).toEqual(rivalTimes(getRace('RACE-001')!))
+    expect(result.position).toBe(1 + result.rivalTimesS!.filter((t) => t < result.timeS).length)
+    expect(result.fieldSize).toBe(50)
+  })
+
+  it('refuses races that are not registered, not today, already run or unknown, changing nothing', async () => {
+    const memory = memoryStore()
+    const { state, entry } = sundayEntry()
+    memory.seed('ana', state)
+    const run = (body: Record<string, unknown>) => handleCareerOp('token-ana', body, deps(memory))
+    expect((await run(raceBody(1, state, 'entry-9'))).body).toMatchObject({ ok: false, error: 'unknown-entry' })
+    expect((await run(raceBody(2, state, 'RACE-999'))).body).toMatchObject({ ok: false, error: 'unknown-entry' })
+    expect((await run(raceBody(3, state, entry.id, { ref: { week: 1, dayIndex: 3 } }))).body).toMatchObject({ ok: false, error: 'day-completed' })
+    // Monday: entered, but races are run on Sundays.
+    const monday = withEntry(withAthlete(newGame(), { xp: 100 }), 'RACE-001')
+    memory.seed('leo', monday.state)
+    expect((await handleCareerOp('token-leo', raceBody(4, monday.state, monday.entry.id), deps(memory))).body).toMatchObject({
+      ok: false,
+      error: 'not-race-day',
+    })
+    expect(memory.commits()).toBe(0)
+    expect(memory.stateOf('ana')).toEqual(JSON.parse(JSON.stringify(state)))
+    // Run once; a second run (new operation id) is refused: already run.
+    expect((await run(raceBody(5, state, entry.id))).body).toMatchObject({ ok: true })
+    expect((await run(raceBody(6, state, entry.id, { baseVersion: 2 }))).body).toMatchObject({ ok: false })
+    expect(memory.commits()).toBe(1)
+  })
+
+  it('refuses a free entry below the race\'s minimum level; entries paid under the earlier rules still run', async () => {
+    const memory = memoryStore()
+    // Level 2 holding a free entry for Ridge Runner (opens at Level 9): only reachable by tampering.
+    const made = withEntry(withAthlete(newGame(), { xp: 100 }), 'RACE-004')
+    const freeEntry = { ...made.entry, entryType: 'free' as const }
+    const low = { state: { ...made.state, raceEntries: [freeEntry] }, entry: freeEntry }
+    memory.seed('ana', onSunday(low.state))
+    expect((await handleCareerOp('token-ana', raceBody(1, onSunday(low.state), low.entry.id), deps(memory))).body).toMatchObject({
+      ok: false,
+      error: 'level-too-low',
+    })
+    const paid = { ...low.entry, entryType: 'early' as const, feePaid: 125 }
+    const legacy = onSunday({ ...low.state, raceEntries: [paid] })
+    memory.seed('leo', legacy)
+    expect((await handleCareerOp('token-leo', raceBody(2, legacy, paid.id), deps(memory))).body).toMatchObject({ ok: true })
+  })
+
+  it('has no race strategy yet: any strategy value is refused, none is accepted', async () => {
+    const memory = memoryStore()
+    const { state, entry } = sundayEntry()
+    memory.seed('ana', state)
+    for (const strategy of ['aggressive', 'conservative', { pace: 'fast' }, 0, null]) {
+      const response = await handleCareerOp('token-ana', raceBody(1, state, entry.id, { strategy }), deps(memory))
+      expect(response.status).toBe(400)
+      expect(response.body).toMatchObject({ ok: false, error: 'unsupported-strategy' })
+    }
+    expect(memory.commits()).toBe(0)
+    expect((await handleCareerOp('token-ana', raceBody(2, state, entry.id), deps(memory))).body).toMatchObject({ ok: true })
+  })
+
+  it('ignores a fabricated position, time, rewards, attributes and equipment sent by the client', async () => {
+    const memory = memoryStore()
+    const { state, entry } = sundayEntry()
+    memory.seed('ana', state)
+    const forged: GameState = {
+      ...withAthlete(state, { xp: 50_000, fitness: 100, fatigue: 0, attributes: { ...state.athlete.attributes, speed: 999, endurance: 999 } }),
+      coins: 99_999,
+      ownedEquipment: ['starter-shoes', 'trail-shoes-light'],
+      equipment: ['trail-shoes-light'],
+      raceEntries: [{ ...entry, status: 'finished', result: { position: 1, timeS: 1 } } as never],
+    }
+    const response = await handleCareerOp(
+      'token-ana',
+      raceBody(1, state, entry.id, { snapshot: forged, position: 1, timeS: 60, coinsAwarded: 9_999, xpAwarded: 9_999, result: { position: 1 } }),
+      deps(memory),
+    )
+    if (!response.body.ok) throw new Error(response.body.error)
+    const expected = engineResult(state, entry.id)
+    expect(response.body.state).toEqual(expected.state)
+    const finished = response.body.state.raceEntries[0]!
+    if (finished.status !== 'finished') throw new Error('not finished')
+    expect(finished.result.equipment).toEqual([])
+    expect(finished.result.attributes.speed).toBe(state.athlete.attributes.speed)
+  })
+
+  it('applies a race once: a repeated request, or two at once, run it and pay it once', async () => {
+    const memory = memoryStore()
+    const { state, entry } = sundayEntry()
+    memory.seed('ana', state)
+    const body = raceBody(1, state, entry.id)
+    const first = await handleCareerOp('token-ana', body, deps(memory))
+    const again = await handleCareerOp('token-ana', body, deps(memory))
+    expect(again.body).toMatchObject({ ok: true, duplicate: true })
+    if (!first.body.ok || !again.body.ok) throw new Error('failed')
+    expect(again.body.state.coins).toBe(first.body.state.coins)
+    expect(memory.commits()).toBe(1)
+
+    const memory2 = memoryStore()
+    memory2.seed('ana', state)
+    const [a, b] = await Promise.all([
+      handleCareerOp('token-ana', raceBody(1, state, entry.id), deps(memory2)),
+      handleCareerOp('token-ana', raceBody(2, state, entry.id), deps(memory2)),
+    ])
+    expect([a.body.ok, b.body.ok].sort()).toEqual([false, true])
+    expect(memory2.commits()).toBe(1)
+    expect(memory2.stateOf('ana').coins).toBe(first.body.state.coins)
+  })
+
+  it('recomputes on a version conflict (another write landed first) and applies the race once', async () => {
+    const memory = memoryStore()
+    const { state, entry } = sundayEntry()
+    memory.seed('ana', state)
+    // Another device saves (a new look) between the race's read and its commit.
+    const store: CareerOpsStore = {
+      ...memory.store,
+      commit: (() => {
+        let interfered = false
+        return async (input) => {
+          if (!interfered) {
+            interfered = true
+            memory.seed('ana', { ...state, athlete: { ...state.athlete, name: 'Ana B.' } }, 2)
+          }
+          return memory.store.commit(input)
+        }
+      })(),
+    }
+    const response = await handleCareerOp('token-ana', raceBody(1, state, entry.id), { ...deps(memory), store })
+    if (!response.body.ok) throw new Error(response.body.error)
+    expect(response.body.version).toBe(3)
+    expect(response.body.state.athlete.name).toBe('Ana B.')
+    expect(response.body.state.raceEntries[0]!.status).toBe('finished')
+    expect(memory.commits()).toBe(1)
+  })
+
+  it('keeps the injury outcome: no XP, −15 Fitness, 5 forced rest days, prize still paid', async () => {
+    const memory = memoryStore()
+    const { state, entry } = sundayEntry({ fatigue: 90, fitness: 40 })
+    memory.seed('ana', state)
+    const response = await handleCareerOp('token-ana', raceBody(1, state, entry.id), deps(memory))
+    if (!response.body.ok) throw new Error(response.body.error)
+    const finished = response.body.state.raceEntries[0]!
+    if (finished.status !== 'finished') throw new Error('not finished')
+    expect(finished.result).toMatchObject({ injured: true, xpAwarded: 0, fitnessChange: -15 })
+    expect(response.body.state).toMatchObject({ forcedRestDays: 5, coins: 5 + finished.result.coinsAwarded, athlete: { xp: 100 } })
   })
 })

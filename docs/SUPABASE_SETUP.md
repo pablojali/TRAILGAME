@@ -393,6 +393,31 @@ The 3B.2 correction (free entry, minimum levels) needs no database change: only 
 `career-ops` with the new `index.js` and a merge, together (the released app still sends a fee
 and shows fees; the new function ignores the fee, never charges and checks the level).
 
+## Phase 3B.3: server-authoritative NPC races and results
+
+Race execution has run on the server since Phase 3B.1 (`race`): the server loads its own career,
+checks the entry and the day with the engine (`raceCurrentDay`), simulates the race against the
+NPC field (rival times from the race's reference runner; day form fixed by the entry, whose time
+the server set at entry since 3B.2), and applies XP, coins, Fitness, Fatigue, injury, the week and
+the race history once per operation id, atomically. Since 3B.2 the client's snapshot cannot carry
+coins, items or race entries, so a fabricated result or entry is ignored.
+
+Added in 3B.3:
+
+- The race checks the minimum level again on the server's career (`level-too-low`) for free
+  entries; entries paid under the earlier rules (no minimum level) still run.
+- Race strategy does not exist in the game (Game Design Bible §10.6: not designed yet). Any
+  `strategy` value in a race request is refused (`unsupported-strategy`, HTTP 400) instead of
+  being ignored.
+- Tests for every case in the brief (validation, strategy, result integrity, idempotency and
+  concurrency, version conflicts, progression, injury).
+
+There is no DNF or category position in the game: the outcomes are a finishing position in a
+field of 50 and, above Fatigue 95, an injury (kept as they are).
+
+Deployment: no database change. Redeploy `career-ops` with the new `index.js`; merging is
+independent (the client only gained an error message).
+
 ## Not done yet (next phases)
 
 Sign in with Apple, the coin ledger (`coin_transactions` stays empty), sign-out, native

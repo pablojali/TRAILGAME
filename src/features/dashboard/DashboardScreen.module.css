@@ -160,10 +160,14 @@
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.85);
 }
 
+/* Same style as the condition labels (FITNESS, FATIGUE…), owner feedback. */
 .attributeName {
   display: block;
   color: var(--text-muted);
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .attributeRow {

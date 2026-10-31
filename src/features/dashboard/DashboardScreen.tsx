@@ -127,6 +127,10 @@ export function DashboardScreen() {
           <section className={`${styles.side} ${styles.right}`} aria-label="Condition">
             <dl className={styles.sideList}>
               <div className={styles.stat}>
+                <dt>Level</dt>
+                <dd className={styles.value}>{progress.level}</dd>
+              </div>
+              <div className={styles.stat}>
                 <dt>XP</dt>
                 <dd className={styles.value}>{athlete.xp}</dd>
                 {progress.nextLevelMinXp === null ? (

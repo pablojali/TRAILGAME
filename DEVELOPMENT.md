@@ -960,10 +960,12 @@ Fitness 0 by week 6:
   mountains, cabin, topographic map, starry summit). Over a scene, bars and cards are dark glass.
   New logo in the top bar (orange mountains).
 - **Dashboard:** name plate (name, profile, level) top left; the runner filling the stage height
-  between the attributes (a column of bars, left) and the condition card (XP with progress to the
-  next level, Fitness, Fatigue; right). Owner feedback the same day, in two rounds: no motto, no
-  weather, a bigger runner, no Level row in the condition card, attributes back as a list instead
-  of the spider chart, small text (11–13 px), and the cards (and Today) 80 % transparent.
+  between the attributes (a column of bars, left) and the condition card (Level, XP with progress
+  to the next level, Fitness, Fatigue; right). Owner feedback the same day, in three rounds: no
+  motto, no weather, a bigger runner, attributes back as a list instead of the spider chart, small
+  text (11 px upper-case labels for attributes and condition alike, 13 px values), the cards (and
+  Today) 80 % transparent, and a thin light rim with a soft glow around the runner (also on
+  Equipment) so it stands out from the picture and the rough edges of the art do not show.
 - **Equipment:** the runner with Change look and a spider chart of the race attributes with the
   worn equipment's bonuses (outer ring 50 until an attribute passes 45, `radarScale`, so a new
   runner's shape starts small); each slot shows the item's picture.

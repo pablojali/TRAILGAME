@@ -959,15 +959,14 @@ Fitness 0 by week 6:
   list and sizes in `docs/UI_ART_SPEC.md`), otherwise a scene drawn in code (sunset and morning
   mountains, cabin, topographic map, starry summit). Over a scene, bars and cards are dark glass.
   New logo in the top bar (orange mountains).
-- **Dashboard:** name plate (name, profile, level) top left, the runner filling the stage height,
-  a spider chart of the six attributes (the values stay available to screen readers as meters), a
-  compact condition panel (XP with progress to the next level, Fitness, Fatigue; 12 px text like
-  the chart) and a decorative weather icon next to the day (`features/dashboard/weather.ts`: the
-  same for the same game day; no effect on the game). Owner feedback the same day: no motto, no
-  temperature, runner bigger, no Level row in the panel, and the charts' outer ring is 50 until an
-  attribute passes 45 (`radarScale`), so a new runner's shape starts small.
-- **Equipment:** the runner with Change look and a chart of the race attributes with the worn
-  equipment's bonuses; each slot shows the item's picture.
+- **Dashboard:** name plate (name, profile, level) top left; the runner filling the stage height
+  between the attributes (a column of bars, left) and the condition card (XP with progress to the
+  next level, Fitness, Fatigue; right). Owner feedback the same day, in two rounds: no motto, no
+  weather, a bigger runner, no Level row in the condition card, attributes back as a list instead
+  of the spider chart, small text (11–13 px), and the cards (and Today) 80 % transparent.
+- **Equipment:** the runner with Change look and a spider chart of the race attributes with the
+  worn equipment's bonuses (outer ring 50 until an attribute passes 45, `radarScale`, so a new
+  runner's shape starts small); each slot shows the item's picture.
 - **Races:** each card has the race's picture (owner photo in `assets/ui/races/{race id}`, or a
   drawn landscape by category) and an elevation profile drawn from the simulated course.
 - **Career:** Season card (the career year: week, races, medals, best finish) and tabs

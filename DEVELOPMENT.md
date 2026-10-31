@@ -952,6 +952,27 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Owner's shirts, shoes and men's art (31 October 2026)
+
+Art rules: `docs/AVATAR_ART_SPEC.md`. Prepared by `scripts/prepare_avatar_art.py`, which now also
+deletes prepared files whose source is gone.
+- **Men:** new bodies (tones 1–4, bald, barefoot) and one head, `lvl1_men_head_01` (Hairstyle 1,
+  Level 1) in every tone.
+- **Women:** two more heads: `lvl1_women_head_02` (tones 1–2, Hairstyle 2, Level 1) and
+  `lvl5_women_head_01` (tone 3, Level 5).
+- **Shirts replace the white and dyed T-shirts** (owner decision): Clothing offers no shirt or
+  the shirts of the runner's sex (`src/domain/athlete/shirts.ts`), unlocked at the level in the
+  file name. Men: Charcoal T-shirt (1), Navy T-shirt (2), Burgundy and Green T-shirts (3). Women:
+  Blue tank top (1), Coral tank top (2), Green tank top (3). Saved as `shirt-l{L}-{NN}`. A career
+  that wore the white or a dyed T-shirt loads with the level-1 shirt of its sex.
+- **Shoes:** every shoe item has its own art (the recoloured starter shoes are gone): Trail shoes
+  → `lvl1_shoes_01`, Technical trail shoes → `lvl2_shoes_01`, Light trail shoes →
+  `lvl2_shoes_02`. `lvl3_shoes_01` is prepared but has no shop item yet (to define with the PM).
+- **Server:** appearance is checked by the `career-ops` Edge Function too, so the function must be
+  redeployed with this change (otherwise the server would not accept the new shirts).
+- Known art details: the men's level-1 T-shirt has a ragged neckline, and on the tone-4 body a thin
+  line of skin shows along the left shoulder of the T-shirts; best fixed in the source files.
+
 ### Phase 3B.1: server-authoritative progression (30 October 2026)
 
 - Training days, race days and attribute points are completed by the Edge Function `career-ops`

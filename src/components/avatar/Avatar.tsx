@@ -1,6 +1,6 @@
-import { useId } from 'react'
-import { bodyId, outfitTint, type Appearance } from '../../domain/athlete/appearance'
+import { bodyId, type Appearance } from '../../domain/athlete/appearance'
 import type { Sex } from '../../domain/athlete/athlete'
+import { getShirt } from '../../domain/athlete/shirts'
 import { getEquipmentItem } from '../../domain/equipment/items'
 import { art, headArt } from './avatarArt'
 import styles from './Avatar.module.css'
@@ -23,12 +23,6 @@ const FACE_LEFT = 320 - 360 / FACE_SCALE / 2
 const FACE_TOP = -15
 const FACE_TRANSFORM = `translate(${140 - FACE_SCALE * FACE_LEFT}px, ${-FACE_SCALE * FACE_TOP}px) scale(${FACE_SCALE})`
 
-/** Multiplies the white T-shirt by a colour, keeping its shading. */
-function tintMatrix(hex: string): string {
-  const [r, g, b] = [1, 3, 5].map((i) => (parseInt(hex.slice(i, i + 2), 16) / 255).toFixed(3))
-  return `${r} 0 0 0 0  0 ${g} 0 0 0  0 0 ${b} 0 0  0 0 0 1 0`
-}
-
 interface AvatarProps {
   sex: Sex
   appearance: Appearance
@@ -41,29 +35,6 @@ interface AvatarProps {
   focus?: 'face'
   className?: string
 }
-
-/**
- * Shoes without their own artwork reuse the starter-shoes art, recoloured per model, until the
- * owner supplies art for them.
- */
-const SHOE_COLORS: Record<string, string> = {
-  'trail-shoes-basic': '#3d8fd6',
-  'trail-shoes': '#f07c2a',
-  'trail-shoes-light': '#9bcf3a',
-}
-
-/** Colours the (dark) art by its brightness, keeping its shading. */
-function recolorMatrix(hex: string): string {
-  const gain = 3.2
-  const rows = [1, 3, 5].map((i) => {
-    const c = (parseInt(hex.slice(i, i + 2), 16) / 255) * gain
-    return `${(0.3 * c).toFixed(3)} ${(0.59 * c).toFixed(3)} ${(0.11 * c).toFixed(3)} 0 0`
-  })
-  return `${rows.join('  ')}  0 0 0 1 0`
-}
-
-/** Alpha = 25 × (blue − red): opaque on the bluish shoes, clear on the grey socks. */
-const SHOE_MASK = '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -25 0 25 0 0'
 
 /** Pole colour by item: lvl 1 aluminium, lvl 2 carbon. */
 const POLE_COLORS: Record<string, { shaft: string; band: string }> = {
@@ -154,27 +125,20 @@ function Vest({ id }: { id: string }) {
 
 /**
  * Runner avatar, back to front: poles (held in the hands), body (skin tone, basic head), the chosen
- * head, shoes, the chosen top, then the running vest. Without equipment the runner is as drawn: men in
- * socks, women barefoot.
+ * head, shoes, the chosen shirt, then the running vest. Without equipment the runner is as drawn:
+ * barefoot.
  */
 export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', focus, className }: AvatarProps) {
   const a11y = label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true }
-  const filterId = useId()
-  const tint = outfitTint(appearance.outfit)
-  const outfitArt = tint ? 'white-tshirt' : appearance.outfit
   const bySlot = (slot: string) => equipment.filter((id) => getEquipmentItem(id)?.slot === slot)
-  const shoes = bySlot('shoes').map((id) => {
-    const own = art(`footwear/${id}`)
-    return { id, href: own ?? art('footwear/starter-shoes'), color: own ? undefined : SHOE_COLORS[id] }
-  })
-  const layers: { id: string; href: string | undefined; filter?: string }[] = [
+  const shirt = getShirt(sex, appearance.outfit)
+  const layers: { id: string; href: string | undefined }[] = [
     { id: 'body', href: art(`bodies/${bodyId(sex, appearance.skin)}`) },
     // The chosen head is drawn over the body's basic head, in the body's skin tone.
     { id: 'head', href: headArt(sex, appearance.hair, Number(appearance.skin.slice('tone-'.length))) },
-    ...shoes.map((shoe) => ({ ...shoe, filter: shoe.color && `${filterId}-${shoe.id}` })),
-    ...(appearance.outfit === 'none'
-      ? []
-      : [{ id: appearance.outfit, href: art(`clothing/${outfitArt}`), filter: tint ? `${filterId}-top` : undefined }]),
+    // Every shoe item has its own art, named by its id.
+    ...bySlot('shoes').map((id) => ({ id, href: art(`footwear/${id}`) })),
+    ...(shirt ? [{ id: shirt.id, href: art(`clothing/${shirt.file}`) }] : []),
   ]
   const zoomed = focus === 'face' && crop === 'full'
   return (
@@ -188,40 +152,11 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
       preserveAspectRatio="xMidYMid meet"
       {...a11y}
     >
-      {tint && (
-        <filter id={`${filterId}-top`} colorInterpolationFilters="sRGB">
-          <feColorMatrix type="matrix" values={tintMatrix(tint)} />
-        </filter>
-      )}
-      {shoes.map(
-        (shoe) =>
-          shoe.color && (
-            <filter key={shoe.id} id={`${filterId}-${shoe.id}`} colorInterpolationFilters="sRGB">
-              {/* The shoes are bluish and the socks neutral grey: recolour only where blue > red. */}
-              <feColorMatrix in="SourceGraphic" type="matrix" values={recolorMatrix(shoe.color)} result="color" />
-              <feColorMatrix in="SourceGraphic" type="matrix" values={SHOE_MASK} result="mask" />
-              <feComposite in="color" in2="mask" operator="in" result="shoe" />
-              <feMerge>
-                <feMergeNode in="SourceGraphic" />
-                <feMergeNode in="shoe" />
-              </feMerge>
-            </filter>
-          ),
-      )}
       <g className={styles.zoom} style={{ transform: zoomed ? FACE_TRANSFORM : 'none' }}>
         {bySlot('poles').map((id) => POLE_COLORS[id] && <Poles key={id} id={id} />)}
         {layers.map(
           (layer) =>
-            layer.href && (
-              <image
-                key={layer.id}
-                href={layer.href}
-                width="640"
-                height="960"
-                data-layer={layer.id}
-                filter={layer.filter ? `url(#${layer.filter})` : undefined}
-              />
-            ),
+            layer.href && <image key={layer.id} href={layer.href} width="640" height="960" data-layer={layer.id} />,
         )}
         {bySlot('pack').map((id) => PACK_COLORS[id] && <Vest key={id} id={id} />)}
       </g>

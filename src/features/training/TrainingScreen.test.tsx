@@ -179,8 +179,8 @@ describe('TrainingScreen — completing sessions', () => {
     await renderApp('/training')
     await completeToday(user)
     expect(feedback()).toHaveTextContent('Level up! Now Level 2. +2 attribute points.')
-    // Women tone 2 (the default runner): the red T-shirt (no Level 2 heads in the current art).
-    expect(feedback()).toHaveTextContent('New look unlocked: Red T-shirt.')
+    // Women tone 2 (the default runner): the Level 2 tank top (no Level 2 heads in the current art).
+    expect(feedback()).toHaveTextContent('New look unlocked: Coral tank top.')
     expect(screen.getByRole('link', { name: 'Change look' })).toHaveAttribute('href', '/appearance')
     await user.click(within(feedback()!).getByRole('link', { name: 'Allocate points' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Attributes' })).toBeInTheDocument()

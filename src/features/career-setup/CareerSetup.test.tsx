@@ -185,9 +185,13 @@ describe('career creation — appearance step', () => {
     expect(avatar()).not.toHaveAttribute('data-focus')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))
     expect(avatar()).toHaveAttribute('data-focus', 'face')
-    // Women, tone 2 (default): the basic head and Hairstyle 1.
+    // Women, tone 2 (default): the basic head and Hairstyles 1 and 2.
     const hairPanel = screen.getByRole('tabpanel')
-    expect(within(hairPanel).getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['natural', 'head-l1-01'])
+    expect(within(hairPanel).getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual([
+      'natural',
+      'head-l1-01',
+      'head-l1-02',
+    ])
     expect(screen.getByRole('radio', { name: 'Basic' })).toBeChecked()
     // The note about hairstyles unlocking later shows only when locked heads exist (none in the current art).
     expect(screen.queryByText(/New hairstyles unlock as you level up/)).not.toBeInTheDocument()
@@ -201,19 +205,19 @@ describe('career creation — appearance step', () => {
     expect(avatar().querySelector('image[data-layer="head"]')!.getAttribute('href')).toMatch(/lvl1_women_head_01_tone1/)
   })
 
-  it('offers no shirt (default) or the white T-shirt, and no shoes', async () => {
+  it('offers no shirt (default) or the Level 1 shirt, and no shoes', async () => {
     const user = userEvent.setup()
     await renderApp('/')
     await user.click(chooseButton())
     await user.click(screen.getByRole('tab', { name: 'Clothing' }))
     expect(screen.getByRole('radio', { name: 'No shirt' })).toBeChecked()
     expect(avatar().querySelectorAll('image')).toHaveLength(1)
-    await user.click(screen.getByRole('radio', { name: 'White T-shirt' }))
-    expect([...avatar().querySelectorAll('image')].map((i) => i.getAttribute('data-layer'))).toEqual(['body', 'white-tshirt'])
+    await user.click(screen.getByRole('radio', { name: 'Blue tank top' }))
+    expect([...avatar().querySelectorAll('image')].map((i) => i.getAttribute('data-layer'))).toEqual(['body', 'shirt-l1-01'])
     expect(screen.queryByText(/shoe/i)).not.toBeInTheDocument()
-    // Colours unlock with levels: a new runner (Level 1) does not see them yet.
-    expect(screen.queryByRole('radio', { name: /Red T-shirt/ })).not.toBeInTheDocument()
-    expect(screen.getByText(/New T-shirt colours unlock as you level up/)).toBeInTheDocument()
+    // Other shirts unlock with levels: a new runner (Level 1) does not see them yet.
+    expect(screen.queryByRole('radio', { name: /Coral tank top/ })).not.toBeInTheDocument()
+    expect(screen.getByText(/New shirts unlock as you level up/)).toBeInTheDocument()
   })
 
   it('switches tabs with the arrow keys', async () => {
@@ -235,13 +239,13 @@ describe('career creation — appearance step', () => {
     await user.click(chooseButton())
     await user.click(screen.getByRole('radio', { name: 'Skin tone 1' }))
     await user.click(screen.getByRole('tab', { name: 'Clothing' }))
-    await user.click(screen.getByRole('radio', { name: 'White T-shirt' }))
+    await user.click(screen.getByRole('radio', { name: 'Charcoal T-shirt' }))
     await user.click(screen.getByRole('button', { name: 'Continue' }))
     expect(screen.getByRole('img')).toHaveAccessibleName('Your runner: Climber, male')
     await user.type(screen.getByLabelText('Runner name'), 'Leo')
     await user.click(screen.getByRole('button', { name: 'Start career' }))
     await started()
-    expect(readSave()!.state.athlete.appearance).toEqual({ hair: 'natural', skin: 'tone-1', outfit: 'white-tshirt' })
+    expect(readSave()!.state.athlete.appearance).toEqual({ hair: 'natural', skin: 'tone-1', outfit: 'shirt-l1-01' })
     expect(readSave()!.state.equipment).toEqual([])
   })
 })

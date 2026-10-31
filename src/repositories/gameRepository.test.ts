@@ -215,7 +215,7 @@ describe('localStorage game repository', () => {
     const state = newGame('climber', T0, {
       name: 'Ana',
       sex: 'female',
-      appearance: { hair: 'natural', skin: 'tone-3', outfit: 'white-tshirt' },
+      appearance: { hair: 'natural', skin: 'tone-3', outfit: 'shirt-l1-01' },
     })
     await repo.save(state)
     expect(await loadResult(repo)).toEqual({ status: 'loaded', state })

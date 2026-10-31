@@ -60,7 +60,7 @@ describe('appearance — head rules (earlier 11-head catalog)', () => {
     expect(hairUnlockLevel('female', 'natural')).toBe(1)
     expect(isAppearanceUnlocked({ hair: 'head-l2-01', skin: 'tone-2', outfit: 'none' }, 1, 'female')).toBe(false)
     expect(isAppearanceUnlocked({ hair: 'head-l2-01', skin: 'tone-2', outfit: 'none' }, 2, 'female')).toBe(true)
-    expect(appearanceUnlocks(1, 2, 'female', 'tone-2')).toEqual(['Hairstyle 3', 'Hairstyle 4', 'Red T-shirt'])
+    expect(appearanceUnlocks(1, 2, 'female', 'tone-2')).toEqual(['Hairstyle 3', 'Hairstyle 4', 'Coral tank top'])
   })
 
   it('falls back to the basic head when the head has no art in the new skin tone or sex', () => {

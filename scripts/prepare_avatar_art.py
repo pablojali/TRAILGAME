@@ -6,9 +6,10 @@ Reads the original PNGs (all on the same 1024x1536 transparent canvas) and write
 
     bodies/{men|women}_body_01_tone{n}.png         -> avatar/bodies/{male|female}-{n}.webp
     heads/lvl{L}_{men|women}_head_{NN}_tone{n}.png -> avatar/heads/lvl{L}_{men|women}_head_{NN}_tone{n}.webp
-    footwear/*.png                                 -> avatar/footwear/{id}.webp
+    Clothing/lvl{L}_{men|women}_shirt_{NN}.png     -> avatar/clothing/lvl{L}_{men|women}_shirt_{NN}.webp
+    footwear/{source}.png                          -> avatar/footwear/{item id}.webp (FOOTWEAR below)
 
-Heads keep their file name: the game reads level, sex, design and tone from it. They are cleaned
+Heads and shirts keep their file name: the game reads level, sex, design (and tone) from it. They are cleaned
 on the way, because they were cut out of a white background:
   - loose specks (small separate blobs) are removed;
   - leftover white is taken out of the semi-transparent edge, and near-white edge pixels are
@@ -16,8 +17,11 @@ on the way, because they were cut out of a white background:
   - the bottom of the neck fades out over a few pixels, so the join with the body's neck does not
     show as a line.
 
-The originals are never modified. The white T-shirt (avatar/clothing/white-tshirt.webp) was
-converted from a source the owner has since removed, so it is kept as it is. Needs Pillow:
+Shirts and shoes arrive with clean edges and are only converted. Shoe art is named by the
+equipment item it shows; a source not listed in FOOTWEAR is reported and skipped. Outputs whose
+source is gone (renamed or removed art) are deleted, so the game never shows stale layers.
+
+The originals are never modified. Needs Pillow:
 pip install pillow
 
     python3 scripts/prepare_avatar_art.py
@@ -38,7 +42,16 @@ QUALITY = 88
 
 BODY_NAME = re.compile(r"^(men|women)_body_01_tone(\d)\.png$")
 HEAD_NAME = re.compile(r"^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)\.png$")
-FOOTWEAR = {"starter-shoes": "footwear/starter_shoes_01.png"}
+SHIRT_NAME = re.compile(r"^lvl(\d+)_(men|women)_shirt_(\d{2})\.png$")
+# Shoe art by equipment item id (owner decision, 31 October 2026). lvl3_shoes_01 has no shop item
+# yet; it is prepared so it is ready when one is added.
+FOOTWEAR = {
+    "starter-shoes": "footwear/starter_shoes_01.png",
+    "trail-shoes-basic": "footwear/lvl1_shoes_01.png",
+    "trail-shoes": "footwear/lvl2_shoes_01.png",
+    "trail-shoes-light": "footwear/lvl2_shoes_02.png",
+    "lvl3-shoes-01": "footwear/lvl3_shoes_01.png",
+}
 SEX = {"men": "male", "women": "female"}
 
 # Head cleanup (source pixels).
@@ -54,9 +67,13 @@ def load(path: Path) -> Image.Image:
     return image
 
 
+WRITTEN: set[Path] = set()
+
+
 def save(image: Image.Image, folder: str, name: str, source: Path) -> None:
     out = TARGET / folder / f"{name}.webp"
     out.parent.mkdir(parents=True, exist_ok=True)
+    WRITTEN.add(out)
     image.resize(SIZE, Image.LANCZOS).save(out, "WEBP", quality=QUALITY, method=6)
     print(f"{source.relative_to(SOURCE)} -> {out.relative_to(ROOT)} ({out.stat().st_size // 1024} kB)")
 
@@ -153,8 +170,20 @@ def main() -> None:
         if specks:
             print(f"  {path.name}: removed {specks} speck pixels")
         save(image, "heads", path.stem, path)
+    for path in sorted((SOURCE / "Clothing").glob("*.png")):
+        if not SHIRT_NAME.match(path.name):
+            print(f"skipped {path.name}: not named lvl{{L}}_{{men|women}}_shirt_{{NN}}.png")
+            continue
+        save(load(path), "clothing", path.stem, path)
     for name, source in FOOTWEAR.items():
         save(load(SOURCE / source), "footwear", name, SOURCE / source)
+    listed = {Path(source).name for source in FOOTWEAR.values()}
+    for path in sorted((SOURCE / "footwear").glob("*.png")):
+        if path.name not in listed:
+            print(f"skipped footwear/{path.name}: not assigned to an item in FOOTWEAR")
+    for stale in sorted(set(TARGET.rglob("*.webp")) - WRITTEN):
+        stale.unlink()
+        print(f"removed {stale.relative_to(ROOT)} (no source)")
 
 
 if __name__ == "__main__":

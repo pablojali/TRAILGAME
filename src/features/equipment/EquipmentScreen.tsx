@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import { Avatar } from '../../components/avatar/Avatar'
@@ -11,14 +11,24 @@ import { Screen, ScrollPanel } from '../../components/Screen'
 import { Chips, Tabs } from '../../components/Tabs'
 import { formatCoins } from '../../domain/economy/coins'
 import { EQUIPMENT_ITEMS, getRaceEffect, itemName, type EquipmentItem, type EquipmentSlot } from '../../domain/equipment/items'
-import { isEquipped, type BuyError } from '../../game-engine/equipment'
+import { isEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
+import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './EquipmentScreen.module.css'
 
-const BUY_ERRORS: Record<BuyError, string> = {
+const BUY_ERRORS: Record<BuyError | ServerError, string> = {
   'unknown-item': 'That item does not exist.',
   'already-owned': 'You already own this item.',
   'insufficient-coins': 'You do not have enough coins for this item.',
   'price-changed': 'The price changed. Check it and try again.',
+  offline: 'Could not reach the server, so nothing was bought or charged. Check your connection and try again.',
+  'server-error': 'The server could not complete the purchase, so nothing was bought or charged. Try again.',
+}
+
+const EQUIP_ERRORS: Record<EquipError | ServerError, string> = {
+  'unknown-item': 'That item does not exist.',
+  'not-owned': 'You do not own that item.',
+  offline: 'Could not reach the server, so your equipment did not change. Check your connection and try again.',
+  'server-error': 'The server could not change your equipment. Try again.',
 }
 
 /** Shoes are shown on the avatar's feet; other items show an icon until they have their own art. */
@@ -118,6 +128,9 @@ function EquippedTab({ onMessage, onShop }: { onMessage(text: string): void; onS
   const { state, setItemEquipped } = useCareer()
   const { athlete } = state
   const [open, setOpen] = useState<EquipmentSlot | null>(null)
+  // One equipment change at a time: the server confirms each before the next.
+  const [changing, setChanging] = useState<string | null>(null)
+  const pending = useRef(false)
   // Race attributes with the worn equipment's bonuses, drawn as a chart beside the runner.
   const bonus = getRaceEffect(state.equipment).attributes
   const raceAttributes = ATTRIBUTE_IDS.map((id) => ({ id, label: ATTRIBUTE_LABELS[id], value: athlete.attributes[id] + bonus[id] }))
@@ -187,12 +200,18 @@ function EquippedTab({ onMessage, onShop }: { onMessage(text: string): void; onS
                         <button
                           type="button"
                           className={`${styles.choice} ${equipped ? styles.choiceOn : ''}`}
-                          onClick={() => {
-                            const error = setItemEquipped(item.id, !equipped)
-                            onMessage(error ? 'That item cannot be changed.' : `${itemName(item)} ${equipped ? 'taken off' : 'equipped'}.`)
+                          aria-disabled={changing !== null || undefined}
+                          onClick={async () => {
+                            if (pending.current) return
+                            pending.current = true
+                            setChanging(item.id)
+                            const error = await setItemEquipped(item.id, !equipped)
+                            pending.current = false
+                            setChanging(null)
+                            onMessage(error ? EQUIP_ERRORS[error] : `${itemName(item)} ${equipped ? 'taken off' : 'equipped'}.`)
                           }}
                         >
-                          {equipped ? 'Take off' : 'Equip'} {itemName(item).toLowerCase()}
+                          {changing === item.id ? 'Saving…' : `${equipped ? 'Take off' : 'Equip'} ${itemName(item).toLowerCase()}`}
                         </button>
                       </li>
                     )
@@ -247,6 +266,9 @@ function ShopItem({ item, onBought }: { item: EquipmentItem; onBought(text: stri
   const { state, buyItem } = useCareer()
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState('')
+  // The purchase waits for the server; a second tap meanwhile does nothing.
+  const [paying, setPaying] = useState(false)
+  const pending = useRef(false)
   const shortfall = Math.max(0, item.price - state.coins)
   const shortfallId = `${item.id}-shortfall`
 
@@ -280,14 +302,26 @@ function ShopItem({ item, onBought }: { item: EquipmentItem; onBought(text: stri
       </span>
       {confirming ? (
         <span className={styles.confirmActions}>
-          <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => setConfirming(false)}>
+          <button
+            type="button"
+            className={`${button.button} ${button.secondary}`}
+            aria-disabled={paying || undefined}
+            onClick={() => !paying && setConfirming(false)}
+          >
             Cancel
           </button>
           <button
             type="button"
             className={`${button.button} ${button.primary}`}
-            onClick={() => {
-              const failure = buyItem(item.id, item.price)
+            aria-disabled={paying || undefined}
+            onClick={async () => {
+              if (pending.current) return
+              pending.current = true
+              setPaying(true)
+              setError('')
+              const failure = await buyItem(item.id, item.price)
+              pending.current = false
+              setPaying(false)
               if (failure) {
                 setError(BUY_ERRORS[failure])
                 return
@@ -295,7 +329,7 @@ function ShopItem({ item, onBought }: { item: EquipmentItem; onBought(text: stri
               onBought(`${itemName(item)} bought for ${formatCoins(item.price)}.`)
             }}
           >
-            Pay {formatCoins(item.price)}
+            {paying ? 'Paying…' : `Pay ${formatCoins(item.price)}`}
           </button>
         </span>
       ) : (

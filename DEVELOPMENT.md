@@ -952,6 +952,21 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Phase 3B.2: server-authoritative economy and equipment (1 November 2026)
+
+- `career-ops` gains `buy`, `equip` and `enter-race` (`src/server/careerOps.ts`), run with the
+  engine's `buyItem`, `setItemEquipped` and `enterRace` on the server's career; prices and fees
+  come from the catalog, coins from the server; each request is applied at most once (operation
+  id) and atomically (`commit_career`). Race prizes were already paid by the server (3B.1).
+- The server now ignores coins, items and race entries in client snapshots (`mergeClientFields`
+  keeps only name, sex, look and today's plan).
+- The device's Buy, Equip/Take off and race entry wait for the server, with a pending label and
+  double-tap guard; nothing is applied locally on failure.
+- Existing entry fees and the absence of level locks are kept (the brief assumed free entry with
+  minimum levels; see docs/SUPABASE_SETUP.md).
+- Migration `20261101090000_economy_operations.sql` (operation kinds). Details and deployment:
+  docs/SUPABASE_SETUP.md.
+
 ### Illustrated screens, season and achievements (owner mockups, 31 October 2026)
 
 - **Backgrounds:** every section has a full-screen scene behind the bars and cards

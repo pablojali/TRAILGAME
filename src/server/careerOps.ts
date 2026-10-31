@@ -4,21 +4,24 @@ import { isSessionType, type SessionType } from '../domain/training/sessions'
 import { setAppearance } from '../game-engine/appearance'
 import { allocateAttributePoint } from '../game-engine/attributes'
 import { applyFitnessDecay } from '../game-engine/fitnessDecay'
-import { createInitialGameState, type AthleteIdentity, type GameState, type RaceEntry } from '../game-engine/gameState'
-import { raceCurrentDay } from '../game-engine/races'
+import { buyItem, setItemEquipped } from '../game-engine/equipment'
+import { createInitialGameState, type AthleteIdentity, type GameState } from '../game-engine/gameState'
+import { enterRace, raceCurrentDay } from '../game-engine/races'
 import { executeCurrentDay, planSession, type DayRef } from '../game-engine/training'
 import { parseGameState, SCHEMA_VERSION } from '../repositories/gameRepository'
 
 /**
- * Server-authoritative career operations (Phase 3B.1), run in the Supabase Edge Function
- * `career-ops`. The server owns everything progression: XP and level, Fitness, Fatigue,
- * attributes and points, the completed days of the week, forced rest and race results. Training
- * days, race days and attribute points are computed here with the game's own engine; the client
- * only sends the request and plays the state the server returns.
+ * Server-authoritative career operations, run in the Supabase Edge Function `career-ops`.
+ * Phase 3B.1: the server owns everything progression (XP and level, Fitness, Fatigue, attributes
+ * and points, the completed days of the week, forced rest and race results and prizes). Phase
+ * 3B.2: it also owns the economy and equipment (coins, owned items, what is worn, race entries
+ * and their fees). Every change to those is computed here with the game's own engine (training
+ * days, race days, attribute points, purchases, equipping, race entry); the client only sends the
+ * request and plays the state the server returns.
  *
- * Fields the client still owns (cosmetics, coins and equipment, pending race entries, today's
- * planned session) are taken from its snapshot when it is up to date with the server. Nothing
- * here touches Supabase directly: storage and authentication are injected (src/server/supabaseRest.ts).
+ * Fields the client still owns (name, sex and look, today's planned session) are taken from its
+ * snapshot when it is up to date with the server. Nothing here touches Supabase directly: storage
+ * and authentication are injected (src/server/supabaseRest.ts).
  */
 
 export interface CareerRecord {
@@ -51,7 +54,7 @@ export interface CareerOpsDeps {
   now(): number
 }
 
-export type OperationKind = 'train' | 'race' | 'allocate' | 'save' | 'new-career'
+export type OperationKind = 'train' | 'race' | 'allocate' | 'buy' | 'equip' | 'enter-race' | 'save' | 'new-career'
 
 interface WithSnapshot {
   /** The cloud version the client's snapshot is based on. */
@@ -64,6 +67,11 @@ export type CareerOpRequest =
   | ({ action: 'train'; operationId: string; ref: DayRef; session: SessionType } & WithSnapshot)
   | ({ action: 'race'; operationId: string; ref: DayRef; entryId: string } & WithSnapshot)
   | ({ action: 'allocate'; operationId: string; attribute: AttributeId; expectedSpent: number } & WithSnapshot)
+  /** `price`: the price the player saw; the catalog's price is charged, and a different one refused. */
+  | ({ action: 'buy'; operationId: string; itemId: string; price: number } & WithSnapshot)
+  | ({ action: 'equip'; operationId: string; itemId: string; equipped: boolean } & WithSnapshot)
+  /** `fee`: the fee the player saw; the race's current fee is charged, and a different one refused. */
+  | ({ action: 'enter-race'; operationId: string; raceId: string; fee: number } & WithSnapshot)
   | ({ action: 'save'; snapshot: unknown } & WithSnapshot)
   | { action: 'new-career'; baseVersion: number | null; profile: ProfileId; identity: AthleteIdentity }
 
@@ -83,26 +91,15 @@ function readRecord(record: CareerRecord, now: number): GameState | null {
 }
 
 /**
- * The server's career with the fields the client owns taken from the client's snapshot:
- * name, sex and look (validated by the engine), coins and equipment, race entries still pending
- * (never results), and today's planned session (validated by the engine). Everything progression
- * stays the server's. An invalid result falls back to the server's career.
+ * The server's career with the fields the client owns taken from the client's snapshot: name,
+ * sex and look (validated by the engine) and today's planned session (validated by the engine).
+ * Progression, coins, owned and worn items and race entries always stay the server's (Phase
+ * 3B.2). An invalid result falls back to the server's career.
  */
 export function mergeClientFields(server: GameState, client: GameState, now: number): GameState {
-  const finished = server.raceEntries.filter((entry) => entry.status === 'finished')
-  const finishedIds = new Set(finished.map((entry) => entry.id))
-  const serverPending = server.raceEntries.filter((entry) => entry.status === 'pending')
-  const clientPending = client.raceEntries.filter(
-    (entry): entry is Extract<RaceEntry, { status: 'pending' }> =>
-      entry.status === 'pending' && !finishedIds.has(entry.id),
-  )
   let merged: GameState = {
     ...server,
     athlete: { ...server.athlete, name: client.athlete.name, sex: client.athlete.sex },
-    coins: client.coins,
-    equipment: [...client.equipment],
-    ownedEquipment: [...client.ownedEquipment],
-    raceEntries: [...finished, ...clientPending],
   }
   const look = setAppearance(merged, client.athlete.appearance)
   if (look.ok) merged = look.state
@@ -112,11 +109,7 @@ export function mergeClientFields(server: GameState, client: GameState, now: num
     const plan = planSession(merged, { week: server.week.number, dayIndex: today }, planned)
     if (plan.ok) merged = plan.value
   }
-  const valid = parseGameState(JSON.parse(JSON.stringify(merged)), now)
-  if (valid) return valid
-  // Pending entries from the server keep the career consistent if the client's were refused.
-  const fallback = parseGameState(JSON.parse(JSON.stringify({ ...merged, raceEntries: [...finished, ...serverPending] })), now)
-  return fallback ?? server
+  return parseGameState(JSON.parse(JSON.stringify(merged)), now) ?? server
 }
 
 type Computation =
@@ -150,6 +143,21 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       if (!allocated.ok) return { ok: false, error: allocated.error }
       return { ok: true, state: allocated.state }
     }
+    case 'buy': {
+      const bought = buyItem(career, request.itemId, request.price)
+      if (!bought.ok) return { ok: false, error: bought.error }
+      return { ok: true, state: bought.state }
+    }
+    case 'equip': {
+      const changed = setItemEquipped(career, request.itemId, request.equipped)
+      if (!changed.ok) return { ok: false, error: changed.error }
+      return { ok: true, state: changed.state }
+    }
+    case 'enter-race': {
+      const entered = enterRace(career, request.raceId, request.fee, now)
+      if (!entered.ok) return { ok: false, error: entered.error }
+      return { ok: true, state: entered.state, result: { entry: entered.entry } }
+    }
     default:
       return { ok: false, error: 'bad-request' }
   }
@@ -172,6 +180,12 @@ function validRequest(body: unknown): body is CareerOpRequest {
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && isRef(request.ref) && typeof request.entryId === 'string'
     case 'allocate':
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.attribute === 'string' && Number.isInteger(request.expectedSpent)
+    case 'buy':
+      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.itemId === 'string' && Number.isInteger(request.price)
+    case 'equip':
+      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.itemId === 'string' && typeof request.equipped === 'boolean'
+    case 'enter-race':
+      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.raceId === 'string' && Number.isInteger(request.fee)
     case 'save':
       return base && request.snapshot !== undefined
     case 'new-career': {
@@ -193,7 +207,7 @@ const fail = (status: number, error: string, extra: Partial<Extract<CareerOpResp
   body: { ok: false, error, ...extra },
 })
 
-/** Handles one request from a signed-in player. Never trusts the client for progression. */
+/** Handles one request from a signed-in player. Never trusts the client for progression or the economy. */
 export async function handleCareerOp(token: string | null, body: unknown, deps: CareerOpsDeps): Promise<HttpResult> {
   const userId = await deps.authenticate(token)
   if (!userId) return fail(401, 'unauthorized')
@@ -204,7 +218,7 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
   if (request.action === 'new-career') return newCareer(userId, request, deps, now)
   if (request.action === 'save') return save(userId, request, deps, now)
 
-  // Progression operations: an operation id already used is answered from its record.
+  // Progression and economy operations: an operation id already used is answered from its record.
   const previous = await deps.store.operation(request.operationId)
   if (previous) return replay(userId, previous, deps, now)
 

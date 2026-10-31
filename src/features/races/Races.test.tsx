@@ -5,7 +5,7 @@ import type { GameState } from '../../game-engine/gameState'
 import { enterRace } from '../../game-engine/races'
 import { ordinal } from './raceText'
 import { newGame, onSunday, withAthlete } from '../../test/gameFixtures'
-import { readSave, renderApp, seedCareer } from '../../test/renderApp'
+import { readSave, renderApp, seedCareer, settled } from '../../test/renderApp'
 
 /** A level-11 career (3,250 XP, Ridge Runner's recommended level) with the given coins. */
 function level11(coins: number): GameState {
@@ -124,6 +124,7 @@ describe('Race Detail', () => {
     expect(screen.getByRole('heading', { name: 'Confirm entry to Forest First Steps' })).toHaveFocus()
     expect(screen.getByText(/Balance stays 25 coins/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
+    await settled()
     expect(screen.getByText('Entry confirmed. Entry fee paid: free entry.')).toHaveAttribute('role', 'status')
     expect(screen.getByText(/Race day: Sunday, week 1\./)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Start race/ })).not.toBeInTheDocument()
@@ -158,6 +159,7 @@ describe('Race Detail', () => {
     await renderApp('/races/RACE-010')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Pay 700 coins and enter' }))
+    await settled()
     expect(readSave()!.state).toMatchObject({ coins: 800, raceEntries: [{ entryType: 'early', feePaid: 700 }] })
   })
 
@@ -183,6 +185,7 @@ describe('Race day and results', () => {
   async function enterAndStart(user: ReturnType<typeof userEvent.setup>) {
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: /^Confirm free entry|^Pay / }))
+    await settled()
     expect(screen.getByText(/The race takes today’s training day: Sunday’s Rest is not done/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Start race/ }))
     // The race is confirmed asynchronously (by the server when one is configured).
@@ -196,6 +199,7 @@ describe('Race day and results', () => {
     expect(screen.getByText('Sunday, week 1')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
+    await settled()
     expect(screen.getByText('Race day: Sunday, week 1.')).toBeInTheDocument()
     expect(screen.getByText(/Today is Monday\. Train until then/)).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: '← All races' }))
@@ -289,6 +293,7 @@ describe('Race day and results', () => {
     await renderApp('/races/RACE-001')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
+    await settled()
     expect(screen.getByRole('note')).toHaveTextContent('Injury warning: Fatigue would reach 100 (above 95)')
     await user.click(screen.getByRole('button', { name: 'Start race anyway — injury' }))
     expect(await screen.findByText('0 (injured)')).toBeInTheDocument()
@@ -309,6 +314,7 @@ describe('Race day and results', () => {
     expect(screen.getByText('Sunday, week 2')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
     await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
+    await settled()
     expect(screen.getByText(/Sunday is a forced rest day, so the race moves to Sunday of week 2/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Start race/ })).not.toBeInTheDocument()
   })

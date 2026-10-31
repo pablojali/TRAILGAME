@@ -65,7 +65,30 @@ reset role;
 select pg_temp.expect((select version = 3 from public.careers where user_id = '00000000-0000-0000-0000-0000000000c1'),
   'refused writes changed nothing');
 
--- 5. Helpers are not callable by players.
+-- 5. Economy operations (Phase 3B.2) are recorded like the others; unknown kinds are refused.
+select pg_temp.act_as('service');
+create temp table r8 as select * from public.commit_career('00000000-0000-0000-0000-0000000000c1', 3,
+  pg_temp.snapshot(45, '[]', '["starter-shoes","poles"]'), 2, '33333333-3333-3333-3333-333333333333', 'buy', '{}');
+select pg_temp.expect((select status = 'saved' and version = 4 from r8), 'a purchase is committed (version 4)');
+create temp table r9 as select * from public.commit_career('00000000-0000-0000-0000-0000000000c1', 4,
+  pg_temp.snapshot(0, '[]', '["starter-shoes","poles"]'), 2, '33333333-3333-3333-3333-333333333333', 'buy', '{}');
+select pg_temp.expect((select status = 'duplicate' and version = 4 from r9), 'a repeated purchase is not charged again');
+select pg_temp.expect((select (game_state ->> 'coins')::int = 45 from public.careers c
+  where c.user_id = '00000000-0000-0000-0000-0000000000c1'), 'coins unchanged by the repeat');
+create temp table r10 as select * from public.commit_career('00000000-0000-0000-0000-0000000000c1', 4,
+  pg_temp.snapshot(45, '[{"id":"entry-2","raceId":"RACE-004","status":"pending"}]', '["starter-shoes","poles"]'),
+  2, '44444444-4444-4444-4444-444444444444', 'enter-race', '{}');
+select pg_temp.expect((select status = 'saved' from r10), 'a race entry is committed');
+create temp table r11 as select * from public.commit_career('00000000-0000-0000-0000-0000000000c1', 5,
+  pg_temp.snapshot(45, '[]', '["starter-shoes","poles"]'), 2, '55555555-5555-5555-5555-555555555555', 'equip', '{}');
+select pg_temp.expect((select status = 'saved' from r11), 'an equipment change is committed');
+select pg_temp.expect_error($$select public.commit_career('00000000-0000-0000-0000-0000000000c1', 6,
+  pg_temp.snapshot(45, '[]', '[]'), 2, '66666666-6666-6666-6666-666666666666', 'free-coins', '{}')$$,
+  'an unknown operation kind is refused');
+reset role;
+select pg_temp.expect((select count(*) = 0 from public.career_operations where kind = 'free-coins'), 'and nothing recorded');
+
+-- 6. Helpers are not callable by players.
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000c1');
 select pg_temp.expect_error($$select public.is_career_snapshot('{}')$$, 'players cannot call is_career_snapshot');
 select pg_temp.expect_error($$select public.sync_career_rows(gen_random_uuid(), '{}')$$, 'players cannot call sync_career_rows');

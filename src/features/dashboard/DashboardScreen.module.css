@@ -107,30 +107,21 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 116px);
+  grid-template-columns: minmax(0, 100px) minmax(0, 1fr) minmax(0, 100px);
   grid-template-rows: auto minmax(0, 1fr);
   column-gap: var(--space-2);
+  row-gap: var(--space-2);
 }
 
 /* Name plate over the sky, top left. */
 .intro {
-  grid-column: 1;
+  grid-column: 1 / 3;
   grid-row: 1;
   z-index: 1;
   padding-top: var(--space-1);
 }
 
-.radar {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: end;
-  z-index: 1;
-  /* Wider than its column, over the sky: the labels need room around the chart. */
-  width: 190px;
-  padding: 12px 30px 4px;
-}
-
-/* The runner fills the whole stage height (owner feedback: bigger), left of the condition panel. */
+/* The runner fills the whole stage height, between the two side cards. */
 .center {
   grid-column: 1 / -1;
   grid-row: 1 / -1;
@@ -139,21 +130,59 @@
   justify-content: center;
   height: 100%;
   min-height: 0;
-  padding-right: 96px;
 }
 
-/* Compact, with the chart's text size (owner feedback). */
-.condition {
-  grid-column: 2;
+.left {
+  grid-column: 1;
   grid-row: 2;
   z-index: 1;
   align-self: center;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  backdrop-filter: blur(6px);
-  font-size: 12px;
+}
+
+.right {
+  grid-column: 3;
+  grid-row: 2;
+  z-index: 1;
+  align-self: center;
+}
+
+/*
+ * Side cards: attributes in a column on the left, condition on the right (owner feedback,
+ * 31 October 2026: attributes back as a list, small text, boxes 80 % transparent).
+ */
+.side {
+  padding: var(--space-2) 8px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-md);
+  background: rgb(10 12 14 / 0.2);
+  backdrop-filter: blur(3px);
+  font-size: 11px;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.85);
+}
+
+/* Same style as the condition labels (FITNESS, FATIGUE…), owner feedback. */
+.attributeName {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.attributeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.side .attributeRow [role='meter'] {
+  flex: 1;
+  margin-top: 0;
+}
+
+.side [role='meter'].sideMeter {
+  color: var(--brand-text);
 }
 
 /* Name plate. */
@@ -195,9 +224,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-.condition [role='meter'] {
-  height: 5px;
-  margin-top: 4px;
+.side [role='meter'] {
+  height: 4px;
+  margin-top: 3px;
 }
 
 
@@ -218,36 +247,32 @@
 }
 
 .stat .value {
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1.2;
 }
 
 .stat dt {
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.04em;
-}
-
-.condition .sideList {
-  gap: var(--space-2);
 }
 
 .statNote {
   margin-top: 2px;
   color: var(--accent-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.condition [role='meter'].xpMeter {
+.side [role='meter'].xpMeter {
   color: var(--accent-secondary);
 }
 
-.condition [role='meter'].fitnessMeter {
+.side [role='meter'].fitnessMeter {
   color: var(--brand-text);
 }
 
-.condition [role='meter'].fatigueMeter {
+.side [role='meter'].fatigueMeter {
   color: var(--accent);
 }
 
@@ -268,25 +293,19 @@
 }
 
 /* Today: the next action, under the runner (owner request: the Dashboard fits one screen). */
-.weather {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--text);
-  letter-spacing: 0.02em;
-}
-
 .today {
   flex: none;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(3px);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
+  border: 1px solid rgb(255 255 255 / 0.14);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  /* 80 % transparent like the side cards (owner feedback). */
+  background: rgb(10 12 14 / 0.2);
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.85);
 }
 
 .todayText {
@@ -326,12 +345,13 @@
   }
 
   .stage {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 160px);
+    grid-template-columns: minmax(0, 150px) minmax(0, 1fr) minmax(0, 150px);
     column-gap: var(--space-4);
   }
 
-  .center {
-    padding-right: 0;
+  .side {
+    padding: var(--space-3);
+    font-size: var(--font-size-sm);
   }
 
 }

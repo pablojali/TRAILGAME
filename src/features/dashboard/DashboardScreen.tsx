@@ -3,8 +3,6 @@ import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
 import { Coins } from '../../components/Coins'
-import { RadarChart } from '../../components/RadarChart'
-import { radarScale } from '../../components/radarScale'
 import { formatDelta, formatStat } from '../../components/format'
 import {
   ATTRIBUTE_IDS,
@@ -23,8 +21,6 @@ import { previewSession } from '../../game-engine/training'
 import { getRace } from '../../domain/races/races'
 import { getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedule'
 import { DashboardRunner } from './DashboardRunner'
-import { weatherFor } from './weather'
-import { WeatherIcon } from './WeatherIcon'
 import styles from './DashboardScreen.module.css'
 
 /** Display-only threshold: Fatigue at or above this is shown as high. Not a gameplay rule. */
@@ -43,9 +39,6 @@ export function DashboardScreen() {
   const scheduled = getScheduledEntry(state)
   const scheduledRace = scheduled ? getRace(scheduled.raceId) : undefined
   const todayRace = isRaceDayToday(state) ? scheduledRace : undefined
-  const weather = weatherFor(week.number, week.currentDayIndex)
-  const attributes = ATTRIBUTE_IDS.map((id) => ({ id, label: ATTRIBUTE_LABELS[id], value: athlete.attributes[id] }))
-  const radarMax = radarScale(attributes.map((a) => a.value))
 
   return (
     <section className={styles.screen} aria-labelledby="dashboard-title">
@@ -79,10 +72,6 @@ export function DashboardScreen() {
             {/* Short day name on small phones, so the year block keeps its room. */}
             <span className={styles.dayLong}>{weekdayLong(today.day)}</span>
             <span className={styles.dayShort}>{weekdayShort(today.day)}</span>
-            <span className={styles.weather} title={weather.label}>
-              <WeatherIcon kind={weather.kind} />
-              <span className={styles.srOnly}>{weather.label}</span>
-            </span>
           </p>
           <p className={styles.balance}>
             <Coins amount={state.coins} />
@@ -100,24 +89,32 @@ export function DashboardScreen() {
             </h2>
           </div>
 
-          <section className={styles.radar} aria-label="Attributes">
-            <RadarChart values={attributes} max={radarMax} />
-            {/* The chart is a picture: the values are read out as meters. */}
-            <ul className={styles.srOnly}>
+          <section className={`${styles.side} ${styles.left}`} aria-label="Attributes">
+            <ul className={styles.sideList}>
               {ATTRIBUTE_IDS.map((id) => (
-                <li key={id}>
-                  <Meter
-                    label={ATTRIBUTE_LABELS[id]}
-                    value={Math.min(athlete.attributes[id], ATTRIBUTE_SCALE)}
-                    max={ATTRIBUTE_SCALE}
-                    valueText={formatStat(athlete.attributes[id])}
-                  />
+                <li key={id} className={styles.attribute}>
+                  {/* The meter announces name and value; the visible text is for sighted users. */}
+                  <span className={styles.attributeName} aria-hidden="true">
+                    {ATTRIBUTE_LABELS[id]}
+                  </span>
+                  <span className={styles.attributeRow}>
+                    <Meter
+                      label={ATTRIBUTE_LABELS[id]}
+                      value={Math.min(athlete.attributes[id], ATTRIBUTE_SCALE)}
+                      max={ATTRIBUTE_SCALE}
+                      valueText={formatStat(athlete.attributes[id])}
+                      className={styles.sideMeter}
+                    />
+                    <span className={styles.value} aria-hidden="true">
+                      {formatStat(athlete.attributes[id])}
+                    </span>
+                  </span>
                 </li>
               ))}
             </ul>
           </section>
 
-          {/* The runner fills the stage height, between the name plate, the chart and the condition panel. */}
+          {/* The runner fills the stage height, between the attributes and the condition panel. */}
           <div className={styles.center}>
             <DashboardRunner
               name={athlete.name}
@@ -127,8 +124,12 @@ export function DashboardScreen() {
             />
           </div>
 
-          <section className={styles.condition} aria-label="Condition">
+          <section className={`${styles.side} ${styles.right}`} aria-label="Condition">
             <dl className={styles.sideList}>
+              <div className={styles.stat}>
+                <dt>Level</dt>
+                <dd className={styles.value}>{progress.level}</dd>
+              </div>
               <div className={styles.stat}>
                 <dt>XP</dt>
                 <dd className={styles.value}>{athlete.xp}</dd>

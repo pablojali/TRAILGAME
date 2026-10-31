@@ -1012,6 +1012,9 @@ function raceCurrentDay(state, ref, entryId, now) {
   if (getScheduledEntry(state)?.id !== entry.id) return { ok: false, error: "not-scheduled" };
   const race = getRace(entry.raceId);
   if (!race) return { ok: false, error: "unknown-race" };
+  if (entry.entryType === "free" && !canEnterAtLevel(race, getLevel(state.athlete.xp))) {
+    return { ok: false, error: "level-too-low" };
+  }
   const { athlete } = state;
   const levelAtStart = getLevel(athlete.xp);
   const input = {
@@ -1316,6 +1319,9 @@ function validRequest(body) {
       return false;
   }
 }
+function hasStrategy(body) {
+  return body.action === "race" && body.strategy !== void 0;
+}
 var fail = (status, error, extra = {}) => ({
   status,
   body: { ok: false, error, ...extra }
@@ -1324,6 +1330,7 @@ async function handleCareerOp(token, body, deps) {
   const userId = await deps.authenticate(token);
   if (!userId) return fail(401, "unauthorized");
   if (!validRequest(body)) return fail(400, "bad-request");
+  if (hasStrategy(body)) return fail(400, "unsupported-strategy");
   const request = body;
   const now = deps.now();
   if (request.action === "new-career") return newCareer(userId, request, deps, now);

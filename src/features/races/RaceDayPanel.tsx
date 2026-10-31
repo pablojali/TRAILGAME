@@ -27,6 +27,7 @@ const RACE_DAY_ERRORS: Record<RaceDayError | ServerError, string> = {
   'race-day': 'Today is race day: start the race.',
   'not-race-day': 'Races are run on Sundays.',
   'not-scheduled': 'Another race is run first.',
+  'level-too-low': 'Your level is below this race\'s minimum, so it cannot be run.',
 }
 
 /**

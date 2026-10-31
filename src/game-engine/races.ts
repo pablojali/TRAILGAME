@@ -118,6 +118,8 @@ export type RaceDayError =
   | 'not-race-day'
   /** Another pending entry is raced first. */
   | 'not-scheduled'
+  /** The runner is below the race's minimum level (free entries only; see raceCurrentDay). */
+  | 'level-too-low'
 
 export interface RaceDayResult {
   state: GameState
@@ -150,6 +152,12 @@ export function raceCurrentDay(
   if (getScheduledEntry(state)?.id !== entry.id) return { ok: false, error: 'not-scheduled' }
   const race = getRace(entry.raceId)
   if (!race) return { ok: false, error: 'unknown-race' }
+  // Free entries (since 1 November 2026) were checked at entry and levels never go down, so this
+  // only guards the rule on the server's own state. Entries paid under the earlier rules (no
+  // minimum level) stay valid.
+  if (entry.entryType === 'free' && !canEnterAtLevel(race, getLevel(state.athlete.xp))) {
+    return { ok: false, error: 'level-too-low' }
+  }
 
   const { athlete } = state
   const levelAtStart = getLevel(athlete.xp)

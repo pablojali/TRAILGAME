@@ -107,29 +107,17 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 148px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 116px);
   grid-template-rows: auto minmax(0, 1fr);
   column-gap: var(--space-2);
 }
 
-/* Motto and name plate over the sky, top left (owner mockup, 31 October 2026). */
+/* Name plate over the sky, top left. */
 .intro {
   grid-column: 1;
   grid-row: 1;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding-top: var(--space-2);
-}
-
-.motto {
-  font-size: var(--font-size-lg);
-  font-weight: 900;
-  line-height: 1.05;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-shadow: 0 2px 8px rgb(0 0 0 / 0.6);
+  padding-top: var(--space-1);
 }
 
 .radar {
@@ -138,35 +126,37 @@
   justify-self: end;
   z-index: 1;
   /* Wider than its column, over the sky: the labels need room around the chart. */
-  width: 200px;
-  padding: 14px 30px 2px;
+  width: 190px;
+  padding: 12px 30px 4px;
 }
 
-/* The runner: under the motto, using the height that is left, beside the condition panel. */
+/* The runner fills the whole stage height (owner feedback: bigger), left of the condition panel. */
 .center {
   grid-column: 1 / -1;
-  grid-row: 2;
+  grid-row: 1 / -1;
   z-index: 0;
   display: flex;
   justify-content: center;
   height: 100%;
   min-height: 0;
-  padding-right: 120px;
+  padding-right: 96px;
 }
 
+/* Compact, with the chart's text size (owner feedback). */
 .condition {
   grid-column: 2;
   grid-row: 2;
   z-index: 1;
   align-self: center;
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   backdrop-filter: blur(6px);
+  font-size: 12px;
 }
 
-/* Name plate under the motto. */
+/* Name plate. */
 .nameplate {
   display: flex;
   flex-direction: column;
@@ -228,22 +218,23 @@
 }
 
 .stat .value {
-  font-size: var(--font-size-xl);
-  line-height: 1.15;
+  font-size: 16px;
+  line-height: 1.2;
 }
 
 .stat dt {
-  font-size: var(--font-size-xs);
+  font-size: 12px;
+  letter-spacing: 0.04em;
 }
 
 .condition .sideList {
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .statNote {
   margin-top: 2px;
   color: var(--accent-secondary);
-  font-size: var(--font-size-xs);
+  font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -335,7 +326,7 @@
   }
 
   .stage {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 200px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 160px);
     column-gap: var(--space-4);
   }
 

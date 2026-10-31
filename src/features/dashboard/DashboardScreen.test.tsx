@@ -23,7 +23,7 @@ function attributeValues() {
 }
 
 function identity() {
-  return screen.getByRole('heading', { level: 2, name: / - .* \(Lv \d\)/ }).textContent
+  return screen.getByRole('heading', { level: 2, name: / - .* \(Lv \d+\)/ }).textContent
 }
 
 describe('DashboardScreen — first screen', () => {
@@ -48,7 +48,9 @@ describe('DashboardScreen — first screen', () => {
       'Recovery 14',
       'Consistency 15',
     ])
-    expect(stat('Level')).toBe('1')
+    // The level is on the name plate (the condition panel has no Level row).
+    expect(identity()).toMatch(/\(Lv 1\)$/)
+    expect(within(screen.getByRole('region', { name: 'Condition' })).queryByText('Level')).not.toBeInTheDocument()
     expect(stat('XP')).toBe('0')
     expect(stat('Fitness')).toBe('20.0')
     expect(stat('Fatigue')).toBe('0')
@@ -109,7 +111,7 @@ describe('DashboardScreen — first screen', () => {
     expect(within(screen.getByRole('region', { name: 'Condition' })).queryByText('Coins')).not.toBeInTheDocument()
     expect(screen.getByText('Week 3 / 52')).toBeInTheDocument()
     expect(screen.getByText('6%')).toBeInTheDocument()
-    expect(stat('Level')).toBe('3')
+    expect(identity()).toMatch(/\(Lv 3\)$/)
     expect(stat('XP')).toBe('260')
     expect(stat('Fitness')).toBe('71.0')
     expect(stat('Fatigue')).toBe('33')
@@ -125,7 +127,7 @@ describe('DashboardScreen — first screen', () => {
   it('shows level 50 as the maximum level', async () => {
     seedCareer(withAthlete(newGame(), { xp: 63_700 }))
     await renderApp('/')
-    expect(stat('Level')).toBe('50')
+    expect(identity()).toMatch(/\(Lv 50\)$/)
     expect(screen.getByText('Max level')).toBeInTheDocument()
     expect(screen.queryByRole('meter', { name: /Progress to Level/ })).not.toBeInTheDocument()
   })

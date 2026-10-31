@@ -3,7 +3,7 @@ import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
 import { Coins } from '../../components/Coins'
-import { RadarChart } from '../../components/RadarChart'
+import { RadarChart, radarScale } from '../../components/RadarChart'
 import { formatDelta, formatStat } from '../../components/format'
 import {
   ATTRIBUTE_IDS,
@@ -44,8 +44,7 @@ export function DashboardScreen() {
   const todayRace = isRaceDayToday(state) ? scheduledRace : undefined
   const weather = weatherFor(week.number, week.currentDayIndex)
   const attributes = ATTRIBUTE_IDS.map((id) => ({ id, label: ATTRIBUTE_LABELS[id], value: athlete.attributes[id] }))
-  // The outer ring sits a little above the best attribute, so the shape fills most of the chart.
-  const radarMax = Math.max(25, Math.ceil((Math.max(...attributes.map((a) => a.value)) * 1.2) / 5) * 5)
+  const radarMax = radarScale(attributes.map((a) => a.value))
 
   return (
     <section className={styles.screen} aria-labelledby="dashboard-title">
@@ -81,8 +80,7 @@ export function DashboardScreen() {
             <span className={styles.dayShort}>{weekdayShort(today.day)}</span>
             <span className={styles.weather} title={weather.label}>
               <WeatherIcon kind={weather.kind} />
-              <span className={styles.srOnly}>{weather.label}, </span>
-              {weather.temperature}°C
+              <span className={styles.srOnly}>{weather.label}</span>
             </span>
           </p>
           <p className={styles.balance}>
@@ -92,13 +90,6 @@ export function DashboardScreen() {
 
         <div className={styles.stage}>
           <div className={styles.intro}>
-            <p className={styles.motto} aria-hidden="true">
-              Higher
-              <br />
-              Further
-              <br />
-              Stronger
-            </p>
             <h2 className={styles.nameplate}>
               <span className={styles.nameplateName}>{athlete.name}</span>
               <span className={styles.srOnly}> - </span>
@@ -125,7 +116,7 @@ export function DashboardScreen() {
             </ul>
           </section>
 
-          {/* The runner stands under the motto, between the chart and the condition panel. */}
+          {/* The runner fills the stage height, between the name plate, the chart and the condition panel. */}
           <div className={styles.center}>
             <DashboardRunner
               name={athlete.name}
@@ -137,10 +128,6 @@ export function DashboardScreen() {
 
           <section className={styles.condition} aria-label="Condition">
             <dl className={styles.sideList}>
-              <div className={styles.stat}>
-                <dt>Level</dt>
-                <dd className={styles.value}>{progress.level}</dd>
-              </div>
               <div className={styles.stat}>
                 <dt>XP</dt>
                 <dd className={styles.value}>{athlete.xp}</dd>

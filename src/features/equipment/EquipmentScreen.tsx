@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import { Avatar } from '../../components/avatar/Avatar'
 import { Coins } from '../../components/Coins'
-import { RadarChart } from '../../components/RadarChart'
+import { RadarChart, radarScale } from '../../components/RadarChart'
 import { ATTRIBUTE_IDS, ATTRIBUTE_LABELS } from '../../domain/athlete/athlete'
 import button from '../../components/Button.module.css'
 import { Screen, ScrollPanel } from '../../components/Screen'
@@ -120,7 +120,7 @@ function EquippedTab({ onMessage, onShop }: { onMessage(text: string): void; onS
   // Race attributes with the worn equipment's bonuses, drawn as a chart beside the runner.
   const bonus = getRaceEffect(state.equipment).attributes
   const raceAttributes = ATTRIBUTE_IDS.map((id) => ({ id, label: ATTRIBUTE_LABELS[id], value: athlete.attributes[id] + bonus[id] }))
-  const radarMax = Math.max(25, Math.ceil((Math.max(...raceAttributes.map((a) => a.value)) * 1.2) / 5) * 5)
+  const radarMax = radarScale(raceAttributes.map((a) => a.value))
 
   return (
     <>

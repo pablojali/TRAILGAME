@@ -3,49 +3,55 @@ import {
   appearanceForSex,
   appearanceUnlocks,
   isAppearanceUnlocked,
-  outfitTint,
+  outfitLabel,
+  outfits,
   outfitUnlockLevel,
-  TSHIRT_COLORS,
   bodyId,
   defaultAppearance,
   hairStyleLabel,
   hairStyles,
   hairUnlockLevel,
-  OUTFITS,
   parseAppearance,
   SKIN_TONES,
 } from './appearance'
 
 describe('appearance', () => {
-  it('offers one body per skin tone (3 women, 4 men), the basic head, two tops and the T-shirt colours', () => {
+  it('offers one body per skin tone (3 women, 4 men), the basic head, and no shirt or the sex\'s shirts', () => {
     expect(SKIN_TONES.female).toEqual(['tone-1', 'tone-2', 'tone-3'])
     expect(SKIN_TONES.male).toEqual(['tone-1', 'tone-2', 'tone-3', 'tone-4'])
     for (const sex of ['female', 'male'] as const) {
       for (const skin of SKIN_TONES[sex]) expect(hairStyles(sex, skin)[0]).toBe('natural')
     }
     expect(hairStyleLabel('female', 'natural')).toBe('Basic')
-    expect(OUTFITS.slice(0, 2)).toEqual(['none', 'white-tshirt'])
-    expect(OUTFITS).toHaveLength(2 + TSHIRT_COLORS.length)
+    expect(outfits('male')).toEqual(['none', 'shirt-l1-01', 'shirt-l2-01', 'shirt-l3-01', 'shirt-l3-02'])
+    expect(outfits('female')).toEqual(['none', 'shirt-l1-01', 'shirt-l2-01', 'shirt-l3-01'])
+    expect(outfitLabel('male', 'none')).toBe('No shirt')
+    expect(outfitLabel('male', 'shirt-l1-01')).toBe('Charcoal T-shirt')
+    expect(outfitLabel('female', 'shirt-l1-01')).toBe('Blue tank top')
   })
 
-  it('unlocks one T-shirt colour per level from Level 2', () => {
-    expect(TSHIRT_COLORS.map((color) => color.level)).toEqual(TSHIRT_COLORS.map((_, i) => i + 2))
-    expect(outfitUnlockLevel('none')).toBe(1)
-    expect(outfitUnlockLevel('white-tshirt')).toBe(1)
-    expect(outfitUnlockLevel('tshirt-red')).toBe(2)
-    expect(outfitUnlockLevel('tshirt-black')).toBe(13)
-    expect(isAppearanceUnlocked({ hair: 'natural', skin: 'tone-1', outfit: 'tshirt-orange' }, 2, 'male')).toBe(false)
-    expect(isAppearanceUnlocked({ hair: 'natural', skin: 'tone-1', outfit: 'tshirt-orange' }, 3, 'male')).toBe(true)
-    // Men tone 4 has no head art yet: only outfits unlock.
-    expect(appearanceUnlocks(1, 3, 'male', 'tone-4')).toEqual(['Red T-shirt', 'Orange T-shirt'])
-    expect(appearanceUnlocks(13, 20, 'male', 'tone-4')).toEqual([])
-    expect(outfitTint('tshirt-red')).toBe('#d6453a')
-    expect(outfitTint('white-tshirt')).toBeNull()
+  it('unlocks shirts at the level in their file name (owner art, 31 October 2026)', () => {
+    expect(outfitUnlockLevel('male', 'none')).toBe(1)
+    expect(outfitUnlockLevel('male', 'shirt-l1-01')).toBe(1)
+    expect(outfitUnlockLevel('male', 'shirt-l2-01')).toBe(2)
+    expect(outfitUnlockLevel('female', 'shirt-l3-01')).toBe(3)
+    expect(isAppearanceUnlocked({ hair: 'natural', skin: 'tone-1', outfit: 'shirt-l3-02' }, 2, 'male')).toBe(false)
+    expect(isAppearanceUnlocked({ hair: 'natural', skin: 'tone-1', outfit: 'shirt-l3-02' }, 3, 'male')).toBe(true)
+    expect(appearanceUnlocks(1, 3, 'male', 'tone-4')).toEqual(['Navy T-shirt', 'Burgundy T-shirt', 'Green T-shirt'])
+    expect(appearanceUnlocks(1, 2, 'female', 'tone-1')).toEqual(['Coral tank top'])
+    expect(appearanceUnlocks(3, 20, 'male', 'tone-4')).toEqual([])
   })
 
-  it('keeps a saved T-shirt colour', () => {
-    expect(parseAppearance({ hair: 'natural', skin: 'tone-1', outfit: 'tshirt-navy' }, 'male').outfit).toBe('tshirt-navy')
-    expect(parseAppearance({ hair: 'natural', skin: 'tone-1', outfit: 'tshirt-gold' }, 'male').outfit).toBe('none')
+  it('keeps a saved shirt of the runner\'s sex and gives retired T-shirts the level-1 shirt', () => {
+    expect(parseAppearance({ hair: 'natural', skin: 'tone-1', outfit: 'shirt-l3-02' }, 'male').outfit).toBe('shirt-l3-02')
+    // Women have no second level-3 shirt.
+    expect(parseAppearance({ hair: 'natural', skin: 'tone-1', outfit: 'shirt-l3-02' }, 'female').outfit).toBe('none')
+    // The white and dyed T-shirts were replaced by the owner's shirts (31 October 2026).
+    for (const outfit of ['white-tshirt', 'tshirt-red', 'tshirt-black']) {
+      expect(parseAppearance({ hair: 'natural', skin: 'tone-1', outfit }, 'male').outfit).toBe('shirt-l1-01')
+      expect(parseAppearance({ hair: 'natural', skin: 'tone-1', outfit }, 'female').outfit).toBe('shirt-l1-01')
+    }
+    expect(parseAppearance({ hair: 'natural', skin: 'tone-1', outfit: 'cape' }, 'male').outfit).toBe('none')
   })
 
   it('defaults to the basic head, tone 2, no shirt', () => {
@@ -58,13 +64,18 @@ describe('appearance', () => {
     expect(bodyId('male', 'tone-4')).toBe('male-4')
   })
 
-  it('offers the current head art: one Level 1 head for women, in every tone (owner art, 30 October 2026)', () => {
-    for (const skin of SKIN_TONES.female) expect(hairStyles('female', skin)).toEqual(['natural', 'head-l1-01'])
-    for (const skin of SKIN_TONES.male) expect(hairStyles('male', skin)).toEqual(['natural'])
+  it('offers the current head art (owner art, 30 and 31 October 2026)', () => {
+    expect(hairStyles('female', 'tone-1')).toEqual(['natural', 'head-l1-01', 'head-l1-02'])
+    expect(hairStyles('female', 'tone-2')).toEqual(['natural', 'head-l1-01', 'head-l1-02'])
+    expect(hairStyles('female', 'tone-3')).toEqual(['natural', 'head-l1-01', 'head-l5-01'])
+    for (const skin of SKIN_TONES.male) expect(hairStyles('male', skin)).toEqual(['natural', 'head-l1-01'])
     expect(hairStyleLabel('female', 'head-l1-01')).toBe('Hairstyle 1')
-    expect(hairUnlockLevel('female', 'head-l1-01')).toBe(1)
+    expect(hairStyleLabel('female', 'head-l5-01')).toBe('Hairstyle 3')
+    expect(hairUnlockLevel('female', 'head-l5-01')).toBe(5)
     expect(isAppearanceUnlocked({ hair: 'head-l1-01', skin: 'tone-1', outfit: 'none' }, 1, 'female')).toBe(true)
-    expect(appearanceUnlocks(1, 2, 'female', 'tone-2')).toEqual(['Red T-shirt'])
+    expect(isAppearanceUnlocked({ hair: 'head-l5-01', skin: 'tone-3', outfit: 'none' }, 4, 'female')).toBe(false)
+    expect(appearanceUnlocks(4, 5, 'female', 'tone-3')).toEqual(['Hairstyle 3'])
+    expect(appearanceUnlocks(4, 5, 'female', 'tone-2')).toEqual([])
   })
 
   it('loads saves with heads that no longer exist as the basic head', () => {
@@ -72,16 +83,16 @@ describe('appearance', () => {
     for (const hair of ['head-l1-03', 'head-l1-05', 'head-l2-01', 'head-l2-02', 'head-l2-03']) {
       expect(parseAppearance({ hair, skin: 'tone-2', outfit: 'none' }, 'female').hair).toBe('natural')
     }
-    expect(parseAppearance({ hair: 'head-l1-01', skin: 'tone-2', outfit: 'none' }, 'male').hair).toBe('natural')
-    expect(parseAppearance({ hair: 'head-l1-01', skin: 'tone-2', outfit: 'none' }, 'female').hair).toBe('head-l1-01')
-    expect(appearanceForSex({ hair: 'head-l1-01', skin: 'tone-3', outfit: 'none' }, 'male').hair).toBe('natural')
+    expect(parseAppearance({ hair: 'head-l1-02', skin: 'tone-2', outfit: 'none' }, 'male').hair).toBe('natural')
+    expect(parseAppearance({ hair: 'head-l1-02', skin: 'tone-2', outfit: 'none' }, 'female').hair).toBe('head-l1-02')
+    expect(appearanceForSex({ hair: 'head-l1-02', skin: 'tone-3', outfit: 'none' }, 'female').hair).toBe('natural')
   })
 
   it('keeps a valid tone when the sex changes', () => {
-    expect(appearanceForSex({ hair: 'natural', skin: 'tone-4', outfit: 'white-tshirt' }, 'female')).toEqual({
+    expect(appearanceForSex({ hair: 'natural', skin: 'tone-4', outfit: 'shirt-l1-01' }, 'female')).toEqual({
       hair: 'natural',
       skin: 'tone-3',
-      outfit: 'white-tshirt',
+      outfit: 'shirt-l1-01',
     })
     expect(appearanceForSex({ hair: 'natural', skin: 'tone-1', outfit: 'none' }, 'male').skin).toBe('tone-1')
   })
@@ -93,10 +104,10 @@ describe('appearance', () => {
       skin: 'tone-3',
       outfit: 'none',
     })
-    expect(parseAppearance({ hair: 'natural', skin: 'tone-4', outfit: 'white-tshirt' }, 'male')).toEqual({
+    expect(parseAppearance({ hair: 'natural', skin: 'tone-4', outfit: 'shirt-l2-01' }, 'male')).toEqual({
       hair: 'natural',
       skin: 'tone-4',
-      outfit: 'white-tshirt',
+      outfit: 'shirt-l2-01',
     })
     expect(parseAppearance(undefined, 'male')).toEqual(defaultAppearance())
     expect(parseAppearance({ skin: 'blue' }, 'female')).toEqual(defaultAppearance())

@@ -200,9 +200,9 @@ describe('server-authoritative training (client and server together)', () => {
     await ready(view, w)
     // A changed look is the device's to change; it is uploaded and kept.
     await act(async () => {
-      view.game().setAppearance({ ...view.playing().athlete.appearance, outfit: 'white-tshirt' })
+      view.game().setAppearance({ ...view.playing().athlete.appearance, outfit: 'shirt-l1-01' })
     })
-    await waitFor(() => expect(w.server()!.athlete.appearance.outfit).toBe('white-tshirt'))
+    await waitFor(() => expect(w.server()!.athlete.appearance.outfit).toBe('shirt-l1-01'))
     expect(w.server()!.athlete.xp).toBe(300)
   })
 

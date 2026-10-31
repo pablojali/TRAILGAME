@@ -33,6 +33,12 @@ async function completeToday(user: User) {
   // Wait out the double-tap pause left by a previous completion.
   await within(detail()).findByRole('button', { name: /^(Complete|Take rest)/ }, { timeout: 1500 })
   await user.click(within(detail()).getByRole('button', { name: /^(Complete|Take rest)/ }))
+  await confirmed()
+}
+
+/** The day is confirmed asynchronously (by the server when one is configured). */
+async function confirmed() {
+  await waitFor(() => expect(screen.queryByText('Saving…')).toBeNull())
 }
 
 describe('TrainingScreen — week strip and day detail', () => {
@@ -173,8 +179,8 @@ describe('TrainingScreen — completing sessions', () => {
     await renderApp('/training')
     await completeToday(user)
     expect(feedback()).toHaveTextContent('Level up! Now Level 2. +2 attribute points.')
-    // Women tone 2 (the default runner): the red T-shirt (no Level 2 heads in the current art).
-    expect(feedback()).toHaveTextContent('New look unlocked: Red T-shirt.')
+    // Women tone 2 (the default runner): the Level 2 tank top (no Level 2 heads in the current art).
+    expect(feedback()).toHaveTextContent('New look unlocked: Coral tank top.')
     expect(screen.getByRole('link', { name: 'Change look' })).toHaveAttribute('href', '/appearance')
     await user.click(within(feedback()!).getByRole('link', { name: 'Allocate points' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Attributes' })).toBeInTheDocument()
@@ -283,6 +289,7 @@ describe('TrainingScreen — injury', () => {
     const user = userEvent.setup()
     await renderApp('/training')
     await user.click(within(detail()).getByRole('button', { name: 'Complete anyway — injury' }))
+    await confirmed()
 
     expect(feedback()).toHaveTextContent('Injured! Monday: Easy run')
     expect(feedback()).toHaveTextContent('XP 0 · Fitness −15 · Fatigue +5 · 5 forced rest days')

@@ -27,3 +27,4 @@ test-results/
 
 # Cloudflare
 .wrangler/
+.qa/

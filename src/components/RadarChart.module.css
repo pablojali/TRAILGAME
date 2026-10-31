@@ -1,0 +1,39 @@
+.radar {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ring {
+  fill: rgb(10 12 14 / 0.35);
+  stroke: rgb(255 255 255 / 0.22);
+  stroke-width: 1;
+}
+
+.axis {
+  stroke: rgb(255 255 255 / 0.18);
+  stroke-width: 1;
+}
+
+.shape {
+  fill: rgb(240 124 42 / 0.55);
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.dot {
+  fill: #ffd7b5;
+}
+
+.label {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke: rgb(0 0 0 / 0.55);
+  stroke-width: 3px;
+}

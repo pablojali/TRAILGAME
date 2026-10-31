@@ -1,5 +1,6 @@
 import type { Sex } from './athlete'
 import { getHead, HEADS } from './heads'
+import { getShirt, SHIRTS } from './shirts'
 
 /**
  * Runner appearance (avatar). Cosmetic only: it selects how the avatar is drawn and never affects
@@ -20,32 +21,13 @@ export type HairStyleId = 'natural' | (string & {})
 export type SkinToneId = 'tone-1' | 'tone-2' | 'tone-3' | 'tone-4'
 
 /**
- * T-shirt colours unlocked by level, one per level from Level 2 (owner request, 30 October 2026:
- * each level-up brings new customization). They tint the white T-shirt artwork, so they need no
- * new art. In unlock order.
+ * Top worn over the body: none (as drawn: sports top or bare chest) or one of the owner's shirts
+ * for the runner's sex (src/domain/athlete/shirts.ts), saved by its id, e.g. `shirt-l1-01`.
  */
-export const TSHIRT_COLORS = [
-  { id: 'red', label: 'Red', hex: '#d6453a', level: 2 },
-  { id: 'orange', label: 'Orange', hex: '#f07c2a', level: 3 },
-  { id: 'yellow', label: 'Yellow', hex: '#f2c531', level: 4 },
-  { id: 'lime', label: 'Lime', hex: '#9bcf3a', level: 5 },
-  { id: 'green', label: 'Green', hex: '#2f9e5b', level: 6 },
-  { id: 'teal', label: 'Teal', hex: '#1fa3a0', level: 7 },
-  { id: 'sky', label: 'Sky blue', hex: '#4aa8e8', level: 8 },
-  { id: 'blue', label: 'Blue', hex: '#2f5fd0', level: 9 },
-  { id: 'purple', label: 'Purple', hex: '#7b4bc4', level: 10 },
-  { id: 'pink', label: 'Pink', hex: '#e0609c', level: 11 },
-  { id: 'navy', label: 'Navy', hex: '#24356b', level: 12 },
-  { id: 'black', label: 'Black', hex: '#2e2e33', level: 13 },
-] as const
+export type OutfitId = 'none' | (string & {})
 
-export type TshirtColorId = (typeof TSHIRT_COLORS)[number]['id']
-
-/**
- * Top worn over the body: none (as drawn: sports top or bare chest), the white T-shirt, or a
- * coloured T-shirt.
- */
-export type OutfitId = 'none' | 'white-tshirt' | `tshirt-${TshirtColorId}`
+/** No shirt: always available, and the default. */
+export const NO_OUTFIT = 'none'
 
 export interface Appearance {
   hair: HairStyleId
@@ -90,52 +72,52 @@ export const SKIN_TONE_LABELS: Record<SkinToneId, string> = {
   'tone-4': 'Skin tone 4',
 }
 
-export const OUTFITS: readonly OutfitId[] = [
-  'none',
-  'white-tshirt',
-  ...TSHIRT_COLORS.map((color) => `tshirt-${color.id}` as const),
-]
-
-export const OUTFIT_LABELS = Object.fromEntries([
-  ['none', 'No shirt'],
-  ['white-tshirt', 'White T-shirt'],
-  ...TSHIRT_COLORS.map((color) => [`tshirt-${color.id}`, `${color.label} T-shirt`]),
-]) as Record<OutfitId, string>
-
-function tshirtColor(outfit: OutfitId) {
-  return TSHIRT_COLORS.find((color) => outfit === `tshirt-${color.id}`)
+/** Outfits offered for a sex, in display order: no shirt, then the sex's shirts in unlock order. */
+export function outfits(sex: Sex): OutfitId[] {
+  return [NO_OUTFIT, ...SHIRTS.filter((shirt) => shirt.sex === sex).map((shirt) => shirt.id)]
 }
 
-/** The colour a T-shirt tints the white T-shirt artwork with, or null for an untinted outfit. */
-export function outfitTint(outfit: OutfitId): string | null {
-  return tshirtColor(outfit)?.hex ?? null
+export function outfitLabel(sex: Sex, outfit: OutfitId): string {
+  return getShirt(sex, outfit)?.label ?? 'No shirt'
 }
 
-/** The level an outfit unlocks at. Skin tones, hair and the starting outfits are always available. */
-export function outfitUnlockLevel(outfit: OutfitId): number {
-  return tshirtColor(outfit)?.level ?? 1
+/** The level an outfit unlocks at. No shirt is always available. */
+export function outfitUnlockLevel(sex: Sex, outfit: OutfitId): number {
+  return getShirt(sex, outfit)?.level ?? 1
+}
+
+/**
+ * The white T-shirt and its 12 dyed colours (`white-tshirt`, `tshirt-{colour}`) were replaced by
+ * the owner's shirts (owner decision, 31 October 2026): a career that wore one gets the sex's
+ * first level-1 shirt.
+ */
+function isRetiredTshirt(outfit: string): boolean {
+  return outfit === 'white-tshirt' || outfit.startsWith('tshirt-')
 }
 
 /** True if every part of the appearance is unlocked at `level`. */
 export function isAppearanceUnlocked(appearance: Appearance, level: number, sex: Sex): boolean {
-  return outfitUnlockLevel(appearance.outfit) <= level && hairUnlockLevel(sex, appearance.hair) <= level
+  return outfitUnlockLevel(sex, appearance.outfit) <= level && hairUnlockLevel(sex, appearance.hair) <= level
 }
 
 /**
  * Labels of the options that unlock on reaching a level above `from` up to `to`, in order: the
- * runner's hairstyles (those with art in the runner's skin tone), then outfits.
+ * runner's hairstyles (those with art in the runner's skin tone), then the sex's shirts.
  */
 export function appearanceUnlocks(from: number, to: number, sex: Sex, skin: SkinToneId): string[] {
   const reached = (level: number) => level > from && level <= to
   const heads = hairStyles(sex, skin)
     .filter((hair) => hair !== BASIC_HAIR && reached(hairUnlockLevel(sex, hair)))
     .map((hair) => hairStyleLabel(sex, hair))
-  return [...heads, ...OUTFITS.filter((outfit) => reached(outfitUnlockLevel(outfit))).map((o) => OUTFIT_LABELS[o])]
+  const shirts = outfits(sex)
+    .filter((outfit) => outfit !== NO_OUTFIT && reached(outfitUnlockLevel(sex, outfit)))
+    .map((outfit) => outfitLabel(sex, outfit))
+  return [...heads, ...shirts]
 }
 
 /** Basic head, tone 2, no shirt (owner decision, 29 October 2026). The same for both sexes. */
 export function defaultAppearance(): Appearance {
-  return { hair: BASIC_HAIR, skin: 'tone-2', outfit: 'none' }
+  return { hair: BASIC_HAIR, skin: 'tone-2', outfit: NO_OUTFIT }
 }
 
 /** The artwork body for a sex and skin tone, e.g. `female-2`. */
@@ -145,14 +127,21 @@ export function bodyId(sex: Sex, skin: SkinToneId): string {
 
 /**
  * Keeps the appearance valid for a sex and its skin tone: a skin tone the sex has no body for
- * becomes the nearest one (tone 4 → tone 3 for women), and a hairstyle not offered for that sex
- * and tone becomes the basic head. Use it after changing the sex or the skin tone.
+ * becomes the nearest one (tone 4 → tone 3 for women), a hairstyle not offered for that sex
+ * and tone becomes the basic head, and a shirt the sex has no art for becomes no shirt (a retired
+ * T-shirt becomes the sex's first level-1 shirt). Use it after changing the sex or the skin tone.
  */
 export function appearanceForSex(appearance: Appearance, sex: Sex): Appearance {
   const tones = SKIN_TONES[sex]
   const skin = tones.includes(appearance.skin) ? appearance.skin : tones[tones.length - 1]!
   const hair = hairStyles(sex, skin).includes(appearance.hair) ? appearance.hair : BASIC_HAIR
-  return { ...appearance, skin, hair }
+  const offered = outfits(sex)
+  const outfit = offered.includes(appearance.outfit)
+    ? appearance.outfit
+    : isRetiredTshirt(appearance.outfit)
+      ? (SHIRTS.find((shirt) => shirt.sex === sex && shirt.level === 1)?.id ?? NO_OUTFIT)
+      : NO_OUTFIT
+  return { hair, skin, outfit }
 }
 
 /**
@@ -168,7 +157,7 @@ export function parseAppearance(value: unknown, sex: Sex): Appearance {
     {
       hair: typeof hair === 'string' ? hair : fallback.hair,
       skin: knownSkin,
-      outfit: (OUTFITS as readonly unknown[]).includes(outfit) ? (outfit as OutfitId) : fallback.outfit,
+      outfit: typeof outfit === 'string' ? outfit : fallback.outfit,
     },
     sex,
   )

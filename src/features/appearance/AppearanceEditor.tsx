@@ -5,9 +5,9 @@ import {
   hairStyleLabel,
   hairStyles,
   hairUnlockLevel,
-  OUTFIT_LABELS,
+  outfitLabel,
+  outfits,
   outfitUnlockLevel,
-  OUTFITS,
   SKIN_TONE_LABELS,
   SKIN_TONES,
   type Appearance,
@@ -22,7 +22,6 @@ const APPEARANCE_TABS: readonly { id: AppearanceTab; label: string }[] = [
   { id: 'hair', label: 'Hair' },
   { id: 'outfit', label: 'Clothing' },
 ]
-
 
 interface Option {
   value: string
@@ -96,23 +95,25 @@ export function AppearanceEditor({
             swatch: { ...appearance, skin },
             crop: 'head',
           }))
-        : OUTFITS.filter((outfit) => showLocked || outfitUnlockLevel(outfit) <= level).map((outfit) => {
-            const unlock = outfitUnlockLevel(outfit)
-            return {
-              value: outfit,
-              label: OUTFIT_LABELS[outfit],
-              swatch: { ...appearance, outfit },
-              crop: 'kit',
-              caption: unlock === 1,
-              lockedUntil: unlock > level ? unlock : undefined,
-            }
-          })
+        : outfits(sex)
+            .filter((outfit) => showLocked || outfitUnlockLevel(sex, outfit) <= level)
+            .map((outfit) => {
+              const unlock = outfitUnlockLevel(sex, outfit)
+              return {
+                value: outfit,
+                label: outfitLabel(sex, outfit),
+                swatch: { ...appearance, outfit },
+                crop: 'kit',
+                caption: unlock === 1,
+                lockedUntil: unlock > level ? unlock : undefined,
+              }
+            })
 
-  const hasLocked = OUTFITS.some((outfit) => outfitUnlockLevel(outfit) > level)
+  const hasLocked = outfits(sex).some((outfit) => outfitUnlockLevel(sex, outfit) > level)
   const hasLockedHair = hairs.some((hair) => hairUnlockLevel(sex, hair) > level)
   const note =
     tab === 'outfit'
-      ? `${OUTFIT_LABELS[appearance.outfit]}.${hasLocked ? ' New T-shirt colours unlock as you level up.' : ''}`
+      ? `${outfitLabel(sex, appearance.outfit)}.${hasLocked ? ' New shirts unlock as you level up.' : ''}`
       : tab === 'hair'
         ? `${hairStyleLabel(sex, appearance.hair)}.${hasLockedHair ? ' New hairstyles unlock as you level up.' : ''}${
             hairs.length === 1 ? ' More hairstyles for this skin tone come with new artwork.' : ''
@@ -123,7 +124,7 @@ export function AppearanceEditor({
     SEX_LABELS[sex],
     hairStyleLabel(sex, appearance.hair),
     SKIN_TONE_LABELS[appearance.skin],
-    OUTFIT_LABELS[appearance.outfit],
+    outfitLabel(sex, appearance.outfit),
   ]
     .join(', ')
     .toLowerCase()}`

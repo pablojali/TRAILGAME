@@ -1,11 +1,13 @@
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
-import { Card } from '../../components/Card'
+import { Card, Meter } from '../../components/Card'
 import { MedalIcon } from '../../components/Medal'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { Tabs } from '../../components/Tabs'
 import { RACE_CATEGORIES, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
+import { WEEKS_PER_YEAR } from '../../domain/training/calendar'
 import { weekdayShort } from '../../domain/training/weekdays'
+import { getAchievements, getSeason, type AchievementProgress } from '../../game-engine/achievements'
 import {
   getMedalTable,
   getPersonalBests,
@@ -21,7 +23,8 @@ import styles from './CareerScreen.module.css'
 const MEDALS: readonly Medal[] = ['gold', 'silver', 'bronze']
 
 const CAREER_TABS = [
-  { id: 'medals', label: 'Medals' },
+  { id: 'achievements', label: 'Achievements' },
+  { id: 'medals', label: 'Trophies' },
   { id: 'bests', label: 'Bests' },
   { id: 'history', label: 'History' },
 ] as const
@@ -48,11 +51,45 @@ export function CareerScreen() {
   const table = getMedalTable(state)
   const bests = getPersonalBests(state)
   const history = getRaceHistory(state)
+  const season = getSeason(state)
+  const achievements = getAchievements(state)
   const [params, setParams] = useSearchParams()
-  const tab = CAREER_TABS.find((t) => t.id === params.get('tab'))?.id ?? 'medals'
+  const tab = CAREER_TABS.find((t) => t.id === params.get('tab'))?.id ?? 'achievements'
 
   return (
-    <Screen title="Career" description="Your medals, personal bests and every race you have run.">
+    <Screen title="Career" description="Small steps. Big goals." showDescription>
+      {/* Room for the summit in the background picture (owner mockup). */}
+      <div className={styles.hero} aria-hidden="true" />
+      <section className={styles.season} aria-labelledby="season-title">
+        <div className={styles.seasonMain}>
+          <h2 id="season-title" className={styles.seasonTitle}>
+            Season {season.year}
+          </h2>
+          <Meter
+            label={`Season ${season.year} progress`}
+            value={season.weekOfYear}
+            max={WEEKS_PER_YEAR}
+            valueText={`Week ${season.weekOfYear} of ${WEEKS_PER_YEAR}`}
+            className={styles.seasonMeter}
+          />
+          <p className={styles.seasonLine}>
+            Week {season.weekOfYear} / {WEEKS_PER_YEAR} · {season.races} {season.races === 1 ? 'race' : 'races'} ·{' '}
+            {season.medals} {season.medals === 1 ? 'medal' : 'medals'}
+          </p>
+        </div>
+        <div className={styles.rank}>
+          <span className={styles.rankBadge} aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8l-1-3H9z" />
+            </svg>
+          </span>
+          <span className={styles.rankText}>
+            <span className={styles.rankLabel}>Best finish</span>
+            <span className={styles.rankValue}>{season.bestFinish === null ? '—' : `#${season.bestFinish}`}</span>
+          </span>
+        </div>
+      </section>
+
       {history.length === 0 && (
         <p className={styles.muted}>
           No races yet. Your medals and results appear here after your first race.{' '}
@@ -64,9 +101,16 @@ export function CareerScreen() {
         label="Career"
         tabs={CAREER_TABS}
         value={tab}
-        onChange={(next) => setParams(next === 'medals' ? {} : { tab: next }, { replace: true })}
+        onChange={(next) => setParams(next === 'achievements' ? {} : { tab: next }, { replace: true })}
       >
         <ScrollPanel label={CAREER_TABS.find((t) => t.id === tab)!.label}>
+          {tab === 'achievements' && (
+            <ul className={styles.achievements}>
+              {achievements.map((achievement) => (
+                <Achievement key={achievement.definition.id} progress={achievement} />
+              ))}
+            </ul>
+          )}
           {tab === 'medals' && (
             <Card title="Medal table">
               <table className={styles.medalTable}>
@@ -148,6 +192,57 @@ export function CareerScreen() {
         </ScrollPanel>
       </Tabs>
     </Screen>
+  )
+}
+
+/** Badge pictogram by achievement. */
+const ACHIEVEMENT_ICONS: Record<string, string> = {
+  'first-steps': 'M5 20V5l9 3-9 3',
+  'trail-explorer': 'M12 3l5 7h-3l4 5h-4l3 4H7l3-4H6l4-5H7zM12 19v2',
+  'first-summit': 'M3 20l6-10 3 5 3-4 6 9zM9 10l1.5 2.5L12 11',
+  elite: 'M4 18l2-10 4 4 2-6 2 6 4-4 2 10z',
+  podium: 'M9 13V4h6v9M3 20v-5h6v5M15 20v-7h6v7M9 20v-7h6',
+  champion: 'M7 4h10v4a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8l-1-3H9z',
+  'rising-star': 'M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z',
+  level: 'M4 20l5-6 4 3 7-10M15 7h5v5',
+  dedicated: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M8 14h3v3H8z',
+}
+
+function Achievement({ progress }: { progress: AchievementProgress }) {
+  const { definition, level, target, value, complete, reached } = progress
+  return (
+    <li className={`${styles.achievement} ${reached > 0 ? styles.achievementEarned : ''}`}>
+      <span className={styles.badge} aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d={ACHIEVEMENT_ICONS[definition.id]} />
+        </svg>
+      </span>
+      <span className={styles.achievementText}>
+        <span className={styles.achievementTitle}>{definition.title}</span>
+        <span className={styles.achievementLevel}>
+          Level {level}
+          {complete && ' · Complete'}
+        </span>
+        <span className={styles.muted}>{definition.describe(target)}</span>
+        <Meter
+          label={`${definition.title}, level ${level}`}
+          value={value}
+          max={target}
+          valueText={`${value.toLocaleString('en-US')} of ${target.toLocaleString('en-US')}`}
+          className={styles.achievementMeter}
+        />
+      </span>
+      <span className={styles.achievementCount}>
+        {complete && (
+          <span className={styles.check} aria-label="Complete">
+            ✓
+          </span>
+        )}
+        <span aria-hidden="true">
+          {value.toLocaleString('en-US')}/{target.toLocaleString('en-US')}
+        </span>
+      </span>
+    </li>
   )
 }
 

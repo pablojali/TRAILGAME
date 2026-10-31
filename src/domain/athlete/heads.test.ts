@@ -4,11 +4,15 @@ import { buildHeadCatalog, getHead, HEADS, headFile } from './heads'
 describe('head catalog', () => {
   it('keeps the saved head ids, levels and labels', () => {
     expect(HEADS.map((h) => `${h.sex} ${h.id} lvl${h.level} ${h.label} tones ${Object.keys(h.files)}`)).toEqual([
+      'male head-l1-01 lvl1 Hairstyle 1 tones 1,2,3,4',
       'female head-l1-01 lvl1 Hairstyle 1 tones 1,2,3',
+      'female head-l1-02 lvl1 Hairstyle 2 tones 1,2',
+      'female head-l5-01 lvl5 Hairstyle 3 tones 3',
     ])
     expect(headFile('female', 'head-l1-01', 2)).toBe('lvl1_women_head_01_tone2')
     expect(headFile('female', 'head-l1-01', 4)).toBeUndefined()
-    expect(getHead('male', 'head-l1-01')).toBeUndefined()
+    expect(headFile('male', 'head-l1-01', 4)).toBe('lvl1_men_head_01_tone4')
+    expect(getHead('male', 'head-l1-02')).toBeUndefined()
   })
 
   it('builds labels, levels and tones from file names', () => {

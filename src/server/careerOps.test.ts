@@ -179,7 +179,7 @@ describe('career-ops: training on the server', () => {
       athlete: {
         ...withAthlete(career, { xp: 99_999 }).athlete,
         attributes: { ...career.athlete.attributes, speed: 999 },
-        appearance: { ...career.athlete.appearance, outfit: 'white-tshirt' as const },
+        appearance: { ...career.athlete.appearance, outfit: 'shirt-l1-01' as const },
       },
       coins: 40,
     }
@@ -193,7 +193,7 @@ describe('career-ops: training on the server', () => {
     if (!expected.ok) throw new Error(expected.error)
     expect(response.body.state.athlete.xp).toBe(expected.value.state.athlete.xp)
     expect(response.body.state.athlete.attributes.speed).toBe(expected.value.state.athlete.attributes.speed)
-    expect(response.body.state.athlete.appearance.outfit).toBe('white-tshirt')
+    expect(response.body.state.athlete.appearance.outfit).toBe('shirt-l1-01')
     expect(response.body.state.coins).toBe(40)
   })
 })

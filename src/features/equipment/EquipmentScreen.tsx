@@ -3,11 +3,13 @@ import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import { Avatar } from '../../components/avatar/Avatar'
 import { Coins } from '../../components/Coins'
+import { RadarChart } from '../../components/RadarChart'
+import { ATTRIBUTE_IDS, ATTRIBUTE_LABELS } from '../../domain/athlete/athlete'
 import button from '../../components/Button.module.css'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { Chips, Tabs } from '../../components/Tabs'
 import { formatCoins } from '../../domain/economy/coins'
-import { EQUIPMENT_ITEMS, itemName, type EquipmentItem, type EquipmentSlot } from '../../domain/equipment/items'
+import { EQUIPMENT_ITEMS, getRaceEffect, itemName, type EquipmentItem, type EquipmentSlot } from '../../domain/equipment/items'
 import { isEquipped, type BuyError } from '../../game-engine/equipment'
 import styles from './EquipmentScreen.module.css'
 
@@ -36,6 +38,14 @@ function ItemArt({ item }: { item: EquipmentItem }) {
   return (
     <svg viewBox="0 0 24 24" className={styles.icon} aria-hidden="true">
       <path d={ICON_PATHS[item.slot]} />
+    </svg>
+  )
+}
+
+function SlotIcon({ slot }: { slot: EquipmentSlot }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`${styles.icon} ${styles.iconEmpty}`} aria-hidden="true">
+      <path d={ICON_PATHS[slot]} />
     </svg>
   )
 }
@@ -107,6 +117,10 @@ function EquippedTab({ onMessage, onShop }: { onMessage(text: string): void; onS
   const { state, setItemEquipped } = useCareer()
   const { athlete } = state
   const [open, setOpen] = useState<EquipmentSlot | null>(null)
+  // Race attributes with the worn equipment's bonuses, drawn as a chart beside the runner.
+  const bonus = getRaceEffect(state.equipment).attributes
+  const raceAttributes = ATTRIBUTE_IDS.map((id) => ({ id, label: ATTRIBUTE_LABELS[id], value: athlete.attributes[id] + bonus[id] }))
+  const radarMax = Math.max(25, Math.ceil((Math.max(...raceAttributes.map((a) => a.value)) * 1.2) / 5) * 5)
 
   return (
     <>
@@ -114,9 +128,21 @@ function EquippedTab({ onMessage, onShop }: { onMessage(text: string): void; onS
         <figure className={styles.preview} role="img" aria-label={`${athlete.name} with the equipment worn`}>
           <Avatar sex={athlete.sex} appearance={athlete.appearance} equipment={state.equipment} className={styles.previewArt} />
         </figure>
-        <Link to="/appearance" className={`${button.button} ${button.secondary} ${styles.lookButton}`}>
-          Change look
-        </Link>
+        <div className={styles.previewSide}>
+          <Link to="/appearance" className={`${button.button} ${button.secondary} ${styles.lookButton}`}>
+            Change look
+          </Link>
+          <div className={styles.raceChart}>
+            <RadarChart values={raceAttributes} max={radarMax} />
+            <p className={styles.chartCaption}>
+              Race attributes
+              <span className={styles.srOnly}>
+                {' '}
+                with this equipment: {raceAttributes.map((a) => `${a.label} ${Math.round(a.value * 10) / 10}`).join(', ')}
+              </span>
+            </p>
+          </div>
+        </div>
       </div>
 
       <ul className={styles.slots}>
@@ -127,8 +153,9 @@ function EquippedTab({ onMessage, onShop }: { onMessage(text: string): void; onS
           return (
             <li key={id} className={`${styles.slot} ${worn ? styles.slotWorn : ''}`}>
               <div className={styles.slotRow}>
-                <span className={styles.slotLabel}>{label}</span>
+                <span className={styles.thumb}>{worn ? <ItemArt item={worn} /> : <SlotIcon slot={id} />}</span>
                 <span className={styles.slotItem}>
+                  <span className={styles.slotLabel}>{label}</span>
                   <strong>{worn ? itemName(worn) : 'Empty'}</strong>
                   <span className={worn ? styles.effect : styles.muted}>
                     {worn ? worn.effectText?.replace(/^Races: /, '') ?? 'No race effect' : owned.length ? 'Put on an item you own' : 'Buy one in the Shop'}

@@ -12,9 +12,16 @@ import type { Sex } from './athlete'
  * URL (src/components/avatar/Avatar.tsx).
  */
 export const HEAD_FILES: readonly string[] = [
+  'lvl1_men_head_01_tone1',
+  'lvl1_men_head_01_tone2',
+  'lvl1_men_head_01_tone3',
+  'lvl1_men_head_01_tone4',
   'lvl1_women_head_01_tone1',
   'lvl1_women_head_01_tone2',
   'lvl1_women_head_01_tone3',
+  'lvl1_women_head_02_tone1',
+  'lvl1_women_head_02_tone2',
+  'lvl5_women_head_01_tone3',
 ]
 
 const NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/

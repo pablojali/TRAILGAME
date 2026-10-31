@@ -1,7 +1,8 @@
 # Avatar artwork: folders and file names (owner decisions, 30 October 2026)
 
-**Status:** bodies and heads are in the game (see DEVELOPMENT.md, "Owner's bodies and heads").
-Tops, bottoms and accessories follow the same pattern when their art arrives.
+**Status:** bodies, heads, shirts and shoes are in the game (see DEVELOPMENT.md, "Owner's
+bodies and heads" and "Owner's shirts, shoes and men's art"). Bottoms and accessories follow the
+same pattern when their art arrives.
 
 How the owner's avatar parts are organised in the repository, so the preparation script
 (`scripts/prepare_avatar_art.py`) can find them, read their unlock level and build the
@@ -13,7 +14,7 @@ Appearance options. Cosmetic only: no part gives points or race effects.
 assets/runner/
   bodies/        bodies, one per sex and skin tone (exists)
   heads/         complete heads: face and hairstyle together
-  tops/          T-shirts, vests, jackets
+  Clothing/      shirts (T-shirts, tank tops), one design per file
   bottoms/       shorts, tights
   accessories/   caps, sunglasses, bandanas, watches…
   footwear/      equipment, not cosmetics (see below)
@@ -26,7 +27,7 @@ assets/runner/
 | Part | Example | Notes |
 |---|---|---|
 | Head | `lvl1_men_head_01_tone2.png` | One file per skin tone. |
-| Top | `lvl3_unisex_top_02.png` | `men` or `women` when the cut differs. |
+| Shirt | `lvl3_men_shirt_02.png` | `men` or `women`; in `Clothing/`. |
 | Bottom | `lvl4_women_bottom_01.png` | |
 | Accessory | `lvl10_unisex_accessory_01.png` | |
 
@@ -64,11 +65,20 @@ hair and ears together) drawn over the body's own head.
 ## Not cosmetics: shoes, poles, backpack
 
 Shoes, poles and backpacks are **equipment**: bought in the shop, with race effects, and not
-unlocked by level. Their art is named by the item id, for example `trail-shoes.png`,
-`trail-shoes-light.png`, `trail-shoes-basic.png`, `poles.png`, `poles-2.png`,
-`hydration-backpack.png` and `hydration-backpack-2.png`. It replaces the current placeholders:
-the recoloured starter shoes, the vector poles and the vector vest.
+unlocked by level. Shoe art can have any name in `footwear/`; the preparation script assigns each
+file to a shop item (`FOOTWEAR` in `scripts/prepare_avatar_art.py`). Today (owner decision,
+31 October 2026):
+
+| File | Item |
+|---|---|
+| `starter_shoes_01.png` | Starter shoes |
+| `lvl1_shoes_01.png` | Trail shoes (level 1) |
+| `lvl2_shoes_01.png` | Technical trail shoes (level 2) |
+| `lvl2_shoes_02.png` | Light trail shoes (level 2) |
+| `lvl3_shoes_01.png` | none yet: prepared, waiting for a level-3 shop item |
+
+Poles and backpacks are still placeholder vector art.
 
 ## Drawing order (back to front)
 
-poles → body → head → bottoms → footwear → tops → backpack → accessories.
+poles → body → head → bottoms → footwear → shirt → backpack → accessories.

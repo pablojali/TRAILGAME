@@ -113,9 +113,16 @@ function isSessionType(value) {
 
 // src/domain/athlete/heads.ts
 var HEAD_FILES = [
+  "lvl1_men_head_01_tone1",
+  "lvl1_men_head_01_tone2",
+  "lvl1_men_head_01_tone3",
+  "lvl1_men_head_01_tone4",
   "lvl1_women_head_01_tone1",
   "lvl1_women_head_01_tone2",
-  "lvl1_women_head_01_tone3"
+  "lvl1_women_head_01_tone3",
+  "lvl1_women_head_02_tone1",
+  "lvl1_women_head_02_tone2",
+  "lvl5_women_head_01_tone3"
 ];
 var NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/;
 function buildHeadCatalog(files) {
@@ -142,21 +149,40 @@ function getHead(sex, id) {
   return HEADS.find((head) => head.sex === sex && head.id === id);
 }
 
-// src/domain/athlete/appearance.ts
-var TSHIRT_COLORS = [
-  { id: "red", label: "Red", hex: "#d6453a", level: 2 },
-  { id: "orange", label: "Orange", hex: "#f07c2a", level: 3 },
-  { id: "yellow", label: "Yellow", hex: "#f2c531", level: 4 },
-  { id: "lime", label: "Lime", hex: "#9bcf3a", level: 5 },
-  { id: "green", label: "Green", hex: "#2f9e5b", level: 6 },
-  { id: "teal", label: "Teal", hex: "#1fa3a0", level: 7 },
-  { id: "sky", label: "Sky blue", hex: "#4aa8e8", level: 8 },
-  { id: "blue", label: "Blue", hex: "#2f5fd0", level: 9 },
-  { id: "purple", label: "Purple", hex: "#7b4bc4", level: 10 },
-  { id: "pink", label: "Pink", hex: "#e0609c", level: 11 },
-  { id: "navy", label: "Navy", hex: "#24356b", level: 12 },
-  { id: "black", label: "Black", hex: "#2e2e33", level: 13 }
+// src/domain/athlete/shirts.ts
+var SHIRT_FILES = [
+  { file: "lvl1_men_shirt_01", label: "Charcoal T-shirt" },
+  { file: "lvl2_men_shirt_01", label: "Navy T-shirt" },
+  { file: "lvl3_men_shirt_01", label: "Burgundy T-shirt" },
+  { file: "lvl3_men_shirt_02", label: "Green T-shirt" },
+  { file: "lvl1_women_shirt_01", label: "Blue tank top" },
+  { file: "lvl2_women_shirt_01", label: "Coral tank top" },
+  { file: "lvl3_women_shirt_01", label: "Green tank top" }
 ];
+var NAME2 = /^lvl(\d+)_(men|women)_shirt_(\d{2})$/;
+function buildShirtCatalog(files) {
+  const shirts = [];
+  for (const { file, label } of files) {
+    const match = NAME2.exec(file);
+    if (!match) continue;
+    const [, level, sexName, design] = match;
+    shirts.push({
+      id: `shirt-l${Number(level)}-${design}`,
+      sex: sexName === "men" ? "male" : "female",
+      level: Number(level),
+      label,
+      file
+    });
+  }
+  return shirts.sort((a, b) => a.level - b.level || a.id.localeCompare(b.id));
+}
+var SHIRTS = buildShirtCatalog(SHIRT_FILES);
+function getShirt(sex, id) {
+  return SHIRTS.find((shirt) => shirt.sex === sex && shirt.id === id);
+}
+
+// src/domain/athlete/appearance.ts
+var NO_OUTFIT = "none";
 var BASIC_HAIR = "natural";
 function toneNumber(skin) {
   return Number(skin.slice("tone-".length));
@@ -171,33 +197,28 @@ var SKIN_TONES = {
   female: ["tone-1", "tone-2", "tone-3"],
   male: ["tone-1", "tone-2", "tone-3", "tone-4"]
 };
-var OUTFITS = [
-  "none",
-  "white-tshirt",
-  ...TSHIRT_COLORS.map((color) => `tshirt-${color.id}`)
-];
-var OUTFIT_LABELS = Object.fromEntries([
-  ["none", "No shirt"],
-  ["white-tshirt", "White T-shirt"],
-  ...TSHIRT_COLORS.map((color) => [`tshirt-${color.id}`, `${color.label} T-shirt`])
-]);
-function tshirtColor(outfit) {
-  return TSHIRT_COLORS.find((color) => outfit === `tshirt-${color.id}`);
+function outfits(sex) {
+  return [NO_OUTFIT, ...SHIRTS.filter((shirt) => shirt.sex === sex).map((shirt) => shirt.id)];
 }
-function outfitUnlockLevel(outfit) {
-  return tshirtColor(outfit)?.level ?? 1;
+function outfitUnlockLevel(sex, outfit) {
+  return getShirt(sex, outfit)?.level ?? 1;
+}
+function isRetiredTshirt(outfit) {
+  return outfit === "white-tshirt" || outfit.startsWith("tshirt-");
 }
 function isAppearanceUnlocked(appearance, level, sex) {
-  return outfitUnlockLevel(appearance.outfit) <= level && hairUnlockLevel(sex, appearance.hair) <= level;
+  return outfitUnlockLevel(sex, appearance.outfit) <= level && hairUnlockLevel(sex, appearance.hair) <= level;
 }
 function defaultAppearance() {
-  return { hair: BASIC_HAIR, skin: "tone-2", outfit: "none" };
+  return { hair: BASIC_HAIR, skin: "tone-2", outfit: NO_OUTFIT };
 }
 function appearanceForSex(appearance, sex) {
   const tones = SKIN_TONES[sex];
   const skin = tones.includes(appearance.skin) ? appearance.skin : tones[tones.length - 1];
   const hair = hairStyles(sex, skin).includes(appearance.hair) ? appearance.hair : BASIC_HAIR;
-  return { ...appearance, skin, hair };
+  const offered = outfits(sex);
+  const outfit = offered.includes(appearance.outfit) ? appearance.outfit : isRetiredTshirt(appearance.outfit) ? SHIRTS.find((shirt) => shirt.sex === sex && shirt.level === 1)?.id ?? NO_OUTFIT : NO_OUTFIT;
+  return { hair, skin, outfit };
 }
 function parseAppearance(value, sex) {
   const fallback = defaultAppearance();
@@ -208,7 +229,7 @@ function parseAppearance(value, sex) {
     {
       hair: typeof hair === "string" ? hair : fallback.hair,
       skin: knownSkin,
-      outfit: OUTFITS.includes(outfit) ? outfit : fallback.outfit
+      outfit: typeof outfit === "string" ? outfit : fallback.outfit
     },
     sex
   );

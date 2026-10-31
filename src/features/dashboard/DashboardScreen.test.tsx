@@ -67,13 +67,13 @@ describe('DashboardScreen — first screen', () => {
 
   it('draws the saved appearance as layers: body by sex and tone, chosen top, no shoes until equipped', async () => {
     seedCareer(
-      newGame('sprinter', T0, { name: 'Leo', sex: 'male', appearance: { hair: 'natural', skin: 'tone-3', outfit: 'white-tshirt' } }),
+      newGame('sprinter', T0, { name: 'Leo', sex: 'male', appearance: { hair: 'natural', skin: 'tone-3', outfit: 'shirt-l1-01' } }),
     )
     const view = await renderApp('/')
     const runner = screen.getByRole('img', { name: 'Leo, male runner, no equipment' })
     const avatar = runner.querySelector('svg')!
     expect(avatar).toHaveAttribute('data-skin', 'tone-3')
-    expect([...avatar.querySelectorAll('image')].map((i) => i.getAttribute('data-layer'))).toEqual(['body', 'white-tshirt'])
+    expect([...avatar.querySelectorAll('image')].map((i) => i.getAttribute('data-layer'))).toEqual(['body', 'shirt-l1-01'])
     expect(avatar.querySelector('[data-layer="body"]')!.getAttribute('href')).toMatch(/male-3/)
     view.unmount()
 
@@ -166,6 +166,7 @@ describe('DashboardScreen — Today strip (one screen, no cards)', () => {
     seedCareer()
     await renderApp('/training')
     await user.click(screen.getByRole('button', { name: 'Complete Easy run' }))
+    await waitFor(() => expect(screen.queryByText('Saving…')).toBeNull())
     await user.click(screen.getByRole('link', { name: 'Dashboard' }))
     expect(stat('XP')).toBe('9')
     expect(stat('Fitness')).toBe('20.5')

@@ -27,7 +27,7 @@ function hash(n: number): number {
 /**
  * Decorative weather for a game day (owner request, 31 October 2026): the same for the same day,
  * colder in winter weeks and warmer in summer ones (the career year starts in January). It has no
- * effect on training or races.
+ * effect on training or races. The Dashboard shows the icon only (owner feedback: no temperature).
  */
 export function weatherFor(week: number, dayIndex: number): Weather {
   const weekOfYear = ((week - 1) % WEEKS_PER_YEAR) + 1

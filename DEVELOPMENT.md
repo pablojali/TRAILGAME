@@ -959,11 +959,13 @@ Fitness 0 by week 6:
   list and sizes in `docs/UI_ART_SPEC.md`), otherwise a scene drawn in code (sunset and morning
   mountains, cabin, topographic map, starry summit). Over a scene, bars and cards are dark glass.
   New logo in the top bar (orange mountains).
-- **Dashboard:** "Higher / Further / Stronger" over the sky, name plate under it, the runner
-  centre-left, a spider chart of the six attributes (the values stay available to screen readers
-  as meters), a condition panel (Level, XP with progress to the next level, Fitness, Fatigue) and
-  decorative weather next to the day (`features/dashboard/weather.ts`: the same for the same game
-  day, colder in winter weeks; no effect on the game).
+- **Dashboard:** name plate (name, profile, level) top left, the runner filling the stage height,
+  a spider chart of the six attributes (the values stay available to screen readers as meters), a
+  compact condition panel (XP with progress to the next level, Fitness, Fatigue; 12 px text like
+  the chart) and a decorative weather icon next to the day (`features/dashboard/weather.ts`: the
+  same for the same game day; no effect on the game). Owner feedback the same day: no motto, no
+  temperature, runner bigger, no Level row in the panel, and the charts' outer ring is 50 until an
+  attribute passes 45 (`radarScale`), so a new runner's shape starts small.
 - **Equipment:** the runner with Change look and a chart of the race attributes with the worn
   equipment's bonuses; each slot shows the item's picture.
 - **Races:** each card has the race's picture (owner photo in `assets/ui/races/{race id}`, or a

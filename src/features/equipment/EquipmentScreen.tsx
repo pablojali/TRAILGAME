@@ -66,6 +66,10 @@ const SHOP_FILTERS: readonly { id: ShopFilter; label: string }[] = [
 
 type EquipmentTab = 'equipped' | 'shop'
 
+function isSlot(value: unknown): value is EquipmentSlot {
+  return SLOTS.some((slot) => slot.id === value)
+}
+
 function isShopFilter(value: unknown): value is ShopFilter {
   return SHOP_FILTERS.some((filter) => filter.id === value)
 }
@@ -103,10 +107,10 @@ function effectText(item: EquipmentItem): string {
 }
 
 /**
- * Equipment in two tabs (owner requests, 30 October and 1 November 2026): Equipped (the runner and
- * one card per slot, gels and cereal bars included) and Shop (collectible-style cards, each opening
- * a large card with its details). The tab, filter and open card are kept in the URL
- * (`?tab=shop&slot=poles&item=poles-2`).
+ * Equipment in two tabs (owner requests, 30 October and 1 November 2026): Equipped (the runner large
+ * on the left, one box per slot on the right; a box opens the cards of that slot) and Shop
+ * (collectible-style cards). Any card opens a large card with its details and actions. The tab,
+ * slot and open card are kept in the URL (`?slot=poles&item=poles-2`, `?tab=shop&slot=poles`).
  */
 export function EquipmentScreen() {
   const { state } = useCareer()
@@ -116,6 +120,7 @@ export function EquipmentScreen() {
   const askedFilter = params.get('slot')
   const filter: ShopFilter = isShopFilter(askedFilter) ? askedFilter : 'all'
   const openItem = getEquipmentItem(params.get('item') ?? '')
+  const equippedSlot = tab === 'equipped' && isSlot(askedFilter) ? askedFilter : null
 
   function show(nextTab: EquipmentTab, nextFilter: ShopFilter = filter, item?: string) {
     if (nextTab === 'equipped') return setParams({}, { replace: true })
@@ -123,6 +128,11 @@ export function EquipmentScreen() {
     if (nextFilter !== 'all') next.slot = nextFilter
     if (item) next.item = item
     setParams(next, { replace: true })
+  }
+
+  /** Equipped tab: the runner and slot boxes, a slot's cards, or one card of it. */
+  function showEquipped(slot: EquipmentSlot | null, item?: string) {
+    setParams(slot ? { slot, ...(item ? { item } : {}) } : {}, { replace: true })
   }
 
   return (
@@ -145,9 +155,20 @@ export function EquipmentScreen() {
         onChange={(next) => show(next)}
       >
         {tab === 'equipped' ? (
-          <EquippedTab onMessage={setMessage} onShop={(slot) => show('shop', slot)} />
+          equippedSlot && openItem ? (
+            <ItemDetail
+              item={openItem}
+              backLabel={SLOT_LABELS[equippedSlot]}
+              onBack={() => showEquipped(equippedSlot)}
+              onMessage={setMessage}
+            />
+          ) : equippedSlot ? (
+            <SlotCards slot={equippedSlot} onBack={() => showEquipped(null)} onOpen={(id) => showEquipped(equippedSlot, id)} />
+          ) : (
+            <EquippedTab onOpen={(slot) => showEquipped(slot)} />
+          )
         ) : openItem ? (
-          <ItemDetail item={openItem} onBack={() => show('shop', filter)} onMessage={setMessage} />
+          <ItemDetail item={openItem} backLabel="Back to shop" onBack={() => show('shop', filter)} onMessage={setMessage} />
         ) : (
           <ShopTab filter={filter} onFilter={(next) => show('shop', next)} onOpen={(id) => show('shop', filter, id)} />
         )}
@@ -160,13 +181,16 @@ export function EquipmentScreen() {
   )
 }
 
-/** The runner wearing the equipment, then one card per slot, one under the other. */
-function EquippedTab({ onMessage, onShop }: { onMessage(text: string): void; onShop(slot: EquipmentSlot): void }) {
+/**
+ * The runner large on the left, one box per slot in a column on the right (owner request,
+ * 1 November 2026). A box shows what is worn in that slot and opens the slot's cards.
+ */
+function EquippedTab({ onOpen }: { onOpen(slot: EquipmentSlot): void }) {
   const { state } = useCareer()
   const { athlete } = state
 
   return (
-    <>
+    <div className={styles.equippedLayout}>
       <div className={styles.previewArea}>
         <figure className={styles.preview} role="img" aria-label={`${athlete.name} with the equipment worn`}>
           <Avatar sex={athlete.sex} appearance={athlete.appearance} equipment={state.equipment} className={styles.previewArt} />
@@ -176,102 +200,58 @@ function EquippedTab({ onMessage, onShop }: { onMessage(text: string): void; onS
         </Link>
       </div>
 
-      <ScrollPanel label="Equipped items">
-        <ul className={styles.slots}>
-          {SLOTS.map(({ id, label }) => (
-            <SlotCard key={id} slot={id} label={label} onMessage={onMessage} onShop={onShop} />
+      <ul className={styles.slotBoxes} aria-label="Equipped items">
+        {SLOTS.map(({ id, label }) => {
+          const worn = EQUIPMENT_ITEMS.find((item) => item.slot === id && isEquipped(state, item.id))
+          return (
+            <li key={id}>
+              <button
+                type="button"
+                className={`${styles.slotBox} ${worn ? styles.slotWorn : ''}`}
+                aria-label={`${label}: ${worn ? itemName(worn) : 'empty'}. Show ${label.toLowerCase()} cards`}
+                onClick={() => onOpen(id)}
+              >
+                <span className={styles.boxArt}>
+                  {worn ? <ItemArt item={worn} /> : <SlotIcon slot={id} className={styles.iconEmpty} />}
+                </span>
+                <span className={styles.slotLabel}>{label}</span>
+                <span className={styles.boxName}>
+                  {worn ? worn.label : 'Empty'}
+                  {worn?.level !== undefined && <span className={styles.levelBadge}>Lvl {worn.level}</span>}
+                </span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+/** The cards of one slot (every item of that type, owned or not); a card opens its large card. */
+function SlotCards({ slot, onBack, onOpen }: { slot: EquipmentSlot; onBack(): void; onOpen(itemId: string): void }) {
+  const heading = useRef<HTMLHeadingElement>(null)
+  useEffect(() => heading.current?.focus(), [])
+  return (
+    <>
+      <div className={styles.sheetHeader}>
+        <button type="button" className={styles.back} onClick={onBack}>
+          ← Equipped
+        </button>
+        <h2 ref={heading} tabIndex={-1} className={styles.sheetTitle}>
+          {SLOT_LABELS[slot]}
+        </h2>
+      </div>
+      <ScrollPanel label={`${SLOT_LABELS[slot]} cards`}>
+        <ul className={styles.cardGrid}>
+          {EQUIPMENT_ITEMS.filter((item) => item.slot === slot).map((item) => (
+            <li key={item.id}>
+              <ItemCard item={item} onOpen={onOpen} />
+            </li>
           ))}
         </ul>
       </ScrollPanel>
     </>
-  )
-}
-
-/** One slot as a card: the worn item (picture, name, level, effect) or Empty, with Change or Shop. */
-function SlotCard({
-  slot,
-  label,
-  onMessage,
-  onShop,
-}: {
-  slot: EquipmentSlot
-  label: string
-  onMessage(text: string): void
-  onShop(slot: EquipmentSlot): void
-}) {
-  const { state, setItemEquipped } = useCareer()
-  const [open, setOpen] = useState(false)
-  // One equipment change at a time: the server confirms each before the next.
-  const [changing, setChanging] = useState<string | null>(null)
-  const pending = useRef(false)
-  const worn = EQUIPMENT_ITEMS.find((item) => item.slot === slot && isEquipped(state, item.id))
-  const owned = EQUIPMENT_ITEMS.filter((item) => item.slot === slot && state.ownedEquipment.includes(item.id))
-  const forSale = EQUIPMENT_ITEMS.some((item) => item.slot === slot && item.price !== null)
-
-  return (
-    <li className={`${styles.slot} ${worn ? styles.slotWorn : ''}`}>
-      <div className={styles.slotRow}>
-        <span className={styles.thumb}>{worn ? <ItemArt item={worn} /> : <SlotIcon slot={slot} className={styles.iconEmpty} />}</span>
-        <span className={styles.slotItem}>
-          <span className={styles.slotLabel}>{label}</span>
-          <span className={styles.slotName}>
-            <strong>{worn ? worn.label : 'Empty'}</strong>
-            {worn?.level !== undefined && <span className={styles.levelBadge}>Lvl {worn.level}</span>}
-          </span>
-          <span className={worn ? styles.effect : styles.muted}>
-            {worn
-              ? effectText(worn)
-              : owned.length
-                ? 'Put on an item you own'
-                : forSale
-                  ? 'Buy one in the Shop'
-                  : 'Not in the Shop yet'}
-          </span>
-        </span>
-        {owned.length > 0 ? (
-          <button type="button" className={styles.slotAction} aria-expanded={open} onClick={() => setOpen(!open)}>
-            {open ? 'Done' : 'Change'}
-            <span className={styles.srOnly}> {label.toLowerCase()}</span>
-          </button>
-        ) : (
-          <button type="button" className={styles.slotAction} onClick={() => onShop(slot)}>
-            Shop<span className={styles.srOnly}> {label.toLowerCase()}</span>
-          </button>
-        )}
-      </div>
-      {open && (
-        <ul className={styles.choices}>
-          {owned.map((item) => {
-            const equipped = isEquipped(state, item.id)
-            return (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className={`${styles.choice} ${equipped ? styles.choiceOn : ''}`}
-                  aria-disabled={changing !== null || undefined}
-                  onClick={async () => {
-                    if (pending.current) return
-                    pending.current = true
-                    setChanging(item.id)
-                    const error = await setItemEquipped(item.id, !equipped)
-                    pending.current = false
-                    setChanging(null)
-                    onMessage(error ? EQUIP_ERRORS[error] : `${itemName(item)} ${equipped ? 'taken off' : 'equipped'}.`)
-                  }}
-                >
-                  {changing === item.id ? 'Saving…' : `${equipped ? 'Take off' : 'Equip'} ${itemName(item).toLowerCase()}`}
-                </button>
-              </li>
-            )
-          })}
-          <li>
-            <button type="button" className={styles.choice} onClick={() => onShop(slot)}>
-              Shop for {label.toLowerCase()}
-            </button>
-          </li>
-        </ul>
-      )}
-    </li>
   )
 }
 
@@ -294,7 +274,6 @@ function ShopTab({
   onFilter(filter: ShopFilter): void
   onOpen(itemId: string): void
 }) {
-  const { state } = useCareer()
   const items = EQUIPMENT_ITEMS.filter((item) => filter === 'all' || item.slot === filter)
   return (
     <>
@@ -304,45 +283,62 @@ function ShopTab({
       </div>
       <ScrollPanel label="Shop items">
         <ul className={styles.cardGrid}>
-          {items.map((item) => {
-            const owned = state.ownedEquipment.includes(item.id)
-            const worn = isEquipped(state, item.id)
-            const status = shopStatus(item, state.coins, owned, worn)
-            return (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className={styles.card}
-                  aria-label={`${itemName(item)}, ${item.price === null ? `price ${TO_BE_DEFINED.toLowerCase()}` : item.price === 0 ? 'free' : formatCoins(item.price)}, ${status.text}`}
-                  onClick={() => onOpen(item.id)}
-                >
-                  <span className={styles.cardTop}>
-                    {item.level !== undefined ? <span className={styles.cardLevel}>Lvl {item.level}</span> : <span />}
-                    <span className={styles.cardType}>{SLOT_LABELS[item.slot]}</span>
-                  </span>
-                  <span className={styles.cardName}>{item.label}</span>
-                  <span className={styles.cardArt}>
-                    <ItemArt item={item} />
-                  </span>
-                  <span className={styles.cardValues}>
-                    {bonuses(item).length ? bonuses(item).join(' · ') : item.price === null ? `Effects: ${TO_BE_DEFINED.toLowerCase()}` : 'No attribute bonus'}
-                  </span>
-                  <span className={styles.cardPrice}>
-                    {item.price === null ? TO_BE_DEFINED : item.price === 0 ? 'Free' : <Coins amount={item.price} />}
-                  </span>
-                  <span className={`${styles.cardStatus} ${status.tone}`}>{status.text}</span>
-                </button>
-              </li>
-            )
-          })}
+          {items.map((item) => (
+            <li key={item.id}>
+              <ItemCard item={item} onOpen={onOpen} />
+            </li>
+          ))}
         </ul>
       </ScrollPanel>
     </>
   )
 }
 
+/** A collectible-style card: level, type, name, picture, bonuses, price and a status bar. */
+function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string): void }) {
+  const { state } = useCareer()
+  const owned = state.ownedEquipment.includes(item.id)
+  const worn = isEquipped(state, item.id)
+  const status = shopStatus(item, state.coins, owned, worn)
+  return (
+    <button
+      type="button"
+      className={styles.card}
+      aria-label={`${itemName(item)}, ${item.price === null ? `price ${TO_BE_DEFINED.toLowerCase()}` : item.price === 0 ? 'free' : formatCoins(item.price)}, ${status.text}`}
+      onClick={() => onOpen(item.id)}
+    >
+      <span className={styles.cardTop}>
+        {item.level !== undefined ? <span className={styles.cardLevel}>Lvl {item.level}</span> : <span />}
+        <span className={styles.cardType}>{SLOT_LABELS[item.slot]}</span>
+      </span>
+      <span className={styles.cardName}>{item.label}</span>
+      <span className={styles.cardArt}>
+        <ItemArt item={item} />
+      </span>
+      <span className={styles.cardValues}>
+        {bonuses(item).length ? bonuses(item).join(' · ') : item.price === null ? `Effects: ${TO_BE_DEFINED.toLowerCase()}` : 'No attribute bonus'}
+      </span>
+      <span className={styles.cardPrice}>
+        {item.price === null ? TO_BE_DEFINED : item.price === 0 ? 'Free' : <Coins amount={item.price} />}
+      </span>
+      <span className={`${styles.cardStatus} ${status.tone}`}>{status.text}</span>
+    </button>
+  )
+}
+
 /** The large card of an item: picture, name, type, level, bonuses, price and its actions. */
-function ItemDetail({ item, onBack, onMessage }: { item: EquipmentItem; onBack(): void; onMessage(text: string): void }) {
+function ItemDetail({
+  item,
+  backLabel,
+  onBack,
+  onMessage,
+}: {
+  item: EquipmentItem
+  /** Where Back goes: the shop, or the slot's cards in Equipped. */
+  backLabel: string
+  onBack(): void
+  onMessage(text: string): void
+}) {
   const { state, buyItem, setItemEquipped } = useCareer()
   const heading = useRef<HTMLHeadingElement>(null)
   const [confirming, setConfirming] = useState(false)
@@ -372,7 +368,7 @@ function ItemDetail({ item, onBack, onMessage }: { item: EquipmentItem; onBack()
   return (
     <article className={styles.detail} aria-labelledby="item-detail-title">
       <button type="button" className={styles.back} onClick={onBack}>
-        ← Back to shop
+        ← {backLabel}
       </button>
       <div className={styles.bigCard}>
         <span className={styles.cardTop}>

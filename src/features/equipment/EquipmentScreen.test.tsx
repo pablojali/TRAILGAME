@@ -9,53 +9,60 @@ function layers(name: RegExp) {
 }
 
 describe('Equipment', () => {
-  it('lists the starter shoes, equips them on the avatar and takes them off, saving each change', async () => {
+  it('shows the runner on the left and one box per slot on the right, gels and cereal bars included', async () => {
+    seedCareer({ ...newGame(), ownedEquipment: ['starter-shoes', 'poles-2'], equipment: ['poles-2'] })
+    await renderApp('/equipment')
+    expect(screen.getByRole('heading', { level: 1, name: 'Equipment' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Equipped' })).toHaveAttribute('aria-selected', 'true')
+    expect(layers(/with the equipment worn/)).toEqual(['body'])
+    const boxes = within(screen.getByRole('list', { name: 'Equipped items' })).getAllByRole('button')
+    expect(boxes.map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Shoes: empty. Show shoes cards',
+      'Poles: Poles · Lvl 2. Show poles cards',
+      'Backpack: empty. Show backpack cards',
+      'Gels: empty. Show gels cards',
+      'Cereal bars: empty. Show cereal bars cards',
+    ])
+    expect(screen.queryByText(/Race attributes/)).not.toBeInTheDocument()
+  })
+
+  it('opens the cards of a slot, then a card, and equips and takes it off, saving each change', async () => {
     const user = userEvent.setup()
     seedCareer()
     const view = await renderApp('/equipment')
-    expect(screen.getByRole('heading', { level: 1, name: 'Equipment' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Equipped' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByText('Put on an item you own')).toBeInTheDocument()
     expect(layers(/with the equipment worn/)).toEqual(['body'])
 
-    const change = screen.getByRole('button', { name: 'Change shoes' })
-    await user.click(change)
-    expect(change).toHaveAttribute('aria-expanded', 'true')
+    await user.click(screen.getByRole('button', { name: /^Shoes: empty/ }))
+    expect(screen.getByRole('heading', { level: 2, name: 'Shoes' })).toHaveFocus()
+    const cards = within(screen.getByRole('region', { name: 'Shoes cards' })).getAllByRole('button')
+    expect(cards.map((c) => c.getAttribute('aria-label'))).toEqual([
+      'Starter shoes, free, Owned',
+      'Trail shoes · Lvl 1, 35 coins, Need 10 coins more',
+      'Technical trail shoes · Lvl 2, 70 coins, Need 45 coins more',
+      'Light trail shoes · Lvl 2, 70 coins, Need 45 coins more',
+    ])
+    await user.click(cards[0]!)
+    expect(screen.getByRole('heading', { level: 2, name: 'Starter shoes' })).toHaveFocus()
     await user.click(screen.getByRole('button', { name: 'Equip starter shoes' }))
     await settled()
-    expect(screen.getByText('Starter shoes', { selector: 'strong' })).toBeInTheDocument()
     expect(screen.getByText('Starter shoes equipped.')).toHaveAttribute('role', 'status')
-    expect(layers(/with the equipment worn/)).toEqual(['body', 'starter-shoes'])
     expect(readSave()!.state.equipment).toEqual(['starter-shoes'])
+    await user.click(screen.getByRole('button', { name: 'Take off starter shoes' }))
+    await settled()
+    expect(readSave()!.state.equipment).toEqual([])
+    await user.click(screen.getByRole('button', { name: 'Equip starter shoes' }))
+    await settled()
+
+    // Back to the slot's cards, then to the runner, wearing the shoes.
+    await user.click(screen.getByRole('button', { name: '← Shoes' }))
+    expect(within(screen.getByRole('region', { name: 'Shoes cards' })).getByRole('button', { name: 'Starter shoes, free, Equipped' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '← Equipped' }))
+    expect(layers(/with the equipment worn/)).toEqual(['body', 'starter-shoes'])
+    expect(screen.getByRole('button', { name: 'Shoes: Starter shoes. Show shoes cards' })).toBeInTheDocument()
     view.unmount()
 
     await renderApp('/')
     expect(screen.getByRole('img', { name: /wearing starter shoes/ })).toBeInTheDocument()
-  })
-
-  it('takes the shoes off', async () => {
-    const user = userEvent.setup()
-    seedCareer({ ...newGame(), equipment: ['starter-shoes'] })
-    await renderApp('/equipment')
-    await user.click(screen.getByRole('button', { name: 'Change shoes' }))
-    await user.click(screen.getByRole('button', { name: 'Take off starter shoes' }))
-    await settled()
-    expect(readSave()!.state.equipment).toEqual([])
-    expect(screen.getByText('Starter shoes taken off.')).toHaveAttribute('role', 'status')
-  })
-
-  it('shows one card per slot, gels and cereal bars included, and no attribute chart', async () => {
-    seedCareer({ ...newGame(), ownedEquipment: ['starter-shoes', 'poles-2'], equipment: ['poles-2'] })
-    await renderApp('/equipment')
-    const cards = within(screen.getByRole('region', { name: 'Equipped items' })).getAllByRole('listitem')
-    expect(cards.map((c) => c.textContent)).toEqual([
-      'ShoesEmptyPut on an item you ownChange shoes',
-      'PolesPolesLvl 2Climbing +3, Endurance +1, but flats 1% slower.Change poles',
-      'BackpackEmptyBuy one in the ShopShop backpack',
-      'GelsEmptyNot in the Shop yetShop gels',
-      'Cereal barsEmptyNot in the Shop yetShop cereal bars',
-    ])
-    expect(screen.queryByText(/Race attributes/)).not.toBeInTheDocument()
   })
 
   it('shows the shop as cards, opens a large card and buys with a confirmation, then equips', async () => {
@@ -63,9 +70,8 @@ describe('Equipment', () => {
     seedCareer({ ...newGame(), coins: 60 })
     await renderApp('/equipment')
     expect(screen.getByText('Balance').parentElement).toHaveTextContent('Balance 60 coins')
-    // Poles: nothing owned yet, so the card offers the shop filtered to poles.
-    await user.click(screen.getByRole('button', { name: 'Shop poles' }))
-    expect(screen.getByRole('tab', { name: 'Shop' })).toHaveAttribute('aria-selected', 'true')
+    await user.click(screen.getByRole('tab', { name: 'Shop' }))
+    await user.click(screen.getByRole('button', { name: 'Poles' }))
     expect(screen.getByRole('button', { name: 'Poles' })).toHaveAttribute('aria-pressed', 'true')
     const grid = () => screen.getByRole('region', { name: 'Shop items' })
     expect(within(grid()).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([

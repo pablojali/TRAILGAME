@@ -954,9 +954,11 @@ Fitness 0 by week 6:
 
 ### Equipment screen redesign, gels and cereal bars (owner request, 1 November 2026)
 
-- **Equipped:** the runner (Change look), then one card per slot in a scrolling list: shoes,
-  poles, backpack, gels, cereal bars; each with the worn item's picture, name, level badge and race
-  effect, or Empty, and Change / Shop. The race-attribute spider chart is gone.
+- **Equipped:** the runner large on the left (Change look) and one box per slot in a column on the
+  right: shoes, poles, backpack, gels, cereal bars, each with the worn item's picture, name and
+  level, or Empty. A box opens the cards of that slot (`?slot=`; every item of the type, owned or
+  not), and a card opens its large card (`?slot=&item=`) to equip, take off or buy. The
+  race-attribute spider chart is gone.
 - **Shop:** collectible-style cards in a grid (level top left, type, name, picture, attribute
   bonuses, price, and a status bar: Buy, Need N more, Owned, Equipped, Not for sale yet), filtered
   by type (All by default). A card opens a large card (`?item=`): picture, type, level, race effect,

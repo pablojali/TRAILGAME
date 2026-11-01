@@ -8,7 +8,14 @@ import { Screen, ScrollPanel } from '../../components/Screen'
 import { Chips, Tabs } from '../../components/Tabs'
 import { ATTRIBUTE_LABELS, type AttributeId } from '../../domain/athlete/athlete'
 import { formatCoins } from '../../domain/economy/coins'
-import { EQUIPMENT_ITEMS, getEquipmentItem, itemName, type EquipmentItem, type EquipmentSlot } from '../../domain/equipment/items'
+import {
+  EQUIPMENT_ITEMS,
+  getEquipmentItem,
+  isConsumable,
+  itemName,
+  type EquipmentItem,
+  type EquipmentSlot,
+} from '../../domain/equipment/items'
 import { isEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './EquipmentScreen.module.css'
@@ -26,6 +33,7 @@ const BUY_ERRORS: Record<BuyError | ServerError, string> = {
 const EQUIP_ERRORS: Record<EquipError | ServerError, string> = {
   'unknown-item': 'That item does not exist.',
   'not-owned': 'You do not own that item.',
+  consumable: 'Gels and cereal bars are not worn: choose them before a race.',
   offline: 'Could not reach the server, so your equipment did not change. Check your connection and try again.',
   'server-error': 'The server could not change your equipment. Try again.',
 }
@@ -104,6 +112,11 @@ function bonuses(item: EquipmentItem): string[] {
   return Object.entries(item.raceEffect?.attributes ?? {}).map(
     ([id, value]) => `${ATTRIBUTE_LABELS[id as AttributeId]} +${value}`,
   )
+}
+
+/** Units in stock of a consumable, e.g. "2 in stock". */
+function stockText(count: number): string {
+  return `${count} in stock`
 }
 
 /** What the item does in races, in words; "To be defined" for items without defined effects. */
@@ -208,6 +221,26 @@ function EquippedTab({ onOpen }: { onOpen(slot: EquipmentSlot): void }) {
 
       <ul className={styles.slotBoxes} aria-label="Equipped items">
         {SLOTS.map(({ id, label }) => {
+          if (id === 'gel' || id === 'bar') {
+            // Gels and cereal bars are counted, not worn: the box shows the stock.
+            const count = state.consumables[id]
+            return (
+              <li key={id}>
+                <button
+                  type="button"
+                  className={`${styles.slotBox} ${count > 0 ? styles.slotWorn : ''}`}
+                  aria-label={`${label}: ${stockText(count)}. Show ${label.toLowerCase()} cards`}
+                  onClick={() => onOpen(id)}
+                >
+                  <span className={styles.boxArt}>
+                    <SlotIcon slot={id} className={count > 0 ? undefined : styles.iconEmpty} />
+                  </span>
+                  <span className={styles.slotLabel}>{label}</span>
+                  <span className={styles.boxName}>×{count}</span>
+                </button>
+              </li>
+            )
+          }
           const worn = EQUIPMENT_ITEMS.find((item) => item.slot === id && isEquipped(state, item.id))
           return (
             <li key={id}>
@@ -263,6 +296,11 @@ function SlotCards({ slot, onBack, onOpen }: { slot: EquipmentSlot; onBack(): vo
 
 /** The status at the bottom of a shop card: owned, worn, price or what is missing. */
 function shopStatus(item: EquipmentItem, coins: number, owned: boolean, worn: boolean): { text: string; tone: string } {
+  if (isConsumable(item)) {
+    const short = item.price === null ? 0 : item.price - coins
+    if (short > 0) return { text: `Need ${formatCoins(short)} more`, tone: styles.statusShort! }
+    return { text: `Buy pack of ${item.packSize}`, tone: styles.statusBuy! }
+  }
   if (worn) return { text: 'Equipped', tone: styles.statusWorn! }
   if (owned) return { text: 'Owned', tone: styles.statusOwned! }
   if (item.price === null) return { text: 'Not for sale yet', tone: styles.statusPending! }
@@ -310,7 +348,7 @@ function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string
     <button
       type="button"
       className={styles.card}
-      aria-label={`${itemName(item)}, ${item.price === null ? `price ${TO_BE_DEFINED.toLowerCase()}` : item.price === 0 ? 'free' : formatCoins(item.price)}, ${status.text}`}
+      aria-label={`${itemName(item)}, ${item.price === null ? `price ${TO_BE_DEFINED.toLowerCase()}` : item.price === 0 ? 'free' : formatCoins(item.price)}${isConsumable(item) ? `, ${stockText(state.consumables[item.slot])}` : ''}, ${status.text}`}
       onClick={() => onOpen(item.id)}
     >
       <span className={styles.cardTop}>
@@ -322,7 +360,13 @@ function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string
         <ItemArt item={item} />
       </span>
       <span className={styles.cardValues}>
-        {bonuses(item).length ? bonuses(item).join(' · ') : item.price === null ? `Effects: ${TO_BE_DEFINED.toLowerCase()}` : 'No attribute bonus'}
+        {isConsumable(item)
+          ? `${effectText(item).replace(/ Used up by the race\.$/, '')} · ${stockText(state.consumables[item.slot])}`
+          : bonuses(item).length
+            ? bonuses(item).join(' · ')
+            : item.price === null
+              ? `Effects: ${TO_BE_DEFINED.toLowerCase()}`
+              : 'No attribute bonus'}
       </span>
       <span className={styles.cardPrice}>
         {item.price === null ? TO_BE_DEFINED : item.price === 0 ? 'Free' : <Coins amount={item.price} />}
@@ -352,9 +396,12 @@ function ItemDetail({
   // Purchases and equipment changes wait for the server; a second tap meanwhile does nothing.
   const [busy, setBusy] = useState<'paying' | 'equipping' | null>(null)
   const pending = useRef(false)
-  const owned = state.ownedEquipment.includes(item.id)
+  const consumable = isConsumable(item)
+  const stock = consumable ? state.consumables[item.slot] : 0
+  const owned = !consumable && state.ownedEquipment.includes(item.id)
   const worn = isEquipped(state, item.id)
   const price = item.price
+  const what = consumable ? `${item.label} pack of ${item.packSize}` : itemName(item)
   const shortfall = price === null ? 0 : Math.max(0, price - state.coins)
   const shortfallId = `${item.id}-shortfall`
 
@@ -396,6 +443,18 @@ function ItemDetail({
             <dt>Level</dt>
             <dd>{item.level ?? (item.price === null ? TO_BE_DEFINED : '—')}</dd>
           </div>
+          {consumable && (
+            <>
+              <div>
+                <dt>Pack</dt>
+                <dd>{item.packSize} units</dd>
+              </div>
+              <div>
+                <dt>In stock</dt>
+                <dd>{stock}</dd>
+              </div>
+            </>
+          )}
           <div>
             <dt>Race effect</dt>
             <dd className={item.effectText ? styles.effect : undefined}>{effectText(item)}</dd>
@@ -463,7 +522,7 @@ function ItemDetail({
                   const failure = await buyItem(item.id, price)
                   if (failure) return BUY_ERRORS[failure]
                   setConfirming(false)
-                  onMessage(`${itemName(item)} bought for ${formatCoins(price)}.`)
+                  onMessage(`${what} bought for ${formatCoins(price)}.`)
                   return null
                 })
               }
@@ -483,7 +542,8 @@ function ItemDetail({
               setConfirming(true)
             }}
           >
-            Buy<span className={styles.srOnly}> {itemName(item).toLowerCase()}</span>
+            {consumable ? `Buy pack of ${item.packSize}` : 'Buy'}
+            <span className={styles.srOnly}> {(consumable ? item.label : itemName(item)).toLowerCase()}</span>
           </button>
         )}
       </div>

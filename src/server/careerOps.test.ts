@@ -332,13 +332,19 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     expect(memory.commits()).toBe(0)
   })
 
-  it('refuses items with no price yet (gels and cereal bars), charging nothing', async () => {
+  it('sells gel and cereal bar packs once per operation, refusing a wrong price or equipping them', async () => {
     const memory = memoryStore()
-    memory.seed('ana', rich(1000))
-    expect((await call(memory, { action: 'buy', operationId: op(1), itemId: 'energy-gel', price: 0 })).body).toMatchObject({ ok: false, error: 'not-for-sale' })
-    expect((await call(memory, { action: 'buy', operationId: op(2), itemId: 'cereal-bar', price: 0 })).body).toMatchObject({ ok: false, error: 'not-for-sale' })
-    expect(memory.stateOf('ana')).toMatchObject({ coins: 1000, ownedEquipment: ['starter-shoes'] })
-    expect(memory.commits()).toBe(0)
+    memory.seed('ana', rich(25))
+    expect((await call(memory, { action: 'buy', operationId: op(1), itemId: 'energy-gel', price: 0 })).body).toMatchObject({ ok: false, error: 'price-changed' })
+    const first = await call(memory, { action: 'buy', operationId: op(2), itemId: 'energy-gel', price: 10 })
+    expect(first.body).toMatchObject({ ok: true, state: { coins: 15, consumables: { gel: 3, bar: 0 } } })
+    // The same operation again is replayed, never charged twice.
+    const replay = await call(memory, { action: 'buy', operationId: op(2), itemId: 'energy-gel', price: 10 })
+    expect(replay.body).toMatchObject({ ok: true, state: { coins: 15, consumables: { gel: 3, bar: 0 } } })
+    await call(memory, { action: 'buy', operationId: op(3), itemId: 'cereal-bar', price: 10 })
+    expect(memory.stateOf('ana')).toMatchObject({ coins: 5, consumables: { gel: 3, bar: 3 }, ownedEquipment: ['starter-shoes'] })
+    expect((await call(memory, { action: 'equip', operationId: op(4), itemId: 'energy-gel', equipped: true })).body).toMatchObject({ ok: false, error: 'consumable' })
+    expect(memory.commits()).toBe(2)
   })
 
   it('ignores coins and items in the snapshot sent with a purchase', async () => {

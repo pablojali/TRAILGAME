@@ -10,7 +10,7 @@ function layers(name: RegExp) {
 
 describe('Equipment', () => {
   it('shows the runner on the left and one box per slot on the right, gels and cereal bars included', async () => {
-    seedCareer({ ...newGame(), ownedEquipment: ['starter-shoes', 'poles-2'], equipment: ['poles-2'] })
+    seedCareer({ ...newGame(), ownedEquipment: ['starter-shoes', 'poles-2'], equipment: ['poles-2'], consumables: { gel: 2, bar: 0 } })
     await renderApp('/equipment')
     expect(screen.getByRole('heading', { level: 1, name: 'Equipment' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Equipped' })).toHaveAttribute('aria-selected', 'true')
@@ -18,8 +18,9 @@ describe('Equipment', () => {
     const boxes = within(screen.getByRole('list', { name: 'Equipped items' })).getAllByRole('button')
     // Owner's order: gels, cereal bars, shoes, backpack, poles.
     expect(boxes.map((b) => b.getAttribute('aria-label'))).toEqual([
-      'Gels: empty. Show gels cards',
-      'Cereal bars: empty. Show cereal bars cards',
+      // Gels and cereal bars are counted, not worn.
+      'Gels: 2 in stock. Show gels cards',
+      'Cereal bars: 0 in stock. Show cereal bars cards',
       'Shoes: empty. Show shoes cards',
       'Backpack: empty. Show backpack cards',
       'Poles: Poles · Lvl 2. Show poles cards',
@@ -85,17 +86,24 @@ describe('Equipment', () => {
     // Same order as the slots: gels and cereal bars first, poles last.
     expect(within(grid()).getAllByRole('button')[0]).toHaveAccessibleName(/^Energy gel/)
     expect(within(grid()).getAllByRole('button')[9]).toHaveAccessibleName(/^Poles · Lvl 2/)
-    expect(within(grid()).getByRole('button', { name: 'Energy gel, price to be defined, Not for sale yet' })).toBeInTheDocument()
+    expect(within(grid()).getByRole('button', { name: 'Energy gel, 10 coins, 0 in stock, Buy pack of 3' })).toBeInTheDocument()
     expect(within(grid()).getByRole('button', { name: 'Hydration backpack · Lvl 2, 90 coins, Need 30 coins more' })).toBeInTheDocument()
 
-    // The large card of an item without defined values says so and cannot be bought.
+    // Cereal bars: a pack of 3 for 10 coins, bought with a confirmation, never equipped.
     await user.click(within(grid()).getByRole('button', { name: /^Cereal bar,/ }))
     expect(screen.getByRole('heading', { level: 2, name: 'Cereal bar' })).toHaveFocus()
-    expect(screen.getByText('Price').nextElementSibling).toHaveTextContent('To be defined')
-    expect(screen.getByText('Race effect').nextElementSibling).toHaveTextContent('To be defined')
-    expect(screen.getByText('Not for sale yet.')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Buy/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Pack').nextElementSibling).toHaveTextContent('3 units')
+    expect(screen.getByText('In stock').nextElementSibling).toHaveTextContent('0')
+    expect(screen.getByText('Race effect').nextElementSibling).toHaveTextContent('1.5% less fatigue for the whole race.')
+    await user.click(screen.getByRole('button', { name: 'Buy pack of 3 cereal bar' }))
+    await user.dblClick(screen.getByRole('button', { name: 'Pay 10 coins' }))
+    await settled()
+    expect(readSave()!.state).toMatchObject({ coins: 50, consumables: { gel: 0, bar: 3 }, ownedEquipment: ['starter-shoes'] })
+    expect(screen.getByText('Cereal bar pack of 3 bought for 10 coins.')).toBeInTheDocument()
+    expect(screen.getByText('In stock').nextElementSibling).toHaveTextContent('3')
+    expect(screen.queryByRole('button', { name: /^Equip/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '← Back to shop' }))
+    await user.click(screen.getByRole('button', { name: 'Poles' }))
 
     // Poles lvl 2: large card with its details, then buy with a confirmation, charged once.
     await user.click(within(grid()).getByRole('button', { name: /^Poles · Lvl 2/ }))
@@ -103,11 +111,11 @@ describe('Equipment', () => {
     expect(screen.getByText('Level').nextElementSibling).toHaveTextContent('2')
     expect(screen.getByText('Race effect').nextElementSibling).toHaveTextContent('Climbing +3, Endurance +1, but flats 1% slower.')
     await user.click(screen.getByRole('button', { name: 'Buy poles · lvl 2' }))
-    expect(screen.getByText('Balance 60 coins → 10 coins.')).toBeInTheDocument()
-    expect(readSave()!.state.coins).toBe(60)
+    expect(screen.getByText('Balance 50 coins → 0 coins.')).toBeInTheDocument()
+    expect(readSave()!.state.coins).toBe(50)
     await user.dblClick(screen.getByRole('button', { name: 'Pay 50 coins' }))
     await settled()
-    expect(readSave()!.state).toMatchObject({ coins: 10, ownedEquipment: ['starter-shoes', 'poles-2'], equipment: [] })
+    expect(readSave()!.state).toMatchObject({ coins: 0, ownedEquipment: ['starter-shoes', 'poles-2'], equipment: [] })
     expect(screen.getByText('Poles · Lvl 2 bought for 50 coins.')).toBeInTheDocument()
 
     // Owned: the large card now offers Equip.

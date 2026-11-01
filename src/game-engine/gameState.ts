@@ -66,8 +66,15 @@ export interface GameState {
   raceEntries: RaceEntry[]
   /** Equipped item ids, at most one per slot, all owned. Cosmetic for now (Game Design Bible §8). */
   equipment: string[]
-  /** Item ids the runner owns: the starting equipment plus shop purchases. */
+  /** Item ids the runner owns: the starting equipment plus shop purchases. Never a consumable. */
   ownedEquipment: string[]
+  /** Gels and cereal bars in stock (whole units, never negative). A race uses at most one of each. */
+  consumables: Consumables
+}
+
+export interface Consumables {
+  gel: number
+  bar: number
 }
 
 /**
@@ -192,6 +199,7 @@ export function createInitialGameState(
     raceEntries: [],
     equipment: [],
     ownedEquipment: [...OWNED_FROM_START],
+    consumables: { gel: 0, bar: 0 },
   }
 }
 

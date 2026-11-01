@@ -420,23 +420,31 @@ var EQUIPMENT_ITEMS = [
     raceEffect: { attributes: { endurance: 2 }, slowdown: 0.85 },
     effectText: "Races: Endurance +2, 15% less wear over distance."
   },
-  // Gels and cereal bars (owner request, 1 November 2026). Their race effects, level and price
-  // will be defined later: until then they have none, are not for sale and change no calculation.
+  // Gels and cereal bars (owner decisions, 1 November 2026): consumables sold in packs of 3 for 10
+  // coins. The runner takes at most 1 gel and 1 bar to a race, which uses them up; one of each is
+  // enough for the whole race. Their race bonus lives in the race engine (RACE_NUTRITION).
   {
     id: "energy-gel",
     label: "Energy gel",
     slot: "gel",
-    description: "Energy gel for races.",
-    price: null
+    description: "Energy gel for races. One is enough for a whole race.",
+    price: 10,
+    packSize: 3,
+    effectText: "Races: 1.5% faster for the whole race. Used up by the race."
   },
   {
     id: "cereal-bar",
     label: "Cereal bar",
     slot: "bar",
-    description: "Cereal bar for races.",
-    price: null
+    description: "Cereal bar for races. One is enough for a whole race.",
+    price: 10,
+    packSize: 3,
+    effectText: "Races: 1.5% less fatigue for the whole race. Used up by the race."
   }
 ];
+function isConsumable(item) {
+  return item.packSize !== void 0;
+}
 var OWNED_FROM_START = ["starter-shoes"];
 function getEquipmentItem(id) {
   return EQUIPMENT_ITEMS.find((item) => item.id === id);
@@ -469,6 +477,7 @@ function getRaceEffect(equipment) {
 function setItemEquipped(state, itemId, equipped) {
   const item = getEquipmentItem(itemId);
   if (!item) return { ok: false, error: "unknown-item" };
+  if (isConsumable(item)) return { ok: false, error: "consumable" };
   if (!state.ownedEquipment.includes(itemId)) return { ok: false, error: "not-owned" };
   const others = state.equipment.filter((id) => id !== itemId && getEquipmentItem(id)?.slot !== item.slot);
   return { ok: true, state: { ...state, equipment: equipped ? [...others, itemId] : others } };
@@ -476,10 +485,15 @@ function setItemEquipped(state, itemId, equipped) {
 function buyItem(state, itemId, confirmedPrice) {
   const item = getEquipmentItem(itemId);
   if (!item) return { ok: false, error: "unknown-item" };
-  if (state.ownedEquipment.includes(itemId)) return { ok: false, error: "already-owned" };
+  const consumable = isConsumable(item);
+  if (!consumable && state.ownedEquipment.includes(itemId)) return { ok: false, error: "already-owned" };
   if (item.price === null) return { ok: false, error: "not-for-sale" };
   if (item.price !== confirmedPrice) return { ok: false, error: "price-changed" };
   if (item.price > state.coins) return { ok: false, error: "insufficient-coins" };
+  if (consumable) {
+    const consumables = { ...state.consumables, [item.slot]: state.consumables[item.slot] + item.packSize };
+    return { ok: true, state: { ...state, coins: state.coins - item.price, consumables } };
+  }
   return {
     ok: true,
     state: { ...state, coins: state.coins - item.price, ownedEquipment: [...state.ownedEquipment, itemId] }
@@ -528,7 +542,8 @@ function createInitialGameState(profile, now, identity) {
     coins: STARTING_COINS,
     raceEntries: [],
     equipment: [],
-    ownedEquipment: [...OWNED_FROM_START]
+    ownedEquipment: [...OWNED_FROM_START],
+    consumables: { gel: 0, bar: 0 }
   };
 }
 function getCurrentDay(week) {
@@ -1208,6 +1223,11 @@ function parseGameState(value, now) {
   if (!Array.isArray(ownedEquipment) || !ownedEquipment.every((id) => typeof id === "string" && getEquipmentItem(id)) || new Set(ownedEquipment).size !== ownedEquipment.length || !OWNED_FROM_START.every((id) => ownedEquipment.includes(id)) || !equipment.every((id) => ownedEquipment.includes(id))) {
     return null;
   }
+  if ([...equipment, ...ownedEquipment].some((id) => isConsumable(getEquipmentItem(id)))) {
+    return null;
+  }
+  const rawConsumables = value.consumables === void 0 ? { gel: 0, bar: 0 } : value.consumables;
+  if (!isRecord(rawConsumables) || !isInt(rawConsumables.gel, 0) || !isInt(rawConsumables.bar, 0)) return null;
   const finishedIds = new Set(raceEntries.filter((e) => e.status === "finished").map((e) => e.id));
   const raceDays = week.days.filter((day) => day.outcome?.raceEntryId !== void 0);
   if (!raceDays.every((day) => finishedIds.has(day.outcome.raceEntryId))) return null;
@@ -1243,7 +1263,8 @@ function parseGameState(value, now) {
     coins,
     raceEntries,
     equipment: [...equipment],
-    ownedEquipment: [...ownedEquipment]
+    ownedEquipment: [...ownedEquipment],
+    consumables: { gel: rawConsumables.gel, bar: rawConsumables.bar }
   };
 }
 

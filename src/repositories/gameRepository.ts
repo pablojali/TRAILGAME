@@ -11,7 +11,7 @@ import {
 } from '../domain/athlete/athlete'
 import { parseAppearance } from '../domain/athlete/appearance'
 import { STARTING_COINS } from '../domain/economy/coins'
-import { getEquipmentItem, OWNED_FROM_START } from '../domain/equipment/items'
+import { getEquipmentItem, isConsumable, OWNED_FROM_START } from '../domain/equipment/items'
 import { PRIZE_BANDS } from '../domain/races/categories'
 import { isRaceId } from '../domain/races/races'
 import { getEarnedAttributePoints } from '../domain/athlete/levels'
@@ -296,6 +296,14 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     return null
   }
 
+  // Gels and cereal bars are counted, never owned as items nor equipped.
+  if ([...(equipment as string[]), ...(ownedEquipment as string[])].some((id) => isConsumable(getEquipmentItem(id)!))) {
+    return null
+  }
+  // Missing: a career saved before consumables existed (none in stock).
+  const rawConsumables = value.consumables === undefined ? { gel: 0, bar: 0 } : value.consumables
+  if (!isRecord(rawConsumables) || !isInt(rawConsumables.gel, 0) || !isInt(rawConsumables.bar, 0)) return null
+
   // A race day must point to the finished entry it raced.
   const finishedIds = new Set(raceEntries.filter((e) => e.status === 'finished').map((e) => e.id))
   const raceDays = (week.days as TrainingDay[]).filter((day) => day.outcome?.raceEntryId !== undefined)
@@ -340,6 +348,7 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     raceEntries,
     equipment: [...(equipment as string[])],
     ownedEquipment: [...(ownedEquipment as string[])],
+    consumables: { gel: rawConsumables.gel as number, bar: rawConsumables.bar as number },
   }
 }
 

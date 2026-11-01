@@ -189,7 +189,7 @@ export function Backdrop({ scene }: { scene: BackdropScene }) {
         <Mountains scene={scene} />
       ) : scene === 'equipment' ? (
         <Cabin />
-      ) : scene === 'races' ? (
+      ) : scene === 'races' || scene === 'aid-station' || scene === 'finish' ? (
         <Topo />
       ) : scene === 'career' ? (
         <Stars />

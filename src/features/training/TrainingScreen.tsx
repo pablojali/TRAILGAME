@@ -28,7 +28,7 @@ import { getRaceWeek, getScheduledEntry, RACE_DAY_INDEX } from '../../game-engin
 import { getEntry } from '../../game-engine/races'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import { RaceDayPanel } from '../races/RaceDayPanel'
-import { isRecoveryRest, previewSession, type DayRef, type ExecutionResult, type TrainingError } from '../../game-engine/training'
+import { freeRestDays, isRecoveryRest, previewSession, type DayRef, type ExecutionResult, type TrainingError } from '../../game-engine/training'
 import { ordinal, raceTimeText } from '../races/raceText'
 import { SessionIcon } from './SessionIcon'
 import styles from './TrainingScreen.module.css'
@@ -81,8 +81,8 @@ function effectsText(outcome: DayOutcome) {
 
 /**
  * A future day's planned effects, before clamping. Rest includes the athlete's Recovery bonus, and
- * is a recovery Rest (Fitness +1) when the day before is planned as training or a race and it is
- * not a forced Rest day.
+ * is a recovery Rest (Fitness kept) when the day before is planned as training or a race (in a
+ * race week, also the second Rest in a row) and it is not a forced Rest day.
  */
 function plannedEffects(state: GameState, index: number): DayOutcome {
   const session = state.week.days[index]!.session
@@ -97,8 +97,15 @@ function plannedEffects(state: GameState, index: number): DayOutcome {
   }
   const forced = index < state.week.currentDayIndex + state.forcedRestDays
   const before = state.week.days[index - 1]
+  const active = (i: number) => {
+    const day = state.week.days[i]
+    return day !== undefined && (day.session !== 'rest' || scheduledRace(state, i) !== null)
+  }
+  // After an active day; in a race week also the second Rest in a row (owner decision).
   const recovery =
-    !forced && before !== undefined && (before.session !== 'rest' || scheduledRace(state, index - 1) !== null)
+    !forced &&
+    before !== undefined &&
+    (active(index - 1) || (freeRestDays(state) === 2 && index >= 2 && !active(index - 1) && active(index - 2)))
   return {
     xpGained: 0,
     fitnessChange: recovery ? RECOVERY_REST_FITNESS : rules.fitnessDelta,
@@ -375,8 +382,12 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
             {session.description}
             {today.session === 'rest' &&
               (isRecoveryRest(state)
-                ? ' Recovery rest after a training day: Fitness kept.'
-                : ' A second rest in a row: Fitness −2.')}
+                ? freeRestDays(state) === 2
+                  ? ' Race week: up to 2 rest days in a row keep Fitness.'
+                  : ' Recovery rest after a training day: Fitness kept.'
+                : freeRestDays(state) === 2
+                  ? ' A third rest in a row: Fitness −2.'
+                  : ' A second rest in a row: Fitness −2.')}
           </p>
         )}
       </div>

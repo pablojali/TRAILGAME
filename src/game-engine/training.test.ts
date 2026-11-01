@@ -288,6 +288,21 @@ describe('executeCurrentDay', () => {
       expect(previewSession(injured, 'rest').fitnessChange).toBe(-2)
     })
 
+    it('in a race week keeps Fitness for 2 Rest days in a row; the third loses 2 (owner decision)', () => {
+      const entered = withEntry(newGame(), 'RACE-001').state
+      const trained = execute(entered).state // Monday: Easy run, Fitness 20.5
+      const first = execute(withSession(trained, 'rest')).state
+      expect(first.athlete.fitness).toBe(20.5)
+      expect(previewSession(first, 'rest').fitnessChange).toBe(0)
+      const second = execute(withSession(first, 'rest')).state
+      expect(second.athlete.fitness).toBe(20.5)
+      expect(previewSession(second, 'rest').fitnessChange).toBe(-2)
+      expect(execute(withSession(second, 'rest')).state.athlete.fitness).toBe(18.5)
+      // Without a race that week, the second Rest already loses 2.
+      const noRace = execute(withSession(execute(newGame()).state, 'rest')).state
+      expect(previewSession(noRace, 'rest').fitnessChange).toBe(-2)
+    })
+
     it('counts across weeks: Monday Rest after a Sunday session is a recovery Rest', () => {
       let state = newGame()
       for (let i = 0; i < 6; i++) state = execute(state).state

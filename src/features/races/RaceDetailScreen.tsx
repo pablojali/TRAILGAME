@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
-import { Card } from '../../components/Card'
-import { Screen, ScrollPanel } from '../../components/Screen'
+import { Screen } from '../../components/Screen'
 import { getLevel } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
-import { canEnterAtLevel, getGrossPrizes, getMinimumLevel, getRewardMultiplier } from '../../domain/races/access'
-import { PRIZE_BANDS, RACE_CATEGORY_CONFIG, RACE_MIN_XP, REWARD_MULTIPLIERS } from '../../domain/races/categories'
+import { getGrossPrizes, getMinimumLevel, getRewardMultiplier } from '../../domain/races/access'
+import { PRIZE_BANDS, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
 import { weekdayShort } from '../../domain/training/weekdays'
 import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
@@ -60,78 +59,49 @@ function RaceDetail({ race }: { race: Race }) {
         </Link>
       }
     >
-      <dl className={styles.facts}>
-        <div>
+      {/* Tiles that fit the screen (owner request, 1 November 2026): no scrolling, no prize notes. */}
+      <dl className={`${styles.tiles} ${styles.grow}`}>
+        <div className={styles.tile}>
           <dt>Distance</dt>
           <dd>{race.distanceKm} km</dd>
         </div>
-        <div>
+        <div className={styles.tile}>
           <dt>Elevation gain</dt>
           <dd>{race.elevationGainM.toLocaleString('en-US')} m</dd>
         </div>
-        <div>
+        <div className={`${styles.tile} ${styles.tileWide}`}>
           <dt>Terrain</dt>
           <dd>{race.terrain}</dd>
         </div>
-        <div>
+        <div className={styles.tile}>
           <dt>Recommended level</dt>
           <dd>
-            {race.recommendedLevel} <span className={styles.muted}>(you: {level})</span>
+            {race.recommendedLevel} <span className={styles.tileNote}>(you: {level})</span>
           </dd>
         </div>
-      </dl>
-
-      {/* Fees, prizes and past results scroll here; the entry action stays in view below. */}
-      <ScrollPanel label="Fees, prizes and your results">
-        <Card title="Entry">
-          <ul className={styles.fees}>
-            <li className={canEnterAtLevel(race, level) ? styles.feeApplies : undefined}>
-              <span>Open from level {minimum}</span>
-              <span className={styles.feeAmount}>
-                Free
-                {canEnterAtLevel(race, level) && <span className={styles.appliesTag}>You can enter</span>}
-              </span>
-            </li>
-          </ul>
-          <p className={styles.muted}>
-            Entry is free. A race opens 2 levels below its recommended level ({race.recommendedLevel}).
-          </p>
-        </Card>
-
-        <Card title="Potential prizes">
-          <table className={styles.prizes}>
-            <caption className={styles.srOnly}>Gross coin prizes by finishing position</caption>
-            <thead>
-              <tr>
-                <th scope="col">Position</th>
-                <th scope="col">Gross prize</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className={styles.tile}>
+          <dt>Entry</dt>
+          <dd>
+            Free <span className={styles.tileNote}>· from level {minimum}</span>
+          </dd>
+        </div>
+        <div className={`${styles.tile} ${styles.tileWide}`}>
+          <dt>
+            Prizes{multiplier.coins < 1 && <span className={styles.warning}> · {percentText(multiplier.coins)} at your level</span>}
+          </dt>
+          <dd>
+            <ul className={styles.prizeRow} aria-label="Gross coin prizes by finishing position">
               {PRIZE_BANDS.map((band, i) => (
-                <tr key={band.label}>
-                  <th scope="row">{band.label}</th>
-                  <td>{formatCoins(prizes[i]!)}</td>
-                </tr>
+                <li key={band.label}>
+                  <span>{band.label.replace(' or lower', '+')}</span>
+                  <span>{prizes[i]}</span>
+                </li>
               ))}
-            </tbody>
-          </table>
-          <p className={styles.muted}>
-            Prizes are before the entry fee. XP and prizes are reduced when your level is above the
-            recommended level:{' '}
-            {REWARD_MULTIPLIERS.slice(1)
-              .map((row, i, rows) => `+${row.levelDifference}${i === rows.length - 1 ? ' or more' : ''} → ${percentText(row.coins)}`)
-              .join(', ')}
-            .
-          </p>
-          <p className={multiplier.coins < 1 ? styles.warning : styles.muted}>
-            At your level: {percentText(multiplier.coins)} of prizes and XP
-            {multiplier.coins === 0 ? ' — this race is too easy for your level.' : '.'} A finished race always
-            gives at least {RACE_MIN_XP} XP.
-          </p>
-        </Card>
+            </ul>
+          </dd>
+        </div>
         <PastResults race={race} />
-      </ScrollPanel>
+      </dl>
 
       <div className={styles.entry}>
         <EntryPanel race={race} />
@@ -140,28 +110,29 @@ function RaceDetail({ race }: { race: Race }) {
   )
 }
 
-/** Earlier results of this race, newest first. */
+/** The best and latest result of this race, as one tile that opens the latest result. */
 function PastResults({ race }: { race: Race }) {
   const { state } = useCareer()
-  const finished = getFinishedEntries(state, race.id).reverse()
+  const finished = getFinishedEntries(state, race.id)
   if (finished.length === 0) return null
+  const latest = finished[finished.length - 1]!
+  const best = finished.reduce((a, b) => (b.result.position < a.result.position ? b : a))
   return (
-    <Card title="Your results">
-      <ul className={styles.results}>
-        {finished.map((entry) => (
-          <li key={entry.id}>
-            <Link to={`/races/results/${entry.id}`} className={styles.resultLink}>
-              <span>
-                {ordinal(entry.result.position)} of {entry.result.fieldSize}
-              </span>
-              <span className={styles.muted}>
-                {raceTimeText(entry.result.timeS)} · Week {entry.result.week}, {weekdayShort(entry.result.day)}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </Card>
+    <div className={`${styles.tile} ${styles.tileWide}`}>
+      <dt>Your results</dt>
+      <dd>
+        <Link to={`/races/results/${latest.id}`} className={styles.tileLink}>
+          <span className={styles.tileValue}>
+            Best {ordinal(best.result.position)} · last {ordinal(latest.result.position)} in{' '}
+            {raceTimeText(latest.result.timeS)}
+          </span>{' '}
+          <span className={styles.tileNote}>
+            · {finished.length} {finished.length === 1 ? 'race' : 'races'} · Week {latest.result.week},{' '}
+            {weekdayShort(latest.result.day)} ›
+          </span>
+        </Link>
+      </dd>
+    </div>
   )
 }
 

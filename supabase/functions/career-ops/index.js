@@ -1071,8 +1071,22 @@ function clampStat(value) {
 function statChange(value, delta) {
   return roundStat(clampStat(value + delta) - value);
 }
+function isRaceWeek(state) {
+  return getScheduledEntry(state) !== void 0 && getRaceWeek(state) === state.week.number;
+}
+function freeRestDays(state) {
+  return isRaceWeek(state) ? 2 : 1;
+}
+function isActiveDay(day) {
+  return day !== void 0 && (day.session !== "rest" || day.outcome?.raceEntryId !== void 0);
+}
 function isRecoveryRest(state) {
-  return state.previousDayActive && state.forcedRestDays === 0;
+  if (state.forcedRestDays > 0) return false;
+  if (state.previousDayActive) return true;
+  if (freeRestDays(state) < 2) return false;
+  const index = state.week.currentDayIndex;
+  const days = state.week.days;
+  return index >= 2 && !isActiveDay(days[index - 1]) && isActiveDay(days[index - 2]);
 }
 function previewSession(state, session) {
   const rules = TRAINING_SESSIONS[session];

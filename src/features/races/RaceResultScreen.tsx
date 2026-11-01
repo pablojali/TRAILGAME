@@ -2,24 +2,20 @@ import { useEffect, useRef } from 'react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
-import { Card } from '../../components/Card'
-import { formatDelta, formatStat } from '../../components/format'
+import { formatDelta } from '../../components/format'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { Tabs } from '../../components/Tabs'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
-import { ATTRIBUTE_LABELS, isAttributeId } from '../../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
-import { getEquipmentItem, itemName } from '../../domain/equipment/items'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
 import { INJURY_REST_DAYS } from '../../domain/training/injury'
 import { weekdayLong } from '../../domain/training/weekdays'
 import type { FinishedRaceEntry, RaceResult } from '../../game-engine/gameState'
 import { getEntry, getStandings } from '../../game-engine/races'
-import type { ExplanationFactor } from '../../game-engine/raceSimulation'
-import { INTENSITY_LABELS, STOP_LABELS } from './raceStrategyText'
-import { durationText, ordinal, raceTimeText, signedCoins } from './raceText'
+import { formatChange, INTENSITY_LABELS, STOP_LABELS } from './raceStrategyText'
+import { durationText, ordinal, raceTimeText } from './raceText'
 import styles from './Races.module.css'
 
 /**
@@ -56,7 +52,6 @@ export function RaceResultScreen() {
 const RESULT_TABS = [
   { id: 'result', label: 'Result' },
   { id: 'splits', label: 'Splits' },
-  { id: 'why', label: 'Why' },
   { id: 'standings', label: 'Full results' },
 ] as const
 
@@ -92,57 +87,62 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
         onChange={(next) => setParams(next === 'result' ? {} : { tab: next }, { replace: true, state: location.state })}
       >
         {tab === 'result' && (
-          <ScrollPanel label="Result">
-            <p className={styles.headline}>
-              <span className={styles.time}>{raceTimeText(result.timeS)}</span>
-              <span className={styles.muted}>{PRIZE_BANDS[result.band]!.label} prize band</span>
-            </p>
-
-            {levelsGained > 0 && (
-              <p role="status" className={styles.warning}>
-                Level up! +{levelsGained * ATTRIBUTE_POINTS_PER_LEVEL} attribute points.{' '}
-                <Link to="/attributes">Allocate points</Link>
-                {unlocks.length > 0 && (
-                  <>
-                    {' '}
-                    New look unlocked: {unlocks.join(', ')}. <Link to="/appearance">Change look</Link>
-                  </>
-                )}
-              </p>
+          // Tiles that fit the screen (owner request, 1 November 2026): no explanations.
+          <dl className={styles.tiles} aria-label="Result">
+            <div className={styles.tile}>
+              <dt>Time</dt>
+              <dd className={styles.time}>{raceTimeText(result.timeS)}</dd>
+            </div>
+            <div className={styles.tile}>
+              <dt>Prize band</dt>
+              <dd>{PRIZE_BANDS[result.band]!.label}</dd>
+            </div>
+            <div className={styles.tile}>
+              <dt>Coins awarded</dt>
+              <dd>{formatCoins(result.coinsAwarded)}</dd>
+            </div>
+            <div className={styles.tile}>
+              <dt>XP awarded</dt>
+              <dd>
+                {result.xpAwarded} XP{result.injured ? ' (injured)' : ''}
+              </dd>
+            </div>
+            <div className={styles.tile}>
+              <dt>Fatigue</dt>
+              <dd>{formatChange(result.fatigueChange)}</dd>
+            </div>
+            <div className={styles.tile}>
+              <dt>Rewards</dt>
+              <dd className={result.multiplierPct < 100 ? styles.warning : undefined}>{result.multiplierPct}%</dd>
+            </div>
+            {result.injured && (
+              <div className={`${styles.tile} ${styles.tileWide}`}>
+                <dt>Injured</dt>
+                <dd className={styles.warning}>
+                  Fitness {formatDelta(result.fitnessChange)} · {INJURY_REST_DAYS} forced rest days
+                </dd>
+              </div>
             )}
-
-            <Card title="Rewards">
-              <Rewards race={race} entry={entry} />
-            </Card>
-
-            <Card title="Condition">
-              <p>
-                Fatigue {formatDelta(result.fatigueChange)}
-                {result.fitnessChange !== 0 && ` · Fitness ${formatDelta(result.fitnessChange)}`}
-              </p>
-              {result.injured ? (
-                <p className={styles.warning}>
-                  Injured: Fatigue went above 95. Fitness lost and {INJURY_REST_DAYS} forced rest days. Your result,
-                  prize and XP still count.
-                </p>
-              ) : (
-                <p className={styles.muted}>
-                  The race took this training day and counts as training for Fitness decay.
-                </p>
-              )}
-            </Card>
-          </ScrollPanel>
+            {levelsGained > 0 && (
+              <div className={`${styles.tile} ${styles.tileWide}`}>
+                <dt>Level up!</dt>
+                <dd role="status">
+                  +{levelsGained * ATTRIBUTE_POINTS_PER_LEVEL} attribute points ·{' '}
+                  <Link to="/attributes">Allocate points</Link>
+                  {unlocks.length > 0 && (
+                    <>
+                      {' '}
+                      · New look: {unlocks.join(', ')} · <Link to="/appearance">Change look</Link>
+                    </>
+                  )}
+                </dd>
+              </div>
+            )}
+          </dl>
         )}
         {tab === 'splits' && result.splits && (
           <ScrollPanel label="Splits">
             <Splits result={result} />
-          </ScrollPanel>
-        )}
-        {tab === 'why' && (
-          <ScrollPanel label="What shaped your time">
-            <Card title="What shaped your time">
-              <Performance result={result} />
-            </Card>
           </ScrollPanel>
         )}
         {tab === 'standings' && <Standings race={race} entry={entry} name={athlete.name} />}
@@ -158,20 +158,6 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
       </div>
     </Screen>
   )
-}
-
-function factorLabel(factor: ExplanationFactor, equipment: readonly string[] = []): string {
-  if (factor.id === 'equipment') {
-    const names = equipment.map((id) => getEquipmentItem(id)).filter((item) => item !== undefined).map((item) => itemName(item).toLowerCase())
-    return `Equipment (${names.join(', ')})`
-  }
-  if (factor.id === 'day-form') {
-    const percent = Math.abs(factor.value * 100).toFixed(1)
-    return `Day form ${factor.value < 0 ? '−' : '+'}${percent}% (${factor.value < 0 ? 'a good day' : 'an off day'})`
-  }
-  const name = factor.id === 'fitness' ? 'Fitness' : factor.id === 'fatigue' ? 'Fatigue' : isAttributeId(factor.id) ? ATTRIBUTE_LABELS[factor.id] : factor.id
-  const shown = factor.id === 'fatigue' ? String(factor.value) : formatStat(factor.value)
-  return `${name} ${shown} (typical ${Math.round(factor.reference)})`
 }
 
 /** Every segment as run (Race Engine V1): intensity, time, position on arrival and the stop after it. */
@@ -206,98 +192,6 @@ function Splits({ result }: { result: RaceResult }) {
         </tbody>
       </table>
       <p className={styles.muted}>Nutrition: {nutrition.length ? nutrition.join(' and ') : 'none'}.</p>
-    </>
-  )
-}
-
-/** The explanation (D10): total gap, then the largest single effects, never added up. */
-function Performance({ result }: { result: RaceResult }) {
-  const gap = result.gapS
-  return (
-    <>
-      <p>
-        <strong>
-          {gap === 0
-            ? 'The same time as a typical runner in this field.'
-            : `${durationText(gap)} ${gap < 0 ? 'faster' : 'slower'} than a typical runner in this field (${raceTimeText(result.referenceTimeS)}).`}
-        </strong>
-      </p>
-      {result.factors.length > 0 ? (
-        <>
-          <p className={styles.muted}>Biggest influences, each measured on its own (they don’t add up):</p>
-          <ul className={styles.factors}>
-            {result.factors.map((factor) => (
-              <li key={factor.id}>
-                <span>{factorLabel(factor, result.equipment)}</span>
-                <span className={factor.effectS < 0 ? styles.helped : styles.hurt}>
-                  {durationText(factor.effectS)} {factor.effectS < 0 ? 'faster' : 'slower'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <p className={styles.muted}>No single input changed your time by more than 0.5%.</p>
-      )}
-      {result.dayForm !== 0 && !result.factors.some((f) => f.id === 'day-form') && (
-        <p className={styles.muted}>
-          {factorLabel({ id: 'day-form', value: result.dayForm, reference: 0, effectS: 0 })}: fixed for this entry,
-          narrower with high Consistency.
-        </p>
-      )}
-    </>
-  )
-}
-
-function Rewards({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
-  const { result } = entry
-  const difference = result.levelAtStart - race.recommendedLevel
-  return (
-    <>
-      <dl className={styles.rewards}>
-        <div>
-          <dt>Entry fee (paid at entry)</dt>
-          <dd>{entry.feePaid === 0 ? 'Free' : formatCoins(entry.feePaid)}</dd>
-        </div>
-        <div>
-          <dt>Gross prize ({PRIZE_BANDS[result.band]!.label})</dt>
-          <dd>{formatCoins(result.grossPrize)}</dd>
-        </div>
-        <div>
-          <dt>Reward multiplier</dt>
-          <dd>{result.multiplierPct}%</dd>
-        </div>
-        <div>
-          <dt>Coins awarded</dt>
-          <dd>{formatCoins(result.coinsAwarded)}</dd>
-        </div>
-        <div>
-          <dt>XP awarded</dt>
-          <dd>
-            {result.xpAwarded} XP{result.injured ? ' (injured)' : ''}
-          </dd>
-        </div>
-        <div className={styles.total}>
-          <dt>Net coin change</dt>
-          <dd>{signedCoins(result.netCoins)}</dd>
-        </div>
-      </dl>
-      {result.multiplierPct === 0 ? (
-        <p className={styles.warning}>
-          This race is too easy for your level: you were level {result.levelAtStart}, {difference} above the
-          recommended level {race.recommendedLevel}, so it gives no prize coins and only the minimum XP.
-        </p>
-      ) : result.multiplierPct < 100 ? (
-        <p className={styles.warning}>
-          Rewards reduced to {result.multiplierPct}%: you were level {result.levelAtStart}, {difference} above the
-          recommended level {race.recommendedLevel}.
-        </p>
-      ) : (
-        <p className={styles.muted}>
-          Full rewards: your level ({result.levelAtStart}) was not above the recommended level (
-          {race.recommendedLevel}).
-        </p>
-      )}
     </>
   )
 }

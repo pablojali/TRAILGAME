@@ -4,7 +4,17 @@
  * otherwise a scene drawn in code (Backdrop.tsx). Race cards use `assets/ui/races/{race id}.*` the
  * same way. Cosmetic only.
  */
-export type BackdropScene = 'dashboard' | 'training' | 'equipment' | 'races' | 'career' | 'settings'
+export type BackdropScene =
+  | 'dashboard'
+  | 'training'
+  | 'equipment'
+  | 'races'
+  /** A race in progress: the aid station (owner image, 1 November 2026). */
+  | 'aid-station'
+  /** A race result: the finish arch (owner image, 1 November 2026). */
+  | 'finish'
+  | 'career'
+  | 'settings'
 
 const BACKGROUNDS = import.meta.glob<string>('/assets/ui/backgrounds/*.{webp,jpg,jpeg,png}', {
   eager: true,
@@ -46,6 +56,8 @@ export function sceneForPath(pathname: string): BackdropScene {
     case 'appearance':
       return 'equipment'
     case 'races':
+      if (pathname.startsWith('/races/run/')) return 'aid-station'
+      if (pathname.startsWith('/races/results/')) return 'finish'
       return 'races'
     case 'career':
       return 'career'

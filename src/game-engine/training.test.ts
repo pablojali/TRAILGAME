@@ -4,7 +4,7 @@ import { PROFILE_IDS, PROFILES } from '../domain/athlete/profiles'
 import type { SessionType } from '../domain/training/sessions'
 import { defaultAppearance } from '../domain/athlete/appearance'
 import { createInitialGameState, DEFAULT_WEEK_PLAN, getDayStatus } from './gameState'
-import { currentRef, execute, newGame, T0, TEST_IDENTITY, withAthlete, withSession } from '../test/gameFixtures'
+import { currentRef, execute, newGame, T0, TEST_IDENTITY, withAthlete, withEntry, withSession } from '../test/gameFixtures'
 import { executeCurrentDay, planSession, previewSession, summarizeWeek } from './training'
 
 const HOUR = 60 * 60 * 1000
@@ -344,11 +344,22 @@ describe('planSession', () => {
     expect(planSession(state, { week: 1, dayIndex: 0 }, 'rest')).toEqual({ ok: false, error: 'day-completed' })
   })
 
-  it('rejects changing a future day', () => {
-    expect(planSession(newGame(), { week: 1, dayIndex: 3 }, 'rest')).toEqual({
-      ok: false,
-      error: 'day-not-current',
-    })
+  it('plans any later day of the week (owner decision, 1 November 2026)', () => {
+    const planned = planSession(newGame(), { week: 1, dayIndex: 3 }, 'rest')
+    if (!planned.ok) throw new Error(planned.error)
+    expect(planned.value.week.days[3]!.session).toBe('rest')
+    expect(planned.value.week.currentDayIndex).toBe(0)
+    expect(planSession(newGame(), { week: 1, dayIndex: 7 }, 'rest')).toEqual({ ok: false, error: 'day-not-current' })
+    expect(planSession(newGame(), { week: 2, dayIndex: 3 }, 'rest')).toEqual({ ok: false, error: 'wrong-week' })
+  })
+
+  it('keeps forced rest days and a race Sunday locked when planning ahead', () => {
+    const injured = { ...newGame(), forcedRestDays: 2 }
+    expect(planSession(injured, { week: 1, dayIndex: 1 }, 'hills')).toEqual({ ok: false, error: 'forced-rest' })
+    expect(planSession(injured, { week: 1, dayIndex: 2 }, 'hills').ok).toBe(true)
+    const entered = withEntry(newGame(), 'RACE-001')
+    expect(planSession(entered.state, { week: 1, dayIndex: 6 }, 'hills')).toEqual({ ok: false, error: 'race-day' })
+    expect(planSession(entered.state, { week: 1, dayIndex: 5 }, 'hills').ok).toBe(true)
   })
 
   it('rejects unknown sessions', () => {

@@ -79,7 +79,7 @@ describe('TrainingScreen — week strip and day detail', () => {
     expect(detail()).not.toHaveTextContent(/km|min|intensity/i)
   })
 
-  it('shows another day directly when its tab is tapped, without actions', async () => {
+  it('shows another day when its tab is tapped, which can be planned but not completed', async () => {
     const user = userEvent.setup()
     await renderApp('/training')
     await user.click(strip()[3]!)
@@ -88,9 +88,13 @@ describe('TrainingScreen — week strip and day detail', () => {
     expect(detail()).toHaveTextContent('Thursday · Planned')
     expect(detail()).toHaveTextContent('Repeated climbs and descents.')
     expect(detail()).toHaveTextContent('Planned: XP +14 · Fitness +0.5 · Fatigue +12 · Climbing +0.1')
-    expect(detail()).toHaveTextContent('Only today’s session can be changed or completed.')
-    expect(within(detail()).queryByRole('combobox')).not.toBeInTheDocument()
+    expect(detail()).toHaveTextContent('only today’s session can be completed')
     expect(within(detail()).queryByRole('button')).not.toBeInTheDocument()
+    // Planned ahead: Thursday becomes Rest, today stays Monday.
+    await user.selectOptions(within(detail()).getByLabelText('Session for Thursday'), 'rest')
+    expect(readSave()!.state.week.days[3]!.session).toBe('rest')
+    expect(readSave()!.state.week.currentDayIndex).toBe(0)
+    expect(within(detail()).getByRole('heading', { level: 2, name: 'Rest' })).toBeInTheDocument()
 
     await user.click(strip()[0]!)
     expect(detail()).toHaveTextContent('Monday · Today')
@@ -184,6 +188,34 @@ describe('TrainingScreen — completing sessions', () => {
     expect(screen.getByRole('link', { name: 'Change look' })).toHaveAttribute('href', '/appearance')
     await user.click(within(feedback()!).getByRole('link', { name: 'Allocate points' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Attributes' })).toBeInTheDocument()
+  })
+
+  it('celebrates a level up in a dialog with its rewards, closed with Continue', async () => {
+    seedCareer(withAthlete(newGame(), { xp: 91 }))
+    const user = userEvent.setup()
+    await renderApp('/training')
+    await completeToday(user)
+    const dialog = await screen.findByRole('dialog', { name: 'Level up!' })
+    expect(within(dialog).getByRole('heading', { name: 'Level up!' })).toHaveFocus()
+    expect(dialog).toHaveTextContent('Level 1 → to Level 2')
+    const rewards = within(within(dialog).getByRole('list', { name: 'Rewards' })).getAllByRole('listitem')
+    expect(rewards.map((r) => r.textContent)).toEqual([
+      '+2 attribute points to spend',
+      '★New look: Coral tank top',
+      '⚑Races open: Forest First Steps (Open)',
+    ])
+    await user.click(within(dialog).getByRole('button', { name: 'Continue' }))
+    expect(screen.queryByRole('dialog', { name: 'Level up!' })).not.toBeInTheDocument()
+  })
+
+  it('takes the player to spend the new points from the level-up dialog', async () => {
+    seedCareer(withAthlete(newGame(), { xp: 91 }))
+    const user = userEvent.setup()
+    await renderApp('/training')
+    await completeToday(user)
+    await user.click(within(await screen.findByRole('dialog', { name: 'Level up!' })).getByRole('button', { name: 'Spend points' }))
+    expect(screen.getByRole('heading', { level: 1, name: 'Attributes' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Level up!' })).not.toBeInTheDocument()
   })
 
   it('rolls over to a new week after Sunday and keeps progression', async () => {

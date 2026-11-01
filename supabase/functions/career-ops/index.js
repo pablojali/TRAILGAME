@@ -533,7 +533,8 @@ var GROSS_PRIZES = {
   mountain: [700, 490, 350, 175, 70],
   elite: [1500, 1050, 750, 375, 150]
 };
-var RACE_XP_BASE = { open: 30, trail: 60, mountain: 100, elite: 180 };
+var RACE_XP_BASE = { open: 300, trail: 600, mountain: 1e3, elite: 1800 };
+var RACE_MIN_XP = 18;
 var RACE_XP_BAND_PCT = [100, 70, 50, 25, 10];
 var REWARD_MULTIPLIERS = [
   { levelDifference: 0, xp: 1, coins: 1 },
@@ -629,6 +630,10 @@ var INJURY_REST_DAYS = 5;
 var RACE_DAY_INDEX = DAYS_PER_WEEK - 1;
 function getScheduledEntry(state) {
   return state.raceEntries.find((entry) => entry.status === "pending");
+}
+function getRaceWeek(state) {
+  const sundayIsForcedRest = state.week.currentDayIndex + state.forcedRestDays > RACE_DAY_INDEX;
+  return state.week.number + (sundayIsForcedRest ? 1 : 0);
 }
 function isRaceDayToday(state) {
   return state.week.currentDayIndex === RACE_DAY_INDEX && state.forcedRestDays === 0 && getScheduledEntry(state) !== void 0;
@@ -875,10 +880,13 @@ function checkDay(state, ref) {
 }
 function planSession(state, ref, session) {
   if (!isSessionType(session)) return { ok: false, error: "unknown-session" };
-  const error = checkDay(state, ref);
-  if (error) return { ok: false, error };
-  if (state.forcedRestDays > 0) return { ok: false, error: "forced-rest" };
-  if (isRaceDayToday(state)) return { ok: false, error: "race-day" };
+  const { week } = state;
+  if (ref.week !== week.number) return { ok: false, error: "wrong-week" };
+  if (ref.dayIndex < week.currentDayIndex) return { ok: false, error: "day-completed" };
+  if (!Number.isInteger(ref.dayIndex) || ref.dayIndex >= week.days.length) return { ok: false, error: "day-not-current" };
+  if (ref.dayIndex < week.currentDayIndex + state.forcedRestDays) return { ok: false, error: "forced-rest" };
+  const raceSunday = ref.dayIndex === RACE_DAY_INDEX && getScheduledEntry(state) !== void 0 && getRaceWeek(state) === week.number;
+  if (raceSunday || ref.dayIndex === week.currentDayIndex && isRaceDayToday(state)) return { ok: false, error: "race-day" };
   const days = state.week.days.map(
     (day, index) => index === ref.dayIndex ? { ...day, session } : day
   );
@@ -988,7 +996,7 @@ function getRaceRewards(race, position, levelAtStart) {
     grossPrize,
     multiplierPct,
     coinsAwarded: Math.floor(grossPrize * multiplierPct / 100),
-    xp: Math.floor(RACE_XP_BASE[race.category] * RACE_XP_BAND_PCT[band] * multiplierPct / 1e4)
+    xp: Math.max(RACE_MIN_XP, Math.floor(RACE_XP_BASE[race.category] * RACE_XP_BAND_PCT[band] * multiplierPct / 1e4))
   };
 }
 function getRaceFatigue(race) {
@@ -1029,7 +1037,7 @@ function raceCurrentDay(state, ref, entryId, now) {
   const rewards = getRaceRewards(race, simulation.position, levelAtStart);
   const { fatigueChange, injured } = previewRaceDay(state, race);
   const fitnessChange = injured ? statChange(athlete.fitness, -INJURY_FITNESS_LOSS) : 0;
-  const xpAwarded = injured ? 0 : rewards.xp;
+  const xpAwarded = injured ? RACE_MIN_XP : rewards.xp;
   const outcome = {
     xpGained: xpAwarded,
     fitnessChange,
@@ -1235,11 +1243,13 @@ function mergeClientFields(server, client, now) {
   };
   const look = setAppearance(merged, client.athlete.appearance);
   if (look.ok) merged = look.state;
-  const today = server.week.currentDayIndex;
-  const planned = client.week.number === server.week.number ? client.week.days[today]?.session : void 0;
-  if (planned && planned !== merged.week.days[today].session) {
-    const plan = planSession(merged, { week: server.week.number, dayIndex: today }, planned);
-    if (plan.ok) merged = plan.value;
+  if (client.week.number === server.week.number) {
+    for (let index = server.week.currentDayIndex; index < server.week.days.length; index++) {
+      const planned = client.week.days[index]?.session;
+      if (!planned || planned === merged.week.days[index].session) continue;
+      const plan = planSession(merged, { week: server.week.number, dayIndex: index }, planned);
+      if (plan.ok) merged = plan.value;
+    }
   }
   return parseGameState(JSON.parse(JSON.stringify(merged)), now) ?? server;
 }

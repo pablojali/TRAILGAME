@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { GameState } from '../game-engine/gameState'
 import { executeCurrentDay } from '../game-engine/training'
 import { applyFitnessDecay } from '../game-engine/fitnessDecay'
-import { newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
+import { execute, newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
 import { getRace } from '../domain/races/races'
 import { getRaceRewards, raceCurrentDay } from '../game-engine/races'
 import { rivalTimes } from '../game-engine/raceSimulation'
@@ -245,6 +245,16 @@ describe('career-ops: snapshot saves and new careers', () => {
     expect(response.body.state.athlete).toMatchObject({ xp: 300, name: 'Anita' })
     expect(response.body.state).toMatchObject({ coins: career.coins, ownedEquipment: career.ownedEquipment, equipment: [] })
     expect(memory.stateOf('ana')).toMatchObject({ coins: career.coins, athlete: { xp: 300 } })
+  })
+
+  it('a sync save takes the plan for today and the rest of the week, never completed days', async () => {
+    const memory = memoryStore()
+    const career = execute(newGame()).state // Monday done, today is Tuesday
+    memory.seed('ana', career, 4)
+    const days = career.week.days.map((d, i) => (i === 0 ? { ...d, session: 'long-run' as const } : i >= 3 ? { ...d, session: 'rest' as const } : d))
+    const response = await handleCareerOp('token-ana', { action: 'save', baseVersion: 4, snapshot: { ...career, week: { ...career.week, days } } }, deps(memory))
+    if (!response.body.ok) throw new Error(response.body.error)
+    expect(response.body.state.week.days.map((d) => d.session)).toEqual(['easy-run', 'intervals', 'rest', 'rest', 'rest', 'rest', 'rest'])
   })
 
   it('a stale sync save is refused with the cloud career, changing nothing', async () => {
@@ -634,7 +644,7 @@ describe('career-ops: NPC races on the server (Phase 3B.3)', () => {
     expect(memory.commits()).toBe(1)
   })
 
-  it('keeps the injury outcome: no XP, −15 Fitness, 5 forced rest days, prize still paid', async () => {
+  it('keeps the injury outcome: minimum XP, −15 Fitness, 5 forced rest days, prize still paid', async () => {
     const memory = memoryStore()
     const { state, entry } = sundayEntry({ fatigue: 90, fitness: 40 })
     memory.seed('ana', state)
@@ -642,7 +652,7 @@ describe('career-ops: NPC races on the server (Phase 3B.3)', () => {
     if (!response.body.ok) throw new Error(response.body.error)
     const finished = response.body.state.raceEntries[0]!
     if (finished.status !== 'finished') throw new Error('not finished')
-    expect(finished.result).toMatchObject({ injured: true, xpAwarded: 0, fitnessChange: -15 })
-    expect(response.body.state).toMatchObject({ forcedRestDays: 5, coins: 5 + finished.result.coinsAwarded, athlete: { xp: 100 } })
+    expect(finished.result).toMatchObject({ injured: true, xpAwarded: 18, fitnessChange: -15 })
+    expect(response.body.state).toMatchObject({ forcedRestDays: 5, coins: 5 + finished.result.coinsAwarded, athlete: { xp: 118 } })
   })
 })

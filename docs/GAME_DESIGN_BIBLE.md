@@ -255,6 +255,8 @@ The week is simulated: day 1 of every training week is labelled Monday and day 7
 
 The plan may be expanded in future milestones.
 
+**Owner decision (1 November 2026):** the player can plan the session of any day of the current week from today on (before, only today). Completed days, forced Rest days (§4.7) and the Sunday of a race entered for this week cannot be changed. Only today's session can be completed.
+
 ### 4.3 Training rewards: XP
 
 The XP rewards from the original M1 design are reduced by 10%.
@@ -466,6 +468,8 @@ Future thresholds should be defined through a progression curve rather than arbi
 Because training XP is reduced by 10%, the time required to level up will increase. This is intentional, but the complete progression curve must be tested to ensure early progression remains rewarding.
 
 ### 6.3 Level-up rewards
+
+**Owner decision (1 November 2026):** reaching a new level opens a celebration window at once, listing what the level brings: attribute points, looks unlocked (shirts, hairstyles) and races that open. The full level table is in `docs/LEVELS.md`.
 
 Proposed rule:
 
@@ -855,6 +859,7 @@ Rules:
 - An athlete 1 level above the recommended level receives 75% of XP and gross coin prizes.
 - An athlete 2 levels above the recommended level receives 40%.
 - An athlete 3 or more levels above the recommended level receives no XP and no gross coin prize for that race.
+- **Owner decision (1 November 2026):** a finished race always gives at least 18 XP (the best training session's XP), also when the multiplier is 0% and when the runner is injured in the race (§10.10).
 - The multiplier is based on level difference, not finishing position. Winning an easy race does not bypass the anti-farming rule.
 - Apply the multiplier to the gross coin prize before calculating net coin change.
 - Entry fees are not reduced or refunded by the multiplier. The athlete still pays the applicable entry fee.
@@ -874,6 +879,8 @@ M4 must integrate with the existing XP and progression system.
 - If the existing system has no suitable race XP mechanism, propose base values and obtain approval before implementation.
 - Do not award training XP, Fitness, or other training effects as a side effect unless already defined by an approved system.
 - Reopening a completed result must not grant XP again.
+
+**Race XP (owner decisions D5 and 1 November 2026):** XP = floor(base × band % × multiplier %), with base Open 300, Trail 600, Mountain 1,000, Elite 1,800 (ten times the original 30/60/100/180: a race is worth far more than a training day) and bands 100 / 70 / 50 / 25 / 10 %. Every finished race gives at least 18 XP, whatever the position, multiplier or injury (an injured race used to give no XP). Example: Forest First Steps at full rewards gives 300 XP for the win and 30 XP from 11th place.
 
 ### 10.11 Player flow and UI
 

@@ -11,6 +11,7 @@ import { ConflictDialog } from './cloud/ConflictDialog'
 import { SyncIndicator } from './cloud/SyncIndicator'
 import { useGame } from './game/gameContext'
 import { GameNotices } from './game/GameNotices'
+import { LevelUpDialog } from './game/LevelUpDialog'
 import { NAV_ITEMS } from './navigation'
 import styles from './AppShell.module.css'
 
@@ -100,6 +101,7 @@ export function AppShell() {
       </main>
 
       <ConflictDialog />
+      <LevelUpDialog />
       <ScrollRestoration />
     </div>
   )

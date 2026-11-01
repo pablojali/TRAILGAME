@@ -7,7 +7,7 @@ import { Screen, ScrollPanel } from '../../components/Screen'
 import { getLevel } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
 import { canEnterAtLevel, getGrossPrizes, getMinimumLevel, getRewardMultiplier } from '../../domain/races/access'
-import { PRIZE_BANDS, RACE_CATEGORY_CONFIG, REWARD_MULTIPLIERS } from '../../domain/races/categories'
+import { PRIZE_BANDS, RACE_CATEGORY_CONFIG, RACE_MIN_XP, REWARD_MULTIPLIERS } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
 import { weekdayShort } from '../../domain/training/weekdays'
 import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
@@ -126,7 +126,8 @@ function RaceDetail({ race }: { race: Race }) {
           </p>
           <p className={multiplier.coins < 1 ? styles.warning : styles.muted}>
             At your level: {percentText(multiplier.coins)} of prizes and XP
-            {multiplier.coins === 0 ? ' — this race is too easy for your level.' : '.'}
+            {multiplier.coins === 0 ? ' — this race is too easy for your level.' : '.'} A finished race always
+            gives at least {RACE_MIN_XP} XP.
           </p>
         </Card>
         <PastResults race={race} />

@@ -59,11 +59,11 @@ const ERROR_MESSAGES: Record<TrainingError | ServerError, string> = {
   offline: 'Could not reach the server, so this day was not counted yet. Check your connection and try again.',
   'server-error': 'The server could not complete this day, so it was not counted yet. Try again.',
   'day-completed': 'This day has already been completed.',
-  'day-not-current': 'Only today’s session can be changed or completed.',
+  'day-not-current': 'Only today’s session can be completed.',
   'wrong-week': 'The training week has changed. Review today’s session and try again.',
   'unknown-session': 'That session is not available.',
-  'forced-rest': 'Your runner is injured: today must be a rest day.',
-  'race-day': 'Today is race day: start the race below.',
+  'forced-rest': 'Your runner is injured: this is a forced rest day.',
+  'race-day': 'This is race day: the race replaces the session.',
 }
 
 /**
@@ -177,7 +177,8 @@ export function TrainingScreen() {
         cooldown={cooldown}
         busy={busy}
         onPlan={(session) => {
-          const failure = planSession(ref, session)
+          // Any day from today on can be planned (owner decision, 1 November 2026).
+          const failure = planSession({ week: week.number, dayIndex: selectedIndex }, session)
           setError(failure && ERROR_MESSAGES[failure])
         }}
         onComplete={async () => {
@@ -222,14 +223,17 @@ function DayDetail({ state, index, error, cooldown, busy, onPlan, onComplete }: 
   const selectId = useId()
   const raced = dayRace(state, day)
   const upcomingRace = scheduledRace(state, index)
+  const forcedDay = index >= week.currentDayIndex && index < week.currentDayIndex + state.forcedRestDays
 
   return (
     <section id="day-detail" className={styles.detail} aria-labelledby="day-detail-title">
       <div className={styles.detailTop}>
-        {/* For today the session selector below shows the name, so the heading is only announced. */}
+        {/* When the session selector below shows the name (today, later days), the heading is only announced. */}
         <h2
           id="day-detail-title"
-          className={status === 'current' && !upcomingRace ? styles.srOnly : styles.detailTitle}
+          className={
+            !upcomingRace && (status === 'current' || (status === 'upcoming' && !forcedDay)) ? styles.srOnly : styles.detailTitle
+          }
         >
           <SessionIcon session={raced || upcomingRace ? 'race' : day.session} size={26} />
           <span>{raced ? `Race: ${raced.race.name}` : upcomingRace ? `Race: ${upcomingRace.race.name}` : session.label}</span>
@@ -278,11 +282,41 @@ function DayDetail({ state, index, error, cooldown, busy, onPlan, onComplete }: 
         </>
       ) : (
         <>
+          {forcedDay ? (
+            <p className={styles.injuredHint}>Forced rest day: the session cannot be changed.</p>
+          ) : (
+            <div className={styles.selectRow}>
+              <SessionIcon session={day.session} size={26} />
+              <label htmlFor={selectId} className={styles.srOnly}>
+                Session for {weekdayLong(day.day)}
+              </label>
+              <select
+                id={selectId}
+                className={styles.select}
+                value={day.session}
+                onChange={(event) => {
+                  const value = event.target.value
+                  if (isSessionType(value)) onPlan(value)
+                }}
+              >
+                {SESSION_TYPES.map((id) => (
+                  <option key={id} value={id}>
+                    {TRAINING_SESSIONS[id].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <p className={styles.description}>{session.description}</p>
           <p className={styles.summary}>
             <strong>Planned:</strong> {effectsText(plannedEffects(state, index))}
           </p>
-          <p className={styles.hint}>Only today’s session can be changed or completed.</p>
+          {error && (
+            <p role="alert" className={styles.warning}>
+              {error}
+            </p>
+          )}
+          <p className={styles.hint}>You can plan any day of this week; only today’s session can be completed.</p>
         </>
       )}
     </section>

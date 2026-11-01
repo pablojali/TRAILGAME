@@ -60,6 +60,9 @@ export interface GameContextValue {
   dismissDecayNotice(): void
   /** Result of the most recent execution in this session, for feedback. */
   lastExecution: ExecutionResult | null
+  /** Levels just gained (training or race), to celebrate until dismissed. */
+  levelUp: LevelUp | null
+  dismissLevelUp(): void
   /** Creates and saves a new career. Overwrites any existing save. */
   startCareer(profile: ProfileId, identity: AthleteIdentity): Promise<StartCareerError | null>
   /** From an incompatible save, goes to profile selection. Writes nothing. */
@@ -83,6 +86,11 @@ export interface GameContextValue {
     ref: DayRef,
     entryId: string,
   ): Promise<{ ok: true; value: RaceDayResult } | { ok: false; error: RaceDayError | ServerError }>
+}
+
+export interface LevelUp {
+  from: number
+  to: number
 }
 
 export const GameContext = createContext<GameContextValue | null>(null)

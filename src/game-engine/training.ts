@@ -21,7 +21,7 @@ import {
   type GameState,
   type TrainingWeek,
 } from './gameState'
-import { isRaceDayToday } from './raceSchedule'
+import { getRaceWeek, getScheduledEntry, isRaceDayToday, RACE_DAY_INDEX } from './raceSchedule'
 
 export type TrainingError =
   /** The day was already executed. */
@@ -125,17 +125,24 @@ export function checkDay(state: GameState, ref: DayRef): TrainingError | null {
   return null
 }
 
-/** Changes the planned session. Only the current, not-yet-executed day can be changed. */
+/**
+ * Changes the planned session of today or any later day of the current week (owner decision,
+ * 1 November 2026; only today could be planned before). Completed days, forced Rest days and the
+ * Sunday of a race scheduled this week cannot be changed.
+ */
 export function planSession(
   state: GameState,
   ref: DayRef,
   session: SessionType,
 ): TrainingResult<GameState> {
   if (!isSessionType(session)) return { ok: false, error: 'unknown-session' }
-  const error = checkDay(state, ref)
-  if (error) return { ok: false, error }
-  if (state.forcedRestDays > 0) return { ok: false, error: 'forced-rest' }
-  if (isRaceDayToday(state)) return { ok: false, error: 'race-day' }
+  const { week } = state
+  if (ref.week !== week.number) return { ok: false, error: 'wrong-week' }
+  if (ref.dayIndex < week.currentDayIndex) return { ok: false, error: 'day-completed' }
+  if (!Number.isInteger(ref.dayIndex) || ref.dayIndex >= week.days.length) return { ok: false, error: 'day-not-current' }
+  if (ref.dayIndex < week.currentDayIndex + state.forcedRestDays) return { ok: false, error: 'forced-rest' }
+  const raceSunday = ref.dayIndex === RACE_DAY_INDEX && getScheduledEntry(state) !== undefined && getRaceWeek(state) === week.number
+  if (raceSunday || (ref.dayIndex === week.currentDayIndex && isRaceDayToday(state))) return { ok: false, error: 'race-day' }
 
   const days = state.week.days.map((day, index) =>
     index === ref.dayIndex ? { ...day, session } : day,

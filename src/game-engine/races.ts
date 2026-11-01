@@ -1,6 +1,6 @@
 import { ATTRIBUTE_POINTS_PER_LEVEL, getLevel } from '../domain/athlete/levels'
 import { canEnterAtLevel, getRewardMultiplier } from '../domain/races/access'
-import { GROSS_PRIZES, PRIZE_BANDS, RACE_XP_BAND_PCT, RACE_XP_BASE } from '../domain/races/categories'
+import { GROSS_PRIZES, PRIZE_BANDS, RACE_MIN_XP, RACE_XP_BAND_PCT, RACE_XP_BASE } from '../domain/races/categories'
 import { getRace, type Race } from '../domain/races/races'
 import { RACE_SIMULATION } from '../domain/races/simulationConfig'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS } from '../domain/training/injury'
@@ -73,7 +73,7 @@ export interface RaceRewards {
   /** Whole percent. */
   multiplierPct: number
   coinsAwarded: number
-  /** Before any injury rule. */
+  /** At least RACE_MIN_XP (also when injured). */
   xp: number
 }
 
@@ -90,7 +90,7 @@ export function getRaceRewards(race: Race, position: number, levelAtStart: numbe
     grossPrize,
     multiplierPct,
     coinsAwarded: Math.floor((grossPrize * multiplierPct) / 100),
-    xp: Math.floor((RACE_XP_BASE[race.category] * RACE_XP_BAND_PCT[band]! * multiplierPct) / 10000),
+    xp: Math.max(RACE_MIN_XP, Math.floor((RACE_XP_BASE[race.category] * RACE_XP_BAND_PCT[band]! * multiplierPct) / 10000)),
   }
 }
 
@@ -176,7 +176,9 @@ export function raceCurrentDay(
   // the prize coins still count.
   const { fatigueChange, injured } = previewRaceDay(state, race)
   const fitnessChange = injured ? statChange(athlete.fitness, -INJURY_FITNESS_LOSS) : 0
-  const xpAwarded = injured ? 0 : rewards.xp
+  // An injury no longer costs the race XP: a finished race always gives at least RACE_MIN_XP
+  // (owner decision, 1 November 2026).
+  const xpAwarded = injured ? RACE_MIN_XP : rewards.xp
   const outcome: DayOutcome = {
     xpGained: xpAwarded,
     fitnessChange,

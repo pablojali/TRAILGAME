@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { STARTING_COINS } from '../domain/economy/coins'
+import { RACE_MIN_XP } from '../domain/races/categories'
+import { TRAINING_SESSIONS } from '../domain/training/sessions'
 import { getRace, RACES } from '../domain/races/races'
 import { currentRef, execute, newGame, onSunday, T0, withAthlete, withEntry, withSession } from '../test/gameFixtures'
 import type { GameState } from './gameState'
@@ -192,15 +194,16 @@ describe('raceCurrentDay', () => {
     expect(race(state, entry.id)).toEqual({ ok: false, error: 'forced-rest' })
   })
 
-  it('applies the injury rule after a race: no XP, −15 Fitness, 5 forced Rest days; result and coins count', () => {
+  it('applies the injury rule after a race: −15 Fitness, 5 forced Rest days; result, coins and the minimum XP count', () => {
     const { state, entry } = enteredOnSunday(withAthlete(newGame(), { fitness: 60, fatigue: 90 }), 'RACE-001')
     expect(previewRaceDay(state, getRace('RACE-001')!)).toEqual({ fatigueChange: 10, injured: true })
     const result = race(state, entry.id)
     if (!result.ok) throw new Error(result.error)
     const { state: after, entry: finished } = result.value
-    expect(finished.result).toMatchObject({ injured: true, xpAwarded: 0, fitnessChange: -15, fatigueChange: 10 })
+    // Since 1 November 2026 an injured race still gives the minimum race XP (18).
+    expect(finished.result).toMatchObject({ injured: true, xpAwarded: 18, fitnessChange: -15, fatigueChange: 10 })
     expect(finished.result.coinsAwarded).toBeGreaterThan(0)
-    expect(after.athlete).toMatchObject({ xp: 0, fitness: 45, fatigue: 100 })
+    expect(after.athlete).toMatchObject({ xp: 18, fitness: 45, fatigue: 100 })
     expect(after.forcedRestDays).toBe(5)
     // The forced Rest days fill the start of the next week.
     expect(after.week.days.slice(0, 5).every((d) => d.session === 'rest')).toBe(true)
@@ -213,7 +216,8 @@ describe('raceCurrentDay', () => {
     const result = race(levelled, entry.id)
     if (!result.ok) throw new Error(result.error)
     expect(result.value.entry.levelAtEntry).toBe(1)
-    expect(result.value.entry.result).toMatchObject({ levelAtStart: 7, multiplierPct: 0, coinsAwarded: 0, xpAwarded: 0 })
+    // No prize; XP is the minimum (18).
+    expect(result.value.entry.result).toMatchObject({ levelAtStart: 7, multiplierPct: 0, coinsAwarded: 0, xpAwarded: 18 })
   })
 
   it('adds the prize to the balance; with a free entry the net coin change is the prize', () => {
@@ -241,8 +245,9 @@ describe('raceCurrentDay', () => {
     const result = race(ready, entry.id, T0 + 7 * DAY)
     if (!result.ok) throw new Error(result.error)
     expect(result.value.entry.result.position).toBe(1)
-    expect(result.value).toMatchObject({ levelBefore: 1, levelAfter: 2, attributePointsAwarded: 2, weekCompleted: true })
-    expect(result.value.state.athlete.xp).toBe(95 + 30)
+    // The win gives 300 XP (×10 since 1 November 2026): Level 1 → 3, 4 attribute points.
+    expect(result.value).toMatchObject({ levelBefore: 1, levelAfter: 3, attributePointsAwarded: 4, weekCompleted: true })
+    expect(result.value.state.athlete.xp).toBe(95 + 300)
     expect(result.value.state.week).toMatchObject({ number: 2, currentDayIndex: 0 })
   })
 
@@ -273,18 +278,23 @@ describe('race rewards', () => {
 
   it.each<[string, number, number, number, number]>([
     // race, position, level at start, coins, XP
-    ['RACE-001', 1, 1, 100, 30],
-    ['RACE-001', 1, 5, 75, 22],
-    ['RACE-001', 1, 6, 40, 12],
-    ['RACE-001', 1, 7, 0, 0],
-    ['RACE-001', 12, 1, 10, 3],
-    ['RACE-004', 2, 12, 157, 31],
-    ['RACE-004', 5, 11, 75, 15],
-    ['RACE-007', 3, 21, 350, 50],
-    ['RACE-010', 2, 5, 1050, 126],
-    ['RACE-012', 40, 5, 150, 18],
+    // XP ×10 since 1 November 2026, never below 18 (the best training session).
+    ['RACE-001', 1, 1, 100, 300],
+    ['RACE-001', 1, 5, 75, 225],
+    ['RACE-001', 1, 6, 40, 120],
+    ['RACE-001', 1, 7, 0, 18],
+    ['RACE-001', 12, 1, 10, 30],
+    ['RACE-004', 2, 12, 157, 315],
+    ['RACE-004', 5, 11, 75, 150],
+    ['RACE-007', 3, 21, 350, 500],
+    ['RACE-010', 2, 5, 1050, 1260],
+    ['RACE-012', 40, 5, 150, 180],
   ])('%s, position %i, level %i: %i coins and %i XP (rounded down once)', (id, position, level, coins, xp) => {
     expect(getRaceRewards(getRace(id)!, position, level)).toMatchObject({ coinsAwarded: coins, xp })
+  })
+
+  it('never gives less race XP than the best training session', () => {
+    expect(RACE_MIN_XP).toBe(Math.max(...Object.values(TRAINING_SESSIONS).map((s) => s.xp)))
   })
 
   it('uses the approved race Fatigue', () => {
@@ -327,11 +337,12 @@ describe('reward tables (Game Design Bible §10.8–§10.9, D5) — every band a
     'RACE-007': [[700, 525, 280, 0], [490, 367, 196, 0], [350, 262, 140, 0], [175, 131, 70, 0], [70, 52, 28, 0]],
     'RACE-010': [[1500, 1125, 600, 0], [1050, 787, 420, 0], [750, 562, 300, 0], [375, 281, 150, 0], [150, 112, 60, 0]],
   }
+  // XP: ten times the original table (owner decision, 1 November 2026), never below 18.
   const XP: Record<string, number[][]> = {
-    'RACE-001': [[30, 22, 12, 0], [21, 15, 8, 0], [15, 11, 6, 0], [7, 5, 3, 0], [3, 2, 1, 0]],
-    'RACE-004': [[60, 45, 24, 0], [42, 31, 16, 0], [30, 22, 12, 0], [15, 11, 6, 0], [6, 4, 2, 0]],
-    'RACE-007': [[100, 75, 40, 0], [70, 52, 28, 0], [50, 37, 20, 0], [25, 18, 10, 0], [10, 7, 4, 0]],
-    'RACE-010': [[180, 135, 72, 0], [126, 94, 50, 0], [90, 67, 36, 0], [45, 33, 18, 0], [18, 13, 7, 0]],
+    'RACE-001': [[300, 225, 120, 18], [210, 157, 84, 18], [150, 112, 60, 18], [75, 56, 30, 18], [30, 22, 18, 18]],
+    'RACE-004': [[600, 450, 240, 18], [420, 315, 168, 18], [300, 225, 120, 18], [150, 112, 60, 18], [60, 45, 24, 18]],
+    'RACE-007': [[1000, 750, 400, 18], [700, 525, 280, 18], [500, 375, 200, 18], [250, 187, 100, 18], [100, 75, 40, 18]],
+    'RACE-010': [[1800, 1350, 720, 18], [1260, 945, 504, 18], [900, 675, 360, 18], [450, 337, 180, 18], [180, 135, 72, 18]],
   }
   // One position per band, both ends of 4th–10th and the last place.
   const POSITIONS = [[1], [2], [3], [4, 10], [11, 50]]

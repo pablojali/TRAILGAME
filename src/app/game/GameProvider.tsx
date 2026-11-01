@@ -27,6 +27,7 @@ import {
   type DecayNotice,
   type GameContextValue,
   type GamePhase,
+  type LevelUp,
   type StartCareerError,
 } from './gameContext'
 
@@ -86,6 +87,11 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   const [saveFailed, setSaveFailed] = useState(false)
   const [decayNotice, setDecayNotice] = useState<DecayNotice | null>(null)
   const [lastExecution, setLastExecution] = useState<ExecutionResult | null>(null)
+  // A level-up to celebrate (owner request, 1 November 2026); several in a row are shown as one.
+  const [levelUp, setLevelUp] = useState<LevelUp | null>(null)
+  const noteLevels = useCallback((before: number, after: number) => {
+    if (after > before) setLevelUp((current) => ({ from: current?.from ?? before, to: after }))
+  }, [])
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [player] = useState(() => (identity === undefined ? getPlayerIdentity() : identity))
   const [sync] = useState(() => (cloud === undefined ? getCloudSync() : cloud))
@@ -345,16 +351,19 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
           session,
         }))
         if (!response.ok) return serverError<TrainingError>(response.error)
-        setLastExecution({ ...(response.result as Omit<ExecutionResult, 'state'>), state: response.state })
+        const executed = { ...(response.result as Omit<ExecutionResult, 'state'>), state: response.state }
+        setLastExecution(executed)
+        noteLevels(executed.levelBefore, executed.levelAfter)
         return null
       }
       const result = engine.executeCurrentDay(state, ref, clockRef.current())
       if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.value.state })
       setLastExecution(result.value)
+      noteLevels(result.value.levelBefore, result.value.levelAfter)
       return null
     },
-    [commit, currentState, ops, runServerOp, sync],
+    [commit, currentState, ops, runServerOp, sync, noteLevels],
   )
 
   const allocate = useCallback(
@@ -420,16 +429,19 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
         }))
         if (!response.ok) return { ok: false, error: serverError<RaceDayError>(response.error) }
         setLastExecution(null)
-        return { ok: true, value: { ...(response.result as Omit<RaceDayResult, 'state'>), state: response.state } }
+        const raced = { ...(response.result as Omit<RaceDayResult, 'state'>), state: response.state }
+        noteLevels(raced.levelBefore, raced.levelAfter)
+        return { ok: true, value: raced }
       }
       const result = raceCurrentDay(state, ref, entryId, clockRef.current())
       if (!result.ok) return result
       commit({ kind: 'playing', state: result.value.state })
       // The last training feedback no longer describes the latest day.
       setLastExecution(null)
+      noteLevels(result.value.levelBefore, result.value.levelAfter)
       return result
     },
-    [commit, currentState, ops, runServerOp, sync],
+    [commit, currentState, ops, runServerOp, sync, noteLevels],
   )
 
   const equip = useCallback(
@@ -505,6 +517,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       decayNotice,
       dismissDecayNotice: () => setDecayNotice(null),
       lastExecution,
+      levelUp,
+      dismissLevelUp: () => setLevelUp(null),
       startCareer,
       beginRestart,
       resetCareer,
@@ -528,6 +542,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       cloudNotice,
       decayNotice,
       lastExecution,
+      levelUp,
       startCareer,
       beginRestart,
       resetCareer,

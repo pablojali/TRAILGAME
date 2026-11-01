@@ -103,7 +103,7 @@ describe('Race Detail', () => {
   it('explains reduced and zero rewards for easy races', async () => {
     seedCareer(withAthlete(newGame(), { xp: 3_850 })) // level 12
     const view = await renderApp('/races/RACE-004')
-    expect(screen.getByText('At your level: 75% of prizes and XP.')).toBeInTheDocument()
+    expect(screen.getByText(/^At your level: 75% of prizes and XP\. A finished race always gives at least 18 XP\.$/)).toBeInTheDocument()
     view.unmount()
     await renderApp('/races/RACE-001')
     expect(screen.getByText(/At your level: 0% of prizes and XP — this race is too easy/)).toBeInTheDocument()
@@ -285,7 +285,7 @@ describe('Race day and results', () => {
     await settled()
     expect(screen.getByRole('note')).toHaveTextContent('Injury warning: Fatigue would reach 100 (above 95)')
     await user.click(screen.getByRole('button', { name: 'Start race anyway — injury' }))
-    expect(await screen.findByText('0 (injured)')).toBeInTheDocument()
+    expect(await screen.findByText('18 XP (injured)')).toBeInTheDocument()
     expect(screen.getByText(/Rewards reduced to 40%: you were level 6, 2 above the recommended level 4/)).toBeInTheDocument()
     expect(screen.getByText(/Injured: Fatigue went above 95/)).toBeInTheDocument()
     expect(readSave()!.state.forcedRestDays).toBe(5)

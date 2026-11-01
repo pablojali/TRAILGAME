@@ -19,7 +19,7 @@ import { parseGameState, SCHEMA_VERSION } from '../repositories/gameRepository'
  * days, race days, attribute points, purchases, equipping, race entry); the client only sends the
  * request and plays the state the server returns.
  *
- * Fields the client still owns (name, sex and look, today's planned session) are taken from its
+ * Fields the client still owns (name, sex and look, the week's plan from today on) are taken from its
  * snapshot when it is up to date with the server. Nothing here touches Supabase directly: storage
  * and authentication are injected (src/server/supabaseRest.ts).
  */
@@ -92,7 +92,8 @@ function readRecord(record: CareerRecord, now: number): GameState | null {
 
 /**
  * The server's career with the fields the client owns taken from the client's snapshot: name,
- * sex and look (validated by the engine) and today's planned session (validated by the engine).
+ * sex and look (validated by the engine) and the planned sessions of today and the rest of the
+ * week (validated by the engine).
  * Progression, coins, owned and worn items and race entries always stay the server's (Phase
  * 3B.2). An invalid result falls back to the server's career.
  */
@@ -103,11 +104,14 @@ export function mergeClientFields(server: GameState, client: GameState, now: num
   }
   const look = setAppearance(merged, client.athlete.appearance)
   if (look.ok) merged = look.state
-  const today = server.week.currentDayIndex
-  const planned = client.week.number === server.week.number ? client.week.days[today]?.session : undefined
-  if (planned && planned !== merged.week.days[today]!.session) {
-    const plan = planSession(merged, { week: server.week.number, dayIndex: today }, planned)
-    if (plan.ok) merged = plan.value
+  // The plan for today and the rest of the week (validated by the engine, day by day).
+  if (client.week.number === server.week.number) {
+    for (let index = server.week.currentDayIndex; index < server.week.days.length; index++) {
+      const planned = client.week.days[index]?.session
+      if (!planned || planned === merged.week.days[index]!.session) continue
+      const plan = planSession(merged, { week: server.week.number, dayIndex: index }, planned)
+      if (plan.ok) merged = plan.value
+    }
   }
   return parseGameState(JSON.parse(JSON.stringify(merged)), now) ?? server
 }

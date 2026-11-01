@@ -952,6 +952,20 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Planning ahead, level-up celebration, race XP ×10 (owner decisions, 1 November 2026)
+
+- **Plan any day:** the session of today and every later day of the week can be changed
+  (`planSession`; completed days, forced Rest days and a race Sunday stay locked). The server
+  takes the whole remaining week's plan from a sync save. Training screen: a session selector on
+  every plannable day.
+- **Level-up window** (`src/app/game/LevelUpDialog.tsx`, `src/game-engine/levelRewards.ts`): as
+  soon as a day or race is confirmed with a level gained, a celebration lists the attribute points,
+  looks unlocked and races that open, with Spend points / Change look / Continue.
+- **Race XP ×10, never below 18** (`RACE_XP_BASE`, `RACE_MIN_XP`): also when injured and when the
+  anti-farming multiplier is 0 %. Prizes are unchanged.
+- Level table: `docs/LEVELS.md`. Game Design Bible §4.2, §6.3, §10.9 and §10.10 updated.
+- The server runs the same engine, so `career-ops` must be redeployed with these changes.
+
 ### Phase 3B.3: server-authoritative NPC races and results (1 November 2026)
 
 - Race execution, NPC ranking and rewards were already computed by the server since 3B.1, and

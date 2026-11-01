@@ -118,8 +118,8 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
               </p>
               {result.injured ? (
                 <p className={styles.warning}>
-                  Injured: Fatigue went above 95. No XP, Fitness lost and {INJURY_REST_DAYS} forced rest days. Your
-                  result and prize still count.
+                  Injured: Fatigue went above 95. Fitness lost and {INJURY_REST_DAYS} forced rest days. Your result,
+                  prize and XP still count.
                 </p>
               ) : (
                 <p className={styles.muted}>
@@ -228,7 +228,9 @@ function Rewards({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
         </div>
         <div>
           <dt>XP awarded</dt>
-          <dd>{result.injured ? '0 (injured)' : `${result.xpAwarded} XP`}</dd>
+          <dd>
+            {result.xpAwarded} XP{result.injured ? ' (injured)' : ''}
+          </dd>
         </div>
         <div className={styles.total}>
           <dt>Net coin change</dt>
@@ -238,7 +240,7 @@ function Rewards({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
       {result.multiplierPct === 0 ? (
         <p className={styles.warning}>
           This race is too easy for your level: you were level {result.levelAtStart}, {difference} above the
-          recommended level {race.recommendedLevel}, so it gives no XP and no prize coins.
+          recommended level {race.recommendedLevel}, so it gives no prize coins and only the minimum XP.
         </p>
       ) : result.multiplierPct < 100 ? (
         <p className={styles.warning}>

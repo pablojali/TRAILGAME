@@ -952,6 +952,46 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Race Engine & Strategy V1 (owner approval, 1 November 2026)
+
+Design and approved values: `docs/RACE_ENGINE_V1_PROPOSAL.md`. Balancing constants:
+`src/domain/races/strategyConfig.ts` (`RACE_STRATEGY`).
+
+- **Gels and cereal bars are consumables:** packs of 3 for 10 coins (`packSize`, `price`), bought
+  any number of times; the stock is `GameState.consumables {gel, bar}` (old saves: 0). They are
+  never owned as items nor equipped (`setItemEquipped` → `consumable`). A race takes at most one of
+  each, chosen before the start, and uses it up. Gel: −1.5 % race time; bar: −1.5 % fatigue gained.
+- **Segments** (`src/game-engine/raceEngine.ts`): `clamp(round(km / 6), 2, 8)` segments cut at
+  equal distances from `generateCourse`; a cut block keeps its gradient and the effort-km before
+  it, so the pieces take exactly the block's time (`blockMinutes`, extracted from `raceSeconds`
+  without changing it). Segment totals are validated against the race.
+- **Intensity per segment:** Recovery / Easy / Target pace / Hard = pace ×1.10 / 1.05 / 1.00 / 0.95
+  and fatigue gained ×0.45 / 0.70 / 1.00 / 1.60. Fatigue gained = 0.6 × effort-km × intensity ×
+  (20 / Recovery)^0.35 × a per-race calibration scale.
+- **In-race fatigue** starts at the runner's Fatigue. Its deviation from the plan (Target pace,
+  Normal stops) enters the existing Fatigue factor of the time model (weight 1): pushing early
+  slows later segments, holding back speeds them up. "Energy" = 100 − in-race fatigue.
+- **Aid stations:** Quick 30 s / 10 %, Normal 2 min / 25 %, Slow 5 min / 45 % of the in-race
+  fatigue gained so far, × (Recovery / 20)^0.35, at most 60 %, never below the pre-race Fatigue.
+- **Calibration:** Target pace with Normal stops gives exactly the previous running time (plus the
+  stops) and, for Recovery 20, exactly the previous race Fatigue `round(6 + 0.6 × effort-km)`.
+  Hard everywhere wins on short races (at a large Fatigue cost) and loses on the longest; a negative
+  split beats an even pace on long races.
+- **Rivals:** existing finishing times, split over the segments like the typical runner, plus a
+  stop at every aid station by rank (front third Quick, middle Normal, back third Slow). Results
+  store the rivals' times with stops (`rivalTimesS`). Overall position only.
+- **Race in progress:** `GameState.activeRace` (inputs fixed at the start, nutrition, elapsed time,
+  in-race fatigue, splits), validated by `parseGameState`. While it exists Sunday cannot be trained
+  or planned. The finish applies the existing rewards, XP minimum, Fatigue and injury rules once,
+  and stores `splits` and `nutrition` in the result. The "Why" tab still explains abilities with
+  the one-shot model; its gap is measured on the real times, aid stations included.
+- **Server:** `race-start` and `race-step` replace the one-shot `race` operation (now a bad request);
+  the client sends decisions only. Same operation ids, version check and `commit_career`. The
+  `unsupported-strategy` refusal of 3B.3 is gone. Migration `20261101120000_race_engine_operations.sql`.
+- **Screens:** race preparation and aid-station report (`/races/run/:entryId`), "Prepare race" /
+  "Continue race" on race day, a Splits tab on the result.
+- `raceCurrentDay` remains as "run the whole race with the default plan" for tests.
+
 ### Equipment screen redesign, gels and cereal bars (owner request, 1 November 2026)
 
 - **Equipped:** the runner large on the left (Change look) and one box per slot in a column on the
@@ -963,10 +1003,9 @@ Fitness 0 by week 6:
   bonuses, price, and a status bar: Buy, Need N more, Owned, Equipped, Not for sale yet), filtered
   by type (All by default). A card opens a large card (`?item=`): picture, type, level, race effect,
   price, description, and Buy (with confirmation) or Equip / Take off, with Back to shop.
-- **Gels and cereal bars** (`energy-gel`, `cereal-bar`; slots `gel`, `bar`): level, price and
-  race effects are to be defined. `price: null` means not for sale (`not-for-sale` on the server
-  too); they have no race effect, so no calculation changes. Placeholder icons until there is art.
-  The UI shows "To be defined" instead of a value.
+- **Gels and cereal bars** (`energy-gel`, `cereal-bar`; slots `gel`, `bar`): at first without
+  level, price or effect ("To be defined"). Since Race Engine V1 they are consumables sold in packs
+  (see above). Placeholder icons until there is art.
 - The server's item catalog changed (new items, `not-for-sale`): redeploy `career-ops`.
 
 ### One starting profile (owner decision, 1 November 2026)
@@ -995,8 +1034,8 @@ Fitness 0 by week 6:
 
 - Race execution, NPC ranking and rewards were already computed by the server since 3B.1, and
   client snapshots lost coins, items and entries in 3B.2. 3B.3 adds a minimum-level check at race
-  time for free entries (`raceCurrentDay`, `level-too-low`) and refuses any race `strategy` value
-  (`unsupported-strategy`): the game has no strategy yet (Bible §10.6), and none was invented.
+  time for free entries (`raceCurrentDay`, `level-too-low`) and refused any race `strategy` value
+  (`unsupported-strategy`) until Race Engine V1 replaced the `race` operation.
 - No DNF or category position exists; finishing position (field of 50) and injury are kept.
 - Tests: `src/server/careerOps.test.ts` ("NPC races on the server"), `src/game-engine/races.test.ts`.
   The `withEntry` test fixture makes pre-minimum-level (`standard`) entries.

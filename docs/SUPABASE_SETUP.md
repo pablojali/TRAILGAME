@@ -258,7 +258,8 @@ formula exists twice. Clients can no longer write career snapshots.
 `POST /functions/v1/career-ops` with the player's session token and a JSON body:
 
 - `train` `{operationId, baseVersion, ref, session, snapshot?}`: completes today's training day.
-- `race` `{operationId, baseVersion, ref, entryId, snapshot?}`: runs today's race.
+- `race` `{operationId, baseVersion, ref, entryId, snapshot?}`: ran today's race in one request
+  (replaced by `race-start` / `race-step` in Race Engine V1; now a bad request).
 - `allocate` `{operationId, baseVersion, attribute, expectedSpent, snapshot?}`: spends one point.
 - `save` `{baseVersion, snapshot}`: uploads the fields the player may change (cloud sync).
 - `new-career` `{baseVersion, profile, identity}`: creates (or replaces) the career on the server.
@@ -406,9 +407,8 @@ Added in 3B.3:
 
 - The race checks the minimum level again on the server's career (`level-too-low`) for free
   entries; entries paid under the earlier rules (no minimum level) still run.
-- Race strategy does not exist in the game (Game Design Bible §10.6: not designed yet). Any
-  `strategy` value in a race request is refused (`unsupported-strategy`, HTTP 400) instead of
-  being ignored.
+- Race strategy did not exist yet: any `strategy` value was refused (`unsupported-strategy`).
+  Superseded by Race Engine V1 below.
 - Tests for every case in the brief (validation, strategy, result integrity, idempotency and
   concurrency, version conflicts, progression, injury).
 
@@ -417,6 +417,47 @@ field of 50 and, above Fatigue 95, an injury (kept as they are).
 
 Deployment: no database change. Redeploy `career-ops` with the new `index.js`; merging is
 independent (the client only gained an error message).
+
+## Race Engine & Strategy V1 (1 November 2026)
+
+A race is run segment by segment on the server (`docs/RACE_ENGINE_V1_PROPOSAL.md`). The client
+sends decisions only; times, positions, fatigue, bonuses and rewards are the engine's.
+
+### Actions
+
+- `race-start` `{operationId, baseVersion, ref, entryId, intensity, gel, bar, snapshot?}`: the
+  same checks as before (entry, Sunday, scheduled, level), then the gel and bar asked for leave the
+  server's stock (`no-gel` / `no-bar` if none) and the first segment is run. The career keeps the
+  race in progress (`activeRace`); nothing is awarded yet. A second start: `race-in-progress`.
+- `race-step` `{operationId, baseVersion, segment, stop, intensity, snapshot?}`: the stop at the
+  aid station the runner is at, then segment `segment` (its index; any other: `wrong-segment`).
+  The last step finishes the race: result with splits, XP, coins, Fatigue, injury and the day,
+  once. Without a race in progress: `no-race-in-progress`.
+- `race` is no longer accepted (HTTP 400 `bad-request`). Unknown intensities or stops are refused
+  (`unknown-intensity`, `unknown-stop`).
+- `buy` also sells gel and cereal bar packs (3 units, 10 coins), any number of times; each
+  operation id is charged once. `equip` refuses them (`consumable`).
+
+Every step is a normal operation: operation id, version check, `commit_career`, stored response.
+A repeated step is replayed; two different steps at once are applied once (the other gets
+`wrong-segment` or `no-race-in-progress`). A race in progress or consumables in a client snapshot
+are ignored, as are coins and entries.
+
+### Database
+
+Migration `20261101120000_race_engine_operations.sql`: the operation kinds `race-start` and
+`race-step` are allowed in `career_operations` (`race` stays allowed for recorded operations).
+Nothing else changes; the race in progress lives inside `game_state`.
+
+### Deployment (owner steps, in this order)
+
+1. Apply `20261101120000_race_engine_operations.sql`. Without it, starting a race fails with
+   "The server could not start the race" and nothing changes.
+2. Redeploy `career-ops` with the new `supabase/functions/career-ops/index.js`.
+3. Merge to main.
+
+Do steps 2 and 3 together: the released app sends the old `race` operation, which the new function
+refuses, and the new app sends `race-start`, which the old function refuses.
 
 ## Not done yet (next phases)
 

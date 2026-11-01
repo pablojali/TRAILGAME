@@ -1,8 +1,12 @@
 # Race Engine & Strategy V1 — findings and proposal (1 November 2026)
 
 Step 1 of the "Race Engine & Strategy (V1)" specification: what exists today, the conflicts with
-the specification, and a concrete proposal for every value the specification leaves open. Nothing
-is implemented yet; decisions marked **Decision needed** are required before implementation.
+the specification, and a concrete proposal for every value the specification leaves open.
+
+**Owner decisions (1 November 2026):** everything below accepted as proposed ("Acepto todo").
+Gels and cereal bars are used up by a race and sold in packs of 3 for 10 coins each (no level).
+Segments resolve instantly; overall position only; Energy = 100 − in-race fatigue. Implemented as
+described in `DEVELOPMENT.md` ("Race Engine & Strategy V1").
 
 ## 1. What exists today
 

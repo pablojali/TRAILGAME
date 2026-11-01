@@ -180,14 +180,14 @@ function Splits({ result }: { result: RaceResult }) {
   const nutrition = [result.nutrition?.gel && 'gel', result.nutrition?.bar && 'cereal bar'].filter(Boolean)
   return (
     <>
-      <table className={styles.standingsTable}>
+      <table className={`${styles.standingsTable} ${styles.splitsTable}`}>
         <caption className={styles.srOnly}>Splits by segment</caption>
         <thead>
           <tr>
             <th scope="col">Seg.</th>
             <th scope="col">Intensity</th>
             <th scope="col">Time</th>
-            <th scope="col">Race time</th>
+            <th scope="col">Total</th>
             <th scope="col">Pos.</th>
             <th scope="col">Stop</th>
           </tr>
@@ -200,7 +200,7 @@ function Splits({ result }: { result: RaceResult }) {
               <td>{durationText(split.segmentS)}</td>
               <td>{raceTimeText(split.arrivalS)}</td>
               <td>{split.position}</td>
-              <td>{split.stop ? `${STOP_LABELS[split.stop]} ${durationText(split.stopS ?? 0)}` : 'Finish'}</td>
+              <td>{split.stop ? STOP_LABELS[split.stop] : 'Finish'}</td>
             </tr>
           ))}
         </tbody>

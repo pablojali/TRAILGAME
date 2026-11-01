@@ -3,7 +3,7 @@ import { Link, Navigate, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
-import { formatDelta, formatStat } from '../../components/format'
+import { formatStat } from '../../components/format'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { Chips } from '../../components/Tabs'
 import { getEquipmentItem, itemName } from '../../domain/equipment/items'
@@ -23,6 +23,7 @@ import {
 } from '../../game-engine/races'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import {
+  formatChange,
   INTENSITY_LABELS,
   INTENSITY_OPTIONS,
   intensityHint,
@@ -143,7 +144,7 @@ function Preparation({ race, entryId }: { race: Race; entryId: string }) {
       description="Plan your race: choose what to carry and how hard to start. You decide again at every aid station."
       showDescription
     >
-      <ScrollPanel label="Race preparation">
+      <ScrollPanel label="Race plan">
         <Card title={`Course · ${segments.length} segments, ${segments.length - 1} aid stations`}>
           <ol className={styles.segmentList}>
             {segments.map((segment) => (
@@ -185,7 +186,7 @@ function Preparation({ race, entryId }: { race: Race; entryId: string }) {
         <Card title="Condition">
           <p>
             Fatigue {formatStat(athlete.fatigue)}. At Target pace with Normal stops it would end near{' '}
-            {formatStat(fatigueAfter)} ({formatDelta(preview.fatigueChange)}).
+            {formatStat(fatigueAfter)} ({formatChange(preview.fatigueChange)}).
           </p>
           {preview.injured && (
             <p className={styles.warning} role="note">

@@ -63,3 +63,9 @@ export function segmentTerrainText(segment: RaceSegment): string {
   const technical = segment.technicality > 0 ? ` · technicality ${segment.technicality}/3` : ''
   return `${parts.join(', ')}${technical}`
 }
+
+/** A Fatigue change with 1 decimal and a true minus sign, e.g. "+30.1". */
+export function formatChange(value: number): string {
+  const rounded = Math.round(value * 10) / 10
+  return `${rounded > 0 ? '+' : rounded < 0 ? '−' : ''}${Math.abs(rounded).toFixed(1)}`
+}

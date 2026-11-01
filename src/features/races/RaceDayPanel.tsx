@@ -1,7 +1,8 @@
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
-import { formatDelta, formatStat } from '../../components/format'
+import { formatStat } from '../../components/format'
+import { formatChange } from './raceStrategyText'
 import { getRace, type Race } from '../../domain/races/races'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
 import { TRAINING_SESSIONS } from '../../domain/training/sessions'
@@ -66,7 +67,7 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
       </p>
       <p className={styles.muted}>
         At Target pace with Normal stops: Fatigue {formatStat(athlete.fatigue)} → {formatStat(fatigueAfter)} (
-        {formatDelta(preview.fatigueChange)}). A race counts as training for Fitness decay.
+        {formatChange(preview.fatigueChange)}). A race counts as training for Fitness decay.
       </p>
       {preview.injured && (
         <p className={styles.warning} role="note">

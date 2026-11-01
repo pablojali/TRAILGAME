@@ -19,6 +19,7 @@ import {
   getCurrentDay,
   type DayOutcome,
   type GameState,
+  type TrainingDay,
   type TrainingWeek,
 } from './gameState'
 import { getRaceWeek, getScheduledEntry, isRaceDayToday, RACE_DAY_INDEX } from './raceSchedule'
@@ -69,12 +70,33 @@ export function statChange(value: number, delta: number): number {
   return roundStat(clampStat(value + delta) - value)
 }
 
+/** True when a race is scheduled on this week's Sunday. */
+export function isRaceWeek(state: GameState): boolean {
+  return getScheduledEntry(state) !== undefined && getRaceWeek(state) === state.week.number
+}
+
+/** Rest days in a row that keep Fitness after an active day: 1, or 2 in a race week (owner decision). */
+export function freeRestDays(state: GameState): number {
+  return isRaceWeek(state) ? 2 : 1
+}
+
+/** True for a completed or planned day that is a training session or a race. */
+function isActiveDay(day: TrainingDay | undefined): boolean {
+  return day !== undefined && (day.session !== 'rest' || day.outcome?.raceEntryId !== undefined)
+}
+
 /**
- * True if a Rest today is a recovery Rest: the previous day was a training session or a race, and
- * today is not a forced Rest day after an injury.
+ * True if a Rest today is a recovery Rest (Fitness kept): the previous day was a training session
+ * or a race, and today is not a forced Rest day after an injury. In a week with a race the second
+ * Rest in a row also keeps Fitness; only the third loses it (owner decision, 1 November 2026).
  */
 export function isRecoveryRest(state: GameState): boolean {
-  return state.previousDayActive && state.forcedRestDays === 0
+  if (state.forcedRestDays > 0) return false
+  if (state.previousDayActive) return true
+  if (freeRestDays(state) < 2) return false
+  const index = state.week.currentDayIndex
+  const days = state.week.days
+  return index >= 2 && !isActiveDay(days[index - 1]) && isActiveDay(days[index - 2])
 }
 
 /**

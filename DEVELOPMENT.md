@@ -952,6 +952,17 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Race screens as tiles, race-week rest (owner requests, 1 November 2026)
+
+- **Race week rest:** with a race scheduled on this week's Sunday, 2 Rest days in a row after an
+  active day keep Fitness (`isRecoveryRest`, `freeRestDays`); the third loses −2. The server runs
+  the same engine: redeploy `career-ops`.
+- **Race detail, preparation, aid stations and result** are glass tiles that fit the screen without
+  scrolling (`.tiles`, `.tile` in `Races.module.css`; hints hidden below 760 px of height). No prize
+  explanations, no Condition card, no race-day text (only "Prepare race"), no "Why" tab.
+- **Backgrounds:** `assets/ui/backgrounds/aid-station.jpg` (race in progress, `/races/run/*`) and
+  `finish.jpg` (results, `/races/results/*`), from the owner's picture.
+
 ### Race Engine & Strategy V1 (owner approval, 1 November 2026)
 
 Design and approved values: `docs/RACE_ENGINE_V1_PROPOSAL.md`. Balancing constants:

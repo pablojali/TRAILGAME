@@ -179,7 +179,7 @@ Fitness represents the athlete's current physical readiness and accumulated trai
 - Range: 0–100.
 - Initial value: 20.
 - Fitness increases through training.
-- Fitness decreases through inactivity and on a second Rest day in a row (−2); a Rest right after a training day or race keeps Fitness (owner decisions, 30 October 2026).
+- Fitness decreases through inactivity and on a second Rest day in a row (−2; the third in a race week); a Rest right after a training day or race keeps Fitness (owner decisions, 30 October and 1 November 2026).
 - Fitness must never exceed 100 or fall below 0.
 
 Fitness is not the same as an attribute.
@@ -313,6 +313,8 @@ Fitness gains must be capped at 100.
 **Revision 1.2:** each Rest day reduces Fitness by 2 (owner decision, 28 October 2026). Rest still grants no XP and still does not reset the inactivity reference (§4.5).
 
 **Recovery Rest (owner decisions, 30 October 2026; supersedes the line above where they differ):** a Rest day right after a training day or a race keeps Fitness (0 instead of −2), rewarding rest as recovery. It was first +1, then set to 0 because with +1 Fitness reached 96 by level 3 in the 16-week simulation. A Rest right after another Rest keeps Fitness −2. Forced Rest days after an injury always use −2. The previous day carries across weeks (Monday after a Sunday session). A played Rest day now resets the inactivity reference (§4.5).
+
+**Race weeks (owner decision, 1 November 2026):** in a week with a race on Sunday, 2 Rest days in a row after a training day keep Fitness; only the third Rest in a row loses −2.
 
 The new values intentionally make Fitness progression slower than in the original M1 prototype.
 

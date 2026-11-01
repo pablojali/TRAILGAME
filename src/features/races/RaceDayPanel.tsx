@@ -1,11 +1,7 @@
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
-import { formatStat } from '../../components/format'
-import { formatChange } from './raceStrategyText'
 import { getRace, type Race } from '../../domain/races/races'
-import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
-import { TRAINING_SESSIONS } from '../../domain/training/sessions'
 import { weekdayLong } from '../../domain/training/weekdays'
 import { getCurrentDay } from '../../game-engine/gameState'
 import { getRaceWeek, getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedule'
@@ -19,10 +15,9 @@ import styles from './Races.module.css'
  */
 export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string }) {
   const { state } = useCareer()
-  const { week, athlete } = state
+  const { week } = state
   const today = getCurrentDay(week)
   const preview = previewRaceDay(state, race)
-  const fatigueAfter = athlete.fatigue + preview.fatigueChange
 
   const scheduled = getScheduledEntry(state)
   if (scheduled && scheduled.id !== entryId) {
@@ -59,29 +54,13 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
     )
   }
 
+  // Race day: straight to the preparation (owner request: no explanation here).
   return (
-    <>
-      <p>
-        <strong>Today is race day.</strong> The race takes today’s training day: {weekdayLong(today.day)}’s{' '}
-        {TRAINING_SESSIONS[today.session].label} is not done.
-      </p>
-      <p className={styles.muted}>
-        At Target pace with Normal stops: Fatigue {formatStat(athlete.fatigue)} → {formatStat(fatigueAfter)} (
-        {formatChange(preview.fatigueChange)}). A race counts as training for Fitness decay.
-      </p>
-      {preview.injured && (
-        <p className={styles.warning} role="note">
-          Injury warning: Fatigue would reach {formatStat(fatigueAfter)} (above {INJURY_FATIGUE_THRESHOLD}). Racing
-          anyway: −{INJURY_FITNESS_LOSS} Fitness, {INJURY_REST_DAYS} forced rest days. Your result and prize still
-          count. Easier segments and longer stops keep Fatigue down.
-        </p>
-      )}
-      <Link
-        to={`/races/run/${entryId}`}
-        className={`${button.button} ${preview.injured ? button.danger : button.primary} ${button.block}`}
-      >
-        Prepare race
-      </Link>
-    </>
+    <Link
+      to={`/races/run/${entryId}`}
+      className={`${button.button} ${preview.injured ? button.danger : button.primary} ${button.block}`}
+    >
+      {preview.injured ? 'Prepare race — injury risk' : 'Prepare race'}
+    </Link>
   )
 }

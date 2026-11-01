@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { bodyId, type Appearance } from '../../domain/athlete/appearance'
 import type { Sex } from '../../domain/athlete/athlete'
 import { getShirt } from '../../domain/athlete/shirts'
@@ -141,6 +142,7 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
     ...(shirt ? [{ id: shirt.id, href: art(`clothing/${shirt.file}`) }] : []),
   ]
   const zoomed = focus === 'face' && crop === 'full'
+  const glowId = `avatar-glow-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   return (
     <svg
       viewBox={VIEWBOXES[crop]}
@@ -152,7 +154,17 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
       preserveAspectRatio="xMidYMid meet"
       {...a11y}
     >
-      <g className={styles.zoom} style={{ transform: zoomed ? FACE_TRANSFORM : 'none' }}>
+      <defs>
+        {/*
+         * Every avatar has a thin light rim and a soft glow (owner decision, 1 November 2026): the
+         * runner stands out from any background and the rough cut-out edges of the art are hidden.
+         */}
+        <filter id={glowId} x="-10%" y="-5%" width="120%" height="110%" colorInterpolationFilters="sRGB">
+          <feDropShadow dx="0" dy="0" stdDeviation="1.2" floodColor="rgb(255 244 228)" floodOpacity="0.9" />
+          <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="rgb(255 226 190)" floodOpacity="0.45" />
+        </filter>
+      </defs>
+      <g className={styles.zoom} style={{ transform: zoomed ? FACE_TRANSFORM : 'none' }} filter={`url(#${glowId})`}>
         {bySlot('poles').map((id) => POLE_COLORS[id] && <Poles key={id} id={id} />)}
         {layers.map(
           (layer) =>

@@ -82,7 +82,17 @@ select pg_temp.expect((select status = 'saved' from r10), 'a race entry is commi
 create temp table r11 as select * from public.commit_career('00000000-0000-0000-0000-0000000000c1', 5,
   pg_temp.snapshot(45, '[]', '["starter-shoes","poles"]'), 2, '55555555-5555-5555-5555-555555555555', 'equip', '{}');
 select pg_temp.expect((select status = 'saved' from r11), 'an equipment change is committed');
-select pg_temp.expect_error($$select public.commit_career('00000000-0000-0000-0000-0000000000c1', 6,
+-- Race Engine V1: a race start and a race step are recorded like the others.
+create temp table r12 as select * from public.commit_career('00000000-0000-0000-0000-0000000000c1', 6,
+  pg_temp.snapshot(45, '[]', '["starter-shoes","poles"]'), 2, '77777777-7777-7777-7777-777777777777', 'race-start', '{}');
+select pg_temp.expect((select status = 'saved' and version = 7 from r12), 'a race start is committed');
+create temp table r13 as select * from public.commit_career('00000000-0000-0000-0000-0000000000c1', 7,
+  pg_temp.snapshot(45, '[]', '["starter-shoes","poles"]'), 2, '88888888-8888-8888-8888-888888888888', 'race-step', '{}');
+select pg_temp.expect((select status = 'saved' and version = 8 from r13), 'a race step is committed');
+create temp table r14 as select * from public.commit_career('00000000-0000-0000-0000-0000000000c1', 8,
+  pg_temp.snapshot(45, '[]', '["starter-shoes","poles"]'), 2, '88888888-8888-8888-8888-888888888888', 'race-step', '{}');
+select pg_temp.expect((select status = 'duplicate' and version = 8 from r14), 'a repeated race step is not applied again');
+select pg_temp.expect_error($$select public.commit_career('00000000-0000-0000-0000-0000000000c1', 8,
   pg_temp.snapshot(45, '[]', '[]'), 2, '66666666-6666-6666-6666-666666666666', 'free-coins', '{}')$$,
   'an unknown operation kind is refused');
 reset role;

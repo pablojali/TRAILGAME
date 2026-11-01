@@ -220,12 +220,27 @@ describe('server-authoritative training (client and server together)', () => {
     // The entry is the server's (Phase 3B.2).
     expect(w.server()!.raceEntries).toMatchObject([{ raceId: 'RACE-001', status: 'pending' }])
     const entryId = view.playing().raceEntries[0]!.id
-    let raced: Awaited<ReturnType<GameContextValue['raceDay']>> | undefined
+    // Race Engine V1: the start runs segment 1 on the server; the client sent decisions only.
     await act(async () => {
-      raced = await view.game().raceDay({ week: 1, dayIndex: 6 }, entryId)
+      expect(await view.game().startRace({ week: 1, dayIndex: 6 }, entryId, { intensity: 'hard', gel: false, bar: false })).toBeNull()
     })
-    expect(raced?.ok).toBe(true)
+    expect(w.server()!.activeRace).toMatchObject({ entryId, splits: [{ intensity: 'hard' }] })
+    expect(view.playing()).toEqual(w.server())
+    // Offline: still at the aid station, nothing applied; the retry runs the step once.
+    w.network.down = true
+    let step: Awaited<ReturnType<GameContextValue['stepRace']>> | undefined
+    await act(async () => {
+      step = await view.game().stepRace({ segment: 1, stop: 'quick', intensity: 'target' })
+    })
+    expect(step).toEqual({ ok: false, error: 'offline' })
+    expect(w.server()!.activeRace!.splits).toHaveLength(1)
+    w.network.down = false
+    await act(async () => {
+      step = await view.game().stepRace({ segment: 1, stop: 'quick', intensity: 'target' })
+    })
+    expect(step?.ok && step.finished?.entry.result.splits!.map((s) => s.intensity)).toEqual(['hard', 'target'])
     expect(w.server()!.raceEntries[0]!.status).toBe('finished')
+    expect(w.server()!.activeRace).toBeNull()
     expect(view.playing()).toEqual(w.server())
     const spent = view.playing().athlete.spentAttributePoints
     await act(async () => {

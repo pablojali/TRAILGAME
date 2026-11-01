@@ -121,43 +121,79 @@ function segmentAbility(segment: CourseSegment, a: Attributes): number {
   return runnableAbility(a)
 }
 
-/** Finishing time in seconds, before rounding. `dayForm` is a fraction; 0 means none. */
-export function raceSeconds(course: readonly CourseSegment[], athlete: RaceAthleteInput, dayForm = 0): number {
+/** The athlete's race inputs prepared once: attributes with equipment bonuses and fixed factors. */
+export interface PreparedRunner {
+  attributes: Attributes
+  gear: ReturnType<typeof getRaceEffect>
+  fitnessFactor: number
+  /** Scales the effect of Fatigue (D9, variant V1: Consistency softens it). */
+  fatigueScale: number
+  durabilityScore: number
+}
+
+export function prepareRunner(athlete: RaceAthleteInput): PreparedRunner {
   // Equipment bonuses are added for the race only; the athlete's attributes are not changed.
   const gear = getRaceEffect(athlete.equipment ?? [])
   const a = Object.fromEntries(
     ATTRIBUTE_IDS.map((id) => [id, athlete.attributes[id] + gear.attributes[id]]),
   ) as Attributes
-  const fitnessFactor = 1 + (C.fitnessSlope * (50 - athlete.fitness)) / 50
-  // D9 (variant V1): Consistency softens the effect of Fatigue.
-  const fatigueScale = Math.pow(C.abilityReference / a.consistency, C.abilityExponent)
-  const fatigueFactor = 1 + (C.fatigueSlope * athlete.fatigue * fatigueScale) / 100
-  const durabilityScore = durability(a)
+  return {
+    attributes: a,
+    gear,
+    fitnessFactor: 1 + (C.fitnessSlope * (50 - athlete.fitness)) / 50,
+    fatigueScale: Math.pow(C.abilityReference / a.consistency, C.abilityExponent),
+    durabilityScore: durability(a),
+  }
+}
+
+/**
+ * Minutes for one course block (or a piece of one: the time is proportional to the block's effort,
+ * so pieces of a block add up to the block). `effortBefore` is the effort-km before the block starts.
+ */
+export function blockMinutes(
+  runner: PreparedRunner,
+  s: CourseSegment,
+  effortBefore: number,
+  fatigue: number,
+  dayForm = 0,
+): number {
+  const { attributes: a, gear } = runner
+  const fatigueFactor = 1 + (C.fatigueSlope * fatigue * runner.fatigueScale) / 100
+  const e = effortKm(s)
+  const abilityFactor = Math.pow(C.abilityReference / segmentAbility(s, a), C.abilityExponent)
+  const technicalFactor =
+    s.type === 'descent'
+      ? // Technical 100 or more removes the penalty; it never turns into a bonus (no attribute cap).
+        1 + C.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * Math.max(0, 1 - a.technical / 100)
+      : 1
+  const slowdown =
+    1 +
+    C.slowdownRate *
+      gear.slowdown *
+      (effortBefore / C.slowdownReferenceEffortKm) *
+      (C.abilityReference / runner.durabilityScore)
+  const gearFactor = s.type === 'climb' ? gear.climb : s.type === 'descent' ? gear.descent : gear.runnable
+  return (
+    e *
+    C.basePaceMinPerEffortKm *
+    abilityFactor *
+    technicalFactor *
+    slowdown *
+    gearFactor *
+    runner.fitnessFactor *
+    fatigueFactor *
+    (1 + dayForm)
+  )
+}
+
+/** Finishing time in seconds, before rounding. `dayForm` is a fraction; 0 means none. */
+export function raceSeconds(course: readonly CourseSegment[], athlete: RaceAthleteInput, dayForm = 0): number {
+  const runner = prepareRunner(athlete)
   let minutes = 0
   let effortBefore = 0
   for (const s of course) {
-    const e = effortKm(s)
-    const abilityFactor = Math.pow(C.abilityReference / segmentAbility(s, a), C.abilityExponent)
-    const technicalFactor =
-      s.type === 'descent'
-        ? // Technical 100 or more removes the penalty; it never turns into a bonus (no attribute cap).
-          1 + C.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * Math.max(0, 1 - a.technical / 100)
-        : 1
-    const slowdown =
-      1 +
-      C.slowdownRate * gear.slowdown * (effortBefore / C.slowdownReferenceEffortKm) * (C.abilityReference / durabilityScore)
-    const gearFactor = s.type === 'climb' ? gear.climb : s.type === 'descent' ? gear.descent : gear.runnable
-    minutes +=
-      e *
-      C.basePaceMinPerEffortKm *
-      abilityFactor *
-      technicalFactor *
-      slowdown *
-      gearFactor *
-      fitnessFactor *
-      fatigueFactor *
-      (1 + dayForm)
-    effortBefore += e
+    minutes += blockMinutes(runner, s, effortBefore, athlete.fatigue, dayForm)
+    effortBefore += effortKm(s)
   }
   return minutes * 60
 }

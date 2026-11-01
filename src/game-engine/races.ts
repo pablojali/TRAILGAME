@@ -4,9 +4,25 @@ import { GROSS_PRIZES, PRIZE_BANDS, RACE_MIN_XP, RACE_XP_BAND_PCT, RACE_XP_BASE 
 import { getRace, type Race } from '../domain/races/races'
 import { RACE_SIMULATION } from '../domain/races/simulationConfig'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS } from '../domain/training/injury'
-import type { DayOutcome, FinishedRaceEntry, GameState, PendingRaceEntry, RaceEntry, RaceResult } from './gameState'
+import { roundStat } from '../domain/athlete/athlete'
+import { isAidStop, isIntensity, type AidStop, type Intensity } from '../domain/races/strategyConfig'
+import type { ActiveRace, DayOutcome, FinishedRaceEntry, GameState, PendingRaceEntry, RaceEntry, RaceResult } from './gameState'
+import {
+  getRaceField,
+  getReferenceFinishS,
+  makeStop,
+  runPlan,
+  runSegment,
+  snapshotRunner,
+  type Nutrition,
+  type RaceField,
+  type RaceProgress,
+  type RaceSegment,
+  type RaceSplit,
+  type StepContext,
+} from './raceEngine'
 import { getScheduledEntry, RACE_DAY_INDEX } from './raceSchedule'
-import { courseEffortKm, explainRace, generateCourse, getDayForm, rivalTimes, simulateRace } from './raceSimulation'
+import { courseEffortKm, explainRace, generateCourse, getDayForm, rivalTimes } from './raceSimulation'
 import { checkDay, completeCurrentDay, statChange, type DayRef, type TrainingError } from './training'
 
 export type RaceEntryError =
@@ -101,12 +117,6 @@ export function getRaceFatigue(race: Race): number {
   )
 }
 
-/** What racing today would do to Fatigue, and whether it would injure the athlete (same rule as training). */
-export function previewRaceDay(state: GameState, race: Race): { fatigueChange: number; injured: boolean } {
-  const { fatigue } = state.athlete
-  const fatigueChange = statChange(fatigue, getRaceFatigue(race))
-  return { fatigueChange, injured: fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD }
-}
 
 export type RaceDayError =
   | TrainingError
@@ -118,8 +128,24 @@ export type RaceDayError =
   | 'not-race-day'
   /** Another pending entry is raced first. */
   | 'not-scheduled'
-  /** The runner is below the race's minimum level (free entries only; see raceCurrentDay). */
+  /** The runner is below the race's minimum level (free entries only; see startRace). */
   | 'level-too-low'
+
+export type RaceStartError =
+  | RaceDayError
+  /** The race has already started: it continues with race steps. */
+  | 'race-in-progress'
+  | 'unknown-intensity'
+  /** A gel or cereal bar was asked for but none is in stock. */
+  | 'no-gel'
+  | 'no-bar'
+
+export type RaceStepError =
+  | 'no-race-in-progress'
+  /** The step is for another segment (a stale or repeated screen). */
+  | 'wrong-segment'
+  | 'unknown-intensity'
+  | 'unknown-stop'
 
 export interface RaceDayResult {
   state: GameState
@@ -130,18 +156,49 @@ export interface RaceDayResult {
   weekCompleted: boolean
 }
 
+/** What the runner decides before the start. */
+export interface RaceStartDecisions {
+  /** Intensity of the first segment. */
+  intensity: Intensity
+  /** Take a gel / a cereal bar (one at most of each; owner decision). */
+  gel: boolean
+  bar: boolean
+}
+
+/** What the runner decides at an aid station. */
+export interface RaceStepDecisions {
+  /** Index of the segment the step runs (the one after the aid station): guards against stale screens. */
+  segment: number
+  stop: AidStop
+  /** Intensity of that segment. */
+  intensity: Intensity
+}
+
+export type RaceStepOutcome = { finished: false; state: GameState } | { finished: true; value: RaceDayResult }
+
+function contextOf(active: ActiveRace, race: Race, field: RaceField = getRaceField(race)): StepContext {
+  return {
+    race,
+    field,
+    runner: snapshotRunner(active.attributes, active.fitness, active.fatigue, active.equipment),
+    dayForm: active.dayForm,
+    nutrition: active.nutrition,
+  }
+}
+
 /**
- * Runs the scheduled race on race Sunday (owner decisions D1–D5; Sundays only), exactly once.
- * The planned session is not executed: the day's outcome is the race. Rewards, Fatigue, a possible
- * injury, the calendar and the entry's result are all applied in one returned state, so the race
- * cannot be applied twice: the entry is no longer pending and the day is no longer current.
+ * Starts the scheduled race on race Sunday and runs its first segment (Race Engine V1). Same checks
+ * as before strategies; the inputs (attributes, Fitness, Fatigue, equipment, day form) are fixed
+ * now. The gel and cereal bar taken leave the stock. The race then continues with `stepRace`.
  */
-export function raceCurrentDay(
+export function startRace(
   state: GameState,
   ref: DayRef,
   entryId: string,
+  decisions: RaceStartDecisions,
   now: number,
-): { ok: true; value: RaceDayResult } | { ok: false; error: RaceDayError } {
+): { ok: true; state: GameState } | { ok: false; error: RaceStartError } {
+  if (state.activeRace) return { ok: false, error: 'race-in-progress' }
   const dayError = checkDay(state, ref)
   if (dayError) return { ok: false, error: dayError }
   if (state.forcedRestDays > 0) return { ok: false, error: 'forced-rest' }
@@ -158,24 +215,95 @@ export function raceCurrentDay(
   if (entry.entryType === 'free' && !canEnterAtLevel(race, getLevel(state.athlete.xp))) {
     return { ok: false, error: 'level-too-low' }
   }
+  if (!isIntensity(decisions.intensity)) return { ok: false, error: 'unknown-intensity' }
+  if (decisions.gel && state.consumables.gel < 1) return { ok: false, error: 'no-gel' }
+  if (decisions.bar && state.consumables.bar < 1) return { ok: false, error: 'no-bar' }
 
   const { athlete } = state
-  const levelAtStart = getLevel(athlete.xp)
-  const input = {
+  const nutrition: Nutrition = { gel: decisions.gel === true, bar: decisions.bar === true }
+  const base: ActiveRace = {
+    entryId: entry.id,
+    raceId: race.id,
+    startedAt: now,
+    levelAtStart: getLevel(athlete.xp),
     attributes: { ...athlete.attributes },
     fitness: athlete.fitness,
     fatigue: athlete.fatigue,
     equipment: [...state.equipment],
+    dayForm: getDayForm(race.id, entry.id, entry.enteredAt, athlete.attributes.consistency),
+    nutrition,
+    elapsedS: 0,
+    inRaceFatigue: athlete.fatigue,
+    splits: [],
   }
-  const dayForm = getDayForm(race.id, entry.id, entry.enteredAt, athlete.attributes.consistency)
-  const simulation = simulateRace(race, input, dayForm)
-  const explanation = explainRace(race, input, dayForm)
-  const rewards = getRaceRewards(race, simulation.position, levelAtStart)
+  const progress = runSegment(contextOf(base, race), toProgress(base), decisions.intensity)
+  return {
+    ok: true,
+    state: {
+      ...state,
+      consumables: {
+        gel: state.consumables.gel - (nutrition.gel ? 1 : 0),
+        bar: state.consumables.bar - (nutrition.bar ? 1 : 0),
+      },
+      activeRace: withProgress(base, progress),
+    },
+  }
+}
 
-  // Injury after a race (D4): the existing rule — no XP, Fitness loss, forced Rest. The result and
-  // the prize coins still count.
-  const { fatigueChange, injured } = previewRaceDay(state, race)
-  const fitnessChange = injured ? statChange(athlete.fitness, -INJURY_FITNESS_LOSS) : 0
+function toProgress(active: ActiveRace): RaceProgress {
+  return { elapsedS: active.elapsedS, fatigue: active.inRaceFatigue, splits: active.splits }
+}
+
+function withProgress(active: ActiveRace, progress: RaceProgress): ActiveRace {
+  return { ...active, elapsedS: progress.elapsedS, inRaceFatigue: progress.fatigue, splits: progress.splits }
+}
+
+/**
+ * Leaves the aid station the runner is at with the chosen stop and runs the next segment. After the
+ * last segment the race finishes: result, rewards, Fatigue, a possible injury and the day, once.
+ */
+export function stepRace(
+  state: GameState,
+  decisions: RaceStepDecisions,
+  now: number,
+): { ok: true; value: RaceStepOutcome } | { ok: false; error: RaceStepError } {
+  const active = state.activeRace
+  if (!active) return { ok: false, error: 'no-race-in-progress' }
+  const race = getRace(active.raceId)
+  if (!race) return { ok: false, error: 'no-race-in-progress' }
+  if (decisions.segment !== active.splits.length) return { ok: false, error: 'wrong-segment' }
+  if (!isAidStop(decisions.stop)) return { ok: false, error: 'unknown-stop' }
+  if (!isIntensity(decisions.intensity)) return { ok: false, error: 'unknown-intensity' }
+
+  const field = getRaceField(race)
+  const ctx = contextOf(active, race, field)
+  const progress = runSegment(ctx, makeStop(ctx, toProgress(active), decisions.stop), decisions.intensity)
+  const next = withProgress(active, progress)
+  if (progress.splits.length < field.segments.length) {
+    return { ok: true, value: { finished: false, state: { ...state, activeRace: next } } }
+  }
+  return { ok: true, value: { finished: true, value: finishRace({ ...state, activeRace: next }, next, race, field, now) } }
+}
+
+/** Applies the finish: the existing rewards, Fatigue and injury rules, the result and the day. */
+function finishRace(state: GameState, active: ActiveRace, race: Race, field: RaceField, now: number): RaceDayResult {
+  const entry = getEntry(state, active.entryId) as PendingRaceEntry
+  const last = active.splits[active.splits.length - 1]!
+  const timeS = last.arrivalS
+  const position = last.position
+  const levelAtStart = active.levelAtStart
+  const input = { attributes: active.attributes, fitness: active.fitness, fatigue: active.fatigue, equipment: active.equipment }
+  // The "Why" explanation compares abilities with the typical runner on the same course (one shot,
+  // without strategy); the gap is measured on the real times, aid stations included.
+  const explanation = explainRace(race, input, active.dayForm)
+  const referenceTimeS = getReferenceFinishS(race, field)
+  const rewards = getRaceRewards(race, position, levelAtStart)
+
+  // Fatigue = in-race fatigue at the finish (calibrated so Target pace with Normal stops adds what a
+  // race added before). Injury after a race (D4): the existing rule.
+  const fatigueChange = statChange(active.fatigue, roundStat(active.inRaceFatigue - active.fatigue))
+  const injured = active.fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD
+  const fitnessChange = injured ? statChange(state.athlete.fitness, -INJURY_FITNESS_LOSS) : 0
   // An injury no longer costs the race XP: a finished race always gives at least RACE_MIN_XP
   // (owner decision, 1 November 2026).
   const xpAwarded = injured ? RACE_MIN_XP : rewards.xp
@@ -188,18 +316,18 @@ export function raceCurrentDay(
   }
 
   const result: RaceResult = {
-    startedAt: now,
+    startedAt: active.startedAt,
     week: state.week.number,
     day: state.week.currentDayIndex + 1,
     levelAtStart,
-    attributes: input.attributes,
-    fitness: input.fitness,
-    fatigue: input.fatigue,
-    equipment: input.equipment,
-    dayForm,
-    timeS: simulation.timeS,
-    position: simulation.position,
-    fieldSize: simulation.fieldSize,
+    attributes: active.attributes,
+    fitness: active.fitness,
+    fatigue: active.fatigue,
+    equipment: active.equipment,
+    dayForm: active.dayForm,
+    timeS,
+    position,
+    fieldSize: RACE_SIMULATION.fieldSize,
     band: rewards.band,
     grossPrize: rewards.grossPrize,
     multiplierPct: rewards.multiplierPct,
@@ -209,15 +337,17 @@ export function raceCurrentDay(
     fatigueChange,
     fitnessChange,
     injured,
-    referenceTimeS: explanation.referenceTimeS,
-    gapS: explanation.gapS,
+    referenceTimeS,
+    gapS: timeS - referenceTimeS,
     factors: explanation.factors,
-    rivalTimesS: rivalTimes(race),
+    rivalTimesS: field.rivalFinishS,
+    splits: active.splits,
+    nutrition: active.nutrition,
   }
   const finished: FinishedRaceEntry = { ...entry, status: 'finished', result }
 
   // A race is an active day: a Rest the next day is a recovery Rest. It also resets decay (D3).
-  const advanced = completeCurrentDay(state, outcome, true, now)
+  const advanced = completeCurrentDay({ ...state, activeRace: null }, outcome, true, now)
   const nextState: GameState = {
     ...advanced.state,
     coins: advanced.state.coins + rewards.coinsAwarded,
@@ -225,16 +355,103 @@ export function raceCurrentDay(
   }
   const levelAfter = getLevel(nextState.athlete.xp)
   return {
-    ok: true,
-    value: {
-      state: nextState,
-      entry: finished,
-      levelBefore: levelAtStart,
-      levelAfter,
-      attributePointsAwarded: (levelAfter - levelAtStart) * ATTRIBUTE_POINTS_PER_LEVEL,
-      weekCompleted: advanced.weekCompleted,
-    },
+    state: nextState,
+    entry: finished,
+    levelBefore: levelAtStart,
+    levelAfter,
+    attributePointsAwarded: (levelAfter - levelAtStart) * ATTRIBUTE_POINTS_PER_LEVEL,
+    weekCompleted: advanced.weekCompleted,
   }
+}
+
+/** The default plan: Target pace everywhere, Normal stops, no gel or bar. */
+export const DEFAULT_PLAN = { intensity: 'target', stop: 'normal' } as const satisfies {
+  intensity: Intensity
+  stop: AidStop
+}
+
+/**
+ * Runs the scheduled race start to finish with the default plan (Target pace, Normal stops, no
+ * nutrition) in one call. Used by tests and simulations; players race step by step.
+ */
+export function raceCurrentDay(
+  state: GameState,
+  ref: DayRef,
+  entryId: string,
+  now: number,
+): { ok: true; value: RaceDayResult } | { ok: false; error: RaceStartError } {
+  const started = startRace(state, ref, entryId, { intensity: DEFAULT_PLAN.intensity, gel: false, bar: false }, now)
+  if (!started.ok) return started
+  let current = started.state
+  for (;;) {
+    const step = stepRace(current, { segment: current.activeRace!.splits.length, ...DEFAULT_PLAN }, now)
+    if (!step.ok) throw new Error(step.error)
+    if (step.value.finished) return { ok: true, value: step.value.value }
+    current = step.value.state
+  }
+}
+
+/** The aid-station report of the race in progress. */
+export interface RaceReport {
+  race: Race
+  /** Segments run so far; the runner is at the aid station after the last one. */
+  segmentsDone: number
+  segmentCount: number
+  last: RaceSplit
+  position: number
+  fieldSize: number
+  elapsedS: number
+  /** Seconds behind the rival just ahead / ahead of the rival just behind; null if none. */
+  gapAheadS: number | null
+  gapBehindS: number | null
+  /** 0–100, 2 decimals. */
+  fatigue: number
+  /** 100 − in-race fatigue. */
+  energy: number
+  nutrition: Nutrition
+  /** The segment after the aid station. */
+  next: RaceSegment
+}
+
+export function getRaceReport(state: GameState): RaceReport | null {
+  const active = state.activeRace
+  const race = active && getRace(active.raceId)
+  if (!active || !race) return null
+  const field = getRaceField(race)
+  const k = active.splits.length - 1
+  const last = active.splits[k]!
+  const rivals = field.rivalArrivalsS[k] ?? field.rivalFinishS
+  const ahead = rivals.filter((t) => t < last.arrivalS)
+  const behind = rivals.filter((t) => t >= last.arrivalS)
+  const fatigue = roundStat(Math.min(100, Math.max(0, active.inRaceFatigue)))
+  return {
+    race,
+    segmentsDone: active.splits.length,
+    segmentCount: field.segments.length,
+    last,
+    position: last.position,
+    fieldSize: RACE_SIMULATION.fieldSize,
+    elapsedS: last.arrivalS,
+    gapAheadS: ahead.length ? last.arrivalS - Math.max(...ahead) : null,
+    gapBehindS: behind.length ? Math.min(...behind) - last.arrivalS : null,
+    fatigue,
+    energy: roundStat(100 - fatigue),
+    nutrition: active.nutrition,
+    next: field.segments[active.splits.length]!,
+  }
+}
+
+/**
+ * What racing today would do to Fatigue with the default plan, and whether it would injure the
+ * athlete (same rule as training).
+ */
+export function previewRaceDay(state: GameState, race: Race): { fatigueChange: number; injured: boolean } {
+  const { athlete } = state
+  const runner = snapshotRunner(athlete.attributes, athlete.fitness, athlete.fatigue, state.equipment)
+  const ctx: StepContext = { race, field: getRaceField(race), runner, dayForm: 0, nutrition: { gel: false, bar: false } }
+  const planned = runPlan(ctx, DEFAULT_PLAN.intensity, DEFAULT_PLAN.stop)
+  const fatigueChange = statChange(athlete.fatigue, roundStat(planned.fatigue - athlete.fatigue))
+  return { fatigueChange, injured: athlete.fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD }
 }
 
 export interface StandingRow {

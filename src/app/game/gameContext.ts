@@ -6,7 +6,14 @@ import type { AppearanceError } from '../../game-engine/appearance'
 import type { AllocationError } from '../../game-engine/attributes'
 import type { BuyError, EquipError } from '../../game-engine/equipment'
 import type { AthleteIdentity, GameState } from '../../game-engine/gameState'
-import type { RaceDayError, RaceDayResult, RaceEntryError } from '../../game-engine/races'
+import type {
+  RaceDayResult,
+  RaceEntryError,
+  RaceStartDecisions,
+  RaceStartError,
+  RaceStepDecisions,
+  RaceStepError,
+} from '../../game-engine/races'
 import type { DayRef, ExecutionResult, TrainingError } from '../../game-engine/training'
 import type { SyncConflict, SyncStatus } from '../../repositories/cloudSync'
 import type { IncompatibleReason } from '../../repositories/gameRepository'
@@ -81,12 +88,19 @@ export interface GameContextValue {
   setItemEquipped(itemId: string, equipped: boolean): Promise<EquipError | ServerError | null>
   /** Changes the runner's look. Options above the runner's level are refused. */
   setAppearance(appearance: Appearance): AppearanceError | null
-  /** Races a pending entry on the current day, once. Returns the result or the reason it failed. */
-  raceDay(
-    ref: DayRef,
-    entryId: string,
-  ): Promise<{ ok: true; value: RaceDayResult } | { ok: false; error: RaceDayError | ServerError }>
+  /**
+   * Starts the scheduled race (Race Engine V1): the server runs the first segment with the chosen
+   * intensity and takes the gel and bar asked for. The race in progress is then `state.activeRace`.
+   */
+  startRace(ref: DayRef, entryId: string, decisions: RaceStartDecisions): Promise<RaceStartError | ServerError | null>
+  /** Makes the stop at the aid station and runs the next segment; the last one finishes the race. */
+  stepRace(decisions: RaceStepDecisions): Promise<RaceStepResponse>
 }
+
+/** `finished`: the race result when this step reached the finish, else null. */
+export type RaceStepResponse =
+  | { ok: true; finished: RaceDayResult | null }
+  | { ok: false; error: RaceStepError | ServerError }
 
 export interface LevelUp {
   from: number

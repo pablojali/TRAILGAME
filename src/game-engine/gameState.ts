@@ -4,6 +4,7 @@ import { PROFILES } from '../domain/athlete/profiles'
 import { STARTING_COINS } from '../domain/economy/coins'
 import { OWNED_FROM_START } from '../domain/equipment/items'
 import type { EntryType } from '../domain/races/access'
+import type { Nutrition, RaceSplit } from './raceEngine'
 import type { ExplanationFactor } from './raceSimulation'
 import type { SessionType } from '../domain/training/sessions'
 
@@ -70,6 +71,34 @@ export interface GameState {
   ownedEquipment: string[]
   /** Gels and cereal bars in stock (whole units, never negative). A race uses at most one of each. */
   consumables: Consumables
+  /**
+   * The race in progress (Race Engine V1), or null. Started and advanced by the server one segment
+   * at a time; it ends, and becomes the entry's result, when the finish is reached.
+   */
+  activeRace: ActiveRace | null
+}
+
+/** A race between its start and its finish: the inputs fixed at the start and the segments run. */
+export interface ActiveRace {
+  entryId: string
+  raceId: string
+  /** Epoch ms. */
+  startedAt: number
+  levelAtStart: number
+  /** Inputs as they were at the start. */
+  attributes: Attributes
+  fitness: number
+  fatigue: number
+  equipment: string[]
+  dayForm: number
+  /** The gel and cereal bar taken (already removed from the stock). */
+  nutrition: Nutrition
+  /** Race time so far, unrounded seconds. */
+  elapsedS: number
+  /** In-race fatigue now, unrounded. */
+  inRaceFatigue: number
+  /** Segments run so far (at least one); the last is the aid station the runner is at. */
+  splits: RaceSplit[]
 }
 
 export interface Consumables {
@@ -138,8 +167,15 @@ export interface RaceResult {
   factors: ExplanationFactor[]
   /** Equipped items at the start (their race effects applied). Missing in older results: none. */
   equipment?: string[]
-  /** The 49 rivals' times in whole seconds, fastest first. Missing in results saved before it existed. */
+  /**
+   * The 49 rivals' times in whole seconds, fastest first, aid-station stops included since Race
+   * Engine V1. Missing in results saved before it existed.
+   */
   rivalTimesS?: number[]
+  /** Race Engine V1: every segment with its intensity and the stop after it. Missing in older results. */
+  splits?: RaceSplit[]
+  /** Race Engine V1: the gel and cereal bar taken. */
+  nutrition?: Nutrition
 }
 
 /** Deterministic plan used for the first week and every following week. */
@@ -200,6 +236,7 @@ export function createInitialGameState(
     equipment: [],
     ownedEquipment: [...OWNED_FROM_START],
     consumables: { gel: 0, bar: 0 },
+    activeRace: null,
   }
 }
 

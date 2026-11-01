@@ -1,47 +1,25 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
-import { formatDelta } from '../../components/format'
+import { formatDelta, formatStat } from '../../components/format'
 import { getRace, type Race } from '../../domain/races/races'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
 import { TRAINING_SESSIONS } from '../../domain/training/sessions'
 import { weekdayLong } from '../../domain/training/weekdays'
 import { getCurrentDay } from '../../game-engine/gameState'
 import { getRaceWeek, getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedule'
-import { previewRaceDay, type RaceDayError } from '../../game-engine/races'
-import type { ServerError } from '../../repositories/supabase/careerOpsClient'
+import { previewRaceDay } from '../../game-engine/races'
 import styles from './Races.module.css'
-
-const RACE_DAY_ERRORS: Record<RaceDayError | ServerError, string> = {
-  offline: 'Could not reach the server, so the race was not run yet. Check your connection and try again.',
-  'server-error': 'The server could not run the race, so it was not run yet. Try again.',
-  'day-completed': 'Today was already completed. Check the current day and try again.',
-  'day-not-current': 'Races take the current day only.',
-  'wrong-week': 'The week changed. Check the current day and try again.',
-  'unknown-session': 'Something went wrong. Try again.',
-  'forced-rest': 'Your runner is injured: racing is locked during forced rest days.',
-  'unknown-entry': 'This entry no longer exists.',
-  'already-finished': 'This race was already run. Its result is saved.',
-  'unknown-race': 'This race does not exist.',
-  'race-day': 'Today is race day: start the race.',
-  'not-race-day': 'Races are run on Sundays.',
-  'not-scheduled': 'Another race is run first.',
-  'level-too-low': 'Your level is below this race\'s minimum, so it cannot be run.',
-}
 
 /**
  * Race day for a pending entry. Races are run on Sundays (owner decision): before Sunday it shows
- * when the race is; on Sunday it starts the race, which takes the day and is applied once.
+ * when the race is; on Sunday it leads to the race preparation, or back to the race in progress
+ * (Race Engine V1: the race is run segment by segment on its own screen).
  */
 export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string }) {
-  const { state, raceDay } = useCareer()
-  const navigate = useNavigate()
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const { state } = useCareer()
   const { week, athlete } = state
   const today = getCurrentDay(week)
-  const ref = { week: week.number, dayIndex: week.currentDayIndex }
   const preview = previewRaceDay(state, race)
   const fatigueAfter = athlete.fatigue + preview.fatigueChange
 
@@ -67,6 +45,19 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
     )
   }
 
+  if (state.activeRace?.entryId === entryId) {
+    return (
+      <>
+        <p>
+          <strong>Race in progress.</strong> You are at aid station {state.activeRace.splits.length}.
+        </p>
+        <Link to={`/races/run/${entryId}`} className={`${button.button} ${button.primary} ${button.block}`}>
+          Continue race
+        </Link>
+      </>
+    )
+  }
+
   return (
     <>
       <p>
@@ -74,41 +65,22 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
         {TRAINING_SESSIONS[today.session].label} is not done.
       </p>
       <p className={styles.muted}>
-        Fatigue {athlete.fatigue} → {fatigueAfter} ({formatDelta(preview.fatigueChange)}). A race counts as training
-        for Fitness decay.
+        At Target pace with Normal stops: Fatigue {formatStat(athlete.fatigue)} → {formatStat(fatigueAfter)} (
+        {formatDelta(preview.fatigueChange)}). A race counts as training for Fitness decay.
       </p>
       {preview.injured && (
         <p className={styles.warning} role="note">
-          Injury warning: Fatigue would reach {fatigueAfter} (above {INJURY_FATIGUE_THRESHOLD}). Racing anyway: no
-          XP, −{INJURY_FITNESS_LOSS} Fitness, {INJURY_REST_DAYS} forced rest days. Your result and prize still count.
+          Injury warning: Fatigue would reach {formatStat(fatigueAfter)} (above {INJURY_FATIGUE_THRESHOLD}). Racing
+          anyway: −{INJURY_FITNESS_LOSS} Fitness, {INJURY_REST_DAYS} forced rest days. Your result and prize still
+          count. Easier segments and longer stops keep Fatigue down.
         </p>
       )}
-      {error && (
-        <p role="alert" className={styles.warning}>
-          {error}
-        </p>
-      )}
-      <button
-        type="button"
+      <Link
+        to={`/races/run/${entryId}`}
         className={`${button.button} ${preview.injured ? button.danger : button.primary} ${button.block}`}
-        aria-disabled={busy || undefined}
-        onClick={async () => {
-          if (busy) return
-          setBusy(true)
-          const result = await raceDay(ref, entryId)
-          if (!result.ok) {
-            setBusy(false)
-            setError(RACE_DAY_ERRORS[result.error])
-            return
-          }
-          navigate(`/races/results/${entryId}`, {
-            state: { levelsGained: result.value.levelAfter - result.value.levelBefore },
-          })
-        }}
       >
-        {busy ? 'Running the race…' : preview.injured ? 'Start race anyway — injury' : 'Start race'}
-      </button>
+        Prepare race
+      </Link>
     </>
   )
 }
-

@@ -168,6 +168,12 @@
   flex: none;
 }
 
+/* Readable over the picture (owner request, 1 November 2026): black at 80 %, white text. */
+.filters button:not([aria-pressed='true']) {
+  background: rgb(0 0 0 / 0.8);
+  color: var(--text);
+}
+
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));

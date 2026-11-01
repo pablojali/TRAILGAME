@@ -55,3 +55,9 @@ export const PROFILE_IDS: readonly ProfileId[] = ['climber', 'sprinter', 'all-ro
 export function isProfileId(value: unknown): value is ProfileId {
   return typeof value === 'string' && (PROFILE_IDS as readonly string[]).includes(value)
 }
+
+/**
+ * Every new career starts as an All-rounder, every attribute at 16 (owner decision, 1 November
+ * 2026: the starting profiles are no longer offered). Saved careers keep their profile.
+ */
+export const STARTING_PROFILE: ProfileId = 'all-rounder'

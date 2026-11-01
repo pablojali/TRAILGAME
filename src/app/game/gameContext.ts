@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { Appearance } from '../../domain/athlete/appearance'
-import type { AttributeId, ProfileId } from '../../domain/athlete/athlete'
+import type { AttributeId } from '../../domain/athlete/athlete'
 import type { SessionType } from '../../domain/training/sessions'
 import type { AppearanceError } from '../../game-engine/appearance'
 import type { AllocationError } from '../../game-engine/attributes'
@@ -17,7 +17,7 @@ export type GamePhase =
   | { kind: 'loading' }
   /** The save could not be read (not an incompatible save, e.g. storage unavailable). */
   | { kind: 'load-failed' }
-  /** No career yet: the player must choose a profile. `replacing` explains what will be overwritten. */
+  /** No career yet: the player must create a runner. `replacing` explains what will be overwritten. */
   | { kind: 'new-career'; replacing: IncompatibleReason | null }
   /** A save exists that cannot be loaded; nothing has been written. */
   | { kind: 'incompatible'; reason: IncompatibleReason }
@@ -63,11 +63,11 @@ export interface GameContextValue {
   /** Levels just gained (training or race), to celebrate until dismissed. */
   levelUp: LevelUp | null
   dismissLevelUp(): void
-  /** Creates and saves a new career. Overwrites any existing save. */
-  startCareer(profile: ProfileId, identity: AthleteIdentity): Promise<StartCareerError | null>
-  /** From an incompatible save, goes to profile selection. Writes nothing. */
+  /** Creates and saves a new career (All-rounder, STARTING_PROFILE). Overwrites any existing save. */
+  startCareer(identity: AthleteIdentity): Promise<StartCareerError | null>
+  /** From an incompatible save, goes to runner creation. Writes nothing. */
   beginRestart(): void
-  /** Deletes the current career and returns to profile selection. */
+  /** Deletes the current career and returns to runner creation. */
   resetCareer(): void
   planSession(ref: DayRef, session: SessionType): TrainingError | null
   /** Server-decided with Supabase: nothing is awarded unless the server confirms. */

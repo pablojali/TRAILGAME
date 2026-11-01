@@ -276,7 +276,7 @@ describe('career-ops: snapshot saves and new careers', () => {
     })
   })
 
-  it('a new career is built by the server from profile and identity, and replaces only the version seen', async () => {
+  it('a new career is an All-rounder built by the server from the identity, and replaces only the version seen', async () => {
     const memory = memoryStore()
     memory.seed('ana', withAthlete(newGame(), { xp: 900 }), 6)
     const body = (baseVersion: number | null) => ({
@@ -288,7 +288,13 @@ describe('career-ops: snapshot saves and new careers', () => {
     expect((await handleCareerOp('token-ana', body(5), deps(memory))).body).toMatchObject({ ok: false, error: 'conflict', version: 6 })
     const response = await handleCareerOp('token-ana', body(6), deps(memory))
     if (!response.body.ok) throw new Error(response.body.error)
-    expect(response.body.state.athlete).toMatchObject({ profile: 'climber', xp: 0, name: 'Ana' })
+    // An older client still asking for a profile gets the All-rounder, every attribute at 16.
+    expect(response.body.state.athlete).toMatchObject({
+      profile: 'all-rounder',
+      xp: 0,
+      name: 'Ana',
+      attributes: { endurance: 16, climbing: 16, speed: 16, technical: 16, recovery: 16, consistency: 16 },
+    })
     expect(response.body.state.coins).toBe(25)
     expect(response.body.version).toBe(7)
   })
@@ -323,6 +329,15 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     expect((await call(memory, { action: 'buy', operationId: op(2), itemId: 'trail-shoes', price: 1 })).body).toMatchObject({ ok: false, error: 'price-changed' })
     expect((await call(memory, { action: 'buy', operationId: op(3), itemId: 'trail-shoes', price: 70 })).body).toMatchObject({ ok: false, error: 'insufficient-coins', state: { coins: 30 } })
     expect((await call(memory, { action: 'buy', operationId: op(4), itemId: 'poles', price: 'free' })).status).toBe(400)
+    expect(memory.commits()).toBe(0)
+  })
+
+  it('refuses items with no price yet (gels and cereal bars), charging nothing', async () => {
+    const memory = memoryStore()
+    memory.seed('ana', rich(1000))
+    expect((await call(memory, { action: 'buy', operationId: op(1), itemId: 'energy-gel', price: 0 })).body).toMatchObject({ ok: false, error: 'not-for-sale' })
+    expect((await call(memory, { action: 'buy', operationId: op(2), itemId: 'cereal-bar', price: 0 })).body).toMatchObject({ ok: false, error: 'not-for-sale' })
+    expect(memory.stateOf('ana')).toMatchObject({ coins: 1000, ownedEquipment: ['starter-shoes'] })
     expect(memory.commits()).toBe(0)
   })
 

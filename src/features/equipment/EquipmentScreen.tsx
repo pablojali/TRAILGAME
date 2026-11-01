@@ -1,16 +1,14 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import { Avatar } from '../../components/avatar/Avatar'
 import { Coins } from '../../components/Coins'
-import { RadarChart } from '../../components/RadarChart'
-import { radarScale } from '../../components/radarScale'
-import { ATTRIBUTE_IDS, ATTRIBUTE_LABELS } from '../../domain/athlete/athlete'
 import button from '../../components/Button.module.css'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { Chips, Tabs } from '../../components/Tabs'
+import { ATTRIBUTE_LABELS, type AttributeId } from '../../domain/athlete/athlete'
 import { formatCoins } from '../../domain/economy/coins'
-import { EQUIPMENT_ITEMS, getRaceEffect, itemName, type EquipmentItem, type EquipmentSlot } from '../../domain/equipment/items'
+import { EQUIPMENT_ITEMS, getEquipmentItem, itemName, type EquipmentItem, type EquipmentSlot } from '../../domain/equipment/items'
 import { isEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './EquipmentScreen.module.css'
@@ -20,6 +18,7 @@ const BUY_ERRORS: Record<BuyError | ServerError, string> = {
   'already-owned': 'You already own this item.',
   'insufficient-coins': 'You do not have enough coins for this item.',
   'price-changed': 'The price changed. Check it and try again.',
+  'not-for-sale': 'This item is not for sale yet.',
   offline: 'Could not reach the server, so nothing was bought or charged. Check your connection and try again.',
   'server-error': 'The server could not complete the purchase, so nothing was bought or charged. Try again.',
 }
@@ -31,11 +30,56 @@ const EQUIP_ERRORS: Record<EquipError | ServerError, string> = {
   'server-error': 'The server could not change your equipment. Try again.',
 }
 
-/** Shoes are shown on the avatar's feet; other items show an icon until they have their own art. */
+/** Shown wherever a value of an item is not defined yet (gels and cereal bars). */
+const TO_BE_DEFINED = 'To be defined'
+
+/** Item pictures: shoes are shown on the avatar's feet; the others use an icon until they have art. */
 const ICON_PATHS: Record<EquipmentSlot, string> = {
   shoes: 'M3 16h6l3-3 2 2 7 1v3H3z',
   pack: 'M8 6a4 4 0 0 1 8 0M6 7h12v13H6zM9 12h6',
   poles: 'M7 3l3 18M17 3l-3 18M6 8h3M15 8h3',
+  // Placeholders until there is art (owner request, 1 November 2026).
+  gel: 'M9 2h6l-1 4v13a2 2 0 0 1-2 2 2 2 0 0 1-2-2V6zM10 10h4',
+  bar: 'M3 9h18v6H3zM7 9v6M11 9v6M15 9v6',
+}
+
+const SLOTS: readonly { id: EquipmentSlot; label: string }[] = [
+  { id: 'shoes', label: 'Shoes' },
+  { id: 'poles', label: 'Poles' },
+  { id: 'pack', label: 'Backpack' },
+  { id: 'gel', label: 'Gels' },
+  { id: 'bar', label: 'Cereal bars' },
+]
+
+const SLOT_LABELS = Object.fromEntries(SLOTS.map((s) => [s.id, s.label])) as Record<EquipmentSlot, string>
+
+type ShopFilter = EquipmentSlot | 'all'
+
+const SHOP_FILTERS: readonly { id: ShopFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'shoes', label: 'Shoes' },
+  { id: 'poles', label: 'Poles' },
+  { id: 'pack', label: 'Backpack' },
+  { id: 'gel', label: 'Gels' },
+  { id: 'bar', label: 'Bars' },
+]
+
+type EquipmentTab = 'equipped' | 'shop'
+
+function isSlot(value: unknown): value is EquipmentSlot {
+  return SLOTS.some((slot) => slot.id === value)
+}
+
+function isShopFilter(value: unknown): value is ShopFilter {
+  return SHOP_FILTERS.some((filter) => filter.id === value)
+}
+
+function SlotIcon({ slot, className }: { slot: EquipmentSlot; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`${styles.icon} ${className ?? ''}`} aria-hidden="true">
+      <path d={ICON_PATHS[slot]} />
+    </svg>
+  )
 }
 
 function ItemArt({ item }: { item: EquipmentItem }) {
@@ -46,48 +90,49 @@ function ItemArt({ item }: { item: EquipmentItem }) {
       <Avatar sex={athlete.sex} appearance={{ ...athlete.appearance, outfit: 'none' }} equipment={[item.id]} crop="feet" />
     )
   }
-  return (
-    <svg viewBox="0 0 24 24" className={styles.icon} aria-hidden="true">
-      <path d={ICON_PATHS[item.slot]} />
-    </svg>
+  return <SlotIcon slot={item.slot} />
+}
+
+/** The attribute bonuses of an item, from its race effect (e.g. "Climbing +2"). */
+function bonuses(item: EquipmentItem): string[] {
+  return Object.entries(item.raceEffect?.attributes ?? {}).map(
+    ([id, value]) => `${ATTRIBUTE_LABELS[id as AttributeId]} +${value}`,
   )
 }
 
-function SlotIcon({ slot }: { slot: EquipmentSlot }) {
-  return (
-    <svg viewBox="0 0 24 24" className={`${styles.icon} ${styles.iconEmpty}`} aria-hidden="true">
-      <path d={ICON_PATHS[slot]} />
-    </svg>
-  )
-}
-
-const SLOTS: readonly { id: EquipmentSlot; label: string }[] = [
-  { id: 'shoes', label: 'Shoes' },
-  { id: 'poles', label: 'Poles' },
-  { id: 'pack', label: 'Backpack' },
-]
-
-type EquipmentTab = 'equipped' | 'shop'
-
-function isSlot(value: unknown): value is EquipmentSlot {
-  return SLOTS.some((slot) => slot.id === value)
+/** What the item does in races, in words; "To be defined" for items without defined effects. */
+function effectText(item: EquipmentItem): string {
+  if (item.effectText) return item.effectText.replace(/^Races: /, '')
+  return item.price === null ? TO_BE_DEFINED : 'No race effect'
 }
 
 /**
- * Equipment in two tabs so it fits one screen (owner request, 30 October 2026): Equipped (the
- * runner, then one row per slot to put an owned item on or take it off) and Shop (filtered by
- * slot). The tab and slot are kept in the URL (`?tab=shop&slot=poles`).
+ * Equipment in two tabs (owner requests, 30 October and 1 November 2026): Equipped (the runner large
+ * on the left, one box per slot on the right; a box opens the cards of that slot) and Shop
+ * (collectible-style cards). Any card opens a large card with its details and actions. The tab,
+ * slot and open card are kept in the URL (`?slot=poles&item=poles-2`, `?tab=shop&slot=poles`).
  */
 export function EquipmentScreen() {
   const { state } = useCareer()
   const [params, setParams] = useSearchParams()
   const [message, setMessage] = useState('')
   const tab: EquipmentTab = params.get('tab') === 'shop' ? 'shop' : 'equipped'
-  const askedSlot = params.get('slot')
-  const slot: EquipmentSlot = isSlot(askedSlot) ? askedSlot : 'shoes'
+  const askedFilter = params.get('slot')
+  const filter: ShopFilter = isShopFilter(askedFilter) ? askedFilter : 'all'
+  const openItem = getEquipmentItem(params.get('item') ?? '')
+  const equippedSlot = tab === 'equipped' && isSlot(askedFilter) ? askedFilter : null
 
-  function show(nextTab: EquipmentTab, nextSlot: EquipmentSlot = slot) {
-    setParams(nextTab === 'shop' ? { tab: 'shop', slot: nextSlot } : {}, { replace: true })
+  function show(nextTab: EquipmentTab, nextFilter: ShopFilter = filter, item?: string) {
+    if (nextTab === 'equipped') return setParams({}, { replace: true })
+    const next: Record<string, string> = { tab: 'shop' }
+    if (nextFilter !== 'all') next.slot = nextFilter
+    if (item) next.item = item
+    setParams(next, { replace: true })
+  }
+
+  /** Equipped tab: the runner and slot boxes, a slot's cards, or one card of it. */
+  function showEquipped(slot: EquipmentSlot | null, item?: string) {
+    setParams(slot ? { slot, ...(item ? { item } : {}) } : {}, { replace: true })
   }
 
   return (
@@ -110,9 +155,22 @@ export function EquipmentScreen() {
         onChange={(next) => show(next)}
       >
         {tab === 'equipped' ? (
-          <EquippedTab onMessage={setMessage} onShop={(nextSlot) => show('shop', nextSlot)} />
+          equippedSlot && openItem ? (
+            <ItemDetail
+              item={openItem}
+              backLabel={SLOT_LABELS[equippedSlot]}
+              onBack={() => showEquipped(equippedSlot)}
+              onMessage={setMessage}
+            />
+          ) : equippedSlot ? (
+            <SlotCards slot={equippedSlot} onBack={() => showEquipped(null)} onOpen={(id) => showEquipped(equippedSlot, id)} />
+          ) : (
+            <EquippedTab onOpen={(slot) => showEquipped(slot)} />
+          )
+        ) : openItem ? (
+          <ItemDetail item={openItem} backLabel="Back to shop" onBack={() => show('shop', filter)} onMessage={setMessage} />
         ) : (
-          <ShopTab slot={slot} onSlot={(nextSlot) => show('shop', nextSlot)} onMessage={setMessage} />
+          <ShopTab filter={filter} onFilter={(next) => show('shop', next)} onOpen={(id) => show('shop', filter, id)} />
         )}
       </Tabs>
 
@@ -123,230 +181,306 @@ export function EquipmentScreen() {
   )
 }
 
-/** The runner wearing the equipment, then one row per slot. */
-function EquippedTab({ onMessage, onShop }: { onMessage(text: string): void; onShop(slot: EquipmentSlot): void }) {
-  const { state, setItemEquipped } = useCareer()
+/**
+ * The runner large on the left, one box per slot in a column on the right (owner request,
+ * 1 November 2026). A box shows what is worn in that slot and opens the slot's cards.
+ */
+function EquippedTab({ onOpen }: { onOpen(slot: EquipmentSlot): void }) {
+  const { state } = useCareer()
   const { athlete } = state
-  const [open, setOpen] = useState<EquipmentSlot | null>(null)
-  // One equipment change at a time: the server confirms each before the next.
-  const [changing, setChanging] = useState<string | null>(null)
-  const pending = useRef(false)
-  // Race attributes with the worn equipment's bonuses, drawn as a chart beside the runner.
-  const bonus = getRaceEffect(state.equipment).attributes
-  const raceAttributes = ATTRIBUTE_IDS.map((id) => ({ id, label: ATTRIBUTE_LABELS[id], value: athlete.attributes[id] + bonus[id] }))
-  const radarMax = radarScale(raceAttributes.map((a) => a.value))
 
   return (
-    <>
+    <div className={styles.equippedLayout}>
       <div className={styles.previewArea}>
         <figure className={styles.preview} role="img" aria-label={`${athlete.name} with the equipment worn`}>
           <Avatar sex={athlete.sex} appearance={athlete.appearance} equipment={state.equipment} className={styles.previewArt} />
         </figure>
-        <div className={styles.previewSide}>
-          <Link to="/appearance" className={`${button.button} ${button.secondary} ${styles.lookButton}`}>
-            Change look
-          </Link>
-          <div className={styles.raceChart}>
-            <RadarChart values={raceAttributes} max={radarMax} />
-            <p className={styles.chartCaption}>
-              Race attributes
-              <span className={styles.srOnly}>
-                {' '}
-                with this equipment: {raceAttributes.map((a) => `${a.label} ${Math.round(a.value * 10) / 10}`).join(', ')}
-              </span>
-            </p>
-          </div>
-        </div>
+        <Link to="/appearance" className={`${button.button} ${button.secondary} ${styles.lookButton}`}>
+          Change look
+        </Link>
       </div>
 
-      <ul className={styles.slots}>
+      <ul className={styles.slotBoxes} aria-label="Equipped items">
         {SLOTS.map(({ id, label }) => {
           const worn = EQUIPMENT_ITEMS.find((item) => item.slot === id && isEquipped(state, item.id))
-          const owned = EQUIPMENT_ITEMS.filter((item) => item.slot === id && state.ownedEquipment.includes(item.id))
-          const expanded = open === id
           return (
-            <li key={id} className={`${styles.slot} ${worn ? styles.slotWorn : ''}`}>
-              <div className={styles.slotRow}>
-                <span className={styles.thumb}>{worn ? <ItemArt item={worn} /> : <SlotIcon slot={id} />}</span>
-                <span className={styles.slotItem}>
-                  <span className={styles.slotLabel}>{label}</span>
-                  <strong>{worn ? itemName(worn) : 'Empty'}</strong>
-                  <span className={worn ? styles.effect : styles.muted}>
-                    {worn ? worn.effectText?.replace(/^Races: /, '') ?? 'No race effect' : owned.length ? 'Put on an item you own' : 'Buy one in the Shop'}
-                  </span>
+            <li key={id}>
+              <button
+                type="button"
+                className={`${styles.slotBox} ${worn ? styles.slotWorn : ''}`}
+                aria-label={`${label}: ${worn ? itemName(worn) : 'empty'}. Show ${label.toLowerCase()} cards`}
+                onClick={() => onOpen(id)}
+              >
+                <span className={styles.boxArt}>
+                  {worn ? <ItemArt item={worn} /> : <SlotIcon slot={id} className={styles.iconEmpty} />}
                 </span>
-                {owned.length > 0 ? (
-                  <button
-                    type="button"
-                    className={styles.slotAction}
-                    aria-expanded={expanded}
-                    onClick={() => setOpen(expanded ? null : id)}
-                  >
-                    {expanded ? 'Done' : 'Change'}
-                    <span className={styles.srOnly}> {label.toLowerCase()}</span>
-                  </button>
-                ) : (
-                  <button type="button" className={styles.slotAction} onClick={() => onShop(id)}>
-                    Shop<span className={styles.srOnly}> {label.toLowerCase()}</span>
-                  </button>
-                )}
-              </div>
-              {expanded && (
-                <ul className={styles.choices}>
-                  {owned.map((item) => {
-                    const equipped = isEquipped(state, item.id)
-                    return (
-                      <li key={item.id}>
-                        <button
-                          type="button"
-                          className={`${styles.choice} ${equipped ? styles.choiceOn : ''}`}
-                          aria-disabled={changing !== null || undefined}
-                          onClick={async () => {
-                            if (pending.current) return
-                            pending.current = true
-                            setChanging(item.id)
-                            const error = await setItemEquipped(item.id, !equipped)
-                            pending.current = false
-                            setChanging(null)
-                            onMessage(error ? EQUIP_ERRORS[error] : `${itemName(item)} ${equipped ? 'taken off' : 'equipped'}.`)
-                          }}
-                        >
-                          {changing === item.id ? 'Saving…' : `${equipped ? 'Take off' : 'Equip'} ${itemName(item).toLowerCase()}`}
-                        </button>
-                      </li>
-                    )
-                  })}
-                  <li>
-                    <button type="button" className={styles.choice} onClick={() => onShop(id)}>
-                      Shop for {label.toLowerCase()}
-                    </button>
-                  </li>
-                </ul>
-              )}
+                <span className={styles.slotLabel}>{label}</span>
+                <span className={styles.boxName}>
+                  {worn ? worn.label : 'Empty'}
+                  {worn?.level !== undefined && <span className={styles.levelBadge}>Lvl {worn.level}</span>}
+                </span>
+              </button>
             </li>
           )
         })}
       </ul>
-    </>
+    </div>
   )
 }
 
-/** Items not owned yet, one slot at a time. */
-function ShopTab({
-  slot,
-  onSlot,
-  onMessage,
-}: {
-  slot: EquipmentSlot
-  onSlot(slot: EquipmentSlot): void
-  onMessage(text: string): void
-}) {
-  const { state } = useCareer()
-  const forSale = EQUIPMENT_ITEMS.filter((item) => item.slot === slot && !state.ownedEquipment.includes(item.id))
+/** The cards of one slot (every item of that type, owned or not); a card opens its large card. */
+function SlotCards({ slot, onBack, onOpen }: { slot: EquipmentSlot; onBack(): void; onOpen(itemId: string): void }) {
+  const heading = useRef<HTMLHeadingElement>(null)
+  useEffect(() => heading.current?.focus(), [])
   return (
     <>
-      <Chips label="Item type" options={SLOTS} value={slot} onChange={onSlot} />
-      {forSale.length === 0 ? (
-        <p className={styles.muted}>You own every item of this type. Put them on in Equipped.</p>
-      ) : (
-        <ScrollPanel label="Items for sale">
-          <ul className={styles.items}>
-            {forSale.map((item) => (
-              <ShopItem key={item.id} item={item} onBought={onMessage} />
-            ))}
-          </ul>
-        </ScrollPanel>
-      )}
+      <div className={styles.sheetHeader}>
+        <button type="button" className={styles.back} onClick={onBack}>
+          ← Equipped
+        </button>
+        <h2 ref={heading} tabIndex={-1} className={styles.sheetTitle}>
+          {SLOT_LABELS[slot]}
+        </h2>
+      </div>
+      <ScrollPanel label={`${SLOT_LABELS[slot]} cards`}>
+        <ul className={styles.cardGrid}>
+          {EQUIPMENT_ITEMS.filter((item) => item.slot === slot).map((item) => (
+            <li key={item.id}>
+              <ItemCard item={item} onOpen={onOpen} />
+            </li>
+          ))}
+        </ul>
+      </ScrollPanel>
     </>
   )
 }
 
-/** A shop item: buying needs an explicit confirmation and charges the price once. */
-function ShopItem({ item, onBought }: { item: EquipmentItem; onBought(text: string): void }) {
-  const { state, buyItem } = useCareer()
-  const [confirming, setConfirming] = useState(false)
-  const [error, setError] = useState('')
-  // The purchase waits for the server; a second tap meanwhile does nothing.
-  const [paying, setPaying] = useState(false)
-  const pending = useRef(false)
-  const shortfall = Math.max(0, item.price - state.coins)
-  const shortfallId = `${item.id}-shortfall`
+/** The status at the bottom of a shop card: owned, worn, price or what is missing. */
+function shopStatus(item: EquipmentItem, coins: number, owned: boolean, worn: boolean): { text: string; tone: string } {
+  if (worn) return { text: 'Equipped', tone: styles.statusWorn! }
+  if (owned) return { text: 'Owned', tone: styles.statusOwned! }
+  if (item.price === null) return { text: 'Not for sale yet', tone: styles.statusPending! }
+  if (item.price > coins) return { text: `Need ${formatCoins(item.price - coins)} more`, tone: styles.statusShort! }
+  return { text: 'Buy', tone: styles.statusBuy! }
+}
 
+/** Every item as a collectible card, filtered by type; a card opens its large view. */
+function ShopTab({
+  filter,
+  onFilter,
+  onOpen,
+}: {
+  filter: ShopFilter
+  onFilter(filter: ShopFilter): void
+  onOpen(itemId: string): void
+}) {
+  const items = EQUIPMENT_ITEMS.filter((item) => filter === 'all' || item.slot === filter)
   return (
-    <li className={`${styles.item} ${confirming ? styles.confirming : ''}`}>
-      <span className={styles.itemArt}>
+    <>
+      {/* One row of filters that scrolls sideways on narrow phones. */}
+      <div className={styles.filters}>
+        <Chips label="Item type" options={SHOP_FILTERS} value={filter} onChange={onFilter} />
+      </div>
+      <ScrollPanel label="Shop items">
+        <ul className={styles.cardGrid}>
+          {items.map((item) => (
+            <li key={item.id}>
+              <ItemCard item={item} onOpen={onOpen} />
+            </li>
+          ))}
+        </ul>
+      </ScrollPanel>
+    </>
+  )
+}
+
+/** A collectible-style card: level, type, name, picture, bonuses, price and a status bar. */
+function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string): void }) {
+  const { state } = useCareer()
+  const owned = state.ownedEquipment.includes(item.id)
+  const worn = isEquipped(state, item.id)
+  const status = shopStatus(item, state.coins, owned, worn)
+  return (
+    <button
+      type="button"
+      className={styles.card}
+      aria-label={`${itemName(item)}, ${item.price === null ? `price ${TO_BE_DEFINED.toLowerCase()}` : item.price === 0 ? 'free' : formatCoins(item.price)}, ${status.text}`}
+      onClick={() => onOpen(item.id)}
+    >
+      <span className={styles.cardTop}>
+        {item.level !== undefined ? <span className={styles.cardLevel}>Lvl {item.level}</span> : <span />}
+        <span className={styles.cardType}>{SLOT_LABELS[item.slot]}</span>
+      </span>
+      <span className={styles.cardName}>{item.label}</span>
+      <span className={styles.cardArt}>
         <ItemArt item={item} />
       </span>
-      <span className={styles.itemText}>
-        <span className={styles.nameRow}>
-          <strong>{itemName(item)}</strong>{' '}
-          <Coins amount={item.price} className={styles.price} />
-        </span>
-        <span className={styles.muted}>{item.description}</span>
-        {item.effectText && <span className={styles.effect}>{item.effectText}</span>}
-        {shortfall > 0 && (
-          <span id={shortfallId} className={styles.warning}>
-            You need {formatCoins(shortfall)} more.
-          </span>
-        )}
-        {confirming && (
-          <span className={styles.muted}>
-            Balance {formatCoins(state.coins)} → {formatCoins(state.coins - item.price)}.
-          </span>
-        )}
-        {error && (
-          <span role="alert" className={styles.warning}>
-            {error}
-          </span>
-        )}
+      <span className={styles.cardValues}>
+        {bonuses(item).length ? bonuses(item).join(' · ') : item.price === null ? `Effects: ${TO_BE_DEFINED.toLowerCase()}` : 'No attribute bonus'}
       </span>
-      {confirming ? (
-        <span className={styles.confirmActions}>
-          <button
-            type="button"
-            className={`${button.button} ${button.secondary}`}
-            aria-disabled={paying || undefined}
-            onClick={() => !paying && setConfirming(false)}
-          >
-            Cancel
-          </button>
+      <span className={styles.cardPrice}>
+        {item.price === null ? TO_BE_DEFINED : item.price === 0 ? 'Free' : <Coins amount={item.price} />}
+      </span>
+      <span className={`${styles.cardStatus} ${status.tone}`}>{status.text}</span>
+    </button>
+  )
+}
+
+/** The large card of an item: picture, name, type, level, bonuses, price and its actions. */
+function ItemDetail({
+  item,
+  backLabel,
+  onBack,
+  onMessage,
+}: {
+  item: EquipmentItem
+  /** Where Back goes: the shop, or the slot's cards in Equipped. */
+  backLabel: string
+  onBack(): void
+  onMessage(text: string): void
+}) {
+  const { state, buyItem, setItemEquipped } = useCareer()
+  const heading = useRef<HTMLHeadingElement>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [error, setError] = useState('')
+  // Purchases and equipment changes wait for the server; a second tap meanwhile does nothing.
+  const [busy, setBusy] = useState<'paying' | 'equipping' | null>(null)
+  const pending = useRef(false)
+  const owned = state.ownedEquipment.includes(item.id)
+  const worn = isEquipped(state, item.id)
+  const price = item.price
+  const shortfall = price === null ? 0 : Math.max(0, price - state.coins)
+  const shortfallId = `${item.id}-shortfall`
+
+  useEffect(() => heading.current?.focus(), [])
+
+  async function run(kind: 'paying' | 'equipping', action: () => Promise<string | null>) {
+    if (pending.current) return
+    pending.current = true
+    setBusy(kind)
+    setError('')
+    const failure = await action()
+    pending.current = false
+    setBusy(null)
+    if (failure) setError(failure)
+  }
+
+  return (
+    <article className={styles.detail} aria-labelledby="item-detail-title">
+      <button type="button" className={styles.back} onClick={onBack}>
+        ← {backLabel}
+      </button>
+      <div className={styles.bigCard}>
+        <span className={styles.cardTop}>
+          {item.level !== undefined ? <span className={styles.cardLevel}>Lvl {item.level}</span> : <span />}
+          <span className={styles.cardType}>{SLOT_LABELS[item.slot]}</span>
+        </span>
+        <h2 id="item-detail-title" ref={heading} tabIndex={-1} className={styles.bigName}>
+          {item.label}
+        </h2>
+        <span className={styles.bigArt}>
+          <ItemArt item={item} />
+        </span>
+        <dl className={styles.facts}>
+          <div>
+            <dt>Type</dt>
+            <dd>{SLOT_LABELS[item.slot]}</dd>
+          </div>
+          <div>
+            <dt>Level</dt>
+            <dd>{item.level ?? (item.price === null ? TO_BE_DEFINED : '—')}</dd>
+          </div>
+          <div>
+            <dt>Race effect</dt>
+            <dd className={item.effectText ? styles.effect : undefined}>{effectText(item)}</dd>
+          </div>
+          <div>
+            <dt>Price</dt>
+            <dd>{price === null ? TO_BE_DEFINED : price === 0 ? 'Free' : <Coins amount={price} />}</dd>
+          </div>
+        </dl>
+        <p className={styles.muted}>{item.description}</p>
+      </div>
+
+      {shortfall > 0 && !owned && (
+        <p id={shortfallId} className={styles.warning}>
+          You need {formatCoins(shortfall)} more.
+        </p>
+      )}
+      {confirming && price !== null && (
+        <p className={styles.muted}>
+          Balance {formatCoins(state.coins)} → {formatCoins(state.coins - price)}.
+        </p>
+      )}
+      {error && (
+        <p role="alert" className={styles.warning}>
+          {error}
+        </p>
+      )}
+
+      <div className={styles.detailActions}>
+        {owned ? (
           <button
             type="button"
             className={`${button.button} ${button.primary}`}
-            aria-disabled={paying || undefined}
-            onClick={async () => {
-              if (pending.current) return
-              pending.current = true
-              setPaying(true)
-              setError('')
-              const failure = await buyItem(item.id, item.price)
-              pending.current = false
-              setPaying(false)
-              if (failure) {
-                setError(BUY_ERRORS[failure])
-                return
+            aria-disabled={busy !== null || undefined}
+            onClick={() =>
+              run('equipping', async () => {
+                const failure = await setItemEquipped(item.id, !worn)
+                if (failure) return EQUIP_ERRORS[failure]
+                onMessage(`${itemName(item)} ${worn ? 'taken off' : 'equipped'}.`)
+                return null
+              })
+            }
+          >
+            {busy === 'equipping' ? 'Saving…' : worn ? 'Take off' : 'Equip'}
+            <span className={styles.srOnly}> {itemName(item).toLowerCase()}</span>
+          </button>
+        ) : price === null ? (
+          <p className={styles.muted}>Not for sale yet.</p>
+        ) : confirming ? (
+          <>
+            <button
+              type="button"
+              className={`${button.button} ${button.secondary}`}
+              aria-disabled={busy !== null || undefined}
+              onClick={() => busy === null && setConfirming(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={`${button.button} ${button.primary}`}
+              aria-disabled={busy !== null || undefined}
+              onClick={() =>
+                run('paying', async () => {
+                  const failure = await buyItem(item.id, price)
+                  if (failure) return BUY_ERRORS[failure]
+                  setConfirming(false)
+                  onMessage(`${itemName(item)} bought for ${formatCoins(price)}.`)
+                  return null
+                })
               }
-              onBought(`${itemName(item)} bought for ${formatCoins(item.price)}.`)
+            >
+              {busy === 'paying' ? 'Paying…' : `Pay ${formatCoins(price)}`}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className={`${button.button} ${button.primary}`}
+            aria-disabled={shortfall > 0 || undefined}
+            aria-describedby={shortfall > 0 ? shortfallId : undefined}
+            onClick={() => {
+              if (shortfall > 0) return
+              setError('')
+              setConfirming(true)
             }}
           >
-            {paying ? 'Paying…' : `Pay ${formatCoins(item.price)}`}
+            Buy<span className={styles.srOnly}> {itemName(item).toLowerCase()}</span>
           </button>
-        </span>
-      ) : (
-        <button
-          type="button"
-          className={`${button.button} ${button.primary}`}
-          aria-disabled={shortfall > 0 || undefined}
-          aria-describedby={shortfall > 0 ? shortfallId : undefined}
-          onClick={() => {
-            if (shortfall > 0) return
-            setError('')
-            setConfirming(true)
-          }}
-        >
-          Buy<span className={styles.srOnly}> {itemName(item).toLowerCase()}</span>
-        </button>
-      )}
-    </li>
+        )}
+      </div>
+    </article>
   )
 }

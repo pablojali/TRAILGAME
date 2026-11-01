@@ -1,5 +1,5 @@
 import type { AttributeId, ProfileId } from '../domain/athlete/athlete'
-import { isProfileId } from '../domain/athlete/profiles'
+import { isProfileId, STARTING_PROFILE } from '../domain/athlete/profiles'
 import { isSessionType, type SessionType } from '../domain/training/sessions'
 import { setAppearance } from '../game-engine/appearance'
 import { allocateAttributePoint } from '../game-engine/attributes'
@@ -301,7 +301,9 @@ async function save(userId: string, request: Extract<CareerOpRequest, { action: 
  * and identity, never from client values. Replacing needs the version the player saw.
  */
 async function newCareer(userId: string, request: Extract<CareerOpRequest, { action: 'new-career' }>, deps: CareerOpsDeps, now: number): Promise<HttpResult> {
-  const fresh = parseGameState(JSON.parse(JSON.stringify(createInitialGameState(request.profile, now, request.identity))), now)
+  // Every new career starts as an All-rounder (owner decision, 1 November 2026), whatever profile
+  // an older client asks for.
+  const fresh = parseGameState(JSON.parse(JSON.stringify(createInitialGameState(STARTING_PROFILE, now, request.identity))), now)
   if (!fresh) return fail(400, 'bad-request')
   const record = await deps.store.load(userId)
   const baseVersion = record ? record.version : null

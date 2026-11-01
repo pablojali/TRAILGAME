@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { EQUIPMENT_ITEMS, OWNED_FROM_START } from '../domain/equipment/items'
+import { EQUIPMENT_ITEMS, getEquipmentItem, getRaceEffect, OWNED_FROM_START } from '../domain/equipment/items'
 import { execute, newGame } from '../test/gameFixtures'
 import { buyItem, isEquipped, setItemEquipped } from './equipment'
 
 describe('equipment', () => {
+  it('cannot buy an item with no price yet (gels and cereal bars)', () => {
+    expect(buyItem({ ...newGame(), coins: 1000 }, 'energy-gel', 0)).toEqual({ ok: false, error: 'not-for-sale' })
+    expect(buyItem({ ...newGame(), coins: 1000 }, 'cereal-bar', 0)).toEqual({ ok: false, error: 'not-for-sale' })
+  })
+
   it('starts with the starter shoes owned but not equipped (owner decision)', () => {
     expect(EQUIPMENT_ITEMS.map((i) => [i.id, i.slot, i.level ?? null, i.price])).toEqual([
       ['starter-shoes', 'shoes', null, 0],
@@ -14,7 +19,16 @@ describe('equipment', () => {
       ['poles-2', 'poles', 2, 50],
       ['hydration-backpack', 'pack', 1, 30],
       ['hydration-backpack-2', 'pack', 2, 90],
+      // Gels and cereal bars (1 November 2026): level, price and effects to be defined.
+      ['energy-gel', 'gel', null, null],
+      ['cereal-bar', 'bar', null, null],
     ])
+    for (const id of ['energy-gel', 'cereal-bar']) {
+      expect(getEquipmentItem(id)).not.toHaveProperty('raceEffect')
+      expect(getEquipmentItem(id)).not.toHaveProperty('effectText')
+    }
+    // Without effects they change no race calculation.
+    expect(getRaceEffect(['energy-gel', 'cereal-bar'])).toEqual(getRaceEffect([]))
     expect(OWNED_FROM_START).toEqual(['starter-shoes'])
     expect(newGame()).toMatchObject({ equipment: [], ownedEquipment: ['starter-shoes'] })
   })

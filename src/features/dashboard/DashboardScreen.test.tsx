@@ -175,7 +175,7 @@ describe('DashboardScreen — Today strip (one screen, no cards)', () => {
     expect(screen.getByText('Tuesday')).toBeInTheDocument()
   })
 
-  it('reset demo (in Settings) asks for confirmation, then clears the save and returns to profile selection', async () => {
+  it('reset demo (in Settings) asks for confirmation, then clears the save and returns to runner creation', async () => {
     const user = userEvent.setup()
     seedCareer(withAthlete(newGame(), { xp: 120 }))
     await renderApp('/')
@@ -189,7 +189,7 @@ describe('DashboardScreen — Today strip (one screen, no cards)', () => {
 
     await user.click(screen.getByRole('button', { name: 'Reset demo' }))
     await user.click(screen.getByRole('button', { name: 'Confirm reset' }))
-    expect(screen.getByRole('heading', { level: 1, name: 'Choose your athlete' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Create your runner' })).toBeInTheDocument()
     expect(localStorage.getItem(SAVE_KEY)).toBeNull()
     expect(document.getElementById('main-content')).toHaveFocus()
   })

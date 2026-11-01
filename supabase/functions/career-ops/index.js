@@ -40,6 +40,7 @@ var PROFILE_IDS = ["climber", "sprinter", "all-rounder", "endurance"];
 function isProfileId(value) {
   return typeof value === "string" && PROFILE_IDS.includes(value);
 }
+var STARTING_PROFILE = "all-rounder";
 
 // src/domain/training/sessions.ts
 var ATTRIBUTE_GAIN_PER_SESSION = 0.1;
@@ -418,6 +419,22 @@ var EQUIPMENT_ITEMS = [
     price: 90,
     raceEffect: { attributes: { endurance: 2 }, slowdown: 0.85 },
     effectText: "Races: Endurance +2, 15% less wear over distance."
+  },
+  // Gels and cereal bars (owner request, 1 November 2026). Their race effects, level and price
+  // will be defined later: until then they have none, are not for sale and change no calculation.
+  {
+    id: "energy-gel",
+    label: "Energy gel",
+    slot: "gel",
+    description: "Energy gel for races.",
+    price: null
+  },
+  {
+    id: "cereal-bar",
+    label: "Cereal bar",
+    slot: "bar",
+    description: "Cereal bar for races.",
+    price: null
   }
 ];
 var OWNED_FROM_START = ["starter-shoes"];
@@ -460,6 +477,7 @@ function buyItem(state, itemId, confirmedPrice) {
   const item = getEquipmentItem(itemId);
   if (!item) return { ok: false, error: "unknown-item" };
   if (state.ownedEquipment.includes(itemId)) return { ok: false, error: "already-owned" };
+  if (item.price === null) return { ok: false, error: "not-for-sale" };
   if (item.price !== confirmedPrice) return { ok: false, error: "price-changed" };
   if (item.price > state.coins) return { ok: false, error: "insufficient-coins" };
   return {
@@ -1402,7 +1420,7 @@ async function save(userId, request, deps, now) {
   return fail(409, "busy");
 }
 async function newCareer(userId, request, deps, now) {
-  const fresh = parseGameState(JSON.parse(JSON.stringify(createInitialGameState(request.profile, now, request.identity))), now);
+  const fresh = parseGameState(JSON.parse(JSON.stringify(createInitialGameState(STARTING_PROFILE, now, request.identity))), now);
   if (!fresh) return fail(400, "bad-request");
   const record = await deps.store.load(userId);
   const baseVersion = record ? record.version : null;

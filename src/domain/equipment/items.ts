@@ -9,7 +9,7 @@ import { ATTRIBUTE_IDS, type AttributeId, type Attributes } from '../athlete/ath
  * while the item is equipped. They are never attribute points, do not count toward attribute
  * limits and never change base attributes, levels or training.
  */
-export type EquipmentSlot = 'shoes' | 'pack' | 'poles'
+export type EquipmentSlot = 'shoes' | 'pack' | 'poles' | 'gel' | 'bar'
 
 /** Bonuses applied by the race simulation while the item is equipped. */
 export interface RaceEffect {
@@ -34,8 +34,11 @@ export interface EquipmentItem {
   /** 1 or 2; the starter shoes have none. */
   level?: number
   description: string
-  /** Shop price in coins; 0 for starting equipment. */
-  price: number
+  /**
+   * Shop price in coins; 0 for starting equipment. null: not defined yet, so the item is not for
+   * sale (gels and cereal bars, 1 November 2026).
+   */
+  price: number | null
   raceEffect?: RaceEffect
   /** The race effect in words, for the shop and equipment lists. */
   effectText?: string
@@ -126,6 +129,22 @@ export const EQUIPMENT_ITEMS: readonly EquipmentItem[] = [
     price: 90,
     raceEffect: { attributes: { endurance: 2 }, slowdown: 0.85 },
     effectText: 'Races: Endurance +2, 15% less wear over distance.',
+  },
+  // Gels and cereal bars (owner request, 1 November 2026). Their race effects, level and price
+  // will be defined later: until then they have none, are not for sale and change no calculation.
+  {
+    id: 'energy-gel',
+    label: 'Energy gel',
+    slot: 'gel',
+    description: 'Energy gel for races.',
+    price: null,
+  },
+  {
+    id: 'cereal-bar',
+    label: 'Cereal bar',
+    slot: 'bar',
+    description: 'Cereal bar for races.',
+    price: null,
   },
 ]
 

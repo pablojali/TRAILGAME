@@ -2,8 +2,8 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { defaultAppearance } from '../../domain/athlete/appearance'
-import type { ProfileId, Sex } from '../../domain/athlete/athlete'
-import { PROFILE_IDS, PROFILES } from '../../domain/athlete/profiles'
+import type { Sex } from '../../domain/athlete/athlete'
+import { PROFILES } from '../../domain/athlete/profiles'
 import { SAVE_KEY } from '../../repositories/gameRepository'
 import { T0 } from '../../test/gameFixtures'
 import { M1_SAVE } from '../../test/legacySaves'
@@ -11,29 +11,14 @@ import { readSave, renderApp } from '../../test/renderApp'
 
 type User = ReturnType<typeof userEvent.setup>
 
-function chooseButton() {
-  return screen.getByRole('button', { name: /^Choose / })
-}
-
-function slides() {
-  return within(screen.getByRole('region', { name: /Starting profiles/ })).getAllByRole('group')
-}
-
-function selectedSlide() {
-  return slides().find((s) => s.getAttribute('aria-current') === 'true')!
-}
-
-/** Profile step → appearance step, keeping the default appearance. */
+/** First step (sex and appearance) → name step, keeping the default appearance. */
 async function chooseAndContinue(user: User) {
-  await user.click(chooseButton())
   await user.click(screen.getByRole('button', { name: 'Continue' }))
 }
 
-/** Runs the whole creation flow with the given choices. */
-async function createCareer(user: User, profile: ProfileId, sex: Sex, name: string) {
+/** Runs the whole creation flow with the given choices (every runner is an All-rounder). */
+async function createCareer(user: User, sex: Sex, name: string) {
   await user.click(screen.getByRole('radio', { name: sex === 'male' ? 'Male' : 'Female' }))
-  await user.click(screen.getByRole('button', { name: `Show ${PROFILES[profile].label}` }))
-  await user.click(screen.getByRole('button', { name: `Choose ${PROFILES[profile].label}` }))
   await user.click(screen.getByRole('button', { name: 'Continue' }))
   await user.type(screen.getByLabelText('Runner name'), name)
   await user.click(screen.getByRole('button', { name: 'Start career' }))
@@ -45,97 +30,25 @@ async function started() {
   await waitFor(() => expect(screen.queryByText('Starting…')).toBeNull())
 }
 
-describe('career creation — profile step', () => {
+describe('career creation — first step', () => {
   it('shows the creation flow on every route, without navigation and without saving', async () => {
     for (const path of ['/', '/training', '/races', '/attributes']) {
       const view = await renderApp(path)
-      expect(screen.getByRole('heading', { level: 1, name: 'Choose your athlete' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 1, name: 'Create your runner' })).toBeInTheDocument()
       expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument()
       view.unmount()
     }
     expect(localStorage.getItem(SAVE_KEY)).toBeNull()
   })
 
-  it('preselects Female and the first profile, with a confirm button naming it', async () => {
+  it('has no profile choice: every runner starts as an All-rounder with every attribute at 16', async () => {
     await renderApp('/')
+    expect(screen.getByText('New career · Step 1 of 2')).toBeInTheDocument()
+    expect(screen.getByText(/Every runner starts as an All-rounder, with every attribute at 16/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Choose / })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Female' })).toBeChecked()
-    expect(screen.getByRole('radio', { name: 'Male' })).not.toBeChecked()
-    expect(slides()).toHaveLength(4)
-    expect(selectedSlide()).toHaveAccessibleName('Climber, 1 of 4')
-    expect(chooseButton()).toHaveTextContent('Choose Climber')
-    expect(screen.getByRole('button', { name: 'Show Climber' })).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('shows each profile with name, description, six bars, strengths, weaknesses and 96 points', async () => {
-    await renderApp('/')
-    const [climber, , allRounder] = slides()
-    const card = within(climber!)
-    expect(card.getByRole('heading', { name: 'Climber' })).toBeInTheDocument()
-    expect(card.getByText(PROFILES.climber.description)).toBeInTheDocument()
-    expect(card.getAllByRole('meter')).toHaveLength(6)
-    expect(card.getByRole('meter', { name: 'Climbing' })).toHaveAttribute('aria-valuetext', '20 points')
-    expect(card.getByText('Climbing').closest('li')).toHaveTextContent('▲ Climbing (strength)20')
-    expect(card.getByText('Speed').closest('li')).toHaveTextContent('▼ Speed (weakness)13')
-    expect(card.getByText('Endurance').closest('li')).toHaveTextContent(/^Endurance16$/)
-    expect(card.getByText('96 points')).toBeInTheDocument()
-    expect(climber).not.toHaveTextContent('Strengths:')
-    // All-rounder has no strengths or weaknesses.
-    expect(allRounder).not.toHaveTextContent(/▲|▼/)
-  })
-
-  it.each(PROFILE_IDS)('the %s card shows its exact starting attributes', async (id) => {
-    await renderApp('/')
-    const card = slides()[PROFILE_IDS.indexOf(id)]!
-    for (const meter of within(card).getAllByRole('meter')) {
-      const label = meter.getAttribute('aria-label')!.toLowerCase() as keyof typeof PROFILES.climber.attributes
-      expect(meter).toHaveAttribute('aria-valuenow', String(PROFILES[id].attributes[label]))
-    }
-  })
-
-  it('switches profile with the dots', async () => {
-    const user = userEvent.setup()
-    await renderApp('/')
-    await user.click(screen.getByRole('button', { name: 'Show Endurance' }))
-    expect(selectedSlide()).toHaveAccessibleName('Endurance, 4 of 4')
-    expect(chooseButton()).toHaveTextContent('Choose Endurance')
-    expect(screen.getByRole('button', { name: 'Show Endurance' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Show Climber' })).toHaveAttribute('aria-pressed', 'false')
-  })
-
-  it('switches profile with the arrow keys and by tapping another card', async () => {
-    const user = userEvent.setup()
-    await renderApp('/')
-    screen.getByRole('region', { name: /Starting profiles/ }).focus()
-    await user.keyboard('{ArrowRight}{ArrowRight}')
-    expect(chooseButton()).toHaveTextContent('Choose All-rounder')
-    await user.keyboard('{ArrowLeft}')
-    expect(chooseButton()).toHaveTextContent('Choose Sprinter')
-    await user.keyboard('{ArrowLeft}{ArrowLeft}')
-    expect(chooseButton()).toHaveTextContent('Choose Climber')
-
-    await user.click(slides()[3]!)
-    expect(chooseButton()).toHaveTextContent('Choose Endurance')
-  })
-
-  it('changes every runner image when the sex changes', async () => {
-    const user = userEvent.setup()
-    await renderApp('/')
-    const art = () => slides().map((s) => within(s).getByRole('img'))
-    // Climber has final artwork; the other profiles still show labelled placeholders.
-    expect(art().map((img) => img.getAttribute('aria-label') ?? img.getAttribute('alt'))).toEqual([
-      'Climber, female runner',
-      'Sprinter, female runner (placeholder art)',
-      'All-rounder, female runner (placeholder art)',
-      'Endurance, female runner (placeholder art)',
-    ])
-    expect(art()[0]).toHaveAttribute('src', expect.stringContaining('/creation/female/climber.webp'))
-
-    await user.click(screen.getByRole('radio', { name: 'Male' }))
-    expect(art()[0]).toHaveAccessibleName('Climber, male runner')
-    expect(art()[0]).toHaveAttribute('src', expect.stringContaining('/creation/male/climber.webp'))
-    expect(art().slice(1).every((img) => img.getAttribute('aria-label')!.includes(', male runner'))).toBe(true)
-    // Selection is unaffected.
-    expect(chooseButton()).toHaveTextContent('Choose Climber')
+    expect(Object.values(PROFILES['all-rounder'].attributes)).toEqual([16, 16, 16, 16, 16, 16])
   })
 })
 
@@ -144,14 +57,12 @@ describe('career creation — appearance step', () => {
     return screen.getByRole('img', { name: /^Avatar preview/ })
   }
 
-  it('opens after choosing a profile, with the same sex choice, a preview and focus on the heading', async () => {
+  it('opens first, with the sex choice and a preview', async () => {
     const user = userEvent.setup()
     await renderApp('/')
     await user.click(screen.getByRole('radio', { name: 'Male' }))
-    await user.click(chooseButton())
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Customize your runner' })).toHaveFocus()
-    expect(screen.getByText('New career · Step 2 of 3')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Create your runner' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Male' })).toBeChecked()
     expect(avatar()).toHaveAccessibleName('Avatar preview: male, basic, skin tone 2, no shirt')
     expect(screen.getByRole('tab', { name: 'Skin' })).toHaveAttribute('aria-selected', 'true')
@@ -162,7 +73,6 @@ describe('career creation — appearance step', () => {
   it('shows one body per skin tone for each sex and keeps a valid tone when the sex changes', async () => {
     const user = userEvent.setup()
     await renderApp('/')
-    await user.click(chooseButton())
     expect(screen.getAllByRole('radio', { name: /Skin tone/ })).toHaveLength(3)
     expect(avatar().querySelector('[data-layer="body"]')!.getAttribute('href')).toMatch(/female-2/)
 
@@ -174,14 +84,11 @@ describe('career creation — appearance step', () => {
     // Women have 3 bodies: tone 4 becomes tone 3.
     await user.click(screen.getByRole('radio', { name: 'Female' }))
     expect(avatar()).toHaveAccessibleName('Avatar preview: female, basic, skin tone 3, no shirt')
-    await user.click(screen.getByRole('button', { name: 'Back' }))
-    expect(screen.getByRole('radio', { name: 'Female' })).toBeChecked()
   })
 
   it('offers the basic head and the Level 1 heads of the skin tone, zoomed in on the face', async () => {
     const user = userEvent.setup()
     await renderApp('/')
-    await user.click(chooseButton())
     expect(avatar()).not.toHaveAttribute('data-focus')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))
     expect(avatar()).toHaveAttribute('data-focus', 'face')
@@ -208,7 +115,6 @@ describe('career creation — appearance step', () => {
   it('offers no shirt (default) or the Level 1 shirt, and no shoes', async () => {
     const user = userEvent.setup()
     await renderApp('/')
-    await user.click(chooseButton())
     await user.click(screen.getByRole('tab', { name: 'Clothing' }))
     expect(screen.getByRole('radio', { name: 'No shirt' })).toBeChecked()
     expect(avatar().querySelectorAll('image')).toHaveLength(1)
@@ -223,7 +129,6 @@ describe('career creation — appearance step', () => {
   it('switches tabs with the arrow keys', async () => {
     const user = userEvent.setup()
     await renderApp('/')
-    await user.click(chooseButton())
     screen.getByRole('tab', { name: 'Skin' }).focus()
     await user.keyboard('{ArrowRight}')
     expect(screen.getByRole('tab', { name: 'Hair' })).toHaveFocus()
@@ -236,12 +141,11 @@ describe('career creation — appearance step', () => {
     const user = userEvent.setup()
     await renderApp('/')
     await user.click(screen.getByRole('radio', { name: 'Male' }))
-    await user.click(chooseButton())
     await user.click(screen.getByRole('radio', { name: 'Skin tone 1' }))
     await user.click(screen.getByRole('tab', { name: 'Clothing' }))
     await user.click(screen.getByRole('radio', { name: 'Charcoal T-shirt' }))
     await user.click(screen.getByRole('button', { name: 'Continue' }))
-    expect(screen.getByRole('img')).toHaveAccessibleName('Your runner: Climber, male')
+    expect(screen.getByRole('img')).toHaveAccessibleName('Your runner: All-rounder, male')
     await user.type(screen.getByLabelText('Runner name'), 'Leo')
     await user.click(screen.getByRole('button', { name: 'Start career' }))
     await started()
@@ -255,33 +159,25 @@ describe('career creation — name step', () => {
     const user = userEvent.setup()
     await renderApp('/')
     await user.click(screen.getByRole('radio', { name: 'Male' }))
-    await user.click(screen.getByRole('button', { name: 'Show Sprinter' }))
-    await user.click(screen.getByRole('button', { name: 'Choose Sprinter' }))
     await user.click(screen.getByRole('button', { name: 'Continue' }))
 
     expect(screen.getByRole('heading', { level: 1, name: 'Name your runner' })).toHaveFocus()
-    expect(screen.getByText('New career · Step 3 of 3')).toBeInTheDocument()
-    expect(screen.getByText('Sprinter · Male')).toBeInTheDocument()
-    expect(screen.getByRole('img')).toHaveAccessibleName('Your runner: Sprinter, male')
+    expect(screen.getByText('New career · Step 2 of 2')).toBeInTheDocument()
+    expect(screen.getByText('All-rounder · Male')).toBeInTheDocument()
+    expect(screen.getByRole('img')).toHaveAccessibleName('Your runner: All-rounder, male')
     expect(localStorage.getItem(SAVE_KEY)).toBeNull()
   })
 
-  it('Back returns step by step with the same choices', async () => {
+  it('Back returns to the first step with the same choices', async () => {
     const user = userEvent.setup()
     await renderApp('/')
     await user.click(screen.getByRole('radio', { name: 'Male' }))
-    await user.click(screen.getByRole('button', { name: 'Show All-rounder' }))
-    await user.click(screen.getByRole('button', { name: 'Choose All-rounder' }))
     await user.click(screen.getByRole('radio', { name: 'Skin tone 3' }))
     await user.click(screen.getByRole('button', { name: 'Continue' }))
     await user.click(screen.getByRole('button', { name: 'Back' }))
-    expect(screen.getByRole('heading', { level: 1, name: 'Customize your runner' })).toHaveFocus()
+    expect(screen.getByRole('heading', { level: 1, name: 'Create your runner' })).toHaveFocus()
     expect(screen.getByRole('radio', { name: 'Skin tone 3' })).toBeChecked()
-    await user.click(screen.getByRole('button', { name: 'Back' }))
-
-    expect(screen.getByRole('heading', { level: 1, name: 'Choose your athlete' })).toHaveFocus()
     expect(screen.getByRole('radio', { name: 'Male' })).toBeChecked()
-    expect(chooseButton()).toHaveTextContent('Choose All-rounder')
   })
 
   it.each(['', '   '])('rejects the empty name %j and saves nothing', async (name) => {
@@ -308,15 +204,14 @@ describe('career creation — name step', () => {
     expect(readSave()!.state.athlete.name).toBe('Marta')
   })
 
-  it.each(
-    PROFILE_IDS.flatMap((profile) => (['female', 'male'] as const).map((sex) => [profile, sex] as const)),
-  )('creates a %s %s career with the approved initial state', async (profile, sex) => {
+  it.each(['female', 'male'] as const)('creates a %s All-rounder career with the approved initial state', async (sex) => {
     const user = userEvent.setup()
     await renderApp('/')
-    await createCareer(user, profile, sex, 'Alex')
+    await createCareer(user, sex, 'Alex')
+    const profile = 'all-rounder'
 
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: `Alex - ${PROFILES[profile].label} (Lv 1)` })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Alex - All-rounder (Lv 1)' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
     const save = readSave()!
     expect(save.schemaVersion).toBe(2)
@@ -328,7 +223,7 @@ describe('career creation — name step', () => {
       xp: 0,
       fitness: 20,
       fatigue: 0,
-      attributes: PROFILES[profile].attributes,
+      attributes: { endurance: 16, climbing: 16, speed: 16, technical: 16, recovery: 16, consistency: 16 },
       spentAttributePoints: 0,
     })
     expect(save.state.fitnessDecayReference).toBe(T0)
@@ -337,19 +232,19 @@ describe('career creation — name step', () => {
   it('opens the Dashboard after starting, whichever route showed the flow', async () => {
     const user = userEvent.setup()
     const { router } = await renderApp('/career')
-    await createCareer(user, 'endurance', 'female', 'Ana')
+    await createCareer(user, 'female', 'Ana')
     expect(router.state.location.pathname).toBe('/')
   })
 
   it('keeps the new career after a reload', async () => {
     const user = userEvent.setup()
     const first = await renderApp('/')
-    await createCareer(user, 'endurance', 'male', 'Leo')
+    await createCareer(user, 'male', 'Leo')
     first.unmount()
 
     await renderApp('/')
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'Leo - Endurance (Lv 1)' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Leo - All-rounder (Lv 1)' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /^Leo, male runner/ })).toBeInTheDocument()
     expect(readSave()!.state.athlete.sex).toBe('male')
   })
@@ -395,15 +290,15 @@ describe('incompatible save', () => {
 
     await user.click(screen.getByRole('button', { name: 'Restart Career' }))
     expect(screen.getByRole('heading', { name: 'Confirm restart' })).toHaveFocus()
-    const proceed = screen.getByRole('button', { name: 'Continue to profile selection' })
+    const proceed = screen.getByRole('button', { name: 'Continue to create a runner' })
     expect(proceed).toHaveAttribute('aria-disabled', 'true')
     await user.click(proceed)
     expect(screen.getByRole('alert')).toHaveTextContent('Tick the box')
-    expect(screen.queryByRole('heading', { name: 'Choose your athlete' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Create your runner' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('checkbox', { name: /permanently replaced/ }))
     await user.click(proceed)
-    expect(screen.getByRole('heading', { level: 1, name: 'Choose your athlete' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Create your runner' })).toBeInTheDocument()
     expect(localStorage.getItem(SAVE_KEY)).toBe(M1_SAVE)
 
     await chooseAndContinue(user)
@@ -416,7 +311,7 @@ describe('incompatible save', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
     expect(readSave()).toMatchObject({
       schemaVersion: 2,
-      state: { athlete: { name: 'Marta', sex: 'female', profile: 'climber', xp: 0 } },
+      state: { athlete: { name: 'Marta', sex: 'female', profile: 'all-rounder', xp: 0 } },
     })
   })
 
@@ -437,8 +332,7 @@ describe('incompatible save', () => {
     const first = await renderApp('/')
     await user.click(screen.getByRole('button', { name: 'Restart Career' }))
     await user.click(screen.getByRole('checkbox'))
-    await user.click(screen.getByRole('button', { name: 'Continue to profile selection' }))
-    await user.click(chooseButton())
+    await user.click(screen.getByRole('button', { name: 'Continue to create a runner' }))
     first.unmount()
 
     await renderApp('/')
@@ -451,8 +345,8 @@ describe('incompatible save', () => {
     const first = await renderApp('/')
     await user.click(screen.getByRole('button', { name: 'Restart Career' }))
     await user.click(screen.getByRole('checkbox'))
-    await user.click(screen.getByRole('button', { name: 'Continue to profile selection' }))
-    await createCareer(user, 'sprinter', 'male', 'Leo')
+    await user.click(screen.getByRole('button', { name: 'Continue to create a runner' }))
+    await createCareer(user, 'male', 'Leo')
     first.unmount()
 
     await renderApp('/')

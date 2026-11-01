@@ -85,7 +85,7 @@ export function IncompatibleSaveScreen({ reason }: { reason: IncompatibleReason 
             </h2>
             <p>
               Your previous career cannot be recovered after a new one is started. Nothing is deleted
-              until you choose a profile and start the new career.
+              until you create a runner and start the new career.
             </p>
             <div className={styles.checkboxRow}>
               <input
@@ -108,7 +108,7 @@ export function IncompatibleSaveScreen({ reason }: { reason: IncompatibleReason 
                 className={`${button.button} ${button.danger}`}
                 aria-disabled={!acknowledged}
               >
-                Continue to profile selection
+                Continue to create a runner
               </button>
               <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => go('warning')}>
                 Cancel

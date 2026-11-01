@@ -9,6 +9,8 @@ export type BuyError =
   | 'insufficient-coins'
   /** The price the player confirmed is not the current price. */
   | 'price-changed'
+  /** The item has no price yet (gels and cereal bars until they are defined). */
+  | 'not-for-sale'
 
 /**
  * Puts an owned item on, replacing the item in the same slot, or takes it off. Cosmetic for now:
@@ -43,6 +45,7 @@ export function buyItem(
   const item = getEquipmentItem(itemId)
   if (!item) return { ok: false, error: 'unknown-item' }
   if (state.ownedEquipment.includes(itemId)) return { ok: false, error: 'already-owned' }
+  if (item.price === null) return { ok: false, error: 'not-for-sale' }
   if (item.price !== confirmedPrice) return { ok: false, error: 'price-changed' }
   if (item.price > state.coins) return { ok: false, error: 'insufficient-coins' }
   return {

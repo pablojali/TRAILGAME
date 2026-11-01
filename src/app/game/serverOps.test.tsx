@@ -283,9 +283,9 @@ describe('server-authoritative training (client and server together)', () => {
     const view = renderGame(w)
     await waitFor(() => expect(view.phase()).toBe('new-career'))
     await act(async () => {
-      expect(await view.game().startCareer('climber', TEST_IDENTITY)).toBeNull()
+      expect(await view.game().startCareer(TEST_IDENTITY)).toBeNull()
     })
-    expect(w.server()).toMatchObject({ athlete: { profile: 'climber', xp: 0 } })
+    expect(w.server()).toMatchObject({ athlete: { profile: 'all-rounder', xp: 0 } })
     expect(view.playing()).toEqual(w.server())
   })
 
@@ -295,7 +295,7 @@ describe('server-authoritative training (client and server together)', () => {
     await waitFor(() => expect(view.phase()).toBe('new-career'))
     w.network.down = true
     await act(async () => {
-      expect(await view.game().startCareer('climber', TEST_IDENTITY)).toBe('offline')
+      expect(await view.game().startCareer(TEST_IDENTITY)).toBe('offline')
     })
     expect(view.phase()).toBe('new-career')
     expect(localStorage.getItem(SAVE_KEY)).toBeNull()

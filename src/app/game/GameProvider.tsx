@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { AttributeId, ProfileId } from '../../domain/athlete/athlete'
+import type { AttributeId } from '../../domain/athlete/athlete'
+import { STARTING_PROFILE } from '../../domain/athlete/profiles'
 import type { SessionType } from '../../domain/training/sessions'
 import { allocateAttributePoint, type AllocationError } from '../../game-engine/attributes'
 import { applyFitnessDecay } from '../../game-engine/fitnessDecay'
@@ -255,16 +256,16 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   }, [currentState, queue, sync])
 
   const startCareer = useCallback(
-    async (profile: ProfileId, identity: AthleteIdentity): Promise<StartCareerError | null> => {
+    async (identity: AthleteIdentity): Promise<StartCareerError | null> => {
       setLastExecution(null)
       setDecayNotice(null)
       if (!ops) {
         // Local game: saved locally (and uploaded by the cloud sync, if any).
-        commit({ kind: 'playing', state: createInitialGameState(profile, clockRef.current(), identity) })
+        commit({ kind: 'playing', state: createInitialGameState(STARTING_PROFILE, clockRef.current(), identity) })
         return null
       }
       // The server builds the career (and replaces the cloud one after a reset).
-      const response = await ops({ action: 'new-career', baseVersion: sync?.knownVersion() ?? null, profile, identity })
+      const response = await ops({ action: 'new-career', baseVersion: sync?.knownVersion() ?? null, profile: STARTING_PROFILE, identity })
       if (response.ok) {
         sync?.confirmed(response.state, response.version)
         commit({ kind: 'playing', state: response.state })

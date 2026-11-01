@@ -53,6 +53,8 @@ The interface should resemble a modern mobile game, even when accessed through a
 
 ### 2.1 Starting profile selection
 
+**Owner decision (1 November 2026): no starting profile is chosen any more.** Every new runner is an All-rounder with every attribute at 16; creation is two steps (sex and appearance, then the name). The four profiles below stay in the game data so existing careers keep theirs. The rest of this section describes the earlier design.
+
 At the beginning of a new career, the player must select one of four profiles:
 
 1. Climber

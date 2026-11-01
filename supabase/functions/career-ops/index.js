@@ -40,6 +40,7 @@ var PROFILE_IDS = ["climber", "sprinter", "all-rounder", "endurance"];
 function isProfileId(value) {
   return typeof value === "string" && PROFILE_IDS.includes(value);
 }
+var STARTING_PROFILE = "all-rounder";
 
 // src/domain/training/sessions.ts
 var ATTRIBUTE_GAIN_PER_SESSION = 0.1;
@@ -1402,7 +1403,7 @@ async function save(userId, request, deps, now) {
   return fail(409, "busy");
 }
 async function newCareer(userId, request, deps, now) {
-  const fresh = parseGameState(JSON.parse(JSON.stringify(createInitialGameState(request.profile, now, request.identity))), now);
+  const fresh = parseGameState(JSON.parse(JSON.stringify(createInitialGameState(STARTING_PROFILE, now, request.identity))), now);
   if (!fresh) return fail(400, "bad-request");
   const record = await deps.store.load(userId);
   const baseVersion = record ? record.version : null;

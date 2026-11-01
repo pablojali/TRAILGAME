@@ -952,6 +952,14 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### One starting profile (owner decision, 1 November 2026)
+
+- Every new career is an All-rounder, every attribute at 16 (`STARTING_PROFILE`); the profile step
+  (carousel, creation illustrations) is gone. Creation: "Create your runner" (sex, appearance,
+  sign-in link) → "Name your runner". The server builds new careers as All-rounders whatever an
+  older client sends. Saved careers keep their profile. The prepared creation illustrations
+  (`assets/runner/creation`, `scripts/prepare_creation_art.py`) are no longer used.
+
 ### Planning ahead, level-up celebration, race XP ×10 (owner decisions, 1 November 2026)
 
 - **Plan any day:** the session of today and every later day of the week can be changed

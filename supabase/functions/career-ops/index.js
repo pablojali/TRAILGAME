@@ -419,6 +419,22 @@ var EQUIPMENT_ITEMS = [
     price: 90,
     raceEffect: { attributes: { endurance: 2 }, slowdown: 0.85 },
     effectText: "Races: Endurance +2, 15% less wear over distance."
+  },
+  // Gels and cereal bars (owner request, 1 November 2026). Their race effects, level and price
+  // will be defined later: until then they have none, are not for sale and change no calculation.
+  {
+    id: "energy-gel",
+    label: "Energy gel",
+    slot: "gel",
+    description: "Energy gel for races.",
+    price: null
+  },
+  {
+    id: "cereal-bar",
+    label: "Cereal bar",
+    slot: "bar",
+    description: "Cereal bar for races.",
+    price: null
   }
 ];
 var OWNED_FROM_START = ["starter-shoes"];
@@ -461,6 +477,7 @@ function buyItem(state, itemId, confirmedPrice) {
   const item = getEquipmentItem(itemId);
   if (!item) return { ok: false, error: "unknown-item" };
   if (state.ownedEquipment.includes(itemId)) return { ok: false, error: "already-owned" };
+  if (item.price === null) return { ok: false, error: "not-for-sale" };
   if (item.price !== confirmedPrice) return { ok: false, error: "price-changed" };
   if (item.price > state.coins) return { ok: false, error: "insufficient-coins" };
   return {

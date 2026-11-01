@@ -332,6 +332,15 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     expect(memory.commits()).toBe(0)
   })
 
+  it('refuses items with no price yet (gels and cereal bars), charging nothing', async () => {
+    const memory = memoryStore()
+    memory.seed('ana', rich(1000))
+    expect((await call(memory, { action: 'buy', operationId: op(1), itemId: 'energy-gel', price: 0 })).body).toMatchObject({ ok: false, error: 'not-for-sale' })
+    expect((await call(memory, { action: 'buy', operationId: op(2), itemId: 'cereal-bar', price: 0 })).body).toMatchObject({ ok: false, error: 'not-for-sale' })
+    expect(memory.stateOf('ana')).toMatchObject({ coins: 1000, ownedEquipment: ['starter-shoes'] })
+    expect(memory.commits()).toBe(0)
+  })
+
   it('ignores coins and items in the snapshot sent with a purchase', async () => {
     const memory = memoryStore()
     memory.seed('ana', rich(10))

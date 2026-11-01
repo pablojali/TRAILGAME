@@ -621,6 +621,8 @@ Each item should eventually define:
 - Terrain or distance suitability.
 - Ownership status.
 
+**Owner decision (1 November 2026): gels and cereal bars** are two new item types beside shoes, poles and backpacks (`energy-gel`, `cereal-bar`). Their race effects, level and price will be defined later; until then they are listed in the shop as not for sale and change no calculation.
+
 ### 8.3 Equipment balance
 
 Equipment bonuses must interact with race characteristics.

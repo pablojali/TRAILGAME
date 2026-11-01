@@ -952,6 +952,21 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Equipment screen redesign, gels and cereal bars (owner request, 1 November 2026)
+
+- **Equipped:** the runner (Change look), then one card per slot in a scrolling list: shoes,
+  poles, backpack, gels, cereal bars; each with the worn item's picture, name, level badge and race
+  effect, or Empty, and Change / Shop. The race-attribute spider chart is gone.
+- **Shop:** collectible-style cards in a grid (level top left, type, name, picture, attribute
+  bonuses, price, and a status bar: Buy, Need N more, Owned, Equipped, Not for sale yet), filtered
+  by type (All by default). A card opens a large card (`?item=`): picture, type, level, race effect,
+  price, description, and Buy (with confirmation) or Equip / Take off, with Back to shop.
+- **Gels and cereal bars** (`energy-gel`, `cereal-bar`; slots `gel`, `bar`): level, price and
+  race effects are to be defined. `price: null` means not for sale (`not-for-sale` on the server
+  too); they have no race effect, so no calculation changes. Placeholder icons until there is art.
+  The UI shows "To be defined" instead of a value.
+- The server's item catalog changed (new items, `not-for-sale`): redeploy `career-ops`.
+
 ### One starting profile (owner decision, 1 November 2026)
 
 - Every new career is an All-rounder, every attribute at 16 (`STARTING_PROFILE`); the profile step

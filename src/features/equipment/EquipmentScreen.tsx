@@ -43,12 +43,13 @@ const ICON_PATHS: Record<EquipmentSlot, string> = {
   bar: 'M3 9h18v6H3zM7 9v6M11 9v6M15 9v6',
 }
 
+/** In the owner's order (1 November 2026): gels, cereal bars, shoes, backpack, poles. */
 const SLOTS: readonly { id: EquipmentSlot; label: string }[] = [
-  { id: 'shoes', label: 'Shoes' },
-  { id: 'poles', label: 'Poles' },
-  { id: 'pack', label: 'Backpack' },
   { id: 'gel', label: 'Gels' },
   { id: 'bar', label: 'Cereal bars' },
+  { id: 'shoes', label: 'Shoes' },
+  { id: 'pack', label: 'Backpack' },
+  { id: 'poles', label: 'Poles' },
 ]
 
 const SLOT_LABELS = Object.fromEntries(SLOTS.map((s) => [s.id, s.label])) as Record<EquipmentSlot, string>
@@ -57,12 +58,17 @@ type ShopFilter = EquipmentSlot | 'all'
 
 const SHOP_FILTERS: readonly { id: ShopFilter; label: string }[] = [
   { id: 'all', label: 'All' },
-  { id: 'shoes', label: 'Shoes' },
-  { id: 'poles', label: 'Poles' },
-  { id: 'pack', label: 'Backpack' },
   { id: 'gel', label: 'Gels' },
   { id: 'bar', label: 'Bars' },
+  { id: 'shoes', label: 'Shoes' },
+  { id: 'pack', label: 'Backpack' },
+  { id: 'poles', label: 'Poles' },
 ]
+
+/** Items in the slot order above, then in catalog order. */
+const ITEMS_IN_ORDER: readonly EquipmentItem[] = [...EQUIPMENT_ITEMS].sort(
+  (a, b) => SLOTS.findIndex((s) => s.id === a.slot) - SLOTS.findIndex((s) => s.id === b.slot),
+)
 
 type EquipmentTab = 'equipped' | 'shop'
 
@@ -274,7 +280,7 @@ function ShopTab({
   onFilter(filter: ShopFilter): void
   onOpen(itemId: string): void
 }) {
-  const items = EQUIPMENT_ITEMS.filter((item) => filter === 'all' || item.slot === filter)
+  const items = ITEMS_IN_ORDER.filter((item) => filter === 'all' || item.slot === filter)
   return (
     <>
       {/* One row of filters that scrolls sideways on narrow phones. */}

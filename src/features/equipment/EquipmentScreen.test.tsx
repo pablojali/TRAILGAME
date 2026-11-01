@@ -16,12 +16,13 @@ describe('Equipment', () => {
     expect(screen.getByRole('tab', { name: 'Equipped' })).toHaveAttribute('aria-selected', 'true')
     expect(layers(/with the equipment worn/)).toEqual(['body'])
     const boxes = within(screen.getByRole('list', { name: 'Equipped items' })).getAllByRole('button')
+    // Owner's order: gels, cereal bars, shoes, backpack, poles.
     expect(boxes.map((b) => b.getAttribute('aria-label'))).toEqual([
-      'Shoes: empty. Show shoes cards',
-      'Poles: Poles · Lvl 2. Show poles cards',
-      'Backpack: empty. Show backpack cards',
       'Gels: empty. Show gels cards',
       'Cereal bars: empty. Show cereal bars cards',
+      'Shoes: empty. Show shoes cards',
+      'Backpack: empty. Show backpack cards',
+      'Poles: Poles · Lvl 2. Show poles cards',
     ])
     expect(screen.queryByText(/Race attributes/)).not.toBeInTheDocument()
   })
@@ -81,6 +82,9 @@ describe('Equipment', () => {
     // Every item is in the grid under All, gels and cereal bars included, without invented values.
     await user.click(screen.getByRole('button', { name: 'All' }))
     expect(within(grid()).getAllByRole('button')).toHaveLength(10)
+    // Same order as the slots: gels and cereal bars first, poles last.
+    expect(within(grid()).getAllByRole('button')[0]).toHaveAccessibleName(/^Energy gel/)
+    expect(within(grid()).getAllByRole('button')[9]).toHaveAccessibleName(/^Poles · Lvl 2/)
     expect(within(grid()).getByRole('button', { name: 'Energy gel, price to be defined, Not for sale yet' })).toBeInTheDocument()
     expect(within(grid()).getByRole('button', { name: 'Hydration backpack · Lvl 2, 90 coins, Need 30 coins more' })).toBeInTheDocument()
 

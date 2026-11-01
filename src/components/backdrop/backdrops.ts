@@ -43,8 +43,12 @@ export function racePhoto(raceId: string): string | undefined {
   return byName(RACE_PHOTOS, raceId)
 }
 
-/** The scene of a route: each screen takes the scene of the section it belongs to. */
-export function sceneForPath(pathname: string): BackdropScene {
+/**
+ * The scene of a route: each screen takes the scene of the section it belongs to. `raceInProgress`:
+ * on the race screen, the aid station once the race has started; before it (the preparation) the
+ * start/finish arch (owner request, 1 November 2026).
+ */
+export function sceneForPath(pathname: string, raceInProgress = false): BackdropScene {
   const section = pathname.split('/')[1] ?? ''
   switch (section) {
     case '':
@@ -56,7 +60,7 @@ export function sceneForPath(pathname: string): BackdropScene {
     case 'appearance':
       return 'equipment'
     case 'races':
-      if (pathname.startsWith('/races/run/')) return 'aid-station'
+      if (pathname.startsWith('/races/run/')) return raceInProgress ? 'aid-station' : 'finish'
       if (pathname.startsWith('/races/results/')) return 'finish'
       return 'races'
     case 'career':

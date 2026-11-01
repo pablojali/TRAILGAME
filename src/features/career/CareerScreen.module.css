@@ -305,7 +305,10 @@
   font-size: 12px;
 }
 
+
+
+/* Room for the summit of the background picture, between the season card and the tabs. */
 .hero {
   flex: none;
-  height: clamp(40px, 12dvh, 110px);
+  height: clamp(24px, 14dvh, 140px);
 }

@@ -62,3 +62,12 @@
   /* On shorter screens the picture is cropped from the sky, never from the ground. */
   object-position: center bottom;
 }
+
+/*
+ * Career: the picture a little larger and anchored at the top, so the summit (runner and flag)
+ * sits just under the season card (owner request, 1 November 2026).
+ */
+.backdrop[data-scene='career'][data-art='image'] .art {
+  height: 130%;
+  object-position: center top;
+}

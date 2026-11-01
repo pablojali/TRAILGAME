@@ -58,9 +58,12 @@
 }
 
 .brandMark {
-  width: 34px;
-  height: 26px;
+  /* The owner's round patch logo (1 November 2026). */
+  width: 40px;
+  height: 40px;
   flex: none;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
 }
 
 .brandName {

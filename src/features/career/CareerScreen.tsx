@@ -58,8 +58,6 @@ export function CareerScreen() {
 
   return (
     <Screen title="Career" description="Small steps. Big goals." showDescription>
-      {/* Room for the summit in the background picture (owner mockup). */}
-      <div className={styles.hero} aria-hidden="true" />
       <section className={styles.season} aria-labelledby="season-title">
         <div className={styles.seasonMain}>
           <h2 id="season-title" className={styles.seasonTitle}>
@@ -89,6 +87,8 @@ export function CareerScreen() {
           </span>
         </div>
       </section>
+      {/* The summit of the background picture shows under the season card (owner request). */}
+      <div className={styles.hero} aria-hidden="true" />
 
       {history.length === 0 && (
         <p className={styles.muted}>

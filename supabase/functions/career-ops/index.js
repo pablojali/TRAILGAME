@@ -420,23 +420,31 @@ var EQUIPMENT_ITEMS = [
     raceEffect: { attributes: { endurance: 2 }, slowdown: 0.85 },
     effectText: "Races: Endurance +2, 15% less wear over distance."
   },
-  // Gels and cereal bars (owner request, 1 November 2026). Their race effects, level and price
-  // will be defined later: until then they have none, are not for sale and change no calculation.
+  // Gels and cereal bars (owner decisions, 1 November 2026): consumables sold in packs of 3 for 10
+  // coins. The runner takes at most 1 gel and 1 bar to a race, which uses them up; one of each is
+  // enough for the whole race. Their race bonus lives in the race engine (RACE_NUTRITION).
   {
     id: "energy-gel",
     label: "Energy gel",
     slot: "gel",
-    description: "Energy gel for races.",
-    price: null
+    description: "Energy gel for races. One is enough for a whole race.",
+    price: 10,
+    packSize: 3,
+    effectText: "Races: 1.5% faster for the whole race. Used up by the race."
   },
   {
     id: "cereal-bar",
     label: "Cereal bar",
     slot: "bar",
-    description: "Cereal bar for races.",
-    price: null
+    description: "Cereal bar for races. One is enough for a whole race.",
+    price: 10,
+    packSize: 3,
+    effectText: "Races: 1.5% less fatigue for the whole race. Used up by the race."
   }
 ];
+function isConsumable(item) {
+  return item.packSize !== void 0;
+}
 var OWNED_FROM_START = ["starter-shoes"];
 function getEquipmentItem(id) {
   return EQUIPMENT_ITEMS.find((item) => item.id === id);
@@ -469,6 +477,7 @@ function getRaceEffect(equipment) {
 function setItemEquipped(state, itemId, equipped) {
   const item = getEquipmentItem(itemId);
   if (!item) return { ok: false, error: "unknown-item" };
+  if (isConsumable(item)) return { ok: false, error: "consumable" };
   if (!state.ownedEquipment.includes(itemId)) return { ok: false, error: "not-owned" };
   const others = state.equipment.filter((id) => id !== itemId && getEquipmentItem(id)?.slot !== item.slot);
   return { ok: true, state: { ...state, equipment: equipped ? [...others, itemId] : others } };
@@ -476,10 +485,15 @@ function setItemEquipped(state, itemId, equipped) {
 function buyItem(state, itemId, confirmedPrice) {
   const item = getEquipmentItem(itemId);
   if (!item) return { ok: false, error: "unknown-item" };
-  if (state.ownedEquipment.includes(itemId)) return { ok: false, error: "already-owned" };
+  const consumable = isConsumable(item);
+  if (!consumable && state.ownedEquipment.includes(itemId)) return { ok: false, error: "already-owned" };
   if (item.price === null) return { ok: false, error: "not-for-sale" };
   if (item.price !== confirmedPrice) return { ok: false, error: "price-changed" };
   if (item.price > state.coins) return { ok: false, error: "insufficient-coins" };
+  if (consumable) {
+    const consumables = { ...state.consumables, [item.slot]: state.consumables[item.slot] + item.packSize };
+    return { ok: true, state: { ...state, coins: state.coins - item.price, consumables } };
+  }
   return {
     ok: true,
     state: { ...state, coins: state.coins - item.price, ownedEquipment: [...state.ownedEquipment, itemId] }
@@ -528,7 +542,9 @@ function createInitialGameState(profile, now, identity) {
     coins: STARTING_COINS,
     raceEntries: [],
     equipment: [],
-    ownedEquipment: [...OWNED_FROM_START]
+    ownedEquipment: [...OWNED_FROM_START],
+    consumables: { gel: 0, bar: 0 },
+    activeRace: null
   };
 }
 function getCurrentDay(week) {
@@ -644,18 +660,48 @@ var INJURY_FATIGUE_THRESHOLD = 95;
 var INJURY_FITNESS_LOSS = 15;
 var INJURY_REST_DAYS = 5;
 
-// src/game-engine/raceSchedule.ts
-var RACE_DAY_INDEX = DAYS_PER_WEEK - 1;
-function getScheduledEntry(state) {
-  return state.raceEntries.find((entry) => entry.status === "pending");
+// src/domain/races/strategyConfig.ts
+var INTENSITIES = ["recovery", "easy", "target", "hard"];
+var AID_STOPS = ["quick", "normal", "slow"];
+function isIntensity(value) {
+  return INTENSITIES.includes(value);
 }
-function getRaceWeek(state) {
-  const sundayIsForcedRest = state.week.currentDayIndex + state.forcedRestDays > RACE_DAY_INDEX;
-  return state.week.number + (sundayIsForcedRest ? 1 : 0);
+function isAidStop(value) {
+  return AID_STOPS.includes(value);
 }
-function isRaceDayToday(state) {
-  return state.week.currentDayIndex === RACE_DAY_INDEX && state.forcedRestDays === 0 && getScheduledEntry(state) !== void 0;
-}
+var RACE_STRATEGY = {
+  /** Segments per race: clamp(round(distance km / kmPerSegment), min, max). */
+  kmPerSegment: 6,
+  minSegments: 2,
+  maxSegments: 8,
+  /** §3.2: time multiplier (pace) and in-race fatigue multiplier of each intensity. */
+  intensity: {
+    recovery: { pace: 1.1, fatigue: 0.45 },
+    easy: { pace: 1.05, fatigue: 0.7 },
+    target: { pace: 1, fatigue: 1 },
+    hard: { pace: 0.95, fatigue: 1.6 }
+  },
+  /** In-race fatigue gained per effort-km at Target pace and Recovery 20, before calibration. */
+  fatiguePerEffortKm: 0.6,
+  /** §3.4: stop duration and share of the in-race fatigue gained so far that it recovers. */
+  stop: {
+    quick: { seconds: 30, recovery: 0.1 },
+    normal: { seconds: 120, recovery: 0.25 },
+    slow: { seconds: 300, recovery: 0.45 }
+  },
+  /** No stop recovers more than this share of the in-race fatigue gained so far. */
+  maxStopRecovery: 0.6,
+  /** The stop NPC rivals make, by finishing rank: front third, middle third, back third. */
+  rivalStops: ["quick", "normal", "slow"],
+  /** §3.3: the gel saves this share of race time; the cereal bar this share of fatigue gained. */
+  gelTimeSaving: 0.015,
+  barFatigueSaving: 0.015,
+  /**
+   * Weight of the in-race fatigue above the planned one (Target pace with Normal stops) in the pace,
+   * through the existing Fatigue factor. 1 = the same effect as career Fatigue.
+   */
+  inRaceFatiguePaceWeight: 1
+};
 
 // src/game-engine/raceSimulation.ts
 var InvalidCourseError = class extends Error {
@@ -721,28 +767,39 @@ function segmentAbility(segment, a) {
   }
   return runnableAbility(a);
 }
-function raceSeconds(course, athlete, dayForm = 0) {
+function prepareRunner(athlete) {
   const gear = getRaceEffect(athlete.equipment ?? []);
   const a = Object.fromEntries(
     ATTRIBUTE_IDS.map((id) => [id, athlete.attributes[id] + gear.attributes[id]])
   );
-  const fitnessFactor = 1 + RACE_SIMULATION.fitnessSlope * (50 - athlete.fitness) / 50;
-  const fatigueScale = Math.pow(RACE_SIMULATION.abilityReference / a.consistency, RACE_SIMULATION.abilityExponent);
-  const fatigueFactor = 1 + RACE_SIMULATION.fatigueSlope * athlete.fatigue * fatigueScale / 100;
-  const durabilityScore = durability(a);
+  return {
+    attributes: a,
+    gear,
+    fitnessFactor: 1 + RACE_SIMULATION.fitnessSlope * (50 - athlete.fitness) / 50,
+    fatigueScale: Math.pow(RACE_SIMULATION.abilityReference / a.consistency, RACE_SIMULATION.abilityExponent),
+    durabilityScore: durability(a)
+  };
+}
+function blockMinutes(runner, s, effortBefore, fatigue, dayForm = 0) {
+  const { attributes: a, gear } = runner;
+  const fatigueFactor = 1 + RACE_SIMULATION.fatigueSlope * fatigue * runner.fatigueScale / 100;
+  const e = effortKm(s);
+  const abilityFactor = Math.pow(RACE_SIMULATION.abilityReference / segmentAbility(s, a), RACE_SIMULATION.abilityExponent);
+  const technicalFactor = s.type === "descent" ? (
+    // Technical 100 or more removes the penalty; it never turns into a bonus (no attribute cap).
+    1 + RACE_SIMULATION.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * Math.max(0, 1 - a.technical / 100)
+  ) : 1;
+  const slowdown = 1 + RACE_SIMULATION.slowdownRate * gear.slowdown * (effortBefore / RACE_SIMULATION.slowdownReferenceEffortKm) * (RACE_SIMULATION.abilityReference / runner.durabilityScore);
+  const gearFactor = s.type === "climb" ? gear.climb : s.type === "descent" ? gear.descent : gear.runnable;
+  return e * RACE_SIMULATION.basePaceMinPerEffortKm * abilityFactor * technicalFactor * slowdown * gearFactor * runner.fitnessFactor * fatigueFactor * (1 + dayForm);
+}
+function raceSeconds(course, athlete, dayForm = 0) {
+  const runner = prepareRunner(athlete);
   let minutes = 0;
   let effortBefore = 0;
   for (const s of course) {
-    const e = effortKm(s);
-    const abilityFactor = Math.pow(RACE_SIMULATION.abilityReference / segmentAbility(s, a), RACE_SIMULATION.abilityExponent);
-    const technicalFactor = s.type === "descent" ? (
-      // Technical 100 or more removes the penalty; it never turns into a bonus (no attribute cap).
-      1 + RACE_SIMULATION.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * Math.max(0, 1 - a.technical / 100)
-    ) : 1;
-    const slowdown = 1 + RACE_SIMULATION.slowdownRate * gear.slowdown * (effortBefore / RACE_SIMULATION.slowdownReferenceEffortKm) * (RACE_SIMULATION.abilityReference / durabilityScore);
-    const gearFactor = s.type === "climb" ? gear.climb : s.type === "descent" ? gear.descent : gear.runnable;
-    minutes += e * RACE_SIMULATION.basePaceMinPerEffortKm * abilityFactor * technicalFactor * slowdown * gearFactor * fitnessFactor * fatigueFactor * (1 + dayForm);
-    effortBefore += e;
+    minutes += blockMinutes(runner, s, effortBefore, athlete.fatigue, dayForm);
+    effortBefore += effortKm(s);
   }
   return minutes * 60;
 }
@@ -762,12 +819,6 @@ function rivalTimes(race, course = generateCourse(race)) {
     { length: n },
     (_, i) => Math.round(reference * (RACE_SIMULATION.rivalFastest + RACE_SIMULATION.rivalSpread * Math.pow((i + 0.5) / n, RACE_SIMULATION.rivalExponent)))
   );
-}
-function simulateRace(race, athlete, dayForm = 0) {
-  const course = generateCourse(race);
-  const timeS = Math.round(raceSeconds(course, athlete, dayForm));
-  const position = 1 + rivalTimes(race, course).filter((t) => t < timeS).length;
-  return { timeS, position, fieldSize: RACE_SIMULATION.fieldSize, dayForm };
 }
 function fnv1a(text) {
   let h = 2166136261;
@@ -833,6 +884,169 @@ function explainRace(race, athlete, dayForm = 0) {
     gapS: Math.round(actual) - Math.round(referenceTime),
     factors
   };
+}
+
+// src/game-engine/raceEngine.ts
+function getSegmentCount(race) {
+  return Math.min(RACE_STRATEGY.maxSegments, Math.max(RACE_STRATEGY.minSegments, Math.round(race.distanceKm / RACE_STRATEGY.kmPerSegment)));
+}
+function getRaceSegments(race) {
+  const course = generateCourse(race);
+  const totalM = course.reduce((sum, block) => sum + block.lengthM, 0);
+  const lengths = splitEvenly(totalM, getSegmentCount(race));
+  const bounds = [0];
+  for (const length of lengths) bounds.push(bounds[bounds.length - 1] + length);
+  const pieces = lengths.map(() => []);
+  let blockStart = 0;
+  let effortBefore = 0;
+  for (const block of course) {
+    const blockEnd = blockStart + block.lengthM;
+    for (let k = 0; k < lengths.length; k++) {
+      const from = Math.max(blockStart, bounds[k]);
+      const to = Math.min(blockEnd, bounds[k + 1]);
+      if (to <= from) continue;
+      const share = (to - from) / block.lengthM;
+      pieces[k].push({
+        block: share === 1 ? block : { ...block, lengthM: to - from, gainM: block.gainM * share, lossM: block.lossM * share },
+        effortBefore
+      });
+    }
+    blockStart = blockEnd;
+    effortBefore += effortKm(block);
+  }
+  const segments = pieces.map((list, index) => {
+    const distanceM = lengths[index];
+    const sumOf = (pick) => list.reduce((sum, p) => sum + pick(p.block), 0);
+    const ofType = (type) => sumOf((b) => b.type === type ? b.lengthM : 0) / distanceM;
+    const hasDescent = list.some((p) => p.block.type === "descent");
+    return {
+      index,
+      startM: bounds[index],
+      distanceM,
+      gainM: sumOf((b) => b.gainM),
+      lossM: sumOf((b) => b.lossM),
+      effortKm: sumOf((b) => effortKm(b)),
+      terrain: { runnable: ofType("runnable"), climb: ofType("climb"), descent: ofType("descent") },
+      technicality: hasDescent ? race.technicality : 0,
+      pieces: list
+    };
+  });
+  const near = (x, y) => Math.abs(x - y) < 1e-6;
+  if (segments.some((s) => s.pieces.length === 0 || !(s.distanceM > 0)) || !near(
+    segments.reduce((sum, s) => sum + s.distanceM, 0),
+    totalM
+  ) || !near(
+    segments.reduce((sum, s) => sum + s.gainM, 0),
+    race.elevationGainM
+  ) || !near(
+    segments.reduce((sum, s) => sum + s.effortKm, 0),
+    courseEffortKm(course)
+  )) {
+    throw new InvalidCourseError(`${race.id}: segments do not add up to the course`);
+  }
+  return segments;
+}
+function segmentBaseSeconds(runner, segment, fatigue, dayForm) {
+  return segment.pieces.reduce((sum, p) => sum + blockMinutes(runner, p.block, p.effortBefore, fatigue, dayForm), 0) * 60;
+}
+function recoveryCurve(recovery) {
+  return Math.pow(RACE_SIMULATION.abilityReference / recovery, RACE_SIMULATION.abilityExponent);
+}
+function stopRecovery(stop, gainedSoFar, recovery) {
+  if (gainedSoFar <= 0) return 0;
+  return Math.min(RACE_STRATEGY.maxStopRecovery, RACE_STRATEGY.stop[stop].recovery / recoveryCurve(recovery)) * gainedSoFar;
+}
+function plannedGains(segments, recovery, scale) {
+  const atStart = [];
+  let gained = 0;
+  segments.forEach((segment, k) => {
+    atStart.push(gained);
+    gained += RACE_STRATEGY.fatiguePerEffortKm * segment.effortKm * recoveryCurve(recovery) * scale;
+    if (k < segments.length - 1) gained -= stopRecovery("normal", gained, recovery);
+  });
+  return { atStart, final: gained };
+}
+function getFatigueScale(race, segments = getRaceSegments(race)) {
+  const before = Math.round(RACE_SIMULATION.raceFatigueBase + RACE_SIMULATION.raceFatiguePerEffortKm * courseEffortKm(generateCourse(race)));
+  return before / plannedGains(segments, RACE_SIMULATION.abilityReference, 1).final;
+}
+function getRivalStop(rivalIndex, rivals) {
+  return RACE_STRATEGY.rivalStops[Math.min(2, Math.floor(rivalIndex * 3 / rivals))];
+}
+function getRaceField(race) {
+  const segments = getRaceSegments(race);
+  const reference = referenceAthlete(race.recommendedLevel);
+  const runner = prepareRunner(reference);
+  const referenceSegments = segments.map((s) => segmentBaseSeconds(runner, s, reference.fatigue, 0));
+  const referenceTotal = referenceSegments.reduce((a, b) => a + b, 0);
+  const cumulativeShares = [];
+  let sum = 0;
+  for (const seconds of referenceSegments) {
+    sum += seconds;
+    cumulativeShares.push(sum / referenceTotal);
+  }
+  const rivalBaseS = rivalTimes(race);
+  const stopsS = rivalBaseS.map((_, i) => RACE_STRATEGY.stop[getRivalStop(i, rivalBaseS.length)].seconds);
+  const rivalArrivalsS = segments.slice(0, -1).map((_, k) => rivalBaseS.map((t, i) => Math.round(t * cumulativeShares[k]) + k * stopsS[i]));
+  const rivalFinishS = rivalBaseS.map((t, i) => t + (segments.length - 1) * stopsS[i]);
+  return { segments, fatigueScale: getFatigueScale(race, segments), rivalBaseS, rivalArrivalsS, rivalFinishS };
+}
+function positionAmong(timeS, rivals) {
+  return 1 + rivals.filter((t) => t < timeS).length;
+}
+function segmentFatigue(ctx, segment, intensity) {
+  const recovery = prepareRunner(ctx.runner).attributes.recovery;
+  return RACE_STRATEGY.fatiguePerEffortKm * segment.effortKm * RACE_STRATEGY.intensity[intensity].fatigue * recoveryCurve(recovery) * ctx.field.fatigueScale * (ctx.nutrition.bar ? 1 - RACE_STRATEGY.barFatigueSaving : 1);
+}
+function runSegment(ctx, progress, intensity) {
+  const k = progress.splits.length;
+  const segment = ctx.field.segments[k];
+  const prepared = prepareRunner(ctx.runner);
+  const planned = plannedGains(ctx.field.segments, prepared.attributes.recovery, ctx.field.fatigueScale).atStart[k];
+  const gained = progress.fatigue - ctx.runner.fatigue;
+  const paceFatigue = ctx.runner.fatigue + RACE_STRATEGY.inRaceFatiguePaceWeight * (gained - planned);
+  const seconds = segmentBaseSeconds(prepared, segment, paceFatigue, ctx.dayForm) * RACE_STRATEGY.intensity[intensity].pace * (ctx.nutrition.gel ? 1 - RACE_STRATEGY.gelTimeSaving : 1);
+  const elapsedS = progress.elapsedS + seconds;
+  const fatigue = progress.fatigue + segmentFatigue(ctx, segment, intensity);
+  const last = k === ctx.field.segments.length - 1;
+  const arrivalS = Math.round(elapsedS);
+  const rivals = last ? ctx.field.rivalFinishS : ctx.field.rivalArrivalsS[k];
+  const previousArrival = k === 0 ? 0 : progress.splits[k - 1].arrivalS + (progress.splits[k - 1].stopS ?? 0);
+  const split = {
+    intensity,
+    segmentS: arrivalS - previousArrival,
+    arrivalS,
+    fatigue: roundStat(Math.min(100, fatigue)),
+    position: positionAmong(arrivalS, rivals)
+  };
+  return { elapsedS, fatigue, splits: [...progress.splits, split] };
+}
+function makeStop(ctx, progress, stop) {
+  const k = progress.splits.length - 1;
+  const recovery = prepareRunner(ctx.runner).attributes.recovery;
+  const fatigue = progress.fatigue - stopRecovery(stop, progress.fatigue - ctx.runner.fatigue, recovery);
+  const seconds = RACE_STRATEGY.stop[stop].seconds;
+  const split = { ...progress.splits[k], stop, stopS: seconds, fatigueAfterStop: roundStat(Math.min(100, fatigue)) };
+  return { elapsedS: progress.elapsedS + seconds, fatigue, splits: [...progress.splits.slice(0, k), split] };
+}
+function getReferenceFinishS(race, field = getRaceField(race)) {
+  return Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel))) + (field.segments.length - 1) * RACE_STRATEGY.stop.normal.seconds;
+}
+function snapshotRunner(attributes, fitness, fatigue, equipment) {
+  return { attributes: { ...attributes }, fitness, fatigue, equipment: [...equipment] };
+}
+
+// src/game-engine/raceSchedule.ts
+var RACE_DAY_INDEX = DAYS_PER_WEEK - 1;
+function getScheduledEntry(state) {
+  return state.raceEntries.find((entry) => entry.status === "pending");
+}
+function getRaceWeek(state) {
+  const sundayIsForcedRest = state.week.currentDayIndex + state.forcedRestDays > RACE_DAY_INDEX;
+  return state.week.number + (sundayIsForcedRest ? 1 : 0);
+}
+function isRaceDayToday(state) {
+  return state.week.currentDayIndex === RACE_DAY_INDEX && state.forcedRestDays === 0 && getScheduledEntry(state) !== void 0;
 }
 
 // src/domain/athlete/consistency.ts
@@ -1017,17 +1231,17 @@ function getRaceRewards(race, position, levelAtStart) {
     xp: Math.max(RACE_MIN_XP, Math.floor(RACE_XP_BASE[race.category] * RACE_XP_BAND_PCT[band] * multiplierPct / 1e4))
   };
 }
-function getRaceFatigue(race) {
-  return Math.round(
-    RACE_SIMULATION.raceFatigueBase + RACE_SIMULATION.raceFatiguePerEffortKm * courseEffortKm(generateCourse(race))
-  );
+function contextOf(active, race, field = getRaceField(race)) {
+  return {
+    race,
+    field,
+    runner: snapshotRunner(active.attributes, active.fitness, active.fatigue, active.equipment),
+    dayForm: active.dayForm,
+    nutrition: active.nutrition
+  };
 }
-function previewRaceDay(state, race) {
-  const { fatigue } = state.athlete;
-  const fatigueChange = statChange(fatigue, getRaceFatigue(race));
-  return { fatigueChange, injured: fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD };
-}
-function raceCurrentDay(state, ref, entryId, now) {
+function startRace(state, ref, entryId, decisions, now) {
+  if (state.activeRace) return { ok: false, error: "race-in-progress" };
   const dayError = checkDay(state, ref);
   if (dayError) return { ok: false, error: dayError };
   if (state.forcedRestDays > 0) return { ok: false, error: "forced-rest" };
@@ -1041,20 +1255,75 @@ function raceCurrentDay(state, ref, entryId, now) {
   if (entry.entryType === "free" && !canEnterAtLevel(race, getLevel(state.athlete.xp))) {
     return { ok: false, error: "level-too-low" };
   }
+  if (!isIntensity(decisions.intensity)) return { ok: false, error: "unknown-intensity" };
+  if (decisions.gel && state.consumables.gel < 1) return { ok: false, error: "no-gel" };
+  if (decisions.bar && state.consumables.bar < 1) return { ok: false, error: "no-bar" };
   const { athlete } = state;
-  const levelAtStart = getLevel(athlete.xp);
-  const input = {
+  const nutrition = { gel: decisions.gel === true, bar: decisions.bar === true };
+  const base = {
+    entryId: entry.id,
+    raceId: race.id,
+    startedAt: now,
+    levelAtStart: getLevel(athlete.xp),
     attributes: { ...athlete.attributes },
     fitness: athlete.fitness,
     fatigue: athlete.fatigue,
-    equipment: [...state.equipment]
+    equipment: [...state.equipment],
+    dayForm: getDayForm(race.id, entry.id, entry.enteredAt, athlete.attributes.consistency),
+    nutrition,
+    elapsedS: 0,
+    inRaceFatigue: athlete.fatigue,
+    splits: []
   };
-  const dayForm = getDayForm(race.id, entry.id, entry.enteredAt, athlete.attributes.consistency);
-  const simulation = simulateRace(race, input, dayForm);
-  const explanation = explainRace(race, input, dayForm);
-  const rewards = getRaceRewards(race, simulation.position, levelAtStart);
-  const { fatigueChange, injured } = previewRaceDay(state, race);
-  const fitnessChange = injured ? statChange(athlete.fitness, -INJURY_FITNESS_LOSS) : 0;
+  const progress = runSegment(contextOf(base, race), toProgress(base), decisions.intensity);
+  return {
+    ok: true,
+    state: {
+      ...state,
+      consumables: {
+        gel: state.consumables.gel - (nutrition.gel ? 1 : 0),
+        bar: state.consumables.bar - (nutrition.bar ? 1 : 0)
+      },
+      activeRace: withProgress(base, progress)
+    }
+  };
+}
+function toProgress(active) {
+  return { elapsedS: active.elapsedS, fatigue: active.inRaceFatigue, splits: active.splits };
+}
+function withProgress(active, progress) {
+  return { ...active, elapsedS: progress.elapsedS, inRaceFatigue: progress.fatigue, splits: progress.splits };
+}
+function stepRace(state, decisions, now) {
+  const active = state.activeRace;
+  if (!active) return { ok: false, error: "no-race-in-progress" };
+  const race = getRace(active.raceId);
+  if (!race) return { ok: false, error: "no-race-in-progress" };
+  if (decisions.segment !== active.splits.length) return { ok: false, error: "wrong-segment" };
+  if (!isAidStop(decisions.stop)) return { ok: false, error: "unknown-stop" };
+  if (!isIntensity(decisions.intensity)) return { ok: false, error: "unknown-intensity" };
+  const field = getRaceField(race);
+  const ctx = contextOf(active, race, field);
+  const progress = runSegment(ctx, makeStop(ctx, toProgress(active), decisions.stop), decisions.intensity);
+  const next = withProgress(active, progress);
+  if (progress.splits.length < field.segments.length) {
+    return { ok: true, value: { finished: false, state: { ...state, activeRace: next } } };
+  }
+  return { ok: true, value: { finished: true, value: finishRace({ ...state, activeRace: next }, next, race, field, now) } };
+}
+function finishRace(state, active, race, field, now) {
+  const entry = getEntry(state, active.entryId);
+  const last = active.splits[active.splits.length - 1];
+  const timeS = last.arrivalS;
+  const position = last.position;
+  const levelAtStart = active.levelAtStart;
+  const input = { attributes: active.attributes, fitness: active.fitness, fatigue: active.fatigue, equipment: active.equipment };
+  const explanation = explainRace(race, input, active.dayForm);
+  const referenceTimeS = getReferenceFinishS(race, field);
+  const rewards = getRaceRewards(race, position, levelAtStart);
+  const fatigueChange = statChange(active.fatigue, roundStat(active.inRaceFatigue - active.fatigue));
+  const injured = active.fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD;
+  const fitnessChange = injured ? statChange(state.athlete.fitness, -INJURY_FITNESS_LOSS) : 0;
   const xpAwarded = injured ? RACE_MIN_XP : rewards.xp;
   const outcome = {
     xpGained: xpAwarded,
@@ -1064,18 +1333,18 @@ function raceCurrentDay(state, ref, entryId, now) {
     raceEntryId: entry.id
   };
   const result = {
-    startedAt: now,
+    startedAt: active.startedAt,
     week: state.week.number,
     day: state.week.currentDayIndex + 1,
     levelAtStart,
-    attributes: input.attributes,
-    fitness: input.fitness,
-    fatigue: input.fatigue,
-    equipment: input.equipment,
-    dayForm,
-    timeS: simulation.timeS,
-    position: simulation.position,
-    fieldSize: simulation.fieldSize,
+    attributes: active.attributes,
+    fitness: active.fitness,
+    fatigue: active.fatigue,
+    equipment: active.equipment,
+    dayForm: active.dayForm,
+    timeS,
+    position,
+    fieldSize: RACE_SIMULATION.fieldSize,
     band: rewards.band,
     grossPrize: rewards.grossPrize,
     multiplierPct: rewards.multiplierPct,
@@ -1085,13 +1354,15 @@ function raceCurrentDay(state, ref, entryId, now) {
     fatigueChange,
     fitnessChange,
     injured,
-    referenceTimeS: explanation.referenceTimeS,
-    gapS: explanation.gapS,
+    referenceTimeS,
+    gapS: timeS - referenceTimeS,
     factors: explanation.factors,
-    rivalTimesS: rivalTimes(race)
+    rivalTimesS: field.rivalFinishS,
+    splits: active.splits,
+    nutrition: active.nutrition
   };
   const finished = { ...entry, status: "finished", result };
-  const advanced = completeCurrentDay(state, outcome, true, now);
+  const advanced = completeCurrentDay({ ...state, activeRace: null }, outcome, true, now);
   const nextState = {
     ...advanced.state,
     coins: advanced.state.coins + rewards.coinsAwarded,
@@ -1099,15 +1370,12 @@ function raceCurrentDay(state, ref, entryId, now) {
   };
   const levelAfter = getLevel(nextState.athlete.xp);
   return {
-    ok: true,
-    value: {
-      state: nextState,
-      entry: finished,
-      levelBefore: levelAtStart,
-      levelAfter,
-      attributePointsAwarded: (levelAfter - levelAtStart) * ATTRIBUTE_POINTS_PER_LEVEL,
-      weekCompleted: advanced.weekCompleted
-    }
+    state: nextState,
+    entry: finished,
+    levelBefore: levelAtStart,
+    levelAfter,
+    attributePointsAwarded: (levelAfter - levelAtStart) * ATTRIBUTE_POINTS_PER_LEVEL,
+    weekCompleted: advanced.weekCompleted
   };
 }
 
@@ -1148,7 +1416,44 @@ function isFactor(value) {
   return isRecord(value) && FACTOR_IDS.includes(value.id) && isFiniteNumber(value.value) && isFiniteNumber(value.reference) && isWholeNumber(value.effectS);
 }
 function isRaceResult(value, feePaid) {
-  return isRecord(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1)));
+  return isRecord(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1))) && (value.splits === void 0 || Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true)) && (value.nutrition === void 0 || isNutrition(value.nutrition));
+}
+function isNutrition(value) {
+  return isRecord(value) && typeof value.gel === "boolean" && typeof value.bar === "boolean";
+}
+function isSplitList(splits, fieldSize, finished) {
+  let previous = 0;
+  return splits.every((split, index) => {
+    const last = index === splits.length - 1;
+    const ok = isRecord(split) && isIntensity(split.intensity) && isInt(split.segmentS, 0) && isInt(split.arrivalS, 1) && split.arrivalS >= previous && isFiniteNumber(split.fatigue) && isInt(split.position, 1, fieldSize) && (last && !finished ? split.stop === void 0 : last ? split.stop === void 0 && split.stopS === void 0 : isAidStop(split.stop) && isInt(split.stopS, 0) && isFiniteNumber(split.fatigueAfterStop));
+    if (ok) previous = split.arrivalS + (split.stopS ?? 0);
+    return ok;
+  });
+}
+function parseActiveRace(value, entries, currentDayIndex) {
+  if (!isRecord(value)) return null;
+  const entry = entries.find((e) => e.status === "pending");
+  const race = getRace(typeof value.raceId === "string" ? value.raceId : "");
+  const attributes = parseAttributes(value.attributes);
+  const { equipment, nutrition, splits } = value;
+  if (!entry || !race || value.entryId !== entry.id || value.raceId !== entry.raceId || currentDayIndex !== DAYS_PER_WEEK - 1 || !isFiniteNumber(value.startedAt) || !isInt(value.levelAtStart, 1) || !attributes || !isStat(value.fitness) || !isStat(value.fatigue) || !Array.isArray(equipment) || !equipment.every((id) => typeof id === "string" && getEquipmentItem(id) && !isConsumable(getEquipmentItem(id))) || !isFiniteNumber(value.dayForm) || Math.abs(value.dayForm) > 1 || !isNutrition(nutrition) || !isFiniteNumber(value.elapsedS) || value.elapsedS <= 0 || !isFiniteNumber(value.inRaceFatigue) || !Array.isArray(splits) || splits.length === 0 || splits.length >= getSegmentCount(race) || !isSplitList(splits, RACE_SIMULATION.fieldSize, false)) {
+    return null;
+  }
+  return {
+    entryId: entry.id,
+    raceId: race.id,
+    startedAt: value.startedAt,
+    levelAtStart: value.levelAtStart,
+    attributes,
+    fitness: value.fitness,
+    fatigue: value.fatigue,
+    equipment: [...equipment],
+    dayForm: value.dayForm,
+    nutrition: { gel: nutrition.gel, bar: nutrition.bar },
+    elapsedS: value.elapsedS,
+    inRaceFatigue: value.inRaceFatigue,
+    splits: structuredClone(splits)
+  };
 }
 function isRaceEntry(value) {
   if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 || !isRaceId(value.raceId) || !ENTRY_TYPES.includes(value.entryType) || !isInt(value.feePaid, 0) || !isInt(value.levelAtEntry, 1) || !isFiniteNumber(value.enteredAt)) {
@@ -1208,6 +1513,13 @@ function parseGameState(value, now) {
   if (!Array.isArray(ownedEquipment) || !ownedEquipment.every((id) => typeof id === "string" && getEquipmentItem(id)) || new Set(ownedEquipment).size !== ownedEquipment.length || !OWNED_FROM_START.every((id) => ownedEquipment.includes(id)) || !equipment.every((id) => ownedEquipment.includes(id))) {
     return null;
   }
+  if ([...equipment, ...ownedEquipment].some((id) => isConsumable(getEquipmentItem(id)))) {
+    return null;
+  }
+  const rawConsumables = value.consumables === void 0 ? { gel: 0, bar: 0 } : value.consumables;
+  if (!isRecord(rawConsumables) || !isInt(rawConsumables.gel, 0) || !isInt(rawConsumables.bar, 0)) return null;
+  const activeRace = value.activeRace === void 0 || value.activeRace === null ? null : parseActiveRace(value.activeRace, raceEntries, currentDayIndex);
+  if (value.activeRace !== void 0 && value.activeRace !== null && !activeRace) return null;
   const finishedIds = new Set(raceEntries.filter((e) => e.status === "finished").map((e) => e.id));
   const raceDays = week.days.filter((day) => day.outcome?.raceEntryId !== void 0);
   if (!raceDays.every((day) => finishedIds.has(day.outcome.raceEntryId))) return null;
@@ -1243,7 +1555,9 @@ function parseGameState(value, now) {
     coins,
     raceEntries,
     equipment: [...equipment],
-    ownedEquipment: [...ownedEquipment]
+    ownedEquipment: [...ownedEquipment],
+    consumables: { gel: rawConsumables.gel, bar: rawConsumables.bar },
+    activeRace
   };
 }
 
@@ -1286,11 +1600,19 @@ function compute(request, career, now) {
       const { state: next, ...result } = executed.value;
       return { ok: true, state: next, result: { ...result } };
     }
-    case "race": {
-      const raced = raceCurrentDay(career, request.ref, request.entryId, now);
-      if (!raced.ok) return { ok: false, error: raced.error };
-      const { state: next, ...result } = raced.value;
-      return { ok: true, state: next, result: { ...result } };
+    case "race-start": {
+      const decisions = { intensity: request.intensity, gel: request.gel, bar: request.bar };
+      const started = startRace(career, request.ref, request.entryId, decisions, now);
+      if (!started.ok) return { ok: false, error: started.error };
+      return { ok: true, state: started.state, result: { finished: false } };
+    }
+    case "race-step": {
+      const decisions = { segment: request.segment, stop: request.stop, intensity: request.intensity };
+      const stepped = stepRace(career, decisions, now);
+      if (!stepped.ok) return { ok: false, error: stepped.error };
+      if (!stepped.value.finished) return { ok: true, state: stepped.value.state, result: { finished: false } };
+      const { state: next, ...result } = stepped.value.value;
+      return { ok: true, state: next, result: { finished: true, ...result } };
     }
     case "allocate": {
       const allocated = allocateAttributePoint(career, request.attribute, request.expectedSpent);
@@ -1327,8 +1649,10 @@ function validRequest(body) {
   switch (request.action) {
     case "train":
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && isRef(request.ref) && typeof request.session === "string";
-    case "race":
-      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && isRef(request.ref) && typeof request.entryId === "string";
+    case "race-start":
+      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && isRef(request.ref) && typeof request.entryId === "string" && typeof request.intensity === "string" && typeof request.gel === "boolean" && typeof request.bar === "boolean";
+    case "race-step":
+      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && Number.isInteger(request.segment) && typeof request.stop === "string" && typeof request.intensity === "string";
     case "allocate":
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.attribute === "string" && Number.isInteger(request.expectedSpent);
     case "buy":
@@ -1347,9 +1671,6 @@ function validRequest(body) {
       return false;
   }
 }
-function hasStrategy(body) {
-  return body.action === "race" && body.strategy !== void 0;
-}
 var fail = (status, error, extra = {}) => ({
   status,
   body: { ok: false, error, ...extra }
@@ -1358,7 +1679,6 @@ async function handleCareerOp(token, body, deps) {
   const userId = await deps.authenticate(token);
   if (!userId) return fail(401, "unauthorized");
   if (!validRequest(body)) return fail(400, "bad-request");
-  if (hasStrategy(body)) return fail(400, "unsupported-strategy");
   const request = body;
   const now = deps.now();
   if (request.action === "new-career") return newCareer(userId, request, deps, now);

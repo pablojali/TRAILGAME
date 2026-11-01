@@ -476,3 +476,84 @@
   color: var(--text);
   font-weight: 800;
 }
+
+/* Race Engine V1: preparation and aid-station report. */
+.segmentList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.choiceRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: var(--space-2);
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgb(0 0 0 / 0.35);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.choice[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: rgb(240 124 42 / 0.2);
+}
+
+.choice[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.reportGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.reportGrid div {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  backdrop-filter: blur(6px);
+}
+
+.reportGrid dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.reportGrid dd {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Splits: six short columns that fit a phone; the intensity column takes the rest. */
+.splitsTable th,
+.splitsTable td {
+  padding: 6px 4px;
+}
+
+.splitsTable th:nth-child(2),
+.splitsTable tbody th {
+  width: auto;
+}

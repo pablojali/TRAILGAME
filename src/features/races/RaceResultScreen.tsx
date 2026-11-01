@@ -18,6 +18,7 @@ import { weekdayLong } from '../../domain/training/weekdays'
 import type { FinishedRaceEntry, RaceResult } from '../../game-engine/gameState'
 import { getEntry, getStandings } from '../../game-engine/races'
 import type { ExplanationFactor } from '../../game-engine/raceSimulation'
+import { INTENSITY_LABELS, STOP_LABELS } from './raceStrategyText'
 import { durationText, ordinal, raceTimeText, signedCoins } from './raceText'
 import styles from './Races.module.css'
 
@@ -54,6 +55,7 @@ export function RaceResultScreen() {
 
 const RESULT_TABS = [
   { id: 'result', label: 'Result' },
+  { id: 'splits', label: 'Splits' },
   { id: 'why', label: 'Why' },
   { id: 'standings', label: 'Full results' },
 ] as const
@@ -71,7 +73,9 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
   )
 
   const [params, setParams] = useSearchParams()
-  const tab = RESULT_TABS.find((t) => t.id === params.get('tab'))?.id ?? 'result'
+  // Results saved before Race Engine V1 have no splits.
+  const tabs = result.splits ? RESULT_TABS : RESULT_TABS.filter((t) => t.id !== 'splits')
+  const tab = tabs.find((t) => t.id === params.get('tab'))?.id ?? 'result'
 
   return (
     <Screen
@@ -82,7 +86,7 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
     >
       <Tabs
         label="Race result"
-        tabs={RESULT_TABS}
+        tabs={tabs}
         value={tab}
         // Keep the router state, so the level-up message survives switching tabs.
         onChange={(next) => setParams(next === 'result' ? {} : { tab: next }, { replace: true, state: location.state })}
@@ -129,6 +133,11 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
             </Card>
           </ScrollPanel>
         )}
+        {tab === 'splits' && result.splits && (
+          <ScrollPanel label="Splits">
+            <Splits result={result} />
+          </ScrollPanel>
+        )}
         {tab === 'why' && (
           <ScrollPanel label="What shaped your time">
             <Card title="What shaped your time">
@@ -163,6 +172,42 @@ function factorLabel(factor: ExplanationFactor, equipment: readonly string[] = [
   const name = factor.id === 'fitness' ? 'Fitness' : factor.id === 'fatigue' ? 'Fatigue' : isAttributeId(factor.id) ? ATTRIBUTE_LABELS[factor.id] : factor.id
   const shown = factor.id === 'fatigue' ? String(factor.value) : formatStat(factor.value)
   return `${name} ${shown} (typical ${Math.round(factor.reference)})`
+}
+
+/** Every segment as run (Race Engine V1): intensity, time, position on arrival and the stop after it. */
+function Splits({ result }: { result: RaceResult }) {
+  const splits = result.splits ?? []
+  const nutrition = [result.nutrition?.gel && 'gel', result.nutrition?.bar && 'cereal bar'].filter(Boolean)
+  return (
+    <>
+      <table className={`${styles.standingsTable} ${styles.splitsTable}`}>
+        <caption className={styles.srOnly}>Splits by segment</caption>
+        <thead>
+          <tr>
+            <th scope="col">Seg.</th>
+            <th scope="col">Intensity</th>
+            <th scope="col">Time</th>
+            <th scope="col">Total</th>
+            <th scope="col">Pos.</th>
+            <th scope="col">Stop</th>
+          </tr>
+        </thead>
+        <tbody>
+          {splits.map((split, index) => (
+            <tr key={index}>
+              <td>{index + 1}</td>
+              <th scope="row">{INTENSITY_LABELS[split.intensity]}</th>
+              <td>{durationText(split.segmentS)}</td>
+              <td>{raceTimeText(split.arrivalS)}</td>
+              <td>{split.position}</td>
+              <td>{split.stop ? STOP_LABELS[split.stop] : 'Finish'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className={styles.muted}>Nutrition: {nutrition.length ? nutrition.join(' and ') : 'none'}.</p>
+    </>
+  )
 }
 
 /** The explanation (D10): total gap, then the largest single effects, never added up. */

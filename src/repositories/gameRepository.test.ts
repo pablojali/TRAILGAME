@@ -263,6 +263,32 @@ describe('localStorage game repository', () => {
     }
   })
 
+  it('loads a career saved before consumables existed with none, and rejects invalid stocks', async () => {
+    const state = { ...progressedState(1), consumables: { gel: 4, bar: 1 } }
+    expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(state) }), () => T0))).toEqual({
+      status: 'loaded',
+      state,
+    })
+    const without: Partial<GameState> = { ...state }
+    delete without.consumables
+    expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(without) }), () => T0))).toEqual({
+      status: 'loaded',
+      state: { ...state, consumables: { gel: 0, bar: 0 } },
+    })
+    for (const variant of [
+      { ...newGame(), consumables: { gel: -1, bar: 0 } },
+      { ...newGame(), consumables: { gel: 1.5, bar: 0 } },
+      { ...newGame(), consumables: { gel: 1 } },
+      { ...newGame(), ownedEquipment: ['starter-shoes', 'energy-gel'] }, // counted, never owned as an item
+      { ...newGame(), ownedEquipment: ['starter-shoes', 'cereal-bar'], equipment: ['cereal-bar'] },
+    ]) {
+      expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(variant) }), () => T0))).toEqual({
+        status: 'incompatible',
+        reason: 'malformed',
+      })
+    }
+  })
+
   it('round-trips equipped items and rejects unknown or duplicated ones', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = { ...newGame(), equipment: ['starter-shoes'] }

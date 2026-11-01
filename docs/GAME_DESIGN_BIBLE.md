@@ -621,7 +621,9 @@ Each item should eventually define:
 - Terrain or distance suitability.
 - Ownership status.
 
-**Owner decision (1 November 2026): gels and cereal bars** are two new item types beside shoes, poles and backpacks (`energy-gel`, `cereal-bar`). Their race effects, level and price will be defined later; until then they are listed in the shop as not for sale and change no calculation.
+**Owner decision (1 November 2026): gels and cereal bars** are two new item types beside shoes, poles and backpacks (`energy-gel`, `cereal-bar`).
+
+**Owner decisions (Race Engine V1, 1 November 2026):** gels and cereal bars are consumables, sold in packs of 3 for 10 coins each and bought any number of times. They are counted, never equipped. The runner carries at most 1 gel and 1 cereal bar per race, which is enough for the whole race, and the race uses them up. Gel: 1.5 % less race time; cereal bar: 1.5 % less fatigue gained (see §10.6).
 
 ### 8.3 Equipment balance
 
@@ -795,16 +797,18 @@ Do not rewrite or rebalance the existing training system as part of M4. Reuse ex
 
 ### 10.6 Race strategy
 
-Future gameplay may allow the player to choose a strategy before or during a race.
+**Race Engine & Strategy V1 (owner approval, 1 November 2026; `docs/RACE_ENGINE_V1_PROPOSAL.md`).** A race is run segment by segment, with an aid station between two segments:
 
-Possible strategic dimensions include:
+- Segments: `clamp(round(distance km / 6), 2, 8)`, cut at equal distances from the generated course (distance, D+, D−, terrain shares, technicality).
+- Before the start: take the gel and/or the cereal bar (if in stock) and choose the first segment's intensity.
+- Intensity per segment: Recovery (pace ×1.10, fatigue ×0.45), Easy (×1.05, ×0.70), Target pace (×1.00, ×1.00), Hard (×0.95, ×1.60). Fatigue gained = 0.6 × effort-km × intensity × (20 / Recovery)^0.35, calibrated per race.
+- In-race fatigue starts at the runner's Fatigue; above the plan (Target pace, Normal stops) it slows the following segments through the existing Fatigue factor. Energy = 100 − in-race fatigue.
+- At each aid station: Quick (30 s, recovers 10 % of the race fatigue so far), Normal (2 min, 25 %) or Slow (5 min, 45 %), scaled by Recovery, at most 60 %, never below the pre-race Fatigue; then the next segment's intensity. The report shows position, race time, gaps to the rivals just ahead and behind, energy, fatigue, nutrition and the next segment.
+- NPC rivals keep their finishing times, split like the typical runner, and stop at every aid station by rank (front third Quick, middle Normal, back third Slow). Overall position only (no categories).
+- Calibration: Target pace with Normal stops gives the time and Fatigue of the race before strategies.
+- The finish applies §10.7–§10.10 once; the race Fatigue is the in-race fatigue at the finish. The server simulates every segment from the player's decisions; the race in progress is saved in the career and can be resumed.
 
-- Conservative versus aggressive pacing.
-- Effort allocation on climbs.
-- Risk tolerance on technical terrain.
-- Energy management over long distances.
-
-These options are not finalized and are not required for M4. Do not add strategy controls or invent strategy effects without an approved specification.
+Not in V1: weather, cutoffs, DNF, category positions, sponsorships, multiplayer.
 
 ### 10.7 Race outcomes
 
@@ -974,7 +978,7 @@ Test at minimum:
 - Full equipment shop or unlock system.
 - New training logic, training formulas, or broad progression rebalance.
 - New athlete attributes without explicit approval.
-- Weather, nutrition, strategy, cutoff, or DNF mechanics unless separately specified and approved.
+- Weather, cutoff, or DNF mechanics unless separately specified and approved (nutrition and strategy: Race Engine V1, §10.6).
 - M7 account/backend persistence.
 - Major simulator redesign without owner approval.
 
@@ -1243,7 +1247,7 @@ The following systems require additional design before implementation:
 - Full equipment catalogue and bonuses.
 - Economy and pricing.
 - Race catalogue — specified in §10 (M4).
-- Race simulation and strategy — simulation model approved and implemented (M4.2, §10.13); strategy not specified.
+- Race simulation and strategy — simulation model approved and implemented (M4.2, §10.13); strategy: Race Engine V1 (§10.6).
 - Rivals and rankings.
 - Season lifecycle and rewards.
 - Profile switching at season end.

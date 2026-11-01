@@ -6,7 +6,8 @@ import { allocateAttributePoint } from '../game-engine/attributes'
 import { applyFitnessDecay } from '../game-engine/fitnessDecay'
 import { buyItem, setItemEquipped } from '../game-engine/equipment'
 import { createInitialGameState, type AthleteIdentity, type GameState } from '../game-engine/gameState'
-import { enterRace, raceCurrentDay } from '../game-engine/races'
+import type { AidStop, Intensity } from '../domain/races/strategyConfig'
+import { enterRace, startRace, stepRace } from '../game-engine/races'
 import { executeCurrentDay, planSession, type DayRef } from '../game-engine/training'
 import { parseGameState, SCHEMA_VERSION } from '../repositories/gameRepository'
 
@@ -54,7 +55,16 @@ export interface CareerOpsDeps {
   now(): number
 }
 
-export type OperationKind = 'train' | 'race' | 'allocate' | 'buy' | 'equip' | 'enter-race' | 'save' | 'new-career'
+export type OperationKind =
+  | 'train'
+  | 'race-start'
+  | 'race-step'
+  | 'allocate'
+  | 'buy'
+  | 'equip'
+  | 'enter-race'
+  | 'save'
+  | 'new-career'
 
 interface WithSnapshot {
   /** The cloud version the client's snapshot is based on. */
@@ -65,7 +75,21 @@ interface WithSnapshot {
 
 export type CareerOpRequest =
   | ({ action: 'train'; operationId: string; ref: DayRef; session: SessionType } & WithSnapshot)
-  | ({ action: 'race'; operationId: string; ref: DayRef; entryId: string } & WithSnapshot)
+  /**
+   * Race Engine V1: the client sends decisions only. `race-start` runs the first segment with the
+   * chosen intensity, taking the gel and bar asked for; each `race-step` makes the stop at the aid
+   * station and runs the next segment (`segment`: its index); the last step finishes the race.
+   */
+  | ({
+      action: 'race-start'
+      operationId: string
+      ref: DayRef
+      entryId: string
+      intensity: Intensity
+      gel: boolean
+      bar: boolean
+    } & WithSnapshot)
+  | ({ action: 'race-step'; operationId: string; segment: number; stop: AidStop; intensity: Intensity } & WithSnapshot)
   | ({ action: 'allocate'; operationId: string; attribute: AttributeId; expectedSpent: number } & WithSnapshot)
   /** `price`: the price the player saw; the catalog's price is charged, and a different one refused. */
   | ({ action: 'buy'; operationId: string; itemId: string; price: number } & WithSnapshot)
@@ -136,11 +160,19 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       const { state: next, ...result } = executed.value
       return { ok: true, state: next, result: { ...result } }
     }
-    case 'race': {
-      const raced = raceCurrentDay(career, request.ref, request.entryId, now)
-      if (!raced.ok) return { ok: false, error: raced.error }
-      const { state: next, ...result } = raced.value
-      return { ok: true, state: next, result: { ...result } }
+    case 'race-start': {
+      const decisions = { intensity: request.intensity, gel: request.gel, bar: request.bar }
+      const started = startRace(career, request.ref, request.entryId, decisions, now)
+      if (!started.ok) return { ok: false, error: started.error }
+      return { ok: true, state: started.state, result: { finished: false } }
+    }
+    case 'race-step': {
+      const decisions = { segment: request.segment, stop: request.stop, intensity: request.intensity }
+      const stepped = stepRace(career, decisions, now)
+      if (!stepped.ok) return { ok: false, error: stepped.error }
+      if (!stepped.value.finished) return { ok: true, state: stepped.value.state, result: { finished: false } }
+      const { state: next, ...result } = stepped.value.value
+      return { ok: true, state: next, result: { finished: true, ...result } }
     }
     case 'allocate': {
       const allocated = allocateAttributePoint(career, request.attribute, request.expectedSpent)
@@ -180,8 +212,26 @@ function validRequest(body: unknown): body is CareerOpRequest {
   switch (request.action) {
     case 'train':
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && isRef(request.ref) && typeof request.session === 'string'
-    case 'race':
-      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && isRef(request.ref) && typeof request.entryId === 'string'
+    case 'race-start':
+      return (
+        base &&
+        typeof request.operationId === 'string' &&
+        UUID.test(request.operationId) &&
+        isRef(request.ref) &&
+        typeof request.entryId === 'string' &&
+        typeof request.intensity === 'string' &&
+        typeof request.gel === 'boolean' &&
+        typeof request.bar === 'boolean'
+      )
+    case 'race-step':
+      return (
+        base &&
+        typeof request.operationId === 'string' &&
+        UUID.test(request.operationId) &&
+        Number.isInteger(request.segment) &&
+        typeof request.stop === 'string' &&
+        typeof request.intensity === 'string'
+      )
     case 'allocate':
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.attribute === 'string' && Number.isInteger(request.expectedSpent)
     case 'buy':
@@ -201,10 +251,6 @@ function validRequest(body: unknown): body is CareerOpRequest {
   }
 }
 
-function hasStrategy(body: CareerOpRequest): boolean {
-  return body.action === 'race' && (body as { strategy?: unknown }).strategy !== undefined
-}
-
 export interface HttpResult {
   status: number
   body: CareerOpResponse
@@ -220,8 +266,6 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
   const userId = await deps.authenticate(token)
   if (!userId) return fail(401, 'unauthorized')
   if (!validRequest(body)) return fail(400, 'bad-request')
-  // The game has no race strategy yet (Game Design Bible §10.6): any strategy value is unsupported.
-  if (hasStrategy(body)) return fail(400, 'unsupported-strategy')
   const request = body
   const now = deps.now()
 

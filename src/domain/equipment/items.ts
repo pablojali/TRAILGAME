@@ -34,11 +34,14 @@ export interface EquipmentItem {
   /** 1 or 2; the starter shoes have none. */
   level?: number
   description: string
-  /**
-   * Shop price in coins; 0 for starting equipment. null: not defined yet, so the item is not for
-   * sale (gels and cereal bars, 1 November 2026).
-   */
+  /** Shop price in coins (of one pack for a consumable); 0 for starting equipment. null: not for sale. */
   price: number | null
+  /**
+   * Consumables only (gels and cereal bars): units in one pack. A consumable is counted, never
+   * owned as a single item nor equipped; a race uses at most one of each (owner decision,
+   * 1 November 2026).
+   */
+  packSize?: number
   raceEffect?: RaceEffect
   /** The race effect in words, for the shop and equipment lists. */
   effectText?: string
@@ -130,23 +133,36 @@ export const EQUIPMENT_ITEMS: readonly EquipmentItem[] = [
     raceEffect: { attributes: { endurance: 2 }, slowdown: 0.85 },
     effectText: 'Races: Endurance +2, 15% less wear over distance.',
   },
-  // Gels and cereal bars (owner request, 1 November 2026). Their race effects, level and price
-  // will be defined later: until then they have none, are not for sale and change no calculation.
+  // Gels and cereal bars (owner decisions, 1 November 2026): consumables sold in packs of 3 for 10
+  // coins. The runner takes at most 1 gel and 1 bar to a race, which uses them up; one of each is
+  // enough for the whole race. Their race bonus lives in the race engine (RACE_NUTRITION).
   {
     id: 'energy-gel',
     label: 'Energy gel',
     slot: 'gel',
-    description: 'Energy gel for races.',
-    price: null,
+    description: 'Energy gel for races. One is enough for a whole race.',
+    price: 10,
+    packSize: 3,
+    effectText: 'Races: 1.5% faster for the whole race. Used up by the race.',
   },
   {
     id: 'cereal-bar',
     label: 'Cereal bar',
     slot: 'bar',
-    description: 'Cereal bar for races.',
-    price: null,
+    description: 'Cereal bar for races. One is enough for a whole race.',
+    price: 10,
+    packSize: 3,
+    effectText: 'Races: 1.5% less fatigue for the whole race. Used up by the race.',
   },
 ]
+
+/** The consumable kinds and the item sold for each. */
+export type ConsumableKind = 'gel' | 'bar'
+export const CONSUMABLE_ITEM: Record<ConsumableKind, string> = { gel: 'energy-gel', bar: 'cereal-bar' }
+
+export function isConsumable(item: EquipmentItem): item is EquipmentItem & { slot: ConsumableKind; packSize: number } {
+  return item.packSize !== undefined
+}
 
 /** Every runner owns the starting equipment (§8.1). It starts unequipped (owner decision). */
 export const OWNED_FROM_START: readonly string[] = ['starter-shoes']

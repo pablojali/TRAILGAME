@@ -8,7 +8,17 @@ import { createInitialGameState, type AthleteIdentity, type GameState } from '..
 import type { Appearance } from '../../domain/athlete/appearance'
 import { setAppearance } from '../../game-engine/appearance'
 import { buyItem, setItemEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
-import { enterRace, raceCurrentDay, type RaceDayError, type RaceDayResult, type RaceEntryError } from '../../game-engine/races'
+import {
+  enterRace,
+  startRace,
+  stepRace,
+  type RaceDayResult,
+  type RaceEntryError,
+  type RaceStartDecisions,
+  type RaceStartError,
+  type RaceStepDecisions,
+  type RaceStepError,
+} from '../../game-engine/races'
 import * as engine from '../../game-engine/training'
 import type { DayRef, ExecutionResult, TrainingError } from '../../game-engine/training'
 import {
@@ -29,6 +39,7 @@ import {
   type GameContextValue,
   type GamePhase,
   type LevelUp,
+  type RaceStepResponse,
   type StartCareerError,
 } from './gameContext'
 
@@ -412,35 +423,62 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
     [commit, currentState, ops, runServerOp, sync],
   )
 
-  const race = useCallback(
-    async (
-      ref: DayRef,
-      entryId: string,
-    ): Promise<{ ok: true; value: RaceDayResult } | { ok: false; error: RaceDayError | ServerError }> => {
+  const beginRace = useCallback(
+    async (ref: DayRef, entryId: string, decisions: RaceStartDecisions): Promise<RaceStartError | ServerError | null> => {
       const state = currentState()
-      if (!state) return { ok: false as const, error: 'wrong-week' as const }
+      if (!state) return 'wrong-week'
       if (ops) {
-        const response = await runServerOp(`race:${entryId}`, (operationId) => ({
-          action: 'race',
+        const response = await runServerOp(`race-start:${entryId}`, (operationId) => ({
+          action: 'race-start',
           operationId,
           baseVersion: sync?.knownVersion() ?? null,
           snapshot: state,
           ref,
           entryId,
+          ...decisions,
         }))
-        if (!response.ok) return { ok: false, error: serverError<RaceDayError>(response.error) }
-        setLastExecution(null)
-        const raced = { ...(response.result as Omit<RaceDayResult, 'state'>), state: response.state }
-        noteLevels(raced.levelBefore, raced.levelAfter)
-        return { ok: true, value: raced }
+        return response.ok ? null : serverError<RaceStartError>(response.error)
       }
-      const result = raceCurrentDay(state, ref, entryId, clockRef.current())
+      const result = startRace(state, ref, entryId, decisions, clockRef.current())
+      if (!result.ok) return result.error
+      commit({ kind: 'playing', state: result.state })
+      return null
+    },
+    [commit, currentState, ops, runServerOp, sync],
+  )
+
+  const continueRace = useCallback(
+    async (decisions: RaceStepDecisions): Promise<RaceStepResponse> => {
+      const state = currentState()
+      if (!state?.activeRace) return { ok: false, error: 'no-race-in-progress' }
+      const finish = (raced: RaceDayResult) => {
+        // The last training feedback no longer describes the latest day.
+        setLastExecution(null)
+        noteLevels(raced.levelBefore, raced.levelAfter)
+        return { ok: true as const, finished: raced }
+      }
+      if (ops) {
+        const response = await runServerOp(`race-step:${state.activeRace.entryId}:${decisions.segment}`, (operationId) => ({
+          action: 'race-step',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          ...decisions,
+        }))
+        if (!response.ok) return { ok: false, error: serverError<RaceStepError>(response.error) }
+        const result = (response.result ?? {}) as { finished?: boolean } & Omit<RaceDayResult, 'state'>
+        // A replayed step answers with the career as it is now: finished if its race is over.
+        if (!result.finished) return { ok: true, finished: null }
+        return finish({ ...result, state: response.state })
+      }
+      const result = stepRace(state, decisions, clockRef.current())
       if (!result.ok) return result
-      commit({ kind: 'playing', state: result.value.state })
-      // The last training feedback no longer describes the latest day.
-      setLastExecution(null)
-      noteLevels(result.value.levelBefore, result.value.levelAfter)
-      return result
+      if (!result.value.finished) {
+        commit({ kind: 'playing', state: result.value.state })
+        return { ok: true, finished: null }
+      }
+      commit({ kind: 'playing', state: result.value.value.state })
+      return finish(result.value.value)
     },
     [commit, currentState, ops, runServerOp, sync, noteLevels],
   )
@@ -527,7 +565,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       executeDay,
       allocateAttributePoint: allocate,
       enterRace: enter,
-      raceDay: race,
+      startRace: beginRace,
+      stepRace: continueRace,
       setItemEquipped: equip,
       buyItem: buy,
       setAppearance: changeAppearance,
@@ -551,7 +590,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       executeDay,
       allocate,
       enter,
-      race,
+      beginRace,
+      continueRace,
       equip,
       buy,
       changeAppearance,

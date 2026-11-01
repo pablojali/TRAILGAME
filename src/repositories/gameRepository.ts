@@ -11,9 +11,12 @@ import {
 } from '../domain/athlete/athlete'
 import { parseAppearance } from '../domain/athlete/appearance'
 import { STARTING_COINS } from '../domain/economy/coins'
-import { getEquipmentItem, OWNED_FROM_START } from '../domain/equipment/items'
+import { getEquipmentItem, isConsumable, OWNED_FROM_START } from '../domain/equipment/items'
 import { PRIZE_BANDS } from '../domain/races/categories'
-import { isRaceId } from '../domain/races/races'
+import { getRace, isRaceId } from '../domain/races/races'
+import { RACE_SIMULATION } from '../domain/races/simulationConfig'
+import { isAidStop, isIntensity } from '../domain/races/strategyConfig'
+import { getSegmentCount, type Nutrition, type RaceSplit } from '../game-engine/raceEngine'
 import { getEarnedAttributePoints } from '../domain/athlete/levels'
 import { isProfileId, PROFILE_ATTRIBUTE_TOTAL } from '../domain/athlete/profiles'
 import { INJURY_REST_DAYS } from '../domain/training/injury'
@@ -25,6 +28,7 @@ import {
   type RaceEntry,
   type RaceResult,
   type TrainingDay,
+  type ActiveRace,
 } from '../game-engine/gameState'
 
 /**
@@ -185,8 +189,88 @@ function isRaceResult(value: unknown, feePaid: number): value is RaceResult {
     (value.rivalTimesS === undefined ||
       (Array.isArray(value.rivalTimesS) &&
         value.rivalTimesS.length === value.fieldSize - 1 &&
-        value.rivalTimesS.every((t) => isInt(t, 1))))
+        value.rivalTimesS.every((t) => isInt(t, 1)))) &&
+    (value.splits === undefined ||
+      (Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true))) &&
+    (value.nutrition === undefined || isNutrition(value.nutrition))
   )
+}
+
+function isNutrition(value: unknown): boolean {
+  return isRecord(value) && typeof value.gel === 'boolean' && typeof value.bar === 'boolean'
+}
+
+/** Race Engine V1 splits: every one but the last has its aid-station stop; arrivals only grow. */
+function isSplitList(splits: unknown[], fieldSize: number, finished: boolean): boolean {
+  let previous = 0
+  return splits.every((split, index) => {
+    const last = index === splits.length - 1
+    const ok =
+      isRecord(split) &&
+      isIntensity(split.intensity) &&
+      isInt(split.segmentS, 0) &&
+      isInt(split.arrivalS, 1) &&
+      split.arrivalS >= previous &&
+      isFiniteNumber(split.fatigue) &&
+      isInt(split.position, 1, fieldSize) &&
+      (last && !finished
+        ? split.stop === undefined
+        : last
+          ? split.stop === undefined && split.stopS === undefined
+          : isAidStop(split.stop) && isInt(split.stopS, 0) && isFiniteNumber(split.fatigueAfterStop))
+    if (ok) previous = (split.arrivalS as number) + ((split.stopS as number | undefined) ?? 0)
+    return ok
+  })
+}
+
+/** The race in progress: its entry is the scheduled one, on race Sunday, between two segments. */
+function parseActiveRace(value: unknown, entries: readonly RaceEntry[], currentDayIndex: number): ActiveRace | null {
+  if (!isRecord(value)) return null
+  const entry = entries.find((e) => e.status === 'pending')
+  const race = getRace(typeof value.raceId === 'string' ? value.raceId : '')
+  const attributes = parseAttributes(value.attributes)
+  const { equipment, nutrition, splits } = value
+  if (
+    !entry ||
+    !race ||
+    value.entryId !== entry.id ||
+    value.raceId !== entry.raceId ||
+    currentDayIndex !== DAYS_PER_WEEK - 1 ||
+    !isFiniteNumber(value.startedAt) ||
+    !isInt(value.levelAtStart, 1) ||
+    !attributes ||
+    !isStat(value.fitness) ||
+    !isStat(value.fatigue) ||
+    !Array.isArray(equipment) ||
+    !equipment.every((id) => typeof id === 'string' && getEquipmentItem(id) && !isConsumable(getEquipmentItem(id)!)) ||
+    !isFiniteNumber(value.dayForm) ||
+    Math.abs(value.dayForm) > 1 ||
+    !isNutrition(nutrition) ||
+    !isFiniteNumber(value.elapsedS) ||
+    value.elapsedS <= 0 ||
+    !isFiniteNumber(value.inRaceFatigue) ||
+    !Array.isArray(splits) ||
+    splits.length === 0 ||
+    splits.length >= getSegmentCount(race) ||
+    !isSplitList(splits, RACE_SIMULATION.fieldSize, false)
+  ) {
+    return null
+  }
+  return {
+    entryId: entry.id,
+    raceId: race.id,
+    startedAt: value.startedAt,
+    levelAtStart: value.levelAtStart,
+    attributes,
+    fitness: value.fitness,
+    fatigue: value.fatigue,
+    equipment: [...(equipment as string[])],
+    dayForm: value.dayForm,
+    nutrition: { gel: (nutrition as Nutrition).gel, bar: (nutrition as Nutrition).bar },
+    elapsedS: value.elapsedS,
+    inRaceFatigue: value.inRaceFatigue,
+    splits: structuredClone(splits as RaceSplit[]),
+  }
 }
 
 function isRaceEntry(value: unknown): value is RaceEntry {
@@ -296,6 +380,21 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     return null
   }
 
+  // Gels and cereal bars are counted, never owned as items nor equipped.
+  if ([...(equipment as string[]), ...(ownedEquipment as string[])].some((id) => isConsumable(getEquipmentItem(id)!))) {
+    return null
+  }
+  // Missing: a career saved before consumables existed (none in stock).
+  const rawConsumables = value.consumables === undefined ? { gel: 0, bar: 0 } : value.consumables
+  if (!isRecord(rawConsumables) || !isInt(rawConsumables.gel, 0) || !isInt(rawConsumables.bar, 0)) return null
+
+  // Missing: a career saved before Race Engine V1 (no race in progress).
+  const activeRace =
+    value.activeRace === undefined || value.activeRace === null
+      ? null
+      : parseActiveRace(value.activeRace, raceEntries, currentDayIndex)
+  if (value.activeRace !== undefined && value.activeRace !== null && !activeRace) return null
+
   // A race day must point to the finished entry it raced.
   const finishedIds = new Set(raceEntries.filter((e) => e.status === 'finished').map((e) => e.id))
   const raceDays = (week.days as TrainingDay[]).filter((day) => day.outcome?.raceEntryId !== undefined)
@@ -340,6 +439,8 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     raceEntries,
     equipment: [...(equipment as string[])],
     ownedEquipment: [...(ownedEquipment as string[])],
+    consumables: { gel: rawConsumables.gel as number, bar: rawConsumables.bar as number },
+    activeRace,
   }
 }
 

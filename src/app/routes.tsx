@@ -6,6 +6,7 @@ import { DashboardScreen } from '../features/dashboard/DashboardScreen'
 import { EquipmentScreen } from '../features/equipment/EquipmentScreen'
 import { NotFoundScreen } from '../features/not-found/NotFoundScreen'
 import { RaceDetailScreen } from '../features/races/RaceDetailScreen'
+import { RaceRunScreen } from '../features/races/RaceRunScreen'
 import { RaceResultScreen } from '../features/races/RaceResultScreen'
 import { RacesScreen } from '../features/races/RacesScreen'
 import { SettingsScreen } from '../features/settings/SettingsScreen'
@@ -29,6 +30,7 @@ export const routes: RouteObject[] = [
       { path: 'races', element: <RacesScreen /> },
       { path: 'races/:raceId', element: <RaceDetailScreen /> },
       { path: 'races/results/:entryId', element: <RaceResultScreen /> },
+      { path: 'races/run/:entryId', element: <RaceRunScreen /> },
       { path: 'career', element: <CareerScreen /> },
       { path: 'attributes', element: <AttributesScreen /> },
       { path: 'settings', element: <SettingsScreen /> },

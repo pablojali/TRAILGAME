@@ -17,6 +17,7 @@ import {
 } from './races'
 import { getRaceWeek, getScheduledEntry, isRaceDayToday } from './raceSchedule'
 import { rivalTimes, simulateRace } from './raceSimulation'
+import { getRaceField, positionAmong } from './raceEngine'
 import { executeCurrentDay, planSession } from './training'
 
 /** Level 11 (Ridge Runner's recommended level) needs 3,250 XP. */
@@ -150,25 +151,32 @@ describe('raceCurrentDay', () => {
     if (!result.ok) throw new Error(result.error)
     const { state: after, entry: finished } = result.value
     const sim = simulateRace(getRace('RACE-001')!, { attributes: state.athlete.attributes, fitness: 20, fatigue: 0 }, finished.result.dayForm)
+    // Default plan: Target pace (the time before strategies) plus one Normal stop (2 min) at the
+    // aid station; the rivals stop too, by rank.
+    const timeS = sim.timeS + 120
+    const position = positionAmong(timeS, getRaceField(getRace('RACE-001')!).rivalFinishS)
 
     expect(finished.status).toBe('finished')
     expect(finished.result).toMatchObject({
       week: 1,
       day: 7,
       levelAtStart: 1,
-      timeS: sim.timeS,
-      position: sim.position,
+      timeS,
+      position,
       fieldSize: 50,
-      fatigueChange: 10,
+      // Recovery 16: (20 / 16)^0.35 × the calibrated 10 for Recovery 20.
+      fatigueChange: 10.95,
       fitnessChange: 0,
       injured: false,
     })
-    const rewards = getRaceRewards(getRace('RACE-001')!, sim.position, 1)
+    expect(finished.result.splits).toHaveLength(2)
+    expect(finished.result.nutrition).toEqual({ gel: false, bar: false })
+    const rewards = getRaceRewards(getRace('RACE-001')!, position, 1)
     expect(finished.result.coinsAwarded).toBe(rewards.coinsAwarded)
     expect(finished.result.xpAwarded).toBe(rewards.xp)
     expect(finished.result.netCoins).toBe(rewards.coinsAwarded)
     // Sunday's planned Rest (Fitness −2, Fatigue −8) was not executed: only the race changed values.
-    expect(after.athlete).toMatchObject({ xp: rewards.xp, fitness: 20, fatigue: 10 })
+    expect(after.athlete).toMatchObject({ xp: rewards.xp, fitness: 20, fatigue: 10.95 })
     // Sunday ends the week.
     expect(result.value.weekCompleted).toBe(true)
     expect(after.week).toMatchObject({ number: 2, currentDayIndex: 0 })
@@ -308,7 +316,11 @@ describe('full results', () => {
     const result = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
     if (!result.ok) throw new Error(result.error)
     const stored = result.value.entry.result
-    expect(stored.rivalTimesS).toEqual(rivalTimes(getRace('RACE-001')!))
+    // The rivals' times with their aid-station stops (one stop: 30 s, 2 min or 5 min by rank).
+    expect(stored.rivalTimesS).toEqual(getRaceField(getRace('RACE-001')!).rivalFinishS)
+    expect(stored.rivalTimesS!.map((t, i) => t - rivalTimes(getRace('RACE-001')!)[i]!)).toEqual(
+      Array.from({ length: 49 }, (_, i) => (i < 17 ? 30 : i < 33 ? 120 : 300)),
+    )
     const rows = getStandings(getRace('RACE-001')!, stored)
     expect(rows).toHaveLength(50)
     expect(rows.map((r) => r.position)).toEqual(Array.from({ length: 50 }, (_, i) => i + 1))
@@ -380,6 +392,6 @@ describe('race day with equipment', () => {
     const result = raced.value.entry.result
     expect(result.equipment).toEqual(['poles', 'hydration-backpack'])
     const without = simulateRace(getRace('RACE-001')!, { attributes: owned.athlete.attributes, fitness: 60, fatigue: 20 }, result.dayForm)
-    expect(result.timeS).toBeLessThan(without.timeS)
+    expect(result.timeS).toBeLessThan(without.timeS + 120)
   })
 })

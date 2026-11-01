@@ -4,9 +4,26 @@ import { execute, newGame } from '../test/gameFixtures'
 import { buyItem, isEquipped, setItemEquipped } from './equipment'
 
 describe('equipment', () => {
-  it('cannot buy an item with no price yet (gels and cereal bars)', () => {
-    expect(buyItem({ ...newGame(), coins: 1000 }, 'energy-gel', 0)).toEqual({ ok: false, error: 'not-for-sale' })
-    expect(buyItem({ ...newGame(), coins: 1000 }, 'cereal-bar', 0)).toEqual({ ok: false, error: 'not-for-sale' })
+  it('sells gels and cereal bars in packs of 3 for 10 coins, adding to the stock (owner decision)', () => {
+    const start = { ...newGame(), coins: 25 }
+    expect(start.consumables).toEqual({ gel: 0, bar: 0 })
+    const gel = buyItem(start, 'energy-gel', 10)
+    if (!gel.ok) throw new Error(gel.error)
+    expect(gel.state).toEqual({ ...start, coins: 15, consumables: { gel: 3, bar: 0 } })
+    // Bought again: another pack (never "already owned"), and never an owned or equipped item.
+    const again = buyItem(gel.state, 'energy-gel', 10)
+    if (!again.ok) throw new Error(again.error)
+    expect(again.state).toMatchObject({ coins: 5, consumables: { gel: 6, bar: 0 }, ownedEquipment: ['starter-shoes'] })
+    expect(buyItem(again.state, 'cereal-bar', 10)).toEqual({ ok: false, error: 'insufficient-coins' })
+    expect(buyItem(start, 'cereal-bar', 0)).toEqual({ ok: false, error: 'price-changed' })
+    const bar = buyItem(start, 'cereal-bar', 10)
+    expect(bar.ok && bar.state.consumables).toEqual({ gel: 0, bar: 3 })
+  })
+
+  it('never equips gels or cereal bars: they are counted and taken to a race', () => {
+    const state = { ...newGame(), consumables: { gel: 3, bar: 3 } }
+    expect(setItemEquipped(state, 'energy-gel', true)).toEqual({ ok: false, error: 'consumable' })
+    expect(setItemEquipped(state, 'cereal-bar', true)).toEqual({ ok: false, error: 'consumable' })
   })
 
   it('starts with the starter shoes owned but not equipped (owner decision)', () => {
@@ -19,15 +36,15 @@ describe('equipment', () => {
       ['poles-2', 'poles', 2, 50],
       ['hydration-backpack', 'pack', 1, 30],
       ['hydration-backpack-2', 'pack', 2, 90],
-      // Gels and cereal bars (1 November 2026): level, price and effects to be defined.
-      ['energy-gel', 'gel', null, null],
-      ['cereal-bar', 'bar', null, null],
+      // Gels and cereal bars (owner decision, 1 November 2026): packs of 3 for 10 coins, no level.
+      ['energy-gel', 'gel', null, 10],
+      ['cereal-bar', 'bar', null, 10],
     ])
     for (const id of ['energy-gel', 'cereal-bar']) {
+      expect(getEquipmentItem(id)).toMatchObject({ packSize: 3 })
+      // Their bonus belongs to the race engine (nutrition), not to the equipment effects.
       expect(getEquipmentItem(id)).not.toHaveProperty('raceEffect')
-      expect(getEquipmentItem(id)).not.toHaveProperty('effectText')
     }
-    // Without effects they change no race calculation.
     expect(getRaceEffect(['energy-gel', 'cereal-bar'])).toEqual(getRaceEffect([]))
     expect(OWNED_FROM_START).toEqual(['starter-shoes'])
     expect(newGame()).toMatchObject({ equipment: [], ownedEquipment: ['starter-shoes'] })

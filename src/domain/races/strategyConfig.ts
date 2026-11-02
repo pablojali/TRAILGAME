@@ -33,10 +33,10 @@ export const RACE_STRATEGY = {
   fatiguePerEffortKm: 0.6,
   /** §3.4: stop duration and share of the in-race fatigue gained so far that it recovers. */
   stop: {
-    quick: { seconds: 30, recovery: 0.1 },
-    normal: { seconds: 120, recovery: 0.25 },
-    slow: { seconds: 300, recovery: 0.45 },
-  } satisfies Record<AidStop, { seconds: number; recovery: number }>,
+    quick: { recovery: 0.1 },
+    normal: { recovery: 0.25 },
+    slow: { recovery: 0.45 },
+  } satisfies Record<AidStop, { recovery: number }>,
   /** No stop recovers more than this share of the in-race fatigue gained so far. */
   maxStopRecovery: 0.6,
   /** The stop NPC rivals make, by finishing rank: front third, middle third, back third. */
@@ -49,6 +49,23 @@ export const RACE_STRATEGY = {
    * through the existing Fatigue factor. 1 = the same effect as career Fatigue.
    */
   inRaceFatiguePaceWeight: 1,
+  /**
+   * Short races (owner decision, 2 November 2026): the in-race fatigue above the plan weighs more on
+   * the pace, so going Hard all the way has a real cost there. Weight by effort-km, linear between.
+   */
+  fatigueWeights: [
+    { effortKm: 6.2, weight: 6 },
+    { effortKm: 65, weight: 1 },
+  ],
+  /**
+   * Stop durations in seconds by the race's effort-km (owner decision, 2 November 2026): short in
+   * short races, longer in ultras. Linear between rows, flat outside them; whole 5 seconds.
+   */
+  stopDurations: [
+    { effortKm: 6.2, quick: 15, normal: 45, slow: 120 },
+    { effortKm: 65, quick: 30, normal: 120, slow: 300 },
+    { effortKm: 165, quick: 60, normal: 240, slow: 600 },
+  ],
   /** The runner plus 29 NPC rivals (owner decision, 2 November 2026; was 50). */
   fieldSize: 30,
   /**
@@ -87,4 +104,27 @@ export function racePaces(effortKm: number): { winner: number; last: number } {
   }
   const last = rows[rows.length - 1]!
   return { winner: last.winner, last: last.last }
+}
+
+/** Linear interpolation over rows sorted by effort-km, flat outside them. */
+function byEffort<T extends { effortKm: number }>(rows: readonly T[], effortKm: number, pick: (row: T) => number): number {
+  if (effortKm <= rows[0]!.effortKm) return pick(rows[0]!)
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1]!
+    const b = rows[i]!
+    if (effortKm <= b.effortKm) return pick(a) + ((effortKm - a.effortKm) / (b.effortKm - a.effortKm)) * (pick(b) - pick(a))
+  }
+  return pick(rows[rows.length - 1]!)
+}
+
+/** Weight of the in-race fatigue above the plan on the pace, for a race of `effortKm`. */
+export function fatiguePaceWeight(effortKm: number): number {
+  return byEffort(RACE_STRATEGY.fatigueWeights, effortKm, (row) => row.weight)
+}
+
+/** Seconds of each stop in a race of `effortKm`. */
+export function stopSeconds(effortKm: number): Record<AidStop, number> {
+  const rows = RACE_STRATEGY.stopDurations
+  const at = (stop: AidStop) => Math.round(byEffort(rows, effortKm, (row) => row[stop]) / 5) * 5
+  return { quick: at('quick'), normal: at('normal'), slow: at('slow') }
 }

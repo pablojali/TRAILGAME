@@ -31,16 +31,16 @@ export function intensityHint(intensity: Intensity): string {
   return `${speed}, ${tiring}. Fatigue built up now slows the segments after.`
 }
 
-/** e.g. "2 min, recovers 25% of the race fatigue so far". */
-export function stopHint(stop: AidStop): string {
-  const { seconds, recovery } = RACE_STRATEGY.stop[stop]
-  const time = seconds < 60 ? `${seconds} s` : `${seconds / 60} min`
-  return `${time}, recovers about ${percent(recovery)} of the race fatigue so far.`
+/** e.g. "2 min, recovers 25% of the race fatigue so far" (the stop's length depends on the race). */
+export function stopHint(stop: AidStop, seconds: number): string {
+  return `${stopDuration(seconds)}, recovers about ${percent(RACE_STRATEGY.stop[stop].recovery)} of the race fatigue so far.`
 }
 
-export function stopDuration(stop: AidStop): string {
-  const { seconds } = RACE_STRATEGY.stop[stop]
-  return seconds < 60 ? `${seconds} s` : `${seconds / 60} min`
+/** "45 s", "2 min", "2:30 min". */
+export function stopDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds} s`
+  const rest = seconds % 60
+  return rest === 0 ? `${seconds / 60} min` : `${Math.floor(seconds / 60)}:${String(rest).padStart(2, '0')} min`
 }
 
 /** "6.0 km · +450 m / −380 m". */

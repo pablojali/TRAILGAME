@@ -153,7 +153,7 @@ describe('raceCurrentDay', () => {
     const sim = simulateRace(getRace('RACE-001')!, { attributes: state.athlete.attributes, fitness: 20, fatigue: 0 }, finished.result.dayForm)
     // Default plan: Target pace (the time before strategies) plus one Normal stop (2 min) at the
     // aid station; the rivals stop too, by rank.
-    const timeS = Math.round(sim.timeS * getRaceField(getRace('RACE-001')!).timeScale) + 120
+    const timeS = Math.round(sim.timeS * getRaceField(getRace('RACE-001')!).timeScale) + 45
     const position = positionAmong(timeS, getRaceField(getRace('RACE-001')!).rivalFinishS)
 
     expect(finished.status).toBe('finished')
@@ -322,7 +322,7 @@ describe('full results', () => {
     expect(stored.rivalTimesS).toEqual(getRaceField(getRace('RACE-001')!).rivalFinishS)
     const field = getRaceField(getRace('RACE-001')!)
     expect(stored.rivalTimesS!.map((t, i) => t - field.rivalBaseS[i]!)).toEqual(
-      Array.from({ length: 29 }, (_, i) => (i < 10 ? 30 : i < 20 ? 120 : 300)),
+      Array.from({ length: 29 }, (_, i) => (i < 10 ? 15 : i < 20 ? 45 : 120)),
     )
     const rows = getStandings(getRace('RACE-001')!, stored)
     expect(rows).toHaveLength(30)

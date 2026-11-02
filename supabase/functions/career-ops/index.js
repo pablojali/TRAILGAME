@@ -685,9 +685,9 @@ var RACE_STRATEGY = {
   fatiguePerEffortKm: 0.6,
   /** §3.4: stop duration and share of the in-race fatigue gained so far that it recovers. */
   stop: {
-    quick: { seconds: 30, recovery: 0.1 },
-    normal: { seconds: 120, recovery: 0.25 },
-    slow: { seconds: 300, recovery: 0.45 }
+    quick: { recovery: 0.1 },
+    normal: { recovery: 0.25 },
+    slow: { recovery: 0.45 }
   },
   /** No stop recovers more than this share of the in-race fatigue gained so far. */
   maxStopRecovery: 0.6,
@@ -701,6 +701,23 @@ var RACE_STRATEGY = {
    * through the existing Fatigue factor. 1 = the same effect as career Fatigue.
    */
   inRaceFatiguePaceWeight: 1,
+  /**
+   * Short races (owner decision, 2 November 2026): the in-race fatigue above the plan weighs more on
+   * the pace, so going Hard all the way has a real cost there. Weight by effort-km, linear between.
+   */
+  fatigueWeights: [
+    { effortKm: 6.2, weight: 6 },
+    { effortKm: 65, weight: 1 }
+  ],
+  /**
+   * Stop durations in seconds by the race's effort-km (owner decision, 2 November 2026): short in
+   * short races, longer in ultras. Linear between rows, flat outside them; whole 5 seconds.
+   */
+  stopDurations: [
+    { effortKm: 6.2, quick: 15, normal: 45, slow: 120 },
+    { effortKm: 65, quick: 30, normal: 120, slow: 300 },
+    { effortKm: 165, quick: 60, normal: 240, slow: 600 }
+  ],
   /** The runner plus 29 NPC rivals (owner decision, 2 November 2026; was 50). */
   fieldSize: 30,
   /**
@@ -737,6 +754,23 @@ function racePaces(effortKm2) {
   }
   const last = rows[rows.length - 1];
   return { winner: last.winner, last: last.last };
+}
+function byEffort(rows, effortKm2, pick) {
+  if (effortKm2 <= rows[0].effortKm) return pick(rows[0]);
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1];
+    const b = rows[i];
+    if (effortKm2 <= b.effortKm) return pick(a) + (effortKm2 - a.effortKm) / (b.effortKm - a.effortKm) * (pick(b) - pick(a));
+  }
+  return pick(rows[rows.length - 1]);
+}
+function fatiguePaceWeight(effortKm2) {
+  return byEffort(RACE_STRATEGY.fatigueWeights, effortKm2, (row) => row.weight);
+}
+function stopSeconds(effortKm2) {
+  const rows = RACE_STRATEGY.stopDurations;
+  const at = (stop) => Math.round(byEffort(rows, effortKm2, (row) => row[stop]) / 5) * 5;
+  return { quick: at("quick"), normal: at("normal"), slow: at("slow") };
 }
 
 // src/game-engine/raceSimulation.ts
@@ -1009,16 +1043,17 @@ function getRaceField(race) {
   const rivals = RACE_STRATEGY.fieldSize - 1;
   const R = race.recommendedLevel;
   const modelTime = (levels) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)));
+  const stopS = stopSeconds(effort);
   const [top, middle] = RACE_STRATEGY.levelAnchors;
   const topModel = modelTime(top.levels);
   const perRank = (modelTime(middle.levels) - topModel) / (middle.rivalIndex - top.rivalIndex);
   const paces = racePaces(effort);
   const winnerRun = effort * paces.winner * 60;
-  const timeScale = winnerRun / (topModel - top.rivalIndex * perRank);
-  const stopOf = (i) => stations * RACE_STRATEGY.stop[getRivalStop(i, rivals)].seconds;
+  const timeScale = (winnerRun - stations * (stopS.normal - stopS.quick)) / (topModel - top.rivalIndex * perRank);
+  const stopOf = (i) => stations * stopS[getRivalStop(i, rivals)];
   const anchors = [
     [0, winnerRun + stopOf(0)],
-    ...RACE_STRATEGY.levelAnchors.map((a) => [a.rivalIndex, modelTime(a.levels) * timeScale + stations * RACE_STRATEGY.stop.normal.seconds]),
+    ...RACE_STRATEGY.levelAnchors.map((a) => [a.rivalIndex, modelTime(a.levels) * timeScale + stations * stopS.normal]),
     [rivals - 1, effort * paces.last * 60 + stopOf(rivals - 1)]
   ];
   for (let j = 1; j < anchors.length; j++) {
@@ -1041,10 +1076,19 @@ function getRaceField(race) {
     sum += seconds;
     cumulativeShares.push(sum / referenceTotal);
   }
-  const stopsS = finish.map((_, i) => RACE_STRATEGY.stop[getRivalStop(i, rivals)].seconds);
+  const stopsS = finish.map((_, i) => stopS[getRivalStop(i, rivals)]);
   const rivalBaseS = finish.map((t, i) => t - stations * stopsS[i]);
   const rivalArrivalsS = segments.slice(0, -1).map((_, k) => rivalBaseS.map((t, i) => Math.round(t * cumulativeShares[k]) + k * stopsS[i]));
-  return { segments, fatigueScale: getFatigueScale(race, segments), timeScale, rivalBaseS, rivalArrivalsS, rivalFinishS: finish };
+  return {
+    segments,
+    fatigueScale: getFatigueScale(race, segments),
+    timeScale,
+    stopS,
+    fatigueWeight: fatiguePaceWeight(effort),
+    rivalBaseS,
+    rivalArrivalsS,
+    rivalFinishS: finish
+  };
 }
 function positionAmong(timeS, rivals) {
   return 1 + rivals.filter((t) => t < timeS).length;
@@ -1058,11 +1102,14 @@ function runSegment(ctx, progress, intensity) {
   const segment = ctx.field.segments[k];
   const prepared = prepareRunner(ctx.runner);
   const planned = plannedGains(ctx.field.segments, prepared.attributes.recovery, ctx.field.fatigueScale).atStart[k];
+  const plannedHere = RACE_STRATEGY.fatiguePerEffortKm * segment.effortKm * recoveryCurve(prepared.attributes.recovery) * ctx.field.fatigueScale;
+  const gainHere = segmentFatigue(ctx, segment, intensity);
   const gained = progress.fatigue - ctx.runner.fatigue;
-  const paceFatigue = ctx.runner.fatigue + RACE_STRATEGY.inRaceFatiguePaceWeight * (gained - planned);
+  const deviation = gained + gainHere / 2 - (planned + plannedHere / 2);
+  const paceFatigue = ctx.runner.fatigue + RACE_STRATEGY.inRaceFatiguePaceWeight * ctx.field.fatigueWeight * deviation;
   const seconds = segmentBaseSeconds(prepared, segment, paceFatigue, ctx.dayForm) * ctx.field.timeScale * RACE_STRATEGY.intensity[intensity].pace * (ctx.nutrition.gel ? 1 - RACE_STRATEGY.gelTimeSaving : 1);
   const elapsedS = progress.elapsedS + seconds;
-  const fatigue = progress.fatigue + segmentFatigue(ctx, segment, intensity);
+  const fatigue = progress.fatigue + gainHere;
   const last = k === ctx.field.segments.length - 1;
   const arrivalS = Math.round(elapsedS);
   const rivals = last ? ctx.field.rivalFinishS : ctx.field.rivalArrivalsS[k];
@@ -1080,12 +1127,12 @@ function makeStop(ctx, progress, stop) {
   const k = progress.splits.length - 1;
   const recovery = prepareRunner(ctx.runner).attributes.recovery;
   const fatigue = progress.fatigue - stopRecovery(stop, progress.fatigue - ctx.runner.fatigue, recovery);
-  const seconds = RACE_STRATEGY.stop[stop].seconds;
+  const seconds = ctx.field.stopS[stop];
   const split = { ...progress.splits[k], stop, stopS: seconds, fatigueAfterStop: roundStat(Math.min(100, fatigue)) };
   return { elapsedS: progress.elapsedS + seconds, fatigue, splits: [...progress.splits.slice(0, k), split] };
 }
 function getReferenceFinishS(race, field = getRaceField(race)) {
-  return Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel)) * field.timeScale) + (field.segments.length - 1) * RACE_STRATEGY.stop.normal.seconds;
+  return Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel)) * field.timeScale) + (field.segments.length - 1) * field.stopS.normal;
 }
 function snapshotRunner(attributes, fitness, fatigue, equipment) {
   return { attributes: { ...attributes }, fitness, fatigue, equipment: [...equipment] };

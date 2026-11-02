@@ -278,7 +278,7 @@ describe('Race day and results', () => {
     expect(screen.getByRole('button', { name: /^Take energy gel/ })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: /^No cereal bar/ })).toHaveAttribute('aria-disabled', 'true')
     await user.click(screen.getByRole('button', { name: 'Hard' }))
-    expect(screen.getByText(/^5% faster, 60% more fatigue/)).toBeInTheDocument()
+    expect(screen.getByText(/^2% faster, 60% more fatigue/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Start race' }))
 
     // Aid station 1: report, then the stop and intensity for segment 2.
@@ -291,7 +291,7 @@ describe('Race day and results', () => {
     expect(report.getByText('Energy')).toBeInTheDocument()
     expect(report.getByText('Nutrition').nextElementSibling).toHaveTextContent('Gel')
     expect(report.getByText('Next: segment 2')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Slow 3:30 min' }))
+    await user.click(screen.getByRole('button', { name: 'Slow 2:50 min' }))
     await user.click(screen.getByRole('button', { name: 'Easy' }))
     await user.click(screen.getByRole('button', { name: 'Slow stop, continue' }))
     expect(await screen.findByText(/Aid station 2 of 3/)).toBeInTheDocument()

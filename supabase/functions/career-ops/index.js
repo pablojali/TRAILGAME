@@ -676,10 +676,10 @@ var RACE_STRATEGY = {
   maxSegments: 8,
   /** §3.2: time multiplier (pace) and in-race fatigue multiplier of each intensity. */
   intensity: {
-    recovery: { pace: 1.1, fatigue: 0.45 },
-    easy: { pace: 1.05, fatigue: 0.7 },
+    recovery: { pace: 1.04, fatigue: 0.45 },
+    easy: { pace: 1.02, fatigue: 0.7 },
     target: { pace: 1, fatigue: 1 },
-    hard: { pace: 0.95, fatigue: 1.6 }
+    hard: { pace: 0.98, fatigue: 1.6 }
   },
   /** In-race fatigue gained per effort-km at Target pace and Recovery 20, before calibration. */
   fatiguePerEffortKm: 0.6,
@@ -706,7 +706,7 @@ var RACE_STRATEGY = {
    * the pace, so going Hard all the way has a real cost there. Weight by effort-km, linear between.
    */
   fatigueWeights: [
-    { effortKm: 6.2, weight: 6 },
+    { effortKm: 6.2, weight: 2 },
     { effortKm: 65, weight: 1 }
   ],
   /**
@@ -714,7 +714,7 @@ var RACE_STRATEGY = {
    * short races, longer in ultras. Linear between rows, flat outside them; whole 5 seconds.
    */
   stopDurations: [
-    { effortKm: 6.2, quick: 15, normal: 45, slow: 120 },
+    { effortKm: 6.2, quick: 10, normal: 20, slow: 45 },
     { effortKm: 65, quick: 30, normal: 120, slow: 300 },
     { effortKm: 165, quick: 60, normal: 240, slow: 600 }
   ],
@@ -735,6 +735,8 @@ var RACE_STRATEGY = {
    * (owner decision, 2 November 2026): 2 above is 2nd, the recommended level 15th, 2 below 22nd.
    * Rival index (0-based) whose finishing time equals that runner's (ties go to the runner).
    */
+  /** Minimum time gap (share) between the race's level and 2 levels either side in the field. */
+  minLevelGap: 0.03,
   levelAnchors: [
     { levels: 2, rivalIndex: 1 },
     { levels: 0, rivalIndex: 14 },
@@ -1042,7 +1044,9 @@ function getRaceField(race) {
   const stations = segments.length - 1;
   const rivals = RACE_STRATEGY.fieldSize - 1;
   const R = race.recommendedLevel;
-  const modelTime = (levels) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)));
+  const rawTime = (levels) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)));
+  const atLevel = rawTime(0);
+  const modelTime = (levels) => levels > 0 ? Math.min(rawTime(levels), atLevel / (1 + RACE_STRATEGY.minLevelGap)) : levels < 0 ? Math.max(rawTime(levels), atLevel * (1 + RACE_STRATEGY.minLevelGap)) : atLevel;
   const stopS = stopSeconds(effort);
   const [top, middle] = RACE_STRATEGY.levelAnchors;
   const topModel = modelTime(top.levels);

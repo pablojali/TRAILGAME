@@ -219,7 +219,17 @@ export function getRaceField(race: Race): RaceField {
   const stations = segments.length - 1
   const rivals = C.fieldSize - 1
   const R = race.recommendedLevel
-  const modelTime = (levels: number) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)))
+  // The typical runner's time 2 levels either side, at least `minLevelGap` apart from the race's
+  // level (owner request: the leading group not so tight that small choices move many places;
+  // matters most in the longest races, where Fitness stops growing with the level).
+  const rawTime = (levels: number) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)))
+  const atLevel = rawTime(0)
+  const modelTime = (levels: number) =>
+    levels > 0
+      ? Math.min(rawTime(levels), atLevel / (1 + C.minLevelGap))
+      : levels < 0
+        ? Math.max(rawTime(levels), atLevel * (1 + C.minLevelGap))
+        : atLevel
 
   const stopS = stopSeconds(effort)
 

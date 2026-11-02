@@ -952,18 +952,26 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
-### Short-race balance and nutrition default (owner decisions, 2 November 2026)
+### Simple strategy, stops by race length, nutrition default (owner decisions, 2 November 2026)
 
-- **Stops scale with the race** (`RACE_STRATEGY.stopDurations`, `stopSeconds`): Quick / Normal /
-  Slow are 15 s / 45 s / 2 min at 6.2 effort-km, 30 s / 2 min / 5 min at 65, 1 / 4 / 10 min at
-  165 (linear, whole 5 s). Recovery shares are unchanged. Rivals and anchors use the race's stops.
-- **Going Hard costs in short races:** the in-race fatigue above the plan is taken halfway through
-  the segment (so it also slows the segment itself) and weighs ×6 at 6.2 effort-km, falling to ×1
-  at 65 (`fatigueWeights`). In Forest First Steps Hard all the way is now about as fast as Target;
-  Target then a Hard finish is the best plan.
-- **Winner with the pack:** the NPC winner finishes one rank ahead of the leading group (counting
-  their Quick stops), a few seconds ahead instead of more than a minute.
-- **Nutrition:** the gel and bar are taken by default whenever there is stock, also if the stock
+Owner: strategy must not be complicated; it should move a few places, not take a winner to 18th.
+
+- **Intensity:** Recovery / Easy / Target / Hard pace ×1.04 / 1.02 / 1.00 / 0.98 (was 1.10 / 1.05 /
+  1.00 / 0.95); fatigue multipliers unchanged.
+- **Stops scale with the race** (`stopDurations`, `stopSeconds`): Quick / Normal / Slow are
+  10 s / 20 s / 45 s at 6.2 effort-km, 30 s / 2 min / 5 min at 65, 1 / 4 / 10 min at 165 (linear,
+  whole 5 s). Recovery shares unchanged.
+- **In-race fatigue** above the plan is taken halfway through the segment and weighs ×2 at 6.2
+  effort-km, ×1 from 65 (`fatigueWeights`): Hard all the way is not free in short races.
+- **Leading group apart:** in the field, 2 levels either side of the race's level are at least 3%
+  slower or faster than it (`minLevelGap`), so small choices do not move many places. The NPC winner
+  finishes one rank ahead of the leading group.
+- Result for a typical runner of the race's level (15th with Target and Normal): a smart plan
+  (Target, Hard finish, Quick stops) about 11th–13th, Hard all the way 14th–23rd (worse in long
+  races), gel and bar about 9th, Recovery with Slow stops about 22nd–23rd. Up to level 28 the
+  typical runner 2 levels above finishes 2nd and 2 below 22nd; from level 30 (Fitness stops
+  growing) 2 levels matter less (about 10th–12th and 18th–21st).
+- **Nutrition:** gel and bar are taken by default whenever there is stock, also if the stock
   arrives after the preparation screen opened.
 
 ### Realistic race times, race photos, aid station column (owner requests, 2 November 2026)

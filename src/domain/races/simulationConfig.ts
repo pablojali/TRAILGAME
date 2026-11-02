@@ -12,8 +12,11 @@ export const RACE_SIMULATION = {
   maxGainPerClimbM: 600,
   /** Courses steeper than this on average in any segment are invalid catalog data. */
   maxAverageGradient: 0.4,
-  /** Minutes per effort-km for ability 20, Fitness 50, Fatigue 0, fresh. */
-  basePaceMinPerEffortKm: 6.0,
+  /**
+   * Minutes per effort-km for ability 20, Fitness 50, Fatigue 0, fresh. 6.0 until 2 November 2026;
+   * 4.1 so a 5 km race is won in about 20 minutes (owner request).
+   */
+  basePaceMinPerEffortKm: 4.1,
   /** Ability (and Consistency) at which a factor is neutral, and the curve exponent. */
   abilityReference: 20,
   abilityExponent: 0.35,
@@ -29,8 +32,10 @@ export const RACE_SIMULATION = {
   /** The athlete plus 49 rivals. */
   fieldSize: 50,
   /** Rival times relative to the reference: fastest + spread × q^exponent. */
-  rivalFastest: 0.85,
-  rivalSpread: 0.4,
+  // Owner request (2 November 2026): a wider field, the last about 2.5 times the winner's time
+  // (5 km: about 20 and 50 minutes). Was 0.85 + 0.4; the typical runner still finishes about 24th.
+  rivalFastest: 0.636,
+  rivalSpread: 0.95,
   rivalExponent: 1.3,
   /** Fatigue of the reference athlete. */
   referenceFatigue: 20,

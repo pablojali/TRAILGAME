@@ -8,7 +8,6 @@ import { canEnterAtLevel, getMinimumLevel } from '../../domain/races/access'
 import { isRaceCategory, RACE_CATEGORIES, RACE_CATEGORY_CONFIG, type RaceCategory } from '../../domain/races/categories'
 import { getRace, RACES } from '../../domain/races/races'
 import { getPendingEntry } from '../../game-engine/races'
-import { ElevationProfile } from './ElevationProfile'
 import { RacePhoto } from './RacePhoto'
 import { courseText } from './raceText'
 import styles from './Races.module.css'
@@ -59,21 +58,17 @@ export function RacesScreen() {
             const entered = getPendingEntry(state, race.id)
             return (
               <li key={race.id}>
+                {/* The race's picture fills the card (owner request, 2 November 2026). */}
                 <Link to={`/races/${race.id}`} className={styles.raceCard}>
                   <RacePhoto race={race} />
                   <span className={styles.raceBody}>
                     <span className={styles.raceName}>{race.name}</span>
-                    <span className={styles.raceMeta}>
-                      {courseText(race)} · Rec. Lv {race.recommendedLevel}
-                    </span>
-                    <span className={styles.raceFoot}>
-                      <span className={styles.raceTags}>
-                        <span className={`${styles.tag} ${open ? '' : styles.tagEarly}`}>
-                          {open ? 'Free' : `From Lv ${getMinimumLevel(race)}`}
-                        </span>
-                        {entered && <span className={`${styles.tag} ${styles.tagEntered}`}>Entered</span>}
+                    <span className={styles.raceMeta}>{courseText(race)}</span>
+                    <span className={styles.raceTags}>
+                      <span className={`${styles.tag} ${open ? '' : styles.tagEarly}`}>
+                        {open ? 'Free' : `Lvl ${getMinimumLevel(race)}`}
                       </span>
-                      <ElevationProfile race={race} />
+                      {entered && <span className={`${styles.tag} ${styles.tagEntered}`}>Entered</span>}
                     </span>
                   </span>
                   <span className={styles.chevron} aria-hidden="true">

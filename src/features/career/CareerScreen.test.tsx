@@ -6,9 +6,13 @@ import { raceCurrentDay } from '../../game-engine/races'
 import { currentRef, newGame, onSunday, T0, withAthlete, withEntry } from '../../test/gameFixtures'
 import { renderApp, seedCareer } from '../../test/renderApp'
 
+const strong = { speed: 40, endurance: 40, climbing: 40, technical: 40, recovery: 40, consistency: 40 }
+
 /** Enters and runs a race on Sunday with the given form; returns the state after the race. */
 function race(state: GameState, raceId: string, fitness: number): GameState {
-  const entered = withEntry(withAthlete(state, { fitness, fatigue: 0 }), raceId)
+  // A very fit runner is also strong (attributes 40): since 2 November 2026 the field is wider.
+  const attributes = fitness >= 100 ? strong : newGame().athlete.attributes
+  const entered = withEntry(withAthlete(state, { fitness, fatigue: 0, attributes }), raceId)
   const sunday = onSunday(entered.state)
   const raced = raceCurrentDay(sunday, currentRef(sunday), entered.entry.id, T0)
   if (!raced.ok) throw new Error(raced.error)

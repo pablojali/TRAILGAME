@@ -247,7 +247,9 @@ describe('raceCurrentDay', () => {
   })
 
   it('levels up through race XP with the existing rules, and rolls the week over on day 7', () => {
-    let state = withAthlete(newGame(), { xp: 95, fitness: 95 })
+    // Strong and fit enough to win against the wider field (2 November 2026).
+    const strong = { speed: 40, endurance: 40, climbing: 40, technical: 40, recovery: 40, consistency: 40 }
+    let state = withAthlete(newGame(), { xp: 95, fitness: 95, attributes: strong })
     for (let i = 0; i < 6; i++) state = execute(withSession(state, 'rest'), T0 + i * DAY).state
     const { state: ready, entry } = entered(state, 'RACE-001')
     const result = race(ready, entry.id, T0 + 7 * DAY)

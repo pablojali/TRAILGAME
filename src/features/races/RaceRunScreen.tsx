@@ -23,12 +23,9 @@ import {
   INTENSITY_LABELS,
   INTENSITY_OPTIONS,
   intensityHint,
-  segmentCourseText,
-  segmentTerrainText,
   STOP_LABELS,
   STOP_OPTIONS,
   stopDuration,
-  stopHint,
 } from './raceStrategyText'
 import { durationText, ordinal, raceTimeText } from './raceText'
 import styles from './Races.module.css'
@@ -264,84 +261,87 @@ function AidStation({ race, onFinish }: { race: Race; onFinish(result: RaceDayRe
       title={`${ordinal(report.position)} of ${report.fieldSize}`}
       description={`Race time ${raceTimeText(report.elapsedS)} after segment ${station} of ${report.segmentCount}.`}
     >
-      {/* Tiles that fit the screen (owner request, 1 November 2026): no scrolling. */}
-      <div className={styles.tileScreen} role="region" aria-label="Aid station report">
-        <h2 ref={heading} tabIndex={-1} className={styles.srOnly}>
-          Aid station {station}
-        </h2>
-        <dl className={`${styles.tiles} ${styles.tiles3}`}>
-          <div className={styles.tile}>
-            <dt>Race time</dt>
-            <dd>{raceTimeText(report.elapsedS)}</dd>
-          </div>
-          <div className={styles.tile}>
-            <dt>Ahead</dt>
-            <dd>{report.gapAheadS === null ? 'You lead' : `+${durationText(report.gapAheadS)}`}</dd>
-          </div>
-          <div className={styles.tile}>
-            <dt>Behind</dt>
-            <dd>{report.gapBehindS === null ? 'Nobody' : `−${durationText(report.gapBehindS)}`}</dd>
-          </div>
-          <div className={styles.tile}>
-            <dt>Energy</dt>
-            <dd>{formatStat(report.energy)}</dd>
-          </div>
-          <div className={styles.tile}>
-            <dt>Fatigue</dt>
-            <dd>{formatStat(report.fatigue)}</dd>
-          </div>
-          <div className={styles.tile}>
-            <dt>Nutrition</dt>
-            <dd>{[report.nutrition.gel && 'Gel', report.nutrition.bar && 'Bar'].filter(Boolean).join(' + ') || 'None'}</dd>
-          </div>
-          <div className={`${styles.tile} ${styles.tileWide}`}>
-            <dt>Segment {station}</dt>
-            <dd>
-              {INTENSITY_LABELS[report.last.intensity]} · {durationText(report.last.segmentS)}{' '}
-              <span className={styles.tileNote}>· {ordinal(report.last.position)} on arrival</span>
-            </dd>
-          </div>
-          <div className={`${styles.tile} ${styles.tileWide}`}>
-            <dt>Next: segment {station + 1}{lastSegment ? ' to the finish' : ''}</dt>
-            <dd>
-              {segmentCourseText(report.next)}{' '}
-              <span className={`${styles.tileNote} ${styles.tileHint}`}>· {segmentTerrainText(report.next)}</span>
-            </dd>
-          </div>
-        </dl>
+      {/*
+       * The aid station picture stays visible on the left; the report and the decisions are a
+       * column on the right (owner request, 2 November 2026). No scrolling.
+       */}
+      <div className={styles.aidLayout}>
+        <div className={styles.aidPanel} role="region" aria-label="Aid station report">
+          <h2 ref={heading} tabIndex={-1} className={styles.srOnly}>
+            Aid station {station}
+          </h2>
+          <dl className={styles.statRows}>
+            <div>
+              <dt>Race time</dt>
+              <dd>{raceTimeText(report.elapsedS)}</dd>
+            </div>
+            <div>
+              <dt>Ahead</dt>
+              <dd>{report.gapAheadS === null ? 'You lead' : `+${durationText(report.gapAheadS)}`}</dd>
+            </div>
+            <div>
+              <dt>Behind</dt>
+              <dd>{report.gapBehindS === null ? 'Nobody' : `−${durationText(report.gapBehindS)}`}</dd>
+            </div>
+            <div>
+              <dt>Energy</dt>
+              <dd>{formatStat(report.energy)}</dd>
+            </div>
+            <div>
+              <dt>Fatigue</dt>
+              <dd>{formatStat(report.fatigue)}</dd>
+            </div>
+            <div>
+              <dt>Nutrition</dt>
+              <dd>{[report.nutrition.gel && 'Gel', report.nutrition.bar && 'Bar'].filter(Boolean).join(' + ') || 'None'}</dd>
+            </div>
+            <div>
+              <dt>Segment {station}</dt>
+              <dd>
+                {INTENSITY_LABELS[report.last.intensity]} · {durationText(report.last.segmentS)}
+              </dd>
+            </div>
+            <div>
+              <dt>Next: segment {station + 1}{lastSegment ? ' to the finish' : ''}</dt>
+              <dd>
+                {(report.next.distanceM / 1000).toFixed(1)} km · +{Math.round(report.next.gainM)} / −
+                {Math.round(report.next.lossM)} m
+              </dd>
+            </div>
+          </dl>
 
-        <section className={styles.tile} aria-label="Aid station stop">
-          <span className={styles.tileLabel}>Aid station stop</span>
-          <div className={styles.chipsTight}>
+          <section className={styles.aidChoice} aria-label="Aid station stop">
+            <span className={styles.tileLabel}>Aid station stop</span>
             <Chips<AidStop>
               label="Aid station stop"
-              options={STOP_OPTIONS.map((o) => ({ id: o.id, label: `${o.label} · ${stopDuration(o.id)}` }))}
+              options={STOP_OPTIONS.map((o) => ({ id: o.id, label: `${o.label} ${stopDuration(o.id)}` }))}
               value={stop}
               onChange={setStop}
             />
-          </div>
-          <span className={`${styles.tileNote} ${styles.tileHint}`}>{stopHint(stop)}</span>
-        </section>
+          </section>
 
-        <section className={styles.tile} aria-label={`Segment ${station + 1} intensity`}>
-          <span className={styles.tileLabel}>Segment {station + 1} intensity</span>
-          <div className={styles.chipsTight}>
+          <section className={styles.aidChoice} aria-label={`Segment ${station + 1} intensity`}>
+            <span className={styles.tileLabel}>Segment {station + 1} intensity</span>
             <Chips<Intensity>
               label={`Segment ${station + 1} intensity`}
               options={INTENSITY_OPTIONS}
               value={intensity}
               onChange={setIntensity}
             />
-          </div>
-        </section>
+          </section>
+        </div>
 
-        <div className={styles.grow} />
         {error && (
-          <p role="alert" className={styles.warning}>
+          <p role="alert" className={`${styles.warning} ${styles.aidWide}`}>
             {error}
           </p>
         )}
-        <button type="button" className={`${button.button} ${button.primary}`} aria-disabled={busy || undefined} onClick={go}>
+        <button
+          type="button"
+          className={`${button.button} ${button.primary} ${styles.aidWide}`}
+          aria-disabled={busy || undefined}
+          onClick={go}
+        >
           {busy ? 'Running…' : lastSegment ? `${STOP_LABELS[stop]} stop, run to the finish` : `${STOP_LABELS[stop]} stop, continue`}
         </button>
       </div>

@@ -952,6 +952,20 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Realistic race times, race photos, aid station column (owner requests, 2 November 2026)
+
+- **Race times:** `basePaceMinPerEffortKm` 6.0 → 4.1 and a wider field (`rivalFastest` 0.636,
+  `rivalSpread` 0.95; the typical runner still finishes 24th). Forest First Steps (5 km): winner
+  about 20 min, last about 50 min (stops included). The longest races get proportionally shorter
+  too (Beyond the Skyline: winner about 4 h 47). Winning now needs a much stronger runner than
+  before. The prototype (`docs/race-simulation/prototype.mjs`) uses the same values;
+  `docs/race-simulation/results.md` still shows the old times. Redeploy `career-ops`.
+- **Race list:** the race's picture fills its card (`assets/ui/races/RACE-001..003.jpg`, owner
+  pictures); no recommended level, no elevation profile; a locked race shows "Lvl N" (its opening
+  level) instead of "From Lv N".
+- **Aid station:** the picture stays visible on the left; the report and the decisions are one
+  column on the right, the action across the bottom.
+
 ### Race screens as tiles, race-week rest (owner requests, 1 November 2026)
 
 - **Race week rest:** with a race scheduled on this week's Sunday, 2 Rest days in a row after an

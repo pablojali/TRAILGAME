@@ -35,7 +35,7 @@ describe('Race Hub', () => {
     expect(router.state.location.search).toBe('?category=trail')
     expect(screen.getAllByRole('link', { name: /km/ })).toHaveLength(3)
     // Level 1: Ridge Runner opens at Level 9 (2 below its recommended level).
-    expect(card('Ridge Runner')).toHaveAccessibleName('Ridge Runner 12 km · 550 m D+ · Rec. Lv 11 From Lv 9')
+    expect(card('Ridge Runner')).toHaveAccessibleName('Ridge Runner 12 km · 550 m D+ Lvl 9')
   })
 
   it('shows Free for races the runner may enter and the opening level for the others', async () => {
@@ -46,13 +46,13 @@ describe('Race Hub', () => {
     expect(screen.getByRole('tab', { name: 'Trail' })).toHaveAttribute('aria-selected', 'true')
     expect(within(card('Ridge Runner')).getByText('Free')).toBeInTheDocument()
     // Stone Path Classic (recommended 14) opens at 12; Wildwood Ascent (18) at 16.
-    expect(within(card('Stone Path Classic')).getByText('From Lv 12')).toBeInTheDocument()
-    expect(within(card('Wildwood Ascent')).getByText('From Lv 16')).toBeInTheDocument()
+    expect(within(card('Stone Path Classic')).getByText('Lvl 12')).toBeInTheDocument()
+    expect(within(card('Wildwood Ascent')).getByText('Lvl 16')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: 'Open' }))
     expect(within(card('Forest First Steps')).getByText('Free')).toBeInTheDocument()
     expect(within(card('Pine Loop Challenge')).getByText('Free')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: 'Elite' }))
-    expect(within(card('Beyond the Skyline')).getByText('From Lv 48')).toBeInTheDocument()
+    expect(within(card('Beyond the Skyline')).getByText('Lvl 48')).toBeInTheDocument()
     expect(card('Beyond the Skyline')).toHaveAttribute('href', '/races/RACE-012')
   })
 

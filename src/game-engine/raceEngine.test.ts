@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Attributes } from '../domain/athlete/athlete'
 import { getRace, RACES } from '../domain/races/races'
-import { RACE_STRATEGY, type Intensity } from '../domain/races/strategyConfig'
+import { RACE_STRATEGY, racePaces, type Intensity } from '../domain/races/strategyConfig'
 import { parseGameState } from '../repositories/gameRepository'
 import { newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
 import type { GameState } from './gameState'
@@ -17,7 +17,7 @@ import {
   type StepContext,
 } from './raceEngine'
 import { getRaceFatigue, getRaceReport, raceCurrentDay, startRace, stepRace } from './races'
-import { courseEffortKm, generateCourse, raceSeconds } from './raceSimulation'
+import { courseEffortKm, generateCourse, raceSeconds, referenceAthlete } from './raceSimulation'
 import { executeCurrentDay } from './training'
 
 const all = (value: number): Attributes => ({
@@ -75,13 +75,13 @@ describe('segments (approved: clamp(round(km / 6), 2, 8), cut at equal distances
 })
 
 describe('calibration: Target pace with Normal stops is the race before strategies', () => {
-  it('takes the same running time, plus the stops', () => {
+  it('takes the same running time (in race time: × the course factor), plus the stops', () => {
     for (const race of RACES) {
       for (const recovery of [12, 20, 40]) {
         const ctx = context(race.id, {}, recovery)
         const plan = runPlan(ctx, 'target', 'normal')
         const stops = (ctx.field.segments.length - 1) * RACE_STRATEGY.stop.normal.seconds
-        expect(plan.elapsedS - stops).toBeCloseTo(raceSeconds(generateCourse(race), ctx.runner), 6)
+        expect(plan.elapsedS - stops).toBeCloseTo(raceSeconds(generateCourse(race), ctx.runner) * ctx.field.timeScale, 6)
       }
     }
   })
@@ -156,12 +156,49 @@ describe('nutrition (one gel and one bar at most, for the whole race)', () => {
   })
 })
 
+describe('field (owner decisions, 2 November 2026)', () => {
+  const finishOf = (raceId: string, levels: number) => {
+    const race = getRace(raceId)!
+    const typical = referenceAthlete(Math.max(1, race.recommendedLevel + levels))
+    const ctx = context(raceId, { runner: snapshotRunner(typical.attributes, typical.fitness, typical.fatigue, []) })
+    return runPlan(ctx, 'target', 'normal').splits.at(-1)!.position
+  }
+
+  it('has 30 runners: 2 levels above the race finishes 2nd, its level 15th, 2 levels below 22nd', () => {
+    for (const race of RACES) {
+      expect(getRaceField(race).rivalFinishS).toHaveLength(29)
+      expect([finishOf(race.id, 2), finishOf(race.id, 0), finishOf(race.id, -2)]).toEqual([2, 15, 22])
+    }
+  })
+
+  it('runs at the owner paces: winner and last by effort-km', () => {
+    expect(racePaces(6.2)).toEqual({ winner: 3.2, last: 7 })
+    expect(racePaces(65)).toEqual({ winner: 4, last: 8 })
+    expect(racePaces(118)).toEqual({ winner: 4.5, last: 9 })
+    expect(racePaces(165)).toEqual({ winner: 5, last: 10 })
+    expect(racePaces(91.5)).toEqual({ winner: 4.25, last: 8.5 })
+    for (const race of RACES) {
+      const field = getRaceField(race)
+      const effort = courseEffortKm(generateCourse(race))
+      const paces = racePaces(effort)
+      expect(field.rivalBaseS[0]! / 60 / effort).toBeCloseTo(paces.winner, 2)
+      expect(field.rivalBaseS.at(-1)! / 60 / effort).toBeCloseTo(paces.last, 2)
+      // Finishing order: always slower down the field.
+      field.rivalFinishS.forEach((t, i) => i === 0 || expect(t).toBeGreaterThan(field.rivalFinishS[i - 1]!))
+    }
+    // Forest First Steps: won in about 20 minutes, last in about 43 (plus the stop).
+    const forest = getRaceField(getRace('RACE-001')!)
+    expect(Math.round(forest.rivalBaseS[0]! / 60)).toBe(20)
+    expect(Math.round(forest.rivalBaseS.at(-1)! / 60)).toBe(43)
+  })
+})
+
 describe('rivals', () => {
   it('stop by rank: front third Quick, middle Normal, back third Slow', () => {
-    expect(Array.from({ length: 49 }, (_, i) => getRivalStop(i, 49))).toEqual([
-      ...Array<string>(17).fill('quick'),
-      ...Array<string>(16).fill('normal'),
-      ...Array<string>(16).fill('slow'),
+    expect(Array.from({ length: 29 }, (_, i) => getRivalStop(i, 29))).toEqual([
+      ...Array<string>(10).fill('quick'),
+      ...Array<string>(10).fill('normal'),
+      ...Array<string>(9).fill('slow'),
     ])
   })
 

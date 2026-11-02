@@ -954,12 +954,16 @@ Fitness 0 by week 6:
 
 ### Realistic race times, race photos, aid station column (owner requests, 2 November 2026)
 
-- **Race times:** `basePaceMinPerEffortKm` 6.0 → 4.1 and a wider field (`rivalFastest` 0.636,
-  `rivalSpread` 0.95; the typical runner still finishes 24th). Forest First Steps (5 km): winner
-  about 20 min, last about 50 min (stops included). The longest races get proportionally shorter
-  too (Beyond the Skyline: winner about 4 h 47). Winning now needs a much stronger runner than
-  before. The prototype (`docs/race-simulation/prototype.mjs`) uses the same values;
-  `docs/race-simulation/results.md` still shows the old times. Redeploy `career-ops`.
+- **Field and race times** (owner decisions, 2 November 2026; `RACE_STRATEGY.fieldSize`,
+  `paces`, `levelAnchors`, `getRaceField`): 30 runners (29 NPC; older results keep their 49).
+  Rivals are anchored on typical runners of the race's level with Target pace and Normal stops:
+  2 levels above the recommended level finishes 2nd, the recommended level 15th, 2 below 22nd.
+  The winner and the last run at the owner's paces per effort-km (6.2: 3.2 / 7, 65: 4.0 / 8,
+  118: 4.5 / 9, 165: 5.0 / 10 min; linear between), stops on top; ranks between anchors are
+  interpolated. Each race has a course factor (`timeScale`) that turns the ability model's times
+  into race time for rivals and runner alike. Within a level, strategy, gel and bar, Fitness,
+  Fatigue and equipment decide. The one-shot model (`raceSeconds`, `simulateRace`, results.md)
+  is unchanged. Redeploy `career-ops`.
 - **Race list:** the race's picture fills its card (`assets/ui/races/RACE-001..003.jpg`, owner
   pictures); no recommended level, no elevation profile; a locked race shows "Lvl N" (its opening
   level) instead of "From Lv N".

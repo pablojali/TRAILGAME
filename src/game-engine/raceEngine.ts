@@ -2,7 +2,7 @@ import type { Attributes } from '../domain/athlete/athlete'
 import { roundStat } from '../domain/athlete/athlete'
 import type { Race } from '../domain/races/races'
 import { RACE_SIMULATION as SIM } from '../domain/races/simulationConfig'
-import { RACE_STRATEGY as C, type AidStop, type Intensity } from '../domain/races/strategyConfig'
+import { RACE_STRATEGY as C, racePaces, type AidStop, type Intensity } from '../domain/races/strategyConfig'
 import {
   blockMinutes,
   courseEffortKm,
@@ -12,7 +12,6 @@ import {
   prepareRunner,
   raceSeconds,
   referenceAthlete,
-  rivalTimes,
   splitEvenly,
   type CourseSegment,
   type RaceAthleteInput,
@@ -177,7 +176,12 @@ export function getFatigueScale(race: Race, segments: readonly RaceSegment[] = g
 export interface RaceField {
   segments: RaceSegment[]
   fatigueScale: number
-  /** Rivals' finishing times without stops, fastest first (the existing model). */
+  /**
+   * Seconds of race time per second of the ability model (the race's course factor): the model's
+   * times scaled so the field runs at the owner's paces (`RACE_STRATEGY.paces`).
+   */
+  timeScale: number
+  /** Rivals' running times without stops, in finishing order. */
   rivalBaseS: number[]
   /** Arrival time of every rival at each aid station (index k: after segment k), whole seconds. */
   rivalArrivalsS: number[][]
@@ -190,25 +194,67 @@ export function getRivalStop(rivalIndex: number, rivals: number): AidStop {
   return C.rivalStops[Math.min(2, Math.floor((rivalIndex * 3) / rivals))]!
 }
 
+/**
+ * The field (owner decisions, 2 November 2026): 29 rivals whose finishing times are anchored on
+ * typical runners of the race's level: 2 levels above finishes 2nd, the recommended level 15th,
+ * 2 levels below 22nd (each with Target pace and Normal stops). The winner and the last finisher
+ * run at the owner's paces for the race's effort-km; times in between are interpolated. The model's
+ * times are scaled by one factor per race (`timeScale`) that the runner's times use too.
+ */
 export function getRaceField(race: Race): RaceField {
   const segments = getRaceSegments(race)
-  const reference = referenceAthlete(race.recommendedLevel)
+  const course = generateCourse(race)
+  const effort = courseEffortKm(course)
+  const stations = segments.length - 1
+  const rivals = C.fieldSize - 1
+  const R = race.recommendedLevel
+  const modelTime = (levels: number) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)))
+
+  // The course factor: the winner runs at the owner's winner pace, one rank ahead of the anchor
+  // two levels above, at the same gap per rank as down to the recommended level.
+  const [top, middle] = C.levelAnchors
+  const topModel = modelTime(top.levels)
+  const perRank = (modelTime(middle.levels) - topModel) / (middle.rivalIndex - top.rivalIndex)
+  const paces = racePaces(effort)
+  const winnerRun = effort * paces.winner * 60
+  const timeScale = winnerRun / (topModel - top.rivalIndex * perRank)
+
+  // Finishing times (stops included) at the anchor ranks, then interpolated rank by rank.
+  const stopOf = (i: number) => stations * C.stop[getRivalStop(i, rivals)].seconds
+  const anchors: [number, number][] = [
+    [0, winnerRun + stopOf(0)],
+    ...C.levelAnchors.map((a): [number, number] => [a.rivalIndex, modelTime(a.levels) * timeScale + stations * C.stop.normal.seconds]),
+    [rivals - 1, effort * paces.last * 60 + stopOf(rivals - 1)],
+  ]
+  for (let j = 1; j < anchors.length; j++) {
+    // Always slower down the field.
+    anchors[j]![1] = Math.max(anchors[j]![1], anchors[j - 1]![1] + (anchors[j]![0] - anchors[j - 1]![0]))
+  }
+  const finish: number[] = []
+  for (let i = 0; i < rivals; i++) {
+    const j = anchors.findIndex(([index]) => index >= i)
+    const [i1, t1] = anchors[j]!
+    const [i0, t0] = anchors[Math.max(0, j - 1)]!
+    finish.push(Math.round(i1 === i0 ? t1 : t0 + ((i - i0) / (i1 - i0)) * (t1 - t0)))
+  }
+
+  // Splits: each rival's running time over the segments like the typical runner's.
+  const reference = referenceAthlete(R)
   const runner = prepareRunner(reference)
-  const referenceSegments = segments.map((s) => segmentBaseSeconds(runner, s, reference.fatigue, 0))
-  const referenceTotal = referenceSegments.reduce((a, b) => a + b, 0)
+  const referenceSegments = segments.map((seg) => segmentBaseSeconds(runner, seg, reference.fatigue, 0))
+  const referenceTotal = referenceSegments.reduce((x, y) => x + y, 0)
   const cumulativeShares: number[] = []
   let sum = 0
   for (const seconds of referenceSegments) {
     sum += seconds
     cumulativeShares.push(sum / referenceTotal)
   }
-  const rivalBaseS = rivalTimes(race)
-  const stopsS = rivalBaseS.map((_, i) => C.stop[getRivalStop(i, rivalBaseS.length)].seconds)
+  const stopsS = finish.map((_, i) => C.stop[getRivalStop(i, rivals)].seconds)
+  const rivalBaseS = finish.map((t, i) => t - stations * stopsS[i]!)
   const rivalArrivalsS = segments
     .slice(0, -1)
     .map((_, k) => rivalBaseS.map((t, i) => Math.round(t * cumulativeShares[k]!) + k * stopsS[i]!))
-  const rivalFinishS = rivalBaseS.map((t, i) => t + (segments.length - 1) * stopsS[i]!)
-  return { segments, fatigueScale: getFatigueScale(race, segments), rivalBaseS, rivalArrivalsS, rivalFinishS }
+  return { segments, fatigueScale: getFatigueScale(race, segments), timeScale, rivalBaseS, rivalArrivalsS, rivalFinishS: finish }
 }
 
 /** Position among rivals: 1 + rivals strictly faster (a tie goes to the athlete). */
@@ -286,6 +332,7 @@ export function runSegment(ctx: StepContext, progress: RaceProgress, intensity: 
   const paceFatigue = ctx.runner.fatigue + C.inRaceFatiguePaceWeight * (gained - planned)
   const seconds =
     segmentBaseSeconds(prepared, segment, paceFatigue, ctx.dayForm) *
+    ctx.field.timeScale *
     C.intensity[intensity].pace *
     (ctx.nutrition.gel ? 1 - C.gelTimeSaving : 1)
   const elapsedS = progress.elapsedS + seconds
@@ -332,7 +379,7 @@ export function runPlan(
 /** The typical runner's finishing time with Normal stops (what the rivals around 24th do). */
 export function getReferenceFinishS(race: Race, field: RaceField = getRaceField(race)): number {
   return (
-    Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel))) +
+    Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel)) * field.timeScale) +
     (field.segments.length - 1) * C.stop.normal.seconds
   )
 }

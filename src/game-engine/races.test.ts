@@ -153,7 +153,7 @@ describe('raceCurrentDay', () => {
     const sim = simulateRace(getRace('RACE-001')!, { attributes: state.athlete.attributes, fitness: 20, fatigue: 0 }, finished.result.dayForm)
     // Default plan: Target pace (the time before strategies) plus one Normal stop (2 min) at the
     // aid station; the rivals stop too, by rank.
-    const timeS = sim.timeS + 120
+    const timeS = Math.round(sim.timeS * getRaceField(getRace('RACE-001')!).timeScale) + 120
     const position = positionAmong(timeS, getRaceField(getRace('RACE-001')!).rivalFinishS)
 
     expect(finished.status).toBe('finished')
@@ -163,7 +163,7 @@ describe('raceCurrentDay', () => {
       levelAtStart: 1,
       timeS,
       position,
-      fieldSize: 50,
+      fieldSize: 30,
       // Recovery 16: (20 / 16)^0.35 × the calibrated 10 for Recovery 20.
       fatigueChange: 10.95,
       fitnessChange: 0,
@@ -313,19 +313,20 @@ describe('race rewards', () => {
 })
 
 describe('full results', () => {
-  it('lists all 50 runners in time order with the athlete at the stored position', () => {
+  it('lists all 30 runners in time order with the athlete at the stored position', () => {
     const entered = withEntry(newGame(), 'RACE-001')
     const result = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
     if (!result.ok) throw new Error(result.error)
     const stored = result.value.entry.result
     // The rivals' times with their aid-station stops (one stop: 30 s, 2 min or 5 min by rank).
     expect(stored.rivalTimesS).toEqual(getRaceField(getRace('RACE-001')!).rivalFinishS)
-    expect(stored.rivalTimesS!.map((t, i) => t - rivalTimes(getRace('RACE-001')!)[i]!)).toEqual(
-      Array.from({ length: 49 }, (_, i) => (i < 17 ? 30 : i < 33 ? 120 : 300)),
+    const field = getRaceField(getRace('RACE-001')!)
+    expect(stored.rivalTimesS!.map((t, i) => t - field.rivalBaseS[i]!)).toEqual(
+      Array.from({ length: 29 }, (_, i) => (i < 10 ? 30 : i < 20 ? 120 : 300)),
     )
     const rows = getStandings(getRace('RACE-001')!, stored)
-    expect(rows).toHaveLength(50)
-    expect(rows.map((r) => r.position)).toEqual(Array.from({ length: 50 }, (_, i) => i + 1))
+    expect(rows).toHaveLength(30)
+    expect(rows.map((r) => r.position)).toEqual(Array.from({ length: 30 }, (_, i) => i + 1))
     expect(rows.every((r, i) => i === 0 || r.timeS >= rows[i - 1]!.timeS)).toBe(true)
     expect(rows[stored.position - 1]).toEqual({ position: stored.position, runner: 'you', timeS: stored.timeS })
     expect(rows.filter((r) => r.runner === 'you')).toHaveLength(1)

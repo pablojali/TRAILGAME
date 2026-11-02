@@ -5,7 +5,7 @@ import { getRace, type Race } from '../domain/races/races'
 import { RACE_SIMULATION } from '../domain/races/simulationConfig'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS } from '../domain/training/injury'
 import { roundStat } from '../domain/athlete/athlete'
-import { isAidStop, isIntensity, type AidStop, type Intensity } from '../domain/races/strategyConfig'
+import { isAidStop, isIntensity, RACE_STRATEGY, type AidStop, type Intensity } from '../domain/races/strategyConfig'
 import type { ActiveRace, DayOutcome, FinishedRaceEntry, GameState, PendingRaceEntry, RaceEntry, RaceResult } from './gameState'
 import {
   getRaceField,
@@ -327,7 +327,7 @@ function finishRace(state: GameState, active: ActiveRace, race: Race, field: Rac
     dayForm: active.dayForm,
     timeS,
     position,
-    fieldSize: RACE_SIMULATION.fieldSize,
+    fieldSize: RACE_STRATEGY.fieldSize,
     band: rewards.band,
     grossPrize: rewards.grossPrize,
     multiplierPct: rewards.multiplierPct,
@@ -339,7 +339,8 @@ function finishRace(state: GameState, active: ActiveRace, race: Race, field: Rac
     injured,
     referenceTimeS,
     gapS: timeS - referenceTimeS,
-    factors: explanation.factors,
+    // The explanation's effects in race time (the model's seconds × the course factor).
+    factors: explanation.factors.map((f) => ({ ...f, effectS: Math.round(f.effectS * field.timeScale) })),
     rivalTimesS: field.rivalFinishS,
     splits: active.splits,
     nutrition: active.nutrition,
@@ -430,7 +431,7 @@ export function getRaceReport(state: GameState): RaceReport | null {
     segmentCount: field.segments.length,
     last,
     position: last.position,
-    fieldSize: RACE_SIMULATION.fieldSize,
+    fieldSize: RACE_STRATEGY.fieldSize,
     elapsedS: last.arrivalS,
     gapAheadS: ahead.length ? last.arrivalS - Math.max(...ahead) : null,
     gapBehindS: behind.length ? Math.min(...behind) - last.arrivalS : null,

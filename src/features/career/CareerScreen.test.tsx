@@ -76,8 +76,8 @@ describe('Career', () => {
       `/races/results/${first.id}`,
     ])
     expect(rows[1]).toHaveTextContent('Forest First Steps')
-    expect(rows[1]).toHaveTextContent('1st of 50')
+    expect(rows[1]).toHaveTextContent('1st of 30')
     await user.click(rows[1]!)
-    expect(screen.getByRole('heading', { level: 1, name: '1st of 50' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: '1st of 30' })).toBeInTheDocument()
   })
 })

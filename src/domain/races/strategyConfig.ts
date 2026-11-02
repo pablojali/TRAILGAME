@@ -49,4 +49,42 @@ export const RACE_STRATEGY = {
    * through the existing Fatigue factor. 1 = the same effect as career Fatigue.
    */
   inRaceFatiguePaceWeight: 1,
+  /** The runner plus 29 NPC rivals (owner decision, 2 November 2026; was 50). */
+  fieldSize: 30,
+  /**
+   * Running pace (no stops) of the winner and of the last finisher, in minutes per effort-km, by
+   * the race's effort-km (owner table, 2 November 2026). Linear between rows, flat outside them.
+   */
+  paces: [
+    { effortKm: 6.2, winner: 3.2, last: 7 },
+    { effortKm: 65, winner: 4.0, last: 8 },
+    { effortKm: 118, winner: 4.5, last: 9 },
+    { effortKm: 165, winner: 5.0, last: 10 },
+  ],
+  /**
+   * Where a typical runner of a level finishes, by levels above the race's recommended level
+   * (owner decision, 2 November 2026): 2 above is 2nd, the recommended level 15th, 2 below 22nd.
+   * Rival index (0-based) whose finishing time equals that runner's (ties go to the runner).
+   */
+  levelAnchors: [
+    { levels: 2, rivalIndex: 1 },
+    { levels: 0, rivalIndex: 14 },
+    { levels: -2, rivalIndex: 21 },
+  ],
 } as const
+
+/** Winner's and last finisher's running pace (minutes per effort-km) for a race of `effortKm`. */
+export function racePaces(effortKm: number): { winner: number; last: number } {
+  const rows = RACE_STRATEGY.paces
+  if (effortKm <= rows[0].effortKm) return { winner: rows[0].winner, last: rows[0].last }
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1]!
+    const b = rows[i]!
+    if (effortKm <= b.effortKm) {
+      const t = (effortKm - a.effortKm) / (b.effortKm - a.effortKm)
+      return { winner: a.winner + t * (b.winner - a.winner), last: a.last + t * (b.last - a.last) }
+    }
+  }
+  const last = rows[rows.length - 1]!
+  return { winner: last.winner, last: last.last }
+}

@@ -622,11 +622,8 @@ var RACE_SIMULATION = {
   maxGainPerClimbM: 600,
   /** Courses steeper than this on average in any segment are invalid catalog data. */
   maxAverageGradient: 0.4,
-  /**
-   * Minutes per effort-km for ability 20, Fitness 50, Fatigue 0, fresh. 6.0 until 2 November 2026;
-   * 4.1 so a 5 km race is won in about 20 minutes (owner request).
-   */
-  basePaceMinPerEffortKm: 4.1,
+  /** Minutes per effort-km for ability 20, Fitness 50, Fatigue 0, fresh. */
+  basePaceMinPerEffortKm: 6,
   /** Ability (and Consistency) at which a factor is neutral, and the curve exponent. */
   abilityReference: 20,
   abilityExponent: 0.35,
@@ -642,10 +639,8 @@ var RACE_SIMULATION = {
   /** The athlete plus 49 rivals. */
   fieldSize: 50,
   /** Rival times relative to the reference: fastest + spread × q^exponent. */
-  // Owner request (2 November 2026): a wider field, the last about 2.5 times the winner's time
-  // (5 km: about 20 and 50 minutes). Was 0.85 + 0.4; the typical runner still finishes about 24th.
-  rivalFastest: 0.636,
-  rivalSpread: 0.95,
+  rivalFastest: 0.85,
+  rivalSpread: 0.4,
   rivalExponent: 1.3,
   /** Fatigue of the reference athlete. */
   referenceFatigue: 20,
@@ -705,8 +700,44 @@ var RACE_STRATEGY = {
    * Weight of the in-race fatigue above the planned one (Target pace with Normal stops) in the pace,
    * through the existing Fatigue factor. 1 = the same effect as career Fatigue.
    */
-  inRaceFatiguePaceWeight: 1
+  inRaceFatiguePaceWeight: 1,
+  /** The runner plus 29 NPC rivals (owner decision, 2 November 2026; was 50). */
+  fieldSize: 30,
+  /**
+   * Running pace (no stops) of the winner and of the last finisher, in minutes per effort-km, by
+   * the race's effort-km (owner table, 2 November 2026). Linear between rows, flat outside them.
+   */
+  paces: [
+    { effortKm: 6.2, winner: 3.2, last: 7 },
+    { effortKm: 65, winner: 4, last: 8 },
+    { effortKm: 118, winner: 4.5, last: 9 },
+    { effortKm: 165, winner: 5, last: 10 }
+  ],
+  /**
+   * Where a typical runner of a level finishes, by levels above the race's recommended level
+   * (owner decision, 2 November 2026): 2 above is 2nd, the recommended level 15th, 2 below 22nd.
+   * Rival index (0-based) whose finishing time equals that runner's (ties go to the runner).
+   */
+  levelAnchors: [
+    { levels: 2, rivalIndex: 1 },
+    { levels: 0, rivalIndex: 14 },
+    { levels: -2, rivalIndex: 21 }
+  ]
 };
+function racePaces(effortKm2) {
+  const rows = RACE_STRATEGY.paces;
+  if (effortKm2 <= rows[0].effortKm) return { winner: rows[0].winner, last: rows[0].last };
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1];
+    const b = rows[i];
+    if (effortKm2 <= b.effortKm) {
+      const t = (effortKm2 - a.effortKm) / (b.effortKm - a.effortKm);
+      return { winner: a.winner + t * (b.winner - a.winner), last: a.last + t * (b.last - a.last) };
+    }
+  }
+  const last = rows[rows.length - 1];
+  return { winner: last.winner, last: last.last };
+}
 
 // src/game-engine/raceSimulation.ts
 var InvalidCourseError = class extends Error {
@@ -816,14 +847,6 @@ function referenceAthlete(recommendedLevel) {
     fitness: Math.min(90, 25 + 65 * (recommendedLevel - 1) / 29),
     fatigue: RACE_SIMULATION.referenceFatigue
   };
-}
-function rivalTimes(race, course = generateCourse(race)) {
-  const reference = raceSeconds(course, referenceAthlete(race.recommendedLevel));
-  const n = RACE_SIMULATION.fieldSize - 1;
-  return Array.from(
-    { length: n },
-    (_, i) => Math.round(reference * (RACE_SIMULATION.rivalFastest + RACE_SIMULATION.rivalSpread * Math.pow((i + 0.5) / n, RACE_SIMULATION.rivalExponent)))
-  );
 }
 function fnv1a(text) {
   let h = 2166136261;
@@ -980,21 +1003,48 @@ function getRivalStop(rivalIndex, rivals) {
 }
 function getRaceField(race) {
   const segments = getRaceSegments(race);
-  const reference = referenceAthlete(race.recommendedLevel);
+  const course = generateCourse(race);
+  const effort = courseEffortKm(course);
+  const stations = segments.length - 1;
+  const rivals = RACE_STRATEGY.fieldSize - 1;
+  const R = race.recommendedLevel;
+  const modelTime = (levels) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)));
+  const [top, middle] = RACE_STRATEGY.levelAnchors;
+  const topModel = modelTime(top.levels);
+  const perRank = (modelTime(middle.levels) - topModel) / (middle.rivalIndex - top.rivalIndex);
+  const paces = racePaces(effort);
+  const winnerRun = effort * paces.winner * 60;
+  const timeScale = winnerRun / (topModel - top.rivalIndex * perRank);
+  const stopOf = (i) => stations * RACE_STRATEGY.stop[getRivalStop(i, rivals)].seconds;
+  const anchors = [
+    [0, winnerRun + stopOf(0)],
+    ...RACE_STRATEGY.levelAnchors.map((a) => [a.rivalIndex, modelTime(a.levels) * timeScale + stations * RACE_STRATEGY.stop.normal.seconds]),
+    [rivals - 1, effort * paces.last * 60 + stopOf(rivals - 1)]
+  ];
+  for (let j = 1; j < anchors.length; j++) {
+    anchors[j][1] = Math.max(anchors[j][1], anchors[j - 1][1] + (anchors[j][0] - anchors[j - 1][0]));
+  }
+  const finish = [];
+  for (let i = 0; i < rivals; i++) {
+    const j = anchors.findIndex(([index]) => index >= i);
+    const [i1, t1] = anchors[j];
+    const [i0, t0] = anchors[Math.max(0, j - 1)];
+    finish.push(Math.round(i1 === i0 ? t1 : t0 + (i - i0) / (i1 - i0) * (t1 - t0)));
+  }
+  const reference = referenceAthlete(R);
   const runner = prepareRunner(reference);
-  const referenceSegments = segments.map((s) => segmentBaseSeconds(runner, s, reference.fatigue, 0));
-  const referenceTotal = referenceSegments.reduce((a, b) => a + b, 0);
+  const referenceSegments = segments.map((seg) => segmentBaseSeconds(runner, seg, reference.fatigue, 0));
+  const referenceTotal = referenceSegments.reduce((x, y) => x + y, 0);
   const cumulativeShares = [];
   let sum = 0;
   for (const seconds of referenceSegments) {
     sum += seconds;
     cumulativeShares.push(sum / referenceTotal);
   }
-  const rivalBaseS = rivalTimes(race);
-  const stopsS = rivalBaseS.map((_, i) => RACE_STRATEGY.stop[getRivalStop(i, rivalBaseS.length)].seconds);
+  const stopsS = finish.map((_, i) => RACE_STRATEGY.stop[getRivalStop(i, rivals)].seconds);
+  const rivalBaseS = finish.map((t, i) => t - stations * stopsS[i]);
   const rivalArrivalsS = segments.slice(0, -1).map((_, k) => rivalBaseS.map((t, i) => Math.round(t * cumulativeShares[k]) + k * stopsS[i]));
-  const rivalFinishS = rivalBaseS.map((t, i) => t + (segments.length - 1) * stopsS[i]);
-  return { segments, fatigueScale: getFatigueScale(race, segments), rivalBaseS, rivalArrivalsS, rivalFinishS };
+  return { segments, fatigueScale: getFatigueScale(race, segments), timeScale, rivalBaseS, rivalArrivalsS, rivalFinishS: finish };
 }
 function positionAmong(timeS, rivals) {
   return 1 + rivals.filter((t) => t < timeS).length;
@@ -1010,7 +1060,7 @@ function runSegment(ctx, progress, intensity) {
   const planned = plannedGains(ctx.field.segments, prepared.attributes.recovery, ctx.field.fatigueScale).atStart[k];
   const gained = progress.fatigue - ctx.runner.fatigue;
   const paceFatigue = ctx.runner.fatigue + RACE_STRATEGY.inRaceFatiguePaceWeight * (gained - planned);
-  const seconds = segmentBaseSeconds(prepared, segment, paceFatigue, ctx.dayForm) * RACE_STRATEGY.intensity[intensity].pace * (ctx.nutrition.gel ? 1 - RACE_STRATEGY.gelTimeSaving : 1);
+  const seconds = segmentBaseSeconds(prepared, segment, paceFatigue, ctx.dayForm) * ctx.field.timeScale * RACE_STRATEGY.intensity[intensity].pace * (ctx.nutrition.gel ? 1 - RACE_STRATEGY.gelTimeSaving : 1);
   const elapsedS = progress.elapsedS + seconds;
   const fatigue = progress.fatigue + segmentFatigue(ctx, segment, intensity);
   const last = k === ctx.field.segments.length - 1;
@@ -1035,7 +1085,7 @@ function makeStop(ctx, progress, stop) {
   return { elapsedS: progress.elapsedS + seconds, fatigue, splits: [...progress.splits.slice(0, k), split] };
 }
 function getReferenceFinishS(race, field = getRaceField(race)) {
-  return Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel))) + (field.segments.length - 1) * RACE_STRATEGY.stop.normal.seconds;
+  return Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel)) * field.timeScale) + (field.segments.length - 1) * RACE_STRATEGY.stop.normal.seconds;
 }
 function snapshotRunner(attributes, fitness, fatigue, equipment) {
   return { attributes: { ...attributes }, fitness, fatigue, equipment: [...equipment] };
@@ -1363,7 +1413,7 @@ function finishRace(state, active, race, field, now) {
     dayForm: active.dayForm,
     timeS,
     position,
-    fieldSize: RACE_SIMULATION.fieldSize,
+    fieldSize: RACE_STRATEGY.fieldSize,
     band: rewards.band,
     grossPrize: rewards.grossPrize,
     multiplierPct: rewards.multiplierPct,
@@ -1375,7 +1425,8 @@ function finishRace(state, active, race, field, now) {
     injured,
     referenceTimeS,
     gapS: timeS - referenceTimeS,
-    factors: explanation.factors,
+    // The explanation's effects in race time (the model's seconds × the course factor).
+    factors: explanation.factors.map((f) => ({ ...f, effectS: Math.round(f.effectS * field.timeScale) })),
     rivalTimesS: field.rivalFinishS,
     splits: active.splits,
     nutrition: active.nutrition

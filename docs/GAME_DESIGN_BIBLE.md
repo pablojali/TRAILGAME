@@ -810,6 +810,8 @@ Do not rewrite or rebalance the existing training system as part of M4. Reuse ex
 - Calibration: Target pace with Normal stops gives the time and Fatigue of the race before strategies.
 - The finish applies §10.7–§10.10 once; the race Fatigue is the in-race fatigue at the finish. The server simulates every segment from the player's decisions; the race in progress is saved in the career and can be resumed.
 
+**Field and times (owner decisions, 2 November 2026):** 30 runners per race (the player and 29 NPC). A typical runner 2 levels above the race's recommended level finishes about 2nd, one at the recommended level about 15th, one 2 levels below about 22nd (the back third). The winner and the last finisher run at these paces per effort-km: 5 km +120 m (6.2) 3.2 and 7 min; 40 km +2500 m (65) 4.0 and 8; 70 km +4800 m (118) 4.5 and 9; 100 km +6500 m (165) 5.0 and 10 (about 20 min / 43 min, 4 h 20 / 8 h 40, 8 h 51 / 17 h 42, 13 h 45 / 27 h 30, stops aside). Between runners of the same level, strategy, gels and bars, Fitness, Fatigue and equipment decide.
+
 Not in V1: weather, cutoffs, DNF, category positions, sponsorships, multiplayer.
 
 ### 10.7 Race outcomes

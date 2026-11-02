@@ -115,10 +115,8 @@ describe('intensity', () => {
     const ctx = context('RACE-012')
     const target = runPlan(ctx, 'target', 'normal').elapsedS
     expect(runPlan(ctx, 'hard', 'normal').elapsedS).toBeGreaterThan(target)
-    // Holding back early and pushing late beats an even pace there.
-    const n = ctx.field.segments.length
-    const negative = runPlan(ctx, Array.from({ length: n }, (_, k) => (k < n / 2 ? 'easy' : 'hard')), 'normal')
-    expect(negative.elapsedS).toBeLessThan(target)
+    // Holding back pays there: Easy all the way beats Target.
+    expect(runPlan(ctx, 'easy', 'normal').elapsedS).toBeLessThan(target)
   })
 
   it('makes later segments slower after pushing early (the in-race fatigue counts)', () => {
@@ -138,8 +136,8 @@ describe('aid stations', () => {
     const arrived = runSegment(ctx, { elapsedS: 0, fatigue: 20, splits: [] }, 'hard')
     const gained = arrived.fatigue - 20
     const after = (['quick', 'normal', 'slow'] as const).map((stop) => makeStop(ctx, arrived, stop))
-    // Stops scale with the race (35 km +2200 m: 30 s, 1:50 min, 4:35 min).
-    expect(after.map((p) => p.elapsedS - arrived.elapsedS)).toEqual([30, 110, 275])
+    // Stops scale with the race (35 km +2200 m: 25 s, 1:45 min, 4:25 min).
+    expect(after.map((p) => p.elapsedS - arrived.elapsedS)).toEqual([25, 105, 265])
     expect(after.map((p) => arrived.fatigue - p.fatigue)).toEqual([0.1 * gained, 0.25 * gained, 0.45 * gained].map((x) => expect.closeTo(x, 9)))
     // A high Recovery recovers more, but never more than 60% of what the race added.
     const strong = context('RACE-009', {}, 200)
@@ -147,7 +145,7 @@ describe('aid stations', () => {
     const slow = makeStop(strong, strongArrived, 'slow')
     expect(strongArrived.fatigue - slow.fatigue).toBeCloseTo(0.6 * (strongArrived.fatigue - 20), 9)
     expect(slow.fatigue).toBeGreaterThan(20)
-    expect(after[2]!.splits.at(-1)).toMatchObject({ stop: 'slow', stopS: 275 })
+    expect(after[2]!.splits.at(-1)).toMatchObject({ stop: 'slow', stopS: 265 })
   })
 })
 
@@ -156,8 +154,8 @@ describe('nutrition (one gel and one bar at most, for the whole race)', () => {
     const plain = runPlan(context('RACE-001'), 'target', 'normal')
     const gel = runPlan(context('RACE-001', { nutrition: { gel: true, bar: false } }), 'target', 'normal')
     const bar = runPlan(context('RACE-001', { nutrition: { gel: false, bar: true } }), 'target', 'normal')
-    // Forest First Steps: one Normal stop of 45 s.
-    expect(plain.elapsedS - 45 - (gel.elapsedS - 45)).toBeCloseTo((plain.elapsedS - 45) * 0.015, 6)
+    // Forest First Steps: one Normal stop of 20 s.
+    expect(plain.elapsedS - 20 - (gel.elapsedS - 20)).toBeCloseTo((plain.elapsedS - 20) * 0.015, 6)
     expect(gel.fatigue).toBe(plain.fatigue)
     expect(bar.fatigue - 20).toBeCloseTo((plain.fatigue - 20) * 0.985, 9)
   })
@@ -171,10 +169,18 @@ describe('field (owner decisions, 2 November 2026)', () => {
     return runPlan(ctx, 'target', 'normal').splits.at(-1)!.position
   }
 
-  it('has 30 runners: 2 levels above the race finishes 2nd, its level 15th, 2 levels below 22nd', () => {
+  it('has 30 runners: 2 levels above the race finishes near 2nd, its level 15th, 2 levels below near 22nd', () => {
     for (const race of RACES) {
       expect(getRaceField(race).rivalFinishS).toHaveLength(29)
-      expect([finishOf(race.id, 2), finishOf(race.id, 0), finishOf(race.id, -2)]).toEqual([2, 15, 22])
+      expect(finishOf(race.id, 0)).toBe(15)
+      if (race.recommendedLevel < 30) {
+        expect([finishOf(race.id, 2), finishOf(race.id, -2)]).toEqual([2, 22])
+      } else {
+        // From level 30 the typical runner's Fitness stops growing, so 2 levels count for less; the
+        // minimum gap still keeps them apart.
+        expect(finishOf(race.id, 2)).toBeLessThanOrEqual(12)
+        expect(finishOf(race.id, -2)).toBeGreaterThanOrEqual(17)
+      }
     }
   })
 

@@ -153,7 +153,7 @@ describe('raceCurrentDay', () => {
     const sim = simulateRace(getRace('RACE-001')!, { attributes: state.athlete.attributes, fitness: 20, fatigue: 0 }, finished.result.dayForm)
     // Default plan: Target pace (the time before strategies) plus one Normal stop (2 min) at the
     // aid station; the rivals stop too, by rank.
-    const timeS = sim.timeS + 120
+    const timeS = Math.round(sim.timeS * getRaceField(getRace('RACE-001')!).timeScale) + 120
     const position = positionAmong(timeS, getRaceField(getRace('RACE-001')!).rivalFinishS)
 
     expect(finished.status).toBe('finished')
@@ -163,7 +163,7 @@ describe('raceCurrentDay', () => {
       levelAtStart: 1,
       timeS,
       position,
-      fieldSize: 50,
+      fieldSize: 30,
       // Recovery 16: (20 / 16)^0.35 × the calibrated 10 for Recovery 20.
       fatigueChange: 10.95,
       fitnessChange: 0,
@@ -247,7 +247,9 @@ describe('raceCurrentDay', () => {
   })
 
   it('levels up through race XP with the existing rules, and rolls the week over on day 7', () => {
-    let state = withAthlete(newGame(), { xp: 95, fitness: 95 })
+    // Strong and fit enough to win against the wider field (2 November 2026).
+    const strong = { speed: 40, endurance: 40, climbing: 40, technical: 40, recovery: 40, consistency: 40 }
+    let state = withAthlete(newGame(), { xp: 95, fitness: 95, attributes: strong })
     for (let i = 0; i < 6; i++) state = execute(withSession(state, 'rest'), T0 + i * DAY).state
     const { state: ready, entry } = entered(state, 'RACE-001')
     const result = race(ready, entry.id, T0 + 7 * DAY)
@@ -311,19 +313,20 @@ describe('race rewards', () => {
 })
 
 describe('full results', () => {
-  it('lists all 50 runners in time order with the athlete at the stored position', () => {
+  it('lists all 30 runners in time order with the athlete at the stored position', () => {
     const entered = withEntry(newGame(), 'RACE-001')
     const result = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
     if (!result.ok) throw new Error(result.error)
     const stored = result.value.entry.result
     // The rivals' times with their aid-station stops (one stop: 30 s, 2 min or 5 min by rank).
     expect(stored.rivalTimesS).toEqual(getRaceField(getRace('RACE-001')!).rivalFinishS)
-    expect(stored.rivalTimesS!.map((t, i) => t - rivalTimes(getRace('RACE-001')!)[i]!)).toEqual(
-      Array.from({ length: 49 }, (_, i) => (i < 17 ? 30 : i < 33 ? 120 : 300)),
+    const field = getRaceField(getRace('RACE-001')!)
+    expect(stored.rivalTimesS!.map((t, i) => t - field.rivalBaseS[i]!)).toEqual(
+      Array.from({ length: 29 }, (_, i) => (i < 10 ? 30 : i < 20 ? 120 : 300)),
     )
     const rows = getStandings(getRace('RACE-001')!, stored)
-    expect(rows).toHaveLength(50)
-    expect(rows.map((r) => r.position)).toEqual(Array.from({ length: 50 }, (_, i) => i + 1))
+    expect(rows).toHaveLength(30)
+    expect(rows.map((r) => r.position)).toEqual(Array.from({ length: 30 }, (_, i) => i + 1))
     expect(rows.every((r, i) => i === 0 || r.timeS >= rows[i - 1]!.timeS)).toBe(true)
     expect(rows[stored.position - 1]).toEqual({ position: stored.position, runner: 'you', timeS: stored.timeS })
     expect(rows.filter((r) => r.runner === 'you')).toHaveLength(1)

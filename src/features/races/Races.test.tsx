@@ -35,7 +35,7 @@ describe('Race Hub', () => {
     expect(router.state.location.search).toBe('?category=trail')
     expect(screen.getAllByRole('link', { name: /km/ })).toHaveLength(3)
     // Level 1: Ridge Runner opens at Level 9 (2 below its recommended level).
-    expect(card('Ridge Runner')).toHaveAccessibleName('Ridge Runner 12 km · 550 m D+ · Rec. Lv 11 From Lv 9')
+    expect(card('Ridge Runner')).toHaveAccessibleName('Ridge Runner 12 km · 550 m D+ Lvl 9')
   })
 
   it('shows Free for races the runner may enter and the opening level for the others', async () => {
@@ -46,13 +46,13 @@ describe('Race Hub', () => {
     expect(screen.getByRole('tab', { name: 'Trail' })).toHaveAttribute('aria-selected', 'true')
     expect(within(card('Ridge Runner')).getByText('Free')).toBeInTheDocument()
     // Stone Path Classic (recommended 14) opens at 12; Wildwood Ascent (18) at 16.
-    expect(within(card('Stone Path Classic')).getByText('From Lv 12')).toBeInTheDocument()
-    expect(within(card('Wildwood Ascent')).getByText('From Lv 16')).toBeInTheDocument()
+    expect(within(card('Stone Path Classic')).getByText('Lvl 12')).toBeInTheDocument()
+    expect(within(card('Wildwood Ascent')).getByText('Lvl 16')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: 'Open' }))
     expect(within(card('Forest First Steps')).getByText('Free')).toBeInTheDocument()
     expect(within(card('Pine Loop Challenge')).getByText('Free')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: 'Elite' }))
-    expect(within(card('Beyond the Skyline')).getByText('From Lv 48')).toBeInTheDocument()
+    expect(within(card('Beyond the Skyline')).getByText('Lvl 48')).toBeInTheDocument()
     expect(card('Beyond the Skyline')).toHaveAttribute('href', '/races/RACE-012')
   })
 
@@ -214,7 +214,7 @@ describe('Race day and results', () => {
     if (entry.status !== 'finished') throw new Error('not finished')
     const { result } = entry
     expect(first.router.state.location.pathname).toBe('/races/results/entry-1')
-    expect(screen.getByRole('heading', { level: 1, name: `${ordinal(result.position)} of 50` })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: `${ordinal(result.position)} of 30` })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Result' })).toHaveAttribute('aria-selected', 'true')
     const tiles = within(screen.getByText('Coins awarded').closest('dl')!)
     expect(tiles.getByText('Rewards').nextElementSibling).toHaveTextContent('100%')
@@ -226,9 +226,9 @@ describe('Race day and results', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Full results' }))
     expect(first.router.state.location.search).toBe('?tab=standings')
-    expect(screen.getByRole('region', { name: 'Full results · 50 runners' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Full results · 30 runners' })).toBeInTheDocument()
     const table = within(screen.getByRole('table', { name: 'Full results of Forest First Steps' }))
-    expect(table.getAllByRole('row')).toHaveLength(51)
+    expect(table.getAllByRole('row')).toHaveLength(31)
     const you = table.getByRole('rowheader', { name: 'Demo Runner (you)' }).closest('tr')!
     expect(you).toHaveAttribute('aria-current', 'true')
     expect(within(you).getAllByRole('cell')[0]).toHaveTextContent(String(result.position))
@@ -239,7 +239,7 @@ describe('Race day and results', () => {
 
     // Reopening the result never awards again.
     await renderApp('/races/results/entry-1')
-    expect(screen.getByRole('heading', { level: 1, name: `${ordinal(result.position)} of 50` })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: `${ordinal(result.position)} of 30` })).toBeInTheDocument()
     expect(readSave()!.state).toEqual(save)
   })
 
@@ -287,11 +287,11 @@ describe('Race day and results', () => {
     expect(save.consumables).toEqual({ gel: 0, bar: 0 })
     expect(save.activeRace).toMatchObject({ nutrition: { gel: true, bar: false }, splits: [{ intensity: 'hard' }] })
     const report = within(screen.getByRole('region', { name: 'Aid station report' }))
-    expect(screen.getByRole('heading', { level: 1, name: `${ordinal(save.activeRace!.splits[0]!.position)} of 50` })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: `${ordinal(save.activeRace!.splits[0]!.position)} of 30` })).toBeInTheDocument()
     expect(report.getByText('Energy')).toBeInTheDocument()
     expect(report.getByText('Nutrition').nextElementSibling).toHaveTextContent('Gel')
     expect(report.getByText('Next: segment 2')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Slow · 5 min' }))
+    await user.click(screen.getByRole('button', { name: 'Slow 5 min' }))
     await user.click(screen.getByRole('button', { name: 'Easy' }))
     await user.click(screen.getByRole('button', { name: 'Slow stop, continue' }))
     expect(await screen.findByText(/Aid station 2 of 3/)).toBeInTheDocument()
@@ -307,7 +307,7 @@ describe('Race day and results', () => {
     expect(screen.getByText(/Race in progress\./)).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Continue race' }))
     expect(await screen.findByText(/Aid station 2 of 3/)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Quick · 30 s' }))
+    await user.click(screen.getByRole('button', { name: 'Quick 30 s' }))
     await user.click(screen.getByRole('button', { name: 'Quick stop, continue' }))
     await user.click(await screen.findByRole('button', { name: 'Normal stop, run to the finish' }))
     await screen.findByRole('tab', { name: 'Result' })

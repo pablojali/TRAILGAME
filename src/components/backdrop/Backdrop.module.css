@@ -71,3 +71,8 @@
   height: 130%;
   object-position: center top;
 }
+
+/* Aid station: the tent and the table of food on the left stay in view (owner request). */
+.backdrop[data-scene='aid-station'][data-art='image'] .art {
+  object-position: 18% center;
+}

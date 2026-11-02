@@ -572,7 +572,7 @@ describe('career-ops: races step by step on the server (Race Engine V1)', () => 
     const { result } = finished
     expect(result.rivalTimesS).toEqual(getRaceField(getRace('RACE-001')!).rivalFinishS)
     expect(result.position).toBe(1 + result.rivalTimesS!.filter((t) => t < result.timeS).length)
-    expect(result.fieldSize).toBe(50)
+    expect(result.fieldSize).toBe(30)
   })
 
   it('refuses races that are not registered, not today, already run or unknown, changing nothing', async () => {

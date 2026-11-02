@@ -2,7 +2,14 @@ import type { Attributes } from '../domain/athlete/athlete'
 import { roundStat } from '../domain/athlete/athlete'
 import type { Race } from '../domain/races/races'
 import { RACE_SIMULATION as SIM } from '../domain/races/simulationConfig'
-import { RACE_STRATEGY as C, racePaces, type AidStop, type Intensity } from '../domain/races/strategyConfig'
+import {
+  fatiguePaceWeight,
+  RACE_STRATEGY as C,
+  racePaces,
+  stopSeconds,
+  type AidStop,
+  type Intensity,
+} from '../domain/races/strategyConfig'
 import {
   blockMinutes,
   courseEffortKm,
@@ -181,6 +188,10 @@ export interface RaceField {
    * times scaled so the field runs at the owner's paces (`RACE_STRATEGY.paces`).
    */
   timeScale: number
+  /** Seconds of each stop in this race (shorter in short races). */
+  stopS: Record<AidStop, number>
+  /** Weight of the in-race fatigue above the plan on the pace (heavier in short races). */
+  fatigueWeight: number
   /** Rivals' running times without stops, in finishing order. */
   rivalBaseS: number[]
   /** Arrival time of every rival at each aid station (index k: after segment k), whole seconds. */
@@ -210,20 +221,23 @@ export function getRaceField(race: Race): RaceField {
   const R = race.recommendedLevel
   const modelTime = (levels: number) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)))
 
-  // The course factor: the winner runs at the owner's winner pace, one rank ahead of the anchor
-  // two levels above, at the same gap per rank as down to the recommended level.
+  const stopS = stopSeconds(effort)
+
+  // The course factor: the winner runs at the owner's winner pace and finishes one rank ahead of
+  // the anchor two levels above, at the same gap per rank as down to the recommended level (owner
+  // request: the winner is not out on their own). The winner's Quick stops count.
   const [top, middle] = C.levelAnchors
   const topModel = modelTime(top.levels)
   const perRank = (modelTime(middle.levels) - topModel) / (middle.rivalIndex - top.rivalIndex)
   const paces = racePaces(effort)
   const winnerRun = effort * paces.winner * 60
-  const timeScale = winnerRun / (topModel - top.rivalIndex * perRank)
+  const timeScale = (winnerRun - stations * (stopS.normal - stopS.quick)) / (topModel - top.rivalIndex * perRank)
 
   // Finishing times (stops included) at the anchor ranks, then interpolated rank by rank.
-  const stopOf = (i: number) => stations * C.stop[getRivalStop(i, rivals)].seconds
+  const stopOf = (i: number) => stations * stopS[getRivalStop(i, rivals)]
   const anchors: [number, number][] = [
     [0, winnerRun + stopOf(0)],
-    ...C.levelAnchors.map((a): [number, number] => [a.rivalIndex, modelTime(a.levels) * timeScale + stations * C.stop.normal.seconds]),
+    ...C.levelAnchors.map((a): [number, number] => [a.rivalIndex, modelTime(a.levels) * timeScale + stations * stopS.normal]),
     [rivals - 1, effort * paces.last * 60 + stopOf(rivals - 1)],
   ]
   for (let j = 1; j < anchors.length; j++) {
@@ -249,12 +263,21 @@ export function getRaceField(race: Race): RaceField {
     sum += seconds
     cumulativeShares.push(sum / referenceTotal)
   }
-  const stopsS = finish.map((_, i) => C.stop[getRivalStop(i, rivals)].seconds)
+  const stopsS = finish.map((_, i) => stopS[getRivalStop(i, rivals)])
   const rivalBaseS = finish.map((t, i) => t - stations * stopsS[i]!)
   const rivalArrivalsS = segments
     .slice(0, -1)
     .map((_, k) => rivalBaseS.map((t, i) => Math.round(t * cumulativeShares[k]!) + k * stopsS[i]!))
-  return { segments, fatigueScale: getFatigueScale(race, segments), timeScale, rivalBaseS, rivalArrivalsS, rivalFinishS: finish }
+  return {
+    segments,
+    fatigueScale: getFatigueScale(race, segments),
+    timeScale,
+    stopS,
+    fatigueWeight: fatiguePaceWeight(effort),
+    rivalBaseS,
+    rivalArrivalsS,
+    rivalFinishS: finish,
+  }
 }
 
 /** Position among rivals: 1 + rivals strictly faster (a tie goes to the athlete). */
@@ -320,23 +343,27 @@ function segmentFatigue(ctx: StepContext, segment: RaceSegment, intensity: Inten
 
 /**
  * Runs segment `progress.splits.length` at `intensity`. The pace uses the runner's Fatigue plus the
- * in-race fatigue above the plan (Target pace, Normal stops): pushing early makes later segments
- * slower, holding back makes them faster.
+ * in-race fatigue above the plan (Target pace, Normal stops), taken halfway through the segment:
+ * pushing makes the segment itself and the later ones slower, holding back makes them faster. It
+ * weighs more in short races (`fatigueWeight`), so Hard all the way has a cost there too.
  */
 export function runSegment(ctx: StepContext, progress: RaceProgress, intensity: Intensity): RaceProgress {
   const k = progress.splits.length
   const segment = ctx.field.segments[k]!
   const prepared = prepareRunner(ctx.runner)
   const planned = plannedGains(ctx.field.segments, prepared.attributes.recovery, ctx.field.fatigueScale).atStart[k]!
+  const plannedHere = C.fatiguePerEffortKm * segment.effortKm * recoveryCurve(prepared.attributes.recovery) * ctx.field.fatigueScale
+  const gainHere = segmentFatigue(ctx, segment, intensity)
   const gained = progress.fatigue - ctx.runner.fatigue
-  const paceFatigue = ctx.runner.fatigue + C.inRaceFatiguePaceWeight * (gained - planned)
+  const deviation = gained + gainHere / 2 - (planned + plannedHere / 2)
+  const paceFatigue = ctx.runner.fatigue + C.inRaceFatiguePaceWeight * ctx.field.fatigueWeight * deviation
   const seconds =
     segmentBaseSeconds(prepared, segment, paceFatigue, ctx.dayForm) *
     ctx.field.timeScale *
     C.intensity[intensity].pace *
     (ctx.nutrition.gel ? 1 - C.gelTimeSaving : 1)
   const elapsedS = progress.elapsedS + seconds
-  const fatigue = progress.fatigue + segmentFatigue(ctx, segment, intensity)
+  const fatigue = progress.fatigue + gainHere
   const last = k === ctx.field.segments.length - 1
   const arrivalS = Math.round(elapsedS)
   const rivals = last ? ctx.field.rivalFinishS : ctx.field.rivalArrivalsS[k]!
@@ -356,7 +383,7 @@ export function makeStop(ctx: StepContext, progress: RaceProgress, stop: AidStop
   const k = progress.splits.length - 1
   const recovery = prepareRunner(ctx.runner).attributes.recovery
   const fatigue = progress.fatigue - stopRecovery(stop, progress.fatigue - ctx.runner.fatigue, recovery)
-  const seconds = C.stop[stop].seconds
+  const seconds = ctx.field.stopS[stop]
   const split: RaceSplit = { ...progress.splits[k]!, stop, stopS: seconds, fatigueAfterStop: roundStat(Math.min(100, fatigue)) }
   return { elapsedS: progress.elapsedS + seconds, fatigue, splits: [...progress.splits.slice(0, k), split] }
 }
@@ -380,7 +407,7 @@ export function runPlan(
 export function getReferenceFinishS(race: Race, field: RaceField = getRaceField(race)): number {
   return (
     Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel)) * field.timeScale) +
-    (field.segments.length - 1) * C.stop.normal.seconds
+    (field.segments.length - 1) * field.stopS.normal
   )
 }
 

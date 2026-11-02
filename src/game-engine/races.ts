@@ -412,6 +412,8 @@ export interface RaceReport {
   nutrition: Nutrition
   /** The segment after the aid station. */
   next: RaceSegment
+  /** Seconds of each stop in this race. */
+  stopS: Record<AidStop, number>
 }
 
 export function getRaceReport(state: GameState): RaceReport | null {
@@ -439,6 +441,7 @@ export function getRaceReport(state: GameState): RaceReport | null {
     energy: roundStat(100 - fatigue),
     nutrition: active.nutrition,
     next: field.segments[active.splits.length]!,
+    stopS: field.stopS,
   }
 }
 

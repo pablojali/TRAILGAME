@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Attributes } from '../domain/athlete/athlete'
 import { getRace, RACES } from '../domain/races/races'
-import { RACE_STRATEGY, racePaces, type Intensity } from '../domain/races/strategyConfig'
+import { racePaces, type Intensity } from '../domain/races/strategyConfig'
 import { parseGameState } from '../repositories/gameRepository'
 import { newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
 import type { GameState } from './gameState'
@@ -80,7 +80,7 @@ describe('calibration: Target pace with Normal stops is the race before strategi
       for (const recovery of [12, 20, 40]) {
         const ctx = context(race.id, {}, recovery)
         const plan = runPlan(ctx, 'target', 'normal')
-        const stops = (ctx.field.segments.length - 1) * RACE_STRATEGY.stop.normal.seconds
+        const stops = (ctx.field.segments.length - 1) * ctx.field.stopS.normal
         expect(plan.elapsedS - stops).toBeCloseTo(raceSeconds(generateCourse(race), ctx.runner) * ctx.field.timeScale, 6)
       }
     }
@@ -97,13 +97,18 @@ describe('calibration: Target pace with Normal stops is the race before strategi
 })
 
 describe('intensity', () => {
-  it('is faster and more tiring from Recovery to Hard on a short race', () => {
+  it('is more tiring from Recovery to Hard; on a short race Hard all the way does not pay, a Hard finish does', () => {
     const ctx = context('RACE-001')
     const runs = (['recovery', 'easy', 'target', 'hard'] as Intensity[]).map((i) => runPlan(ctx, i, 'normal'))
-    const times = runs.map((r) => r.elapsedS)
     const fatigue = runs.map((r) => r.fatigue)
-    expect([...times].sort((a, b) => b - a)).toEqual(times)
     expect([...fatigue].sort((a, b) => a - b)).toEqual(fatigue)
+    // Recovery, Easy and Target: faster each step.
+    expect(runs[0]!.elapsedS).toBeGreaterThan(runs[1]!.elapsedS)
+    expect(runs[1]!.elapsedS).toBeGreaterThan(runs[2]!.elapsedS)
+    // Owner decision (2 November 2026): in-race fatigue weighs more in short races.
+    const target = runs[2]!.elapsedS
+    expect(Math.abs(runs[3]!.elapsedS - target) / target).toBeLessThan(0.02)
+    expect(runPlan(ctx, ['target', 'hard'], 'normal').elapsedS).toBeLessThan(Math.min(target, runs[3]!.elapsedS))
   })
 
   it('does not make Hard always best: on the longest races going out hard costs time', () => {
@@ -133,7 +138,8 @@ describe('aid stations', () => {
     const arrived = runSegment(ctx, { elapsedS: 0, fatigue: 20, splits: [] }, 'hard')
     const gained = arrived.fatigue - 20
     const after = (['quick', 'normal', 'slow'] as const).map((stop) => makeStop(ctx, arrived, stop))
-    expect(after.map((p) => p.elapsedS - arrived.elapsedS)).toEqual([30, 120, 300])
+    // Stops scale with the race (35 km +2200 m: 30 s, 1:50 min, 4:35 min).
+    expect(after.map((p) => p.elapsedS - arrived.elapsedS)).toEqual([30, 110, 275])
     expect(after.map((p) => arrived.fatigue - p.fatigue)).toEqual([0.1 * gained, 0.25 * gained, 0.45 * gained].map((x) => expect.closeTo(x, 9)))
     // A high Recovery recovers more, but never more than 60% of what the race added.
     const strong = context('RACE-009', {}, 200)
@@ -141,7 +147,7 @@ describe('aid stations', () => {
     const slow = makeStop(strong, strongArrived, 'slow')
     expect(strongArrived.fatigue - slow.fatigue).toBeCloseTo(0.6 * (strongArrived.fatigue - 20), 9)
     expect(slow.fatigue).toBeGreaterThan(20)
-    expect(after[2]!.splits.at(-1)).toMatchObject({ stop: 'slow', stopS: 300 })
+    expect(after[2]!.splits.at(-1)).toMatchObject({ stop: 'slow', stopS: 275 })
   })
 })
 
@@ -150,7 +156,8 @@ describe('nutrition (one gel and one bar at most, for the whole race)', () => {
     const plain = runPlan(context('RACE-001'), 'target', 'normal')
     const gel = runPlan(context('RACE-001', { nutrition: { gel: true, bar: false } }), 'target', 'normal')
     const bar = runPlan(context('RACE-001', { nutrition: { gel: false, bar: true } }), 'target', 'normal')
-    expect(plain.elapsedS - 120 - (gel.elapsedS - 120)).toBeCloseTo((plain.elapsedS - 120) * 0.015, 6)
+    // Forest First Steps: one Normal stop of 45 s.
+    expect(plain.elapsedS - 45 - (gel.elapsedS - 45)).toBeCloseTo((plain.elapsedS - 45) * 0.015, 6)
     expect(gel.fatigue).toBe(plain.fatigue)
     expect(bar.fatigue - 20).toBeCloseTo((plain.fatigue - 20) * 0.985, 9)
   })

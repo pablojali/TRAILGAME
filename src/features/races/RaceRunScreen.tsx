@@ -110,8 +110,12 @@ function Preparation({ race, entryId }: { race: Race; entryId: string }) {
   const { consumables, week } = state
   const segments = getRaceSegments(race)
   const [intensity, setIntensity] = useState<Intensity>('target')
-  const [gel, setGel] = useState(consumables.gel > 0)
-  const [bar, setBar] = useState(consumables.bar > 0)
+  // Taken by default whenever there is stock, also when the stock arrives after the screen opened
+  // (e.g. the server's career synced a moment later); only the player's own choice overrides it.
+  const [gelChoice, setGel] = useState<boolean | null>(null)
+  const [barChoice, setBar] = useState<boolean | null>(null)
+  const gel = gelChoice ?? consumables.gel > 0
+  const bar = barChoice ?? consumables.bar > 0
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -314,7 +318,7 @@ function AidStation({ race, onFinish }: { race: Race; onFinish(result: RaceDayRe
             <span className={styles.tileLabel}>Aid station stop</span>
             <Chips<AidStop>
               label="Aid station stop"
-              options={STOP_OPTIONS.map((o) => ({ id: o.id, label: `${o.label} ${stopDuration(o.id)}` }))}
+              options={STOP_OPTIONS.map((o) => ({ id: o.id, label: `${o.label} ${stopDuration(report.stopS[o.id])}` }))}
               value={stop}
               onChange={setStop}
             />

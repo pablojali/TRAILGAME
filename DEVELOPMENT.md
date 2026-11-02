@@ -952,6 +952,20 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Short-race balance and nutrition default (owner decisions, 2 November 2026)
+
+- **Stops scale with the race** (`RACE_STRATEGY.stopDurations`, `stopSeconds`): Quick / Normal /
+  Slow are 15 s / 45 s / 2 min at 6.2 effort-km, 30 s / 2 min / 5 min at 65, 1 / 4 / 10 min at
+  165 (linear, whole 5 s). Recovery shares are unchanged. Rivals and anchors use the race's stops.
+- **Going Hard costs in short races:** the in-race fatigue above the plan is taken halfway through
+  the segment (so it also slows the segment itself) and weighs ×6 at 6.2 effort-km, falling to ×1
+  at 65 (`fatigueWeights`). In Forest First Steps Hard all the way is now about as fast as Target;
+  Target then a Hard finish is the best plan.
+- **Winner with the pack:** the NPC winner finishes one rank ahead of the leading group (counting
+  their Quick stops), a few seconds ahead instead of more than a minute.
+- **Nutrition:** the gel and bar are taken by default whenever there is stock, also if the stock
+  arrives after the preparation screen opened.
+
 ### Realistic race times, race photos, aid station column (owner requests, 2 November 2026)
 
 - **Field and race times** (owner decisions, 2 November 2026; `RACE_STRATEGY.fieldSize`,

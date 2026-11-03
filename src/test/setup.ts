@@ -18,3 +18,9 @@ afterEach(() => {
   if (typeof localStorage !== 'undefined') localStorage.clear()
   vi.useRealTimers()
 })
+
+// The owner edits src/data/*.csv on GitHub (3 November 2026). Game tests run against fixed copies
+// of those tables, so changing a price, name or level never breaks the checks; the real tables are
+// only validated (src/data/tables.test.ts).
+vi.mock('../data/equipment.csv?raw', async () => ({ default: (await import('./fixtures/equipment.csv?raw')).default }))
+vi.mock('../data/levels.csv?raw', async () => ({ default: (await import('./fixtures/levels.csv?raw')).default }))

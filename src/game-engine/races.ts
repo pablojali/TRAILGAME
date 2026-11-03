@@ -1,4 +1,4 @@
-import { ATTRIBUTE_POINTS_PER_LEVEL, getLevel } from '../domain/athlete/levels'
+import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import { canEnterAtLevel, getRewardMultiplier } from '../domain/races/access'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_MIN_XP, RACE_XP_BAND_PCT, RACE_XP_BASE } from '../domain/races/categories'
 import { getRace, type Race } from '../domain/races/races'
@@ -360,7 +360,7 @@ function finishRace(state: GameState, active: ActiveRace, race: Race, field: Rac
     entry: finished,
     levelBefore: levelAtStart,
     levelAfter,
-    attributePointsAwarded: (levelAfter - levelAtStart) * ATTRIBUTE_POINTS_PER_LEVEL,
+    attributePointsAwarded: getAttributePointsBetween(levelAtStart, levelAfter),
     weekCompleted: advanced.weekCompleted,
   }
 }

@@ -1,5 +1,5 @@
 import { roundStat, STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
-import { ATTRIBUTE_POINTS_PER_LEVEL, getLevel } from '../domain/athlete/levels'
+import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import {
   INJURY_FATIGUE_THRESHOLD,
   INJURY_FITNESS_LOSS,
@@ -200,7 +200,7 @@ export function executeCurrentDay(
       outcome: advanced.outcome,
       levelBefore,
       levelAfter,
-      attributePointsAwarded: (levelAfter - levelBefore) * ATTRIBUTE_POINTS_PER_LEVEL,
+      attributePointsAwarded: getAttributePointsBetween(levelBefore, levelAfter),
       weekCompleted: advanced.weekCompleted,
       injured: outcome.injured === true,
     },

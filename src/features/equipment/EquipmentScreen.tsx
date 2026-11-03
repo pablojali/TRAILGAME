@@ -96,9 +96,18 @@ function SlotIcon({ slot, className }: { slot: EquipmentSlot; className?: string
   )
 }
 
+/** Pictures named in the equipment table's thumbnail column (assets/ui/equipment). */
+const THUMBNAILS = import.meta.glob<string>('/assets/ui/equipment/*.{webp,png,jpg,jpeg}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+})
+
 function ItemArt({ item }: { item: EquipmentItem }) {
   const { state } = useCareer()
   const { athlete } = state
+  const thumbnail = item.thumbnail && THUMBNAILS[`/assets/ui/equipment/${item.thumbnail}`]
+  if (thumbnail) return <img className={styles.thumbnail} src={thumbnail} alt="" />
   if (item.slot === 'shoes') {
     return (
       <Avatar sex={athlete.sex} appearance={{ ...athlete.appearance, outfit: 'none' }} equipment={[item.id]} crop="feet" />

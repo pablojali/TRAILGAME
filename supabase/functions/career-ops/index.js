@@ -236,13 +236,88 @@ function parseAppearance(value, sex) {
   );
 }
 
+// src/data/csv.ts
+function parseCsv(text) {
+  const rows = [];
+  let field = "";
+  let row = [];
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (c === '"') {
+        quoted = false;
+      } else {
+        field += c;
+      }
+    } else if (c === '"') {
+      quoted = true;
+    } else if (c === ",") {
+      row.push(field);
+      field = "";
+    } else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += c;
+    }
+  }
+  if (field !== "" || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  const meaningful = rows.filter((r) => !(r.length === 1 && r[0].trim() === "") && !r[0].trim().startsWith("#"));
+  const [header, ...body] = meaningful;
+  if (!header) return [];
+  const keys = header.map((h) => h.trim());
+  return body.map((r, line) => {
+    if (r.length !== keys.length) throw new Error(`CSV row ${line + 2}: ${r.length} fields, expected ${keys.length}`);
+    return Object.fromEntries(keys.map((key, i) => [key, r[i].trim()]));
+  });
+}
+function csvInt(value, where) {
+  const n = Number(value);
+  if (value === void 0 || value === "" || !Number.isInteger(n)) throw new Error(`${where}: "${value}" is not a whole number`);
+  return n;
+}
+function csvNumber(value, where, fallback) {
+  if ((value === void 0 || value === "") && fallback !== void 0) return fallback;
+  const n = Number(value);
+  if (value === void 0 || value === "" || !Number.isFinite(n)) throw new Error(`${where}: "${value}" is not a number`);
+  return n;
+}
+
+// raw:src/data/levels.csv
+var levels_default = "# Levels (owner table, 3 November 2026). Edit freely: one row per level, in order.\n# xp: total XP needed to reach the level (level 1 is 0). attribute_points: points given on reaching it.\nlevel,xp,attribute_points\n1,0,0\n2,100,2\n3,250,2\n4,450,2\n5,700,2\n6,1000,2\n7,1350,2\n8,1750,2\n9,2200,2\n10,2700,2\n11,3250,2\n12,3850,2\n13,4500,2\n14,5200,2\n15,5950,2\n16,6750,2\n17,7600,2\n18,8500,2\n19,9450,2\n20,10450,2\n21,11500,2\n22,12600,2\n23,13750,2\n24,14950,2\n25,16200,2\n26,17500,2\n27,18850,2\n28,20250,2\n29,21700,2\n30,23200,2\n31,24750,2\n32,26350,2\n33,28000,2\n34,29700,2\n35,31450,2\n36,33250,2\n37,35100,2\n38,37000,2\n39,38950,2\n40,40950,2\n41,43000,2\n42,45100,2\n43,47250,2\n44,49450,2\n45,51700,2\n46,54000,2\n47,56350,2\n48,58750,2\n49,61200,2\n50,63700,2\n";
+
 // src/domain/athlete/levels.ts
-var MAX_LEVEL = 50;
-var LEVEL_THRESHOLDS = Array.from(
-  { length: MAX_LEVEL },
-  (_, i) => ({ level: i + 1, minXp: 100 * i + 25 * i * (i - 1) })
-);
-var ATTRIBUTE_POINTS_PER_LEVEL = 2;
+function parseLevels(text) {
+  const rows = parseCsv(text).map((row, i) => {
+    const where = `levels.csv row ${i + 1}`;
+    return { level: csvInt(row.level, where), minXp: csvInt(row.xp, where), attributePoints: csvInt(row.attribute_points, where) };
+  });
+  rows.forEach((row, i) => {
+    if (row.level !== i + 1) throw new Error(`levels.csv: level ${row.level} out of order (expected ${i + 1})`);
+    if (i === 0 && row.minXp !== 0) throw new Error("levels.csv: level 1 must start at 0 XP");
+    if (i > 0 && row.minXp <= rows[i - 1].minXp) throw new Error(`levels.csv: level ${row.level} needs more XP than level ${i}`);
+    if (row.attributePoints < 0) throw new Error(`levels.csv: level ${row.level} has negative attribute points`);
+  });
+  if (rows.length === 0) throw new Error("levels.csv is empty");
+  return rows;
+}
+var LEVEL_TABLE = parseLevels(levels_default);
+var MAX_LEVEL = LEVEL_TABLE.length;
+var LEVEL_THRESHOLDS = LEVEL_TABLE.map(({ level, minXp }) => ({
+  level,
+  minXp
+}));
+var ATTRIBUTE_POINTS_PER_LEVEL = LEVEL_TABLE[1]?.attributePoints ?? 0;
 function getLevelProgress(xp) {
   let index = 0;
   for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
@@ -255,8 +330,11 @@ function getLevelProgress(xp) {
 function getLevel(xp) {
   return getLevelProgress(xp).level;
 }
+function getAttributePointsBetween(from, to) {
+  return LEVEL_TABLE.filter((row) => row.level > from && row.level <= to).reduce((sum, row) => sum + row.attributePoints, 0);
+}
 function getEarnedAttributePoints(xp) {
-  return (getLevel(xp) - 1) * ATTRIBUTE_POINTS_PER_LEVEL;
+  return getAttributePointsBetween(1, getLevel(xp));
 }
 
 // src/game-engine/appearance.ts
@@ -279,6 +357,14 @@ var ATTRIBUTE_IDS = [
   "recovery",
   "consistency"
 ];
+var ATTRIBUTE_LABELS = {
+  endurance: "Endurance",
+  climbing: "Climbing",
+  speed: "Speed",
+  technical: "Technical",
+  recovery: "Recovery",
+  consistency: "Consistency"
+};
 function isSex(value) {
   return value === "female" || value === "male";
 }
@@ -341,107 +427,104 @@ function applyFitnessDecay(state, now) {
   };
 }
 
+// raw:src/data/equipment.csv
+var equipment_default = `# Equipment (owner table, 3 November 2026). One row per item. Keep each id once and never rename it (saves use it).
+# type: shoes, pack, poles, gel or bar. level: empty for none. price: coins (of one pack for gel/bar); empty = not for sale.
+# pack: units per pack (gel and bar only). thumbnail: file in assets/ui/equipment (empty = the game's own picture).
+# avatar_layer: file in assets/runner/avatar shown on the runner, e.g. footwear/trail-shoes.webp (empty = none, or the drawn poles/backpack).
+# speed\u2026consistency: race-only attribute bonuses. flat, climb, descent, technical_penalty, wear: time multipliers (empty = 1; 0.9 = 10% less, 1.01 = 1% more).
+# effect_text: leave empty to have it written from the bonuses.
+id,name,type,level,price,pack,thumbnail,avatar_layer,speed,endurance,climbing,technical,recovery,consistency,flat,climb,descent,technical_penalty,wear,effect_text,description
+starter-shoes,Starter shoes,shoes,,0,,,footwear/starter-shoes.webp,,,,,,,,,,,,,Basic trail-running shoes. Starting equipment.
+trail-shoes-basic,Trail shoes,shoes,1,35,,,footwear/trail-shoes-basic.webp,1,,,1,,,,,,,,,A small all-round upgrade on the starter shoes.
+trail-shoes,Technical trail shoes,shoes,2,70,,,footwear/trail-shoes.webp,,,,4,,,,,,0.7,,,Grippy shoes for rocky and technical ground.
+trail-shoes-light,Light trail shoes,shoes,2,70,,,footwear/trail-shoes-light.webp,3,,,,,,,,0.98,1.3,,,"Fast on flats and descents, with less grip on technical ground."
+poles,Poles,poles,1,25,,,,,,2,,,,1.01,,,,,,Folding poles that help on climbs.
+poles-2,Poles,poles,2,50,,,,,1,3,,,,1.01,,,,,,Light carbon poles.
+hydration-backpack,Hydration backpack,pack,1,30,,,,,1,,,,,,,,,0.9,,Carries water and food for long races.
+hydration-backpack-2,Hydration backpack,pack,2,90,,,,,2,,,,,,,,,0.85,,"A larger, better-fitting race vest."
+energy-gel,Energy gel,gel,,10,3,,,,,,,,,,,,,,1.5% faster for the whole race. Used up by the race.,Energy gel for races. One is enough for a whole race.
+cereal-bar,Cereal bar,bar,,10,3,,,,,,,,,,,,,,1.5% less fatigue for the whole race. Used up by the race.,Cereal bar for races. One is enough for a whole race.
+`;
+
 // src/domain/equipment/items.ts
-var EQUIPMENT_ITEMS = [
-  {
-    id: "starter-shoes",
-    label: "Starter shoes",
-    slot: "shoes",
-    description: "Basic trail-running shoes. Starting equipment.",
-    price: 0
-  },
-  {
-    id: "trail-shoes-basic",
-    label: "Trail shoes",
-    slot: "shoes",
-    level: 1,
-    description: "A small all-round upgrade on the starter shoes.",
-    price: 35,
-    raceEffect: { attributes: { speed: 1, technical: 1 } },
-    effectText: "Races: Speed +1, Technical +1."
-  },
-  {
-    id: "trail-shoes",
-    label: "Technical trail shoes",
-    slot: "shoes",
-    level: 2,
-    description: "Grippy shoes for rocky and technical ground.",
-    price: 70,
-    raceEffect: { attributes: { technical: 4 }, technicalPenalty: 0.7 },
-    effectText: "Races: Technical +4, technical descents 30% easier."
-  },
-  {
-    id: "trail-shoes-light",
-    label: "Light trail shoes",
-    slot: "shoes",
-    level: 2,
-    description: "Fast on flats and descents, with less grip on technical ground.",
-    price: 70,
-    raceEffect: { attributes: { speed: 3 }, descent: 0.98, technicalPenalty: 1.3 },
-    effectText: "Races: Speed +3, descents 2% faster, but technical descents 30% harder."
-  },
-  {
-    id: "poles",
-    label: "Poles",
-    slot: "poles",
-    level: 1,
-    description: "Folding poles that help on climbs.",
-    price: 25,
-    raceEffect: { attributes: { climbing: 2 }, runnable: 1.01 },
-    effectText: "Races: Climbing +2, but flats 1% slower."
-  },
-  {
-    id: "poles-2",
-    label: "Poles",
-    slot: "poles",
-    level: 2,
-    description: "Light carbon poles.",
-    price: 50,
-    raceEffect: { attributes: { climbing: 3, endurance: 1 }, runnable: 1.01 },
-    effectText: "Races: Climbing +3, Endurance +1, but flats 1% slower."
-  },
-  {
-    id: "hydration-backpack",
-    label: "Hydration backpack",
-    slot: "pack",
-    level: 1,
-    description: "Carries water and food for long races.",
-    price: 30,
-    raceEffect: { attributes: { endurance: 1 }, slowdown: 0.9 },
-    effectText: "Races: Endurance +1, 10% less wear over distance."
-  },
-  {
-    id: "hydration-backpack-2",
-    label: "Hydration backpack",
-    slot: "pack",
-    level: 2,
-    description: "A larger, better-fitting race vest.",
-    price: 90,
-    raceEffect: { attributes: { endurance: 2 }, slowdown: 0.85 },
-    effectText: "Races: Endurance +2, 15% less wear over distance."
-  },
-  // Gels and cereal bars (owner decisions, 1 November 2026): consumables sold in packs of 3 for 10
-  // coins. The runner takes at most 1 gel and 1 bar to a race, which uses them up; one of each is
-  // enough for the whole race. Their race bonus lives in the race engine (RACE_NUTRITION).
-  {
-    id: "energy-gel",
-    label: "Energy gel",
-    slot: "gel",
-    description: "Energy gel for races. One is enough for a whole race.",
-    price: 10,
-    packSize: 3,
-    effectText: "Races: 1.5% faster for the whole race. Used up by the race."
-  },
-  {
-    id: "cereal-bar",
-    label: "Cereal bar",
-    slot: "bar",
-    description: "Cereal bar for races. One is enough for a whole race.",
-    price: 10,
-    packSize: 3,
-    effectText: "Races: 1.5% less fatigue for the whole race. Used up by the race."
+var MULTIPLIER_COLUMNS = {
+  flat: "runnable",
+  climb: "climb",
+  descent: "descent",
+  technical_penalty: "technicalPenalty",
+  wear: "slowdown"
+};
+var SLOTS = ["shoes", "pack", "poles", "gel", "bar"];
+function percentOf(multiplier) {
+  return `${Math.round(Math.abs(1 - multiplier) * 1e3) / 10}%`;
+}
+function describeRaceEffect(effect) {
+  const good = [];
+  const bad = [];
+  const attributes = Object.entries(effect.attributes ?? {});
+  for (const [id, value] of [...attributes].sort((x, y) => y[1] - x[1])) {
+    ;
+    (value >= 0 ? good : bad).push(`${ATTRIBUTE_LABELS[id]} ${value >= 0 ? "+" : "\u2212"}${Math.abs(value)}`);
   }
-];
+  const phrase = (m, better, worse) => {
+    if (m === void 0 || m === 1) return;
+    if (m < 1) good.push(better(percentOf(m)));
+    else bad.push(worse(percentOf(m)));
+  };
+  phrase(effect.runnable, (p) => `flats ${p} faster`, (p) => `flats ${p} slower`);
+  phrase(effect.climb, (p) => `climbs ${p} faster`, (p) => `climbs ${p} slower`);
+  phrase(effect.descent, (p) => `descents ${p} faster`, (p) => `descents ${p} slower`);
+  phrase(effect.technicalPenalty, (p) => `technical descents ${p} easier`, (p) => `technical descents ${p} harder`);
+  phrase(effect.slowdown, (p) => `${p} less wear over distance`, (p) => `${p} more wear over distance`);
+  if (good.length === 0 && bad.length === 0) return void 0;
+  const text = good.join(", ") + (bad.length ? `${good.length ? ", but " : ""}${bad.join(", ")}` : "");
+  return `Races: ${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
+}
+function parseEquipment(text) {
+  const items = parseCsv(text).map((row, i) => {
+    const where = `equipment.csv row ${i + 1} (${row.id || "no id"})`;
+    if (!row.id) throw new Error(`${where}: missing id`);
+    const slot = row.type;
+    if (!SLOTS.includes(slot)) throw new Error(`${where}: unknown type "${row.type}"`);
+    const attributes = {};
+    for (const id of ATTRIBUTE_IDS) {
+      const value = csvNumber(row[id], where, 0);
+      if (value !== 0) attributes[id] = value;
+    }
+    const effect = {};
+    if (Object.keys(attributes).length) effect.attributes = attributes;
+    for (const [column, key] of Object.entries(MULTIPLIER_COLUMNS)) {
+      const value = csvNumber(row[column], where, 1);
+      if (!(value > 0)) throw new Error(`${where}: ${column} must be above 0`);
+      if (value !== 1) effect[key] = value;
+    }
+    const hasEffect = Object.keys(effect).length > 0;
+    const item = {
+      id: row.id,
+      label: row.name || row.id,
+      slot,
+      description: row.description ?? "",
+      price: row.price ? csvInt(row.price, where) : null
+    };
+    if (row.level) item.level = csvInt(row.level, where);
+    if (row.pack) item.packSize = csvInt(row.pack, where);
+    if ((slot === "gel" || slot === "bar") !== (item.packSize !== void 0)) {
+      throw new Error(`${where}: gel and bar need a pack size, other types none`);
+    }
+    if (row.thumbnail) item.thumbnail = row.thumbnail;
+    if (row.avatar_layer) item.avatarLayer = row.avatar_layer;
+    if (hasEffect) item.raceEffect = effect;
+    const effectText = row.effect_text ? `Races: ${row.effect_text}` : hasEffect ? describeRaceEffect(effect) : void 0;
+    if (effectText) item.effectText = effectText;
+    return item;
+  });
+  const ids = items.map((item) => item.id);
+  const twice = ids.find((id, i) => ids.indexOf(id) !== i);
+  if (twice) throw new Error(`equipment.csv: id "${twice}" appears twice`);
+  return items;
+}
+var EQUIPMENT_ITEMS = parseEquipment(equipment_default);
 function isConsumable(item) {
   return item.packSize !== void 0;
 }
@@ -1261,7 +1344,7 @@ function executeCurrentDay(state, ref, now) {
       outcome: advanced.outcome,
       levelBefore,
       levelAfter,
-      attributePointsAwarded: (levelAfter - levelBefore) * ATTRIBUTE_POINTS_PER_LEVEL,
+      attributePointsAwarded: getAttributePointsBetween(levelBefore, levelAfter),
       weekCompleted: advanced.weekCompleted,
       injured: outcome.injured === true
     }
@@ -1495,7 +1578,7 @@ function finishRace(state, active, race, field, now) {
     entry: finished,
     levelBefore: levelAtStart,
     levelAfter,
-    attributePointsAwarded: (levelAfter - levelAtStart) * ATTRIBUTE_POINTS_PER_LEVEL,
+    attributePointsAwarded: getAttributePointsBetween(levelAtStart, levelAfter),
     weekCompleted: advanced.weekCompleted
   };
 }

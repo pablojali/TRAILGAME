@@ -1,18 +1,48 @@
-/** Highest level (owner decision, 29 October 2026; was 5). */
-export const MAX_LEVEL = 50
+import { csvInt, parseCsv } from '../../data/csv'
+import levelsCsv from '../../data/levels.csv?raw'
 
 /**
- * Level thresholds by cumulative XP, ascending. Each level costs 50 XP more than the one before
- * (the original curve, continued to level 50): Level 2 at 100, 3 at 250, 4 at 450, 5 at 700,
- * 10 at 2,700, 20 at 10,450, 30 at 23,200, 50 at 63,700.
+ * Levels come from the owner's table src/data/levels.csv (owner request, 3 November 2026): one row
+ * per level with the total XP needed and the attribute points it gives. Add rows to add levels.
+ * The table is checked when the game loads: levels 1, 2, 3… in order, level 1 at 0 XP, XP rising.
  */
-export const LEVEL_THRESHOLDS: readonly { level: number; minXp: number }[] = Array.from(
-  { length: MAX_LEVEL },
-  (_, i) => ({ level: i + 1, minXp: 100 * i + 25 * i * (i - 1) }),
-)
+export interface LevelRow {
+  level: number
+  minXp: number
+  attributePoints: number
+}
 
-/** Attribute points awarded for each level gained. */
-export const ATTRIBUTE_POINTS_PER_LEVEL = 2
+export function parseLevels(text: string): LevelRow[] {
+  const rows = parseCsv(text).map((row, i) => {
+    const where = `levels.csv row ${i + 1}`
+    return { level: csvInt(row.level, where), minXp: csvInt(row.xp, where), attributePoints: csvInt(row.attribute_points, where) }
+  })
+  rows.forEach((row, i) => {
+    if (row.level !== i + 1) throw new Error(`levels.csv: level ${row.level} out of order (expected ${i + 1})`)
+    if (i === 0 && row.minXp !== 0) throw new Error('levels.csv: level 1 must start at 0 XP')
+    if (i > 0 && row.minXp <= rows[i - 1]!.minXp) throw new Error(`levels.csv: level ${row.level} needs more XP than level ${i}`)
+    if (row.attributePoints < 0) throw new Error(`levels.csv: level ${row.level} has negative attribute points`)
+  })
+  if (rows.length === 0) throw new Error('levels.csv is empty')
+  return rows
+}
+
+export const LEVEL_TABLE: readonly LevelRow[] = parseLevels(levelsCsv)
+
+/** Highest level: the last row of the table. */
+export const MAX_LEVEL = LEVEL_TABLE.length
+
+/** Level thresholds by cumulative XP, ascending. */
+export const LEVEL_THRESHOLDS: readonly { level: number; minXp: number }[] = LEVEL_TABLE.map(({ level, minXp }) => ({
+  level,
+  minXp,
+}))
+
+/**
+ * Attribute points per level gained, for texts. The table may give each level its own number; the
+ * game always uses `getAttributePointsBetween`.
+ */
+export const ATTRIBUTE_POINTS_PER_LEVEL = LEVEL_TABLE[1]?.attributePoints ?? 0
 
 export interface LevelProgress {
   level: number
@@ -36,7 +66,12 @@ export function getLevel(xp: number): number {
   return getLevelProgress(xp).level
 }
 
+/** Attribute points given by the levels after `from` up to and including `to`. */
+export function getAttributePointsBetween(from: number, to: number): number {
+  return LEVEL_TABLE.filter((row) => row.level > from && row.level <= to).reduce((sum, row) => sum + row.attributePoints, 0)
+}
+
 /** Total attribute points earned from levels gained so far (none at level 1). */
 export function getEarnedAttributePoints(xp: number): number {
-  return (getLevel(xp) - 1) * ATTRIBUTE_POINTS_PER_LEVEL
+  return getAttributePointsBetween(1, getLevel(xp))
 }

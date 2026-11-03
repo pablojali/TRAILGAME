@@ -15,3 +15,4 @@ hydration-backpack,Hydration backpack,pack,1,30,,,,,1,,,,,,,,,0.9,,Carries water
 hydration-backpack-2,Hydration backpack,pack,2,90,,,,,2,,,,,,,,,0.85,,"A larger, better-fitting race vest."
 energy-gel,Energy gel,gel,,10,3,,,,,,,,,,,,,,1.5% faster for the whole race. Used up by the race.,Energy gel for races. One is enough for a whole race.
 cereal-bar,Cereal bar,bar,,10,3,,,,,,,,,,,,,,1.5% less fatigue for the whole race. Used up by the race.,Cereal bar for races. One is enough for a whole race.
+gels-and-bars,Gels & bars,nutrition,,10,3,,,,,,,,,,,,,,"Gel: 1.5% faster; cereal bar: 1.5% less fatigue, for the whole race. A race uses one of each.",3 energy gels and 3 cereal bars. One of each is enough for a whole race.

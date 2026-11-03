@@ -429,8 +429,8 @@ function applyFitnessDecay(state, now) {
 
 // raw:src/data/equipment.csv
 var equipment_default = `# Equipment (owner table, 3 November 2026). One row per item. Keep each id once and never rename it (saves use it).
-# type: shoes, pack, poles, gel or bar. level: empty for none. price: coins (of one pack for gel/bar); empty = not for sale.
-# pack: units per pack (gel and bar only). thumbnail: file in assets/ui/equipment (empty = the game's own picture).
+# type: shoes, pack, poles, nutrition (gels and bars together), or gel / bar (one kind). level: empty for none. price: coins (of one pack for gel/bar); empty = not for sale.
+# pack: units per pack (nutrition: that many gels and that many bars). thumbnail: file in assets/ui/equipment (empty = the game's own picture).
 # avatar_layer: file in assets/runner/avatar shown on the runner, e.g. footwear/trail-shoes.webp (empty = none, or the drawn poles/backpack).
 # speed\u2026consistency: race-only attribute bonuses. flat, climb, descent, technical_penalty, wear: time multipliers (empty = 1; 0.9 = 10% less, 1.01 = 1% more).
 # effect_text: leave empty to have it written from the bonuses.
@@ -443,8 +443,7 @@ poles,Poles,poles,1,25,,,,,,2,,,,1.01,,,,,,Folding poles that help on climbs.
 poles-2,Poles,poles,2,50,,,,,1,3,,,,1.01,,,,,,Light carbon poles.
 hydration-backpack,Hydration backpack,pack,1,30,,lvl1_back_01.webp,accessories/lvl1_back_01.webp,,1,,,,,,,,,0.9,,Carries water and food for long races.
 hydration-backpack-2,Hydration backpack,pack,2,90,,,,,2,,,,,,,,,0.85,,"A larger, better-fitting race vest."
-energy-gel,Energy gel,gel,,5,3,,,,,,,,,,,,,,1.5% faster for the whole race. Used up by the race.,Energy gel for races. One is enough for a whole race.
-cereal-bar,Cereal bar,bar,,5,3,,,,,,,,,,,,,,1.5% less fatigue for the whole race. Used up by the race.,Cereal bar for races. One is enough for a whole race.
+gels-and-bars,Gels & bars,nutrition,,5,3,,,,,,,,,,,,,,"Gel: 1.5% faster; cereal bar: 1.5% less fatigue, for the whole race. A race uses one of each.",3 energy gels and 3 cereal bars. One of each is enough for a whole race.
 `;
 
 // src/domain/equipment/items.ts
@@ -455,7 +454,7 @@ var MULTIPLIER_COLUMNS = {
   technical_penalty: "technicalPenalty",
   wear: "slowdown"
 };
-var SLOTS = ["shoes", "pack", "poles", "gel", "bar"];
+var SLOTS = ["shoes", "pack", "poles", "gel", "bar", "nutrition"];
 function percentOf(multiplier) {
   return `${Math.round(Math.abs(1 - multiplier) * 1e3) / 10}%`;
 }
@@ -509,8 +508,8 @@ function parseEquipment(text) {
     };
     if (row.level) item.level = csvInt(row.level, where);
     if (row.pack) item.packSize = csvInt(row.pack, where);
-    if ((slot === "gel" || slot === "bar") !== (item.packSize !== void 0)) {
-      throw new Error(`${where}: gel and bar need a pack size, other types none`);
+    if ((slot === "gel" || slot === "bar" || slot === "nutrition") !== (item.packSize !== void 0)) {
+      throw new Error(`${where}: gel, bar and nutrition need a pack size, other types none`);
     }
     if (row.thumbnail) item.thumbnail = row.thumbnail;
     if (row.avatar_layer) item.avatarLayer = row.avatar_layer;
@@ -527,6 +526,10 @@ function parseEquipment(text) {
 var EQUIPMENT_ITEMS = parseEquipment(equipment_default);
 function isConsumable(item) {
   return item.packSize !== void 0;
+}
+function consumableKinds(item) {
+  if (item.slot === "nutrition") return ["gel", "bar"];
+  return item.slot === "gel" || item.slot === "bar" ? [item.slot] : [];
 }
 var OWNED_FROM_START = ["starter-shoes"];
 function getEquipmentItem(id) {
@@ -574,7 +577,8 @@ function buyItem(state, itemId, confirmedPrice) {
   if (item.price !== confirmedPrice) return { ok: false, error: "price-changed" };
   if (item.price > state.coins) return { ok: false, error: "insufficient-coins" };
   if (consumable) {
-    const consumables = { ...state.consumables, [item.slot]: state.consumables[item.slot] + item.packSize };
+    const consumables = { ...state.consumables };
+    for (const kind of consumableKinds(item)) consumables[kind] += item.packSize;
     return { ok: true, state: { ...state, coins: state.coins - item.price, consumables } };
   }
   return {

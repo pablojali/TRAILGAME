@@ -11,7 +11,11 @@ import { ATTRIBUTE_IDS, ATTRIBUTE_LABELS, type AttributeId, type Attributes } fr
  * while the item is equipped. They are never attribute points, do not count toward attribute
  * limits and never change base attributes, levels or training.
  */
-export type EquipmentSlot = 'shoes' | 'pack' | 'poles' | 'gel' | 'bar'
+/**
+ * `nutrition`: one pack with gels and cereal bars together (owner decision, 3 November 2026); `gel`
+ * and `bar` packs of one kind still work.
+ */
+export type EquipmentSlot = 'shoes' | 'pack' | 'poles' | 'gel' | 'bar' | 'nutrition'
 
 /** Bonuses applied by the race simulation while the item is equipped. */
 export interface RaceEffect {
@@ -62,7 +66,7 @@ const MULTIPLIER_COLUMNS = {
   wear: 'slowdown',
 } as const satisfies Record<string, keyof Omit<RaceEffect, 'attributes'>>
 
-const SLOTS: readonly EquipmentSlot[] = ['shoes', 'pack', 'poles', 'gel', 'bar']
+const SLOTS: readonly EquipmentSlot[] = ['shoes', 'pack', 'poles', 'gel', 'bar', 'nutrition']
 
 /** "10%" or "1.5%". */
 function percentOf(multiplier: number): string {
@@ -124,8 +128,8 @@ export function parseEquipment(text: string): EquipmentItem[] {
     }
     if (row.level) item.level = csvInt(row.level, where)
     if (row.pack) item.packSize = csvInt(row.pack, where)
-    if ((slot === 'gel' || slot === 'bar') !== (item.packSize !== undefined)) {
-      throw new Error(`${where}: gel and bar need a pack size, other types none`)
+    if ((slot === 'gel' || slot === 'bar' || slot === 'nutrition') !== (item.packSize !== undefined)) {
+      throw new Error(`${where}: gel, bar and nutrition need a pack size, other types none`)
     }
     if (row.thumbnail) item.thumbnail = row.thumbnail
     if (row.avatar_layer) item.avatarLayer = row.avatar_layer
@@ -143,12 +147,17 @@ export function parseEquipment(text: string): EquipmentItem[] {
 /** Every item, from the owner's table, in its order. */
 export const EQUIPMENT_ITEMS: readonly EquipmentItem[] = parseEquipment(equipmentCsv)
 
-/** The consumable kinds and the item sold for each. */
+/** The consumable kinds kept in stock (a race takes one of each at most). */
 export type ConsumableKind = 'gel' | 'bar'
-export const CONSUMABLE_ITEM: Record<ConsumableKind, string> = { gel: 'energy-gel', bar: 'cereal-bar' }
 
-export function isConsumable(item: EquipmentItem): item is EquipmentItem & { slot: ConsumableKind; packSize: number } {
+export function isConsumable(item: EquipmentItem): item is EquipmentItem & { packSize: number } {
   return item.packSize !== undefined
+}
+
+/** What a consumable pack refills: its own kind, or gels and bars for a `nutrition` pack. */
+export function consumableKinds(item: EquipmentItem): ConsumableKind[] {
+  if (item.slot === 'nutrition') return ['gel', 'bar']
+  return item.slot === 'gel' || item.slot === 'bar' ? [item.slot] : []
 }
 
 /** Every runner owns the starting equipment (§8.1). It starts unequipped (owner decision). */

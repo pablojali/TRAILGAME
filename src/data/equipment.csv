@@ -1,6 +1,6 @@
 # Equipment (owner table, 3 November 2026). One row per item. Keep each id once and never rename it (saves use it).
-# type: shoes, pack, poles, gel or bar. level: empty for none. price: coins (of one pack for gel/bar); empty = not for sale.
-# pack: units per pack (gel and bar only). thumbnail: file in assets/ui/equipment (empty = the game's own picture).
+# type: shoes, pack, poles, nutrition (gels and bars together), or gel / bar (one kind). level: empty for none. price: coins (of one pack for gel/bar); empty = not for sale.
+# pack: units per pack (nutrition: that many gels and that many bars). thumbnail: file in assets/ui/equipment (empty = the game's own picture).
 # avatar_layer: file in assets/runner/avatar shown on the runner, e.g. footwear/trail-shoes.webp (empty = none, or the drawn poles/backpack).
 # speed…consistency: race-only attribute bonuses. flat, climb, descent, technical_penalty, wear: time multipliers (empty = 1; 0.9 = 10% less, 1.01 = 1% more).
 # effect_text: leave empty to have it written from the bonuses.
@@ -13,5 +13,4 @@ poles,Poles,poles,1,25,,,,,,2,,,,1.01,,,,,,Folding poles that help on climbs.
 poles-2,Poles,poles,2,50,,,,,1,3,,,,1.01,,,,,,Light carbon poles.
 hydration-backpack,Hydration backpack,pack,1,30,,lvl1_back_01.webp,accessories/lvl1_back_01.webp,,1,,,,,,,,,0.9,,Carries water and food for long races.
 hydration-backpack-2,Hydration backpack,pack,2,90,,,,,2,,,,,,,,,0.85,,"A larger, better-fitting race vest."
-energy-gel,Energy gel,gel,,5,3,,,,,,,,,,,,,,1.5% faster for the whole race. Used up by the race.,Energy gel for races. One is enough for a whole race.
-cereal-bar,Cereal bar,bar,,5,3,,,,,,,,,,,,,,1.5% less fatigue for the whole race. Used up by the race.,Cereal bar for races. One is enough for a whole race.
+gels-and-bars,Gels & bars,nutrition,,5,3,,,,,,,,,,,,,,"Gel: 1.5% faster; cereal bar: 1.5% less fatigue, for the whole race. A race uses one of each.",3 energy gels and 3 cereal bars. One of each is enough for a whole race.

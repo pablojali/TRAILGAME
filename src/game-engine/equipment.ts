@@ -1,4 +1,4 @@
-import { getEquipmentItem, isConsumable } from '../domain/equipment/items'
+import { consumableKinds, getEquipmentItem, isConsumable } from '../domain/equipment/items'
 import type { GameState } from './gameState'
 
 /** `consumable`: gels and bars are counted and taken to a race, never equipped. */
@@ -53,7 +53,8 @@ export function buyItem(
   if (item.price !== confirmedPrice) return { ok: false, error: 'price-changed' }
   if (item.price > state.coins) return { ok: false, error: 'insufficient-coins' }
   if (consumable) {
-    const consumables = { ...state.consumables, [item.slot]: state.consumables[item.slot] + item.packSize }
+    const consumables = { ...state.consumables }
+    for (const kind of consumableKinds(item)) consumables[kind] += item.packSize
     return { ok: true, state: { ...state, coins: state.coins - item.price, consumables } }
   }
   return {

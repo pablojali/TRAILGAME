@@ -82,10 +82,12 @@ describe('Equipment', () => {
     ])
     // Every item is in the grid under All, gels and cereal bars included, without invented values.
     await user.click(screen.getByRole('button', { name: 'All' }))
-    expect(within(grid()).getAllByRole('button')).toHaveLength(10)
+    expect(within(grid()).getAllByRole('button')).toHaveLength(11)
     // Same order as the slots: gels and cereal bars first, poles last.
     expect(within(grid()).getAllByRole('button')[0]).toHaveAccessibleName(/^Energy gel/)
-    expect(within(grid()).getAllByRole('button')[9]).toHaveAccessibleName(/^Poles · Lvl 2/)
+    expect(within(grid()).getAllByRole('button')[10]).toHaveAccessibleName(/^Poles · Lvl 2/)
+    // One pack of gels and bars together, shown with the gels (owner decision, 3 November 2026).
+    expect(within(grid()).getByRole('button', { name: 'Gels & bars, 10 coins, 0 gels, 0 bars in stock, Buy pack of 3' })).toBeInTheDocument()
     expect(within(grid()).getByRole('button', { name: 'Energy gel, 10 coins, 0 in stock, Buy pack of 3' })).toBeInTheDocument()
     expect(within(grid()).getByRole('button', { name: 'Hydration backpack · Lvl 2, 90 coins, Need 30 coins more' })).toBeInTheDocument()
 

@@ -20,6 +20,14 @@ describe('equipment', () => {
     expect(bar.ok && bar.state.consumables).toEqual({ gel: 0, bar: 3 })
   })
 
+  it('sells gels and cereal bars together in one pack: 3 of each (owner decision, 3 November 2026)', () => {
+    const start = { ...newGame(), coins: 25 }
+    const pack = buyItem(start, 'gels-and-bars', 10)
+    if (!pack.ok) throw new Error(pack.error)
+    expect(pack.state).toEqual({ ...start, coins: 15, consumables: { gel: 3, bar: 3 } })
+    expect(setItemEquipped(pack.state, 'gels-and-bars', true)).toEqual({ ok: false, error: 'consumable' })
+  })
+
   it('never equips gels or cereal bars: they are counted and taken to a race', () => {
     const state = { ...newGame(), consumables: { gel: 3, bar: 3 } }
     expect(setItemEquipped(state, 'energy-gel', true)).toEqual({ ok: false, error: 'consumable' })
@@ -39,8 +47,9 @@ describe('equipment', () => {
       // Gels and cereal bars (owner decision, 1 November 2026): packs of 3 for 10 coins, no level.
       ['energy-gel', 'gel', null, 10],
       ['cereal-bar', 'bar', null, 10],
+      ['gels-and-bars', 'nutrition', null, 10],
     ])
-    for (const id of ['energy-gel', 'cereal-bar']) {
+    for (const id of ['energy-gel', 'cereal-bar', 'gels-and-bars']) {
       expect(getEquipmentItem(id)).toMatchObject({ packSize: 3 })
       // Their bonus belongs to the race engine (nutrition), not to the equipment effects.
       expect(getEquipmentItem(id)).not.toHaveProperty('raceEffect')

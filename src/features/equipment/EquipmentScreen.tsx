@@ -11,12 +11,14 @@ import { formatCoins } from '../../domain/economy/coins'
 import {
   EQUIPMENT_ITEMS,
   getEquipmentItem,
+  consumableKinds,
   isConsumable,
   itemName,
   type EquipmentItem,
   type EquipmentSlot,
 } from '../../domain/equipment/items'
 import { isEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
+import type { GameState } from '../../game-engine/gameState'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './EquipmentScreen.module.css'
 
@@ -49,6 +51,8 @@ const ICON_PATHS: Record<EquipmentSlot, string> = {
   // Placeholders until there is art (owner request, 1 November 2026).
   gel: 'M9 2h6l-1 4v13a2 2 0 0 1-2 2 2 2 0 0 1-2-2V6zM10 10h4',
   bar: 'M3 9h18v6H3zM7 9v6M11 9v6M15 9v6',
+  // Gels and bars together (owner decision, 3 November 2026): a gel beside a bar.
+  nutrition: 'M5 3h4l-1 3v10a2 2 0 0 1-4 0V6zM12 11h9v5h-9zM15 11v5M18 11v5',
 }
 
 /** In the owner's order (1 November 2026): gels, cereal bars, shoes, backpack, poles. */
@@ -60,7 +64,20 @@ const SLOTS: readonly { id: EquipmentSlot; label: string }[] = [
   { id: 'poles', label: 'Poles' },
 ]
 
-const SLOT_LABELS = Object.fromEntries(SLOTS.map((s) => [s.id, s.label])) as Record<EquipmentSlot, string>
+const SLOT_LABELS: Record<EquipmentSlot, string> = {
+  ...(Object.fromEntries(SLOTS.map((s) => [s.id, s.label])) as Record<EquipmentSlot, string>),
+  nutrition: 'Gels & bars',
+}
+
+/** Items shown under a slot box or shop filter: a gels-and-bars pack is under both Gels and Bars. */
+function inSlot(item: EquipmentItem, slot: EquipmentSlot): boolean {
+  return item.slot === slot || (item.slot === 'nutrition' && (slot === 'gel' || slot === 'bar'))
+}
+
+/** Where an item sorts: a gels-and-bars pack first, with the gels. */
+function slotOrder(item: EquipmentItem): number {
+  return SLOTS.findIndex((s) => s.id === (item.slot === 'nutrition' ? 'gel' : item.slot))
+}
 
 type ShopFilter = EquipmentSlot | 'all'
 
@@ -75,7 +92,7 @@ const SHOP_FILTERS: readonly { id: ShopFilter; label: string }[] = [
 
 /** Items in the slot order above, then in catalog order. */
 const ITEMS_IN_ORDER: readonly EquipmentItem[] = [...EQUIPMENT_ITEMS].sort(
-  (a, b) => SLOTS.findIndex((s) => s.id === a.slot) - SLOTS.findIndex((s) => s.id === b.slot),
+  (a, b) => slotOrder(a) - slotOrder(b),
 )
 
 type EquipmentTab = 'equipped' | 'shop'
@@ -126,6 +143,14 @@ function bonuses(item: EquipmentItem): string[] {
 /** Units in stock of a consumable, e.g. "2 in stock". */
 function stockText(count: number): string {
   return `${count} in stock`
+}
+
+/** The stock a consumable pack refills: "2 in stock", or "2 gels, 1 bar in stock" for gels and bars. */
+function itemStockText(item: EquipmentItem, consumables: GameState['consumables']): string {
+  const kinds = consumableKinds(item)
+  if (kinds.length === 1) return stockText(consumables[kinds[0]!])
+  const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`
+  return `${plural(consumables.gel, 'gel')}, ${plural(consumables.bar, 'bar')} in stock`
 }
 
 /** What the item does in races, in words; "To be defined" for items without defined effects. */
@@ -292,7 +317,7 @@ function SlotCards({ slot, onBack, onOpen }: { slot: EquipmentSlot; onBack(): vo
       </div>
       <ScrollPanel label={`${SLOT_LABELS[slot]} cards`}>
         <ul className={styles.cardGrid}>
-          {EQUIPMENT_ITEMS.filter((item) => item.slot === slot).map((item) => (
+          {EQUIPMENT_ITEMS.filter((item) => inSlot(item, slot)).map((item) => (
             <li key={item.id}>
               <ItemCard item={item} onOpen={onOpen} />
             </li>
@@ -327,7 +352,7 @@ function ShopTab({
   onFilter(filter: ShopFilter): void
   onOpen(itemId: string): void
 }) {
-  const items = ITEMS_IN_ORDER.filter((item) => filter === 'all' || item.slot === filter)
+  const items = ITEMS_IN_ORDER.filter((item) => filter === 'all' || inSlot(item, filter))
   return (
     <>
       {/* One row of filters that scrolls sideways on narrow phones. */}
@@ -357,7 +382,7 @@ function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string
     <button
       type="button"
       className={styles.card}
-      aria-label={`${itemName(item)}, ${item.price === null ? `price ${TO_BE_DEFINED.toLowerCase()}` : item.price === 0 ? 'free' : formatCoins(item.price)}${isConsumable(item) ? `, ${stockText(state.consumables[item.slot])}` : ''}, ${status.text}`}
+      aria-label={`${itemName(item)}, ${item.price === null ? `price ${TO_BE_DEFINED.toLowerCase()}` : item.price === 0 ? 'free' : formatCoins(item.price)}${isConsumable(item) ? `, ${itemStockText(item, state.consumables)}` : ''}, ${status.text}`}
       onClick={() => onOpen(item.id)}
     >
       <span className={styles.cardTop}>
@@ -370,7 +395,7 @@ function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string
       </span>
       <span className={styles.cardValues}>
         {isConsumable(item)
-          ? `${effectText(item).replace(/ Used up by the race\.$/, '')} · ${stockText(state.consumables[item.slot])}`
+          ? `${effectText(item).replace(/ Used up by the race\.$/, '')} · ${itemStockText(item, state.consumables)}`
           : bonuses(item).length
             ? bonuses(item).join(' · ')
             : item.price === null
@@ -406,7 +431,7 @@ function ItemDetail({
   const [busy, setBusy] = useState<'paying' | 'equipping' | null>(null)
   const pending = useRef(false)
   const consumable = isConsumable(item)
-  const stock = consumable ? state.consumables[item.slot] : 0
+  const stock = consumable ? itemStockText(item, state.consumables).replace(/ in stock$/, '') : ''
   const owned = !consumable && state.ownedEquipment.includes(item.id)
   const worn = isEquipped(state, item.id)
   const price = item.price
@@ -456,7 +481,7 @@ function ItemDetail({
             <>
               <div>
                 <dt>Pack</dt>
-                <dd>{item.packSize} units</dd>
+                <dd>{item.slot === 'nutrition' ? `${item.packSize} gels + ${item.packSize} bars` : `${item.packSize} units`}</dd>
               </div>
               <div>
                 <dt>In stock</dt>

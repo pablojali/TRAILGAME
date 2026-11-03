@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { avatarFile } from '../components/avatar/avatarArt'
 import { parseLevels } from '../domain/athlete/levels'
-import { parseEquipment } from '../domain/equipment/items'
+import { consumableKinds, parseEquipment } from '../domain/equipment/items'
 
 // The real tables, not the test copies other tests use (src/test/setup.ts).
 vi.unmock('./equipment.csv?raw')
@@ -20,15 +20,16 @@ describe("owner's tables", () => {
     expect(parseLevels(levelsCsv).length).toBeGreaterThan(1)
   })
 
-  it('equipment.csv is a valid equipment table whose files exist, with the starting shoes and both consumables', () => {
+  it('equipment.csv is a valid equipment table whose files exist, with the starting shoes and gels and bars for sale', () => {
     const items = parseEquipment(equipmentCsv)
     for (const item of items) {
       if (item.avatarLayer) expect(avatarFile(item.avatarLayer), `${item.id}: avatar_layer ${item.avatarLayer}`).toBeDefined()
       if (item.thumbnail) expect(THUMBNAILS[`/assets/ui/equipment/${item.thumbnail}`], `${item.id}: thumbnail ${item.thumbnail}`).toBeDefined()
       if (item.price !== null) expect(item.price, item.id).toBeGreaterThanOrEqual(0)
     }
-    // Ids the game itself refers to (saves, the starting equipment, gels and bars).
-    const ids = items.map((item) => item.id)
-    expect(ids).toEqual(expect.arrayContaining(['starter-shoes', 'energy-gel', 'cereal-bar']))
+    // The starting shoes (every career owns them), and something that refills gels and bars.
+    expect(items.map((item) => item.id)).toContain('starter-shoes')
+    const refills = items.flatMap((item) => consumableKinds(item))
+    expect(refills).toEqual(expect.arrayContaining(['gel', 'bar']))
   })
 })

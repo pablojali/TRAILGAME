@@ -1,6 +1,5 @@
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
-import { Coins } from '../../components/Coins'
 import { Screen } from '../../components/Screen'
 import { Tabs } from '../../components/Tabs'
 import { getLevel } from '../../domain/athlete/levels'
@@ -41,8 +40,6 @@ export function RacesScreen() {
       aside={
         <p className={styles.balance}>
           <span>Level {level}</span>
-          <span aria-hidden="true">·</span>
-          <Coins amount={state.coins} />
         </p>
       }
     >

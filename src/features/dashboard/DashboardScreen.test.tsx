@@ -102,11 +102,10 @@ describe('DashboardScreen — first screen', () => {
     await renderApp('/')
 
     expect(identity()).toBe('Marta - Sprinter (Lv 3)')
-    // Coins at the top right, beside the week and day, with the gold coin symbol.
-    const coins = screen.getByText('1,240')
+    // Coins in the top bar beside the cloud, with the gold coin symbol (owner request, 3 November 2026).
+    const coins = within(screen.getAllByRole('banner')[0]!).getByText('1,240')
     expect(coins.parentElement).toHaveTextContent('1,240 coins')
     expect(coins.previousElementSibling!.tagName).toBe('svg')
-    expect(coins.closest('p')!.previousElementSibling).toHaveTextContent('Wednesday')
     expect(within(screen.getByRole('region', { name: 'Condition' })).queryByText('Coins')).not.toBeInTheDocument()
     expect(screen.getByText('Week 3 / 52')).toBeInTheDocument()
     expect(screen.getByText('6%')).toBeInTheDocument()

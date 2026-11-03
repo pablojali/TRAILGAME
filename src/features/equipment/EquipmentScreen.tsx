@@ -55,10 +55,12 @@ const ICON_PATHS: Record<EquipmentSlot, string> = {
   nutrition: 'M5 3h4l-1 3v10a2 2 0 0 1-4 0V6zM12 11h9v5h-9zM15 11v5M18 11v5',
 }
 
-/** In the owner's order (1 November 2026): gels, cereal bars, shoes, backpack, poles. */
+/**
+ * In the owner's order (1 November 2026): gels and bars (one box since 3 November 2026), shoes,
+ * backpack, poles.
+ */
 const SLOTS: readonly { id: EquipmentSlot; label: string }[] = [
-  { id: 'gel', label: 'Gels' },
-  { id: 'bar', label: 'Cereal bars' },
+  { id: 'nutrition', label: 'Gels & bars' },
   { id: 'shoes', label: 'Shoes' },
   { id: 'pack', label: 'Backpack' },
   { id: 'poles', label: 'Poles' },
@@ -66,25 +68,29 @@ const SLOTS: readonly { id: EquipmentSlot; label: string }[] = [
 
 const SLOT_LABELS: Record<EquipmentSlot, string> = {
   ...(Object.fromEntries(SLOTS.map((s) => [s.id, s.label])) as Record<EquipmentSlot, string>),
-  nutrition: 'Gels & bars',
+  gel: 'Gels',
+  bar: 'Cereal bars',
 }
 
-/** Items shown under a slot box or shop filter: a gels-and-bars pack is under both Gels and Bars. */
+/** The box or shop filter an item is under: gel, bar and gels-and-bars packs are all under Gels & bars. */
+function boxOf(item: EquipmentItem): EquipmentSlot {
+  return isConsumable(item) ? 'nutrition' : item.slot
+}
+
 function inSlot(item: EquipmentItem, slot: EquipmentSlot): boolean {
-  return item.slot === slot || (item.slot === 'nutrition' && (slot === 'gel' || slot === 'bar'))
+  return boxOf(item) === slot
 }
 
-/** Where an item sorts: a gels-and-bars pack first, with the gels. */
+/** Where an item sorts: gels and bars first. */
 function slotOrder(item: EquipmentItem): number {
-  return SLOTS.findIndex((s) => s.id === (item.slot === 'nutrition' ? 'gel' : item.slot))
+  return SLOTS.findIndex((s) => s.id === boxOf(item))
 }
 
 type ShopFilter = EquipmentSlot | 'all'
 
 const SHOP_FILTERS: readonly { id: ShopFilter; label: string }[] = [
   { id: 'all', label: 'All' },
-  { id: 'gel', label: 'Gels' },
-  { id: 'bar', label: 'Bars' },
+  { id: 'nutrition', label: 'Gels & bars' },
   { id: 'shoes', label: 'Shoes' },
   { id: 'pack', label: 'Backpack' },
   { id: 'poles', label: 'Poles' },
@@ -166,7 +172,6 @@ function effectText(item: EquipmentItem): string {
  * slot and open card are kept in the URL (`?slot=poles&item=poles-2`, `?tab=shop&slot=poles`).
  */
 export function EquipmentScreen() {
-  const { state } = useCareer()
   const [params, setParams] = useSearchParams()
   const [message, setMessage] = useState('')
   const tab: EquipmentTab = params.get('tab') === 'shop' ? 'shop' : 'equipped'
@@ -192,11 +197,6 @@ export function EquipmentScreen() {
     <Screen
       title="Equipment"
       description="Buy gear and choose what your runner wears. Equipped items help in races; they never change training."
-      aside={
-        <p className={styles.balance}>
-          <span className={styles.balanceLabel}>Balance</span> <Coins amount={state.coins} />
-        </p>
-      }
     >
       <Tabs
         label="Equipment"
@@ -255,22 +255,27 @@ function EquippedTab({ onOpen }: { onOpen(slot: EquipmentSlot): void }) {
 
       <ul className={styles.slotBoxes} aria-label="Equipped items">
         {SLOTS.map(({ id, label }) => {
-          if (id === 'gel' || id === 'bar') {
-            // Gels and cereal bars are counted, not worn: the box shows the stock.
-            const count = state.consumables[id]
+          if (id === 'nutrition') {
+            // Gels and cereal bars are counted, not worn: the box shows the stock of each.
+            const { gel, bar } = state.consumables
+            const pack = EQUIPMENT_ITEMS.find((item) => inSlot(item, 'nutrition') && item.thumbnail)
+            const stocked = gel + bar > 0
             return (
               <li key={id}>
                 <button
                   type="button"
-                  className={`${styles.slotBox} ${count > 0 ? styles.slotWorn : ''}`}
-                  aria-label={`${label}: ${stockText(count)}. Show ${label.toLowerCase()} cards`}
+                  className={`${styles.slotBox} ${stocked ? styles.slotWorn : ''}`}
+                  aria-label={`${label}: ${gel} ${gel === 1 ? 'gel' : 'gels'}, ${bar} ${bar === 1 ? 'bar' : 'bars'} in stock. Show gels and bars cards`}
                   onClick={() => onOpen(id)}
                 >
-                  <span className={styles.boxArt}>
-                    <SlotIcon slot={id} className={count > 0 ? undefined : styles.iconEmpty} />
+                  <span className={`${styles.boxArt} ${stocked ? '' : styles.iconEmpty}`}>
+                    {pack ? <ItemArt item={pack} /> : <SlotIcon slot={id} />}
                   </span>
                   <span className={styles.slotLabel}>{label}</span>
-                  <span className={styles.boxName}>×{count}</span>
+                  <span className={styles.boxName}>
+                    <span>Gels ×{gel}</span>
+                    <span>Bars ×{bar}</span>
+                  </span>
                 </button>
               </li>
             )

@@ -3,7 +3,7 @@ import { bodyId, type Appearance } from '../../domain/athlete/appearance'
 import type { Sex } from '../../domain/athlete/athlete'
 import { getShirt } from '../../domain/athlete/shirts'
 import { getEquipmentItem } from '../../domain/equipment/items'
-import { art, headArt } from './avatarArt'
+import { art, avatarFile, headArt } from './avatarArt'
 import styles from './Avatar.module.css'
 
 /** Crops of the shared canvas: the whole runner, head and shoulders, the torso, and the feet. */
@@ -124,6 +124,16 @@ function Vest({ id }: { id: string }) {
   )
 }
 
+/** The runner layer of an equipped item, from the equipment table (avatar_layer), if it has art. */
+function layerOf(id: string): string | undefined {
+  const file = getEquipmentItem(id)?.avatarLayer
+  return file ? avatarFile(file) : undefined
+}
+
+function EquipmentLayer({ id, href }: { id: string; href: string }) {
+  return <image href={href} width="640" height="960" data-layer={id} />
+}
+
 /**
  * Runner avatar, back to front: poles (held in the hands), body (skin tone, basic head), the chosen
  * head, shoes, the chosen shirt, then the running vest. Without equipment the runner is as drawn:
@@ -137,8 +147,8 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
     { id: 'body', href: art(`bodies/${bodyId(sex, appearance.skin)}`) },
     // The chosen head is drawn over the body's basic head, in the body's skin tone.
     { id: 'head', href: headArt(sex, appearance.hair, Number(appearance.skin.slice('tone-'.length))) },
-    // Every shoe item has its own art, named by its id.
-    ...bySlot('shoes').map((id) => ({ id, href: art(`footwear/${id}`) })),
+    // Shoes: the art the equipment table names for each item (avatar_layer).
+    ...bySlot('shoes').map((id) => ({ id, href: layerOf(id) })),
     ...(shirt ? [{ id: shirt.id, href: art(`clothing/${shirt.file}`) }] : []),
   ]
   const zoomed = focus === 'face' && crop === 'full'
@@ -165,12 +175,17 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
         </filter>
       </defs>
       <g className={styles.zoom} style={{ transform: zoomed ? FACE_TRANSFORM : 'none' }} filter={`url(#${glowId})`}>
-        {bySlot('poles').map((id) => POLE_COLORS[id] && <Poles key={id} id={id} />)}
+        {/* Poles and backpacks: the table's art when it names one, otherwise the drawn ones. */}
+        {bySlot('poles').map((id) =>
+          layerOf(id) ? <EquipmentLayer key={id} id={id} href={layerOf(id)!} /> : POLE_COLORS[id] && <Poles key={id} id={id} />,
+        )}
         {layers.map(
           (layer) =>
             layer.href && <image key={layer.id} href={layer.href} width="640" height="960" data-layer={layer.id} />,
         )}
-        {bySlot('pack').map((id) => PACK_COLORS[id] && <Vest key={id} id={id} />)}
+        {bySlot('pack').map((id) =>
+          layerOf(id) ? <EquipmentLayer key={id} id={id} href={layerOf(id)!} /> : PACK_COLORS[id] && <Vest key={id} id={id} />,
+        )}
       </g>
     </svg>
   )

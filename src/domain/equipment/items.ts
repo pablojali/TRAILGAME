@@ -1,4 +1,6 @@
-import { ATTRIBUTE_IDS, type AttributeId, type Attributes } from '../athlete/athlete'
+import { csvInt, csvNumber, parseCsv } from '../../data/csv'
+import equipmentCsv from '../../data/equipment.csv?raw'
+import { ATTRIBUTE_IDS, ATTRIBUTE_LABELS, type AttributeId, type Attributes } from '../athlete/athlete'
 
 /**
  * Equipment items, shop prices and race effects (Game Design Bible §8; owner decisions,
@@ -31,7 +33,7 @@ export interface EquipmentItem {
   id: string
   label: string
   slot: EquipmentSlot
-  /** 1 or 2; the starter shoes have none. */
+  /** Item level shown on its card; none for the starter shoes and consumables. */
   level?: number
   description: string
   /** Shop price in coins (of one pack for a consumable); 0 for starting equipment. null: not for sale. */
@@ -45,116 +47,101 @@ export interface EquipmentItem {
   raceEffect?: RaceEffect
   /** The race effect in words, for the shop and equipment lists. */
   effectText?: string
+  /** Picture for the shop and equipment cards: a file in assets/ui/equipment. */
+  thumbnail?: string
+  /** Layer drawn on the runner: a file in assets/runner/avatar (e.g. `footwear/trail-shoes.webp`). */
+  avatarLayer?: string
+}
+
+/** The columns of src/data/equipment.csv for the attribute bonuses and the time multipliers. */
+const MULTIPLIER_COLUMNS = {
+  flat: 'runnable',
+  climb: 'climb',
+  descent: 'descent',
+  technical_penalty: 'technicalPenalty',
+  wear: 'slowdown',
+} as const satisfies Record<string, keyof Omit<RaceEffect, 'attributes'>>
+
+const SLOTS: readonly EquipmentSlot[] = ['shoes', 'pack', 'poles', 'gel', 'bar']
+
+/** "10%" or "1.5%". */
+function percentOf(multiplier: number): string {
+  return `${Math.round(Math.abs(1 - multiplier) * 1000) / 10}%`
+}
+
+/** The race effect in words, written from the bonuses (e.g. "Races: Climbing +2, but flats 1% slower."). */
+export function describeRaceEffect(effect: RaceEffect): string | undefined {
+  const good: string[] = []
+  const bad: string[] = []
+  const attributes = Object.entries(effect.attributes ?? {}) as [AttributeId, number][]
+  for (const [id, value] of [...attributes].sort((x, y) => y[1] - x[1])) {
+    ;(value >= 0 ? good : bad).push(`${ATTRIBUTE_LABELS[id]} ${value >= 0 ? '+' : '−'}${Math.abs(value)}`)
+  }
+  const phrase = (m: number | undefined, better: (p: string) => string, worse: (p: string) => string) => {
+    if (m === undefined || m === 1) return
+    if (m < 1) good.push(better(percentOf(m)))
+    else bad.push(worse(percentOf(m)))
+  }
+  phrase(effect.runnable, (p) => `flats ${p} faster`, (p) => `flats ${p} slower`)
+  phrase(effect.climb, (p) => `climbs ${p} faster`, (p) => `climbs ${p} slower`)
+  phrase(effect.descent, (p) => `descents ${p} faster`, (p) => `descents ${p} slower`)
+  phrase(effect.technicalPenalty, (p) => `technical descents ${p} easier`, (p) => `technical descents ${p} harder`)
+  phrase(effect.slowdown, (p) => `${p} less wear over distance`, (p) => `${p} more wear over distance`)
+  if (good.length === 0 && bad.length === 0) return undefined
+  const text = good.join(', ') + (bad.length ? `${good.length ? ', but ' : ''}${bad.join(', ')}` : '')
+  return `Races: ${text.charAt(0).toUpperCase()}${text.slice(1)}.`
 }
 
 /**
- * Balance review (PM proposal, owner approval 30 October 2026): poles and backpacks lose 1
- * Endurance each (Poles lvl 1 none), and Poles lvl 1 slow flats by 1% instead of 3% so they are
- * never worse than no poles. Shoes and prices unchanged.
- *
- * Owner decisions (29 October 2026). Items bought before this catalog keep their id and become
- * Poles lvl 1, Hydration backpack lvl 1 and Technical trail shoes lvl 2 (no refund).
+ * Reads the owner's equipment table (src/data/equipment.csv, owner request 3 November 2026). Each
+ * row is checked: a unique id, a known type, whole-number level, price and pack, numeric bonuses.
  */
-export const EQUIPMENT_ITEMS: readonly EquipmentItem[] = [
-  {
-    id: 'starter-shoes',
-    label: 'Starter shoes',
-    slot: 'shoes',
-    description: 'Basic trail-running shoes. Starting equipment.',
-    price: 0,
-  },
-  {
-    id: 'trail-shoes-basic',
-    label: 'Trail shoes',
-    slot: 'shoes',
-    level: 1,
-    description: 'A small all-round upgrade on the starter shoes.',
-    price: 35,
-    raceEffect: { attributes: { speed: 1, technical: 1 } },
-    effectText: 'Races: Speed +1, Technical +1.',
-  },
-  {
-    id: 'trail-shoes',
-    label: 'Technical trail shoes',
-    slot: 'shoes',
-    level: 2,
-    description: 'Grippy shoes for rocky and technical ground.',
-    price: 70,
-    raceEffect: { attributes: { technical: 4 }, technicalPenalty: 0.7 },
-    effectText: 'Races: Technical +4, technical descents 30% easier.',
-  },
-  {
-    id: 'trail-shoes-light',
-    label: 'Light trail shoes',
-    slot: 'shoes',
-    level: 2,
-    description: 'Fast on flats and descents, with less grip on technical ground.',
-    price: 70,
-    raceEffect: { attributes: { speed: 3 }, descent: 0.98, technicalPenalty: 1.3 },
-    effectText: 'Races: Speed +3, descents 2% faster, but technical descents 30% harder.',
-  },
-  {
-    id: 'poles',
-    label: 'Poles',
-    slot: 'poles',
-    level: 1,
-    description: 'Folding poles that help on climbs.',
-    price: 25,
-    raceEffect: { attributes: { climbing: 2 }, runnable: 1.01 },
-    effectText: 'Races: Climbing +2, but flats 1% slower.',
-  },
-  {
-    id: 'poles-2',
-    label: 'Poles',
-    slot: 'poles',
-    level: 2,
-    description: 'Light carbon poles.',
-    price: 50,
-    raceEffect: { attributes: { climbing: 3, endurance: 1 }, runnable: 1.01 },
-    effectText: 'Races: Climbing +3, Endurance +1, but flats 1% slower.',
-  },
-  {
-    id: 'hydration-backpack',
-    label: 'Hydration backpack',
-    slot: 'pack',
-    level: 1,
-    description: 'Carries water and food for long races.',
-    price: 30,
-    raceEffect: { attributes: { endurance: 1 }, slowdown: 0.9 },
-    effectText: 'Races: Endurance +1, 10% less wear over distance.',
-  },
-  {
-    id: 'hydration-backpack-2',
-    label: 'Hydration backpack',
-    slot: 'pack',
-    level: 2,
-    description: 'A larger, better-fitting race vest.',
-    price: 90,
-    raceEffect: { attributes: { endurance: 2 }, slowdown: 0.85 },
-    effectText: 'Races: Endurance +2, 15% less wear over distance.',
-  },
-  // Gels and cereal bars (owner decisions, 1 November 2026): consumables sold in packs of 3 for 10
-  // coins. The runner takes at most 1 gel and 1 bar to a race, which uses them up; one of each is
-  // enough for the whole race. Their race bonus lives in the race engine (RACE_NUTRITION).
-  {
-    id: 'energy-gel',
-    label: 'Energy gel',
-    slot: 'gel',
-    description: 'Energy gel for races. One is enough for a whole race.',
-    price: 10,
-    packSize: 3,
-    effectText: 'Races: 1.5% faster for the whole race. Used up by the race.',
-  },
-  {
-    id: 'cereal-bar',
-    label: 'Cereal bar',
-    slot: 'bar',
-    description: 'Cereal bar for races. One is enough for a whole race.',
-    price: 10,
-    packSize: 3,
-    effectText: 'Races: 1.5% less fatigue for the whole race. Used up by the race.',
-  },
-]
+export function parseEquipment(text: string): EquipmentItem[] {
+  const items = parseCsv(text).map((row, i): EquipmentItem => {
+    const where = `equipment.csv row ${i + 1} (${row.id || 'no id'})`
+    if (!row.id) throw new Error(`${where}: missing id`)
+    const slot = row.type as EquipmentSlot
+    if (!SLOTS.includes(slot)) throw new Error(`${where}: unknown type "${row.type}"`)
+    const attributes: Partial<Record<AttributeId, number>> = {}
+    for (const id of ATTRIBUTE_IDS) {
+      const value = csvNumber(row[id], where, 0)
+      if (value !== 0) attributes[id] = value
+    }
+    const effect: RaceEffect = {}
+    if (Object.keys(attributes).length) effect.attributes = attributes
+    for (const [column, key] of Object.entries(MULTIPLIER_COLUMNS)) {
+      const value = csvNumber(row[column], where, 1)
+      if (!(value > 0)) throw new Error(`${where}: ${column} must be above 0`)
+      if (value !== 1) effect[key] = value
+    }
+    const hasEffect = Object.keys(effect).length > 0
+    const item: EquipmentItem = {
+      id: row.id,
+      label: row.name || row.id,
+      slot,
+      description: row.description ?? '',
+      price: row.price ? csvInt(row.price, where) : null,
+    }
+    if (row.level) item.level = csvInt(row.level, where)
+    if (row.pack) item.packSize = csvInt(row.pack, where)
+    if ((slot === 'gel' || slot === 'bar') !== (item.packSize !== undefined)) {
+      throw new Error(`${where}: gel and bar need a pack size, other types none`)
+    }
+    if (row.thumbnail) item.thumbnail = row.thumbnail
+    if (row.avatar_layer) item.avatarLayer = row.avatar_layer
+    if (hasEffect) item.raceEffect = effect
+    const effectText = row.effect_text ? `Races: ${row.effect_text}` : hasEffect ? describeRaceEffect(effect) : undefined
+    if (effectText) item.effectText = effectText
+    return item
+  })
+  const ids = items.map((item) => item.id)
+  const twice = ids.find((id, i) => ids.indexOf(id) !== i)
+  if (twice) throw new Error(`equipment.csv: id "${twice}" appears twice`)
+  return items
+}
+
+/** Every item, from the owner's table, in its order. */
+export const EQUIPMENT_ITEMS: readonly EquipmentItem[] = parseEquipment(equipmentCsv)
 
 /** The consumable kinds and the item sold for each. */
 export type ConsumableKind = 'gel' | 'bar'

@@ -6,7 +6,7 @@ import { formatDelta } from '../../components/format'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { Tabs } from '../../components/Tabs'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
-import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
+import { getAttributePointsBetween } from '../../domain/athlete/levels'
 import { formatCoins } from '../../domain/economy/coins'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
@@ -127,7 +127,7 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
               <div className={`${styles.tile} ${styles.tileWide}`}>
                 <dt>Level up!</dt>
                 <dd role="status">
-                  +{levelsGained * ATTRIBUTE_POINTS_PER_LEVEL} attribute points ·{' '}
+                  +{getAttributePointsBetween(result.levelAtStart, result.levelAtStart + levelsGained)} attribute points ·{' '}
                   <Link to="/attributes">Allocate points</Link>
                   {unlocks.length > 0 && (
                     <>

@@ -18,7 +18,43 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # The Edge Function bundle is rebuilt from the code and the owner's tables (src/data/*.csv),
+      # so a table edited on GitHub is checked and deployed without a manual rebuild.
+      - run: npm run build:functions
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  # On main only, after every check passed: deploy the Edge Function `career-ops` to Supabase and
+  # keep the repository's copy of the bundle up to date (owner request, 3 November 2026).
+  deploy-functions:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-functions
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build:functions
+      - name: Deploy career-ops
+        run: npx --yes supabase@2.121.0 functions deploy career-ops --project-ref zalyfrjfmsirvsrkdroy --use-api
+      - name: Commit the rebuilt bundle if it changed
+        run: |
+          if ! git diff --quiet -- supabase/functions/career-ops/index.js; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add supabase/functions/career-ops/index.js
+            git commit -m "Rebuild career-ops bundle (deployed by CI) [skip ci]"
+            git push
+          fi

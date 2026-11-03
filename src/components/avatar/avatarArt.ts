@@ -22,3 +22,8 @@ export function headArt(sex: Sex, hair: string, tone: number): string | undefine
   const file = headFile(sex, hair, tone)
   return file === undefined ? undefined : art(`heads/${file}`)
 }
+
+/** The bundled URL of a file in assets/runner/avatar named by the equipment table, e.g. `footwear/trail-shoes.webp`. */
+export function avatarFile(file: string): string | undefined {
+  return ART[`/assets/runner/avatar/${file}`]
+}

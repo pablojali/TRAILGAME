@@ -451,3 +451,10 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* The owner's item picture (equipment table, thumbnail column). */
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

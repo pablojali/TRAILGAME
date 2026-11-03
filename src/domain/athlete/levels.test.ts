@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { getEarnedAttributePoints, getLevel, getLevelProgress, LEVEL_THRESHOLDS, MAX_LEVEL } from './levels'
+import {
+  getAttributePointsBetween,
+  getEarnedAttributePoints,
+  getLevel,
+  getLevelProgress,
+  LEVEL_TABLE,
+  LEVEL_THRESHOLDS,
+  MAX_LEVEL,
+  parseLevels,
+} from './levels'
 
 describe('getLevel', () => {
   it.each([
@@ -56,5 +65,28 @@ describe('getEarnedAttributePoints', () => {
     [63_700, 98],
   ])('%i XP has earned %i points (2 per level gained)', (xp, points) => {
     expect(getEarnedAttributePoints(xp)).toBe(points)
+  })
+})
+
+describe('levels table (src/data/levels.csv, owner request 3 November 2026)', () => {
+  it('reads the owner table: 50 levels, the original curve, 2 points per level', () => {
+    expect(LEVEL_TABLE).toHaveLength(50)
+    expect(LEVEL_TABLE.slice(0, 5)).toEqual([
+      { level: 1, minXp: 0, attributePoints: 0 },
+      { level: 2, minXp: 100, attributePoints: 2 },
+      { level: 3, minXp: 250, attributePoints: 2 },
+      { level: 4, minXp: 450, attributePoints: 2 },
+      { level: 5, minXp: 700, attributePoints: 2 },
+    ])
+    expect(getAttributePointsBetween(1, 5)).toBe(8)
+  })
+
+  it('takes new rows, comments, quotes and per-level points; refuses broken tables', () => {
+    const table = parseLevels('# comment\nlevel,xp,attribute_points\n1,0,0\n2,100,3\n\n3,"250",1\n')
+    expect(table.map((r) => r.attributePoints)).toEqual([0, 3, 1])
+    expect(() => parseLevels('level,xp,attribute_points\n1,10,0\n')).toThrow(/level 1 must start at 0/)
+    expect(() => parseLevels('level,xp,attribute_points\n1,0,0\n3,100,2\n')).toThrow(/out of order/)
+    expect(() => parseLevels('level,xp,attribute_points\n1,0,0\n2,0,2\n')).toThrow(/more XP/)
+    expect(() => parseLevels('level,xp,attribute_points\n1,0,0\n2,abc,2\n')).toThrow(/not a whole number/)
   })
 })

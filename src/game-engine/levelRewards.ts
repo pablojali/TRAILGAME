@@ -1,6 +1,6 @@
 import { appearanceUnlocks, type SkinToneId } from '../domain/athlete/appearance'
 import type { Sex } from '../domain/athlete/athlete'
-import { ATTRIBUTE_POINTS_PER_LEVEL } from '../domain/athlete/levels'
+import { getAttributePointsBetween } from '../domain/athlete/levels'
 import { getMinimumLevel } from '../domain/races/access'
 import { RACES, type Race } from '../domain/races/races'
 
@@ -20,7 +20,7 @@ export interface LevelRewards {
 export function getLevelRewards(from: number, to: number, sex: Sex, skin: SkinToneId): LevelRewards {
   const gained = (level: number) => level > from && level <= to
   return {
-    attributePoints: Math.max(0, to - from) * ATTRIBUTE_POINTS_PER_LEVEL,
+    attributePoints: getAttributePointsBetween(from, to),
     looks: appearanceUnlocks(from, to, sex, skin),
     races: RACES.filter((race) => gained(getMinimumLevel(race))),
   }

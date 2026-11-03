@@ -952,6 +952,31 @@ Fitness 0 by week 6:
   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, unused by the game for now. Setup and the
   connection check: docs/SUPABASE_SETUP.md.
 
+### Owner tables and race clips (owner requests, 3 November 2026)
+
+- **Levels table** `src/data/levels.csv` (`level,xp,attribute_points`): one row per level, total XP
+  to reach it and the attribute points it gives. Add rows for more levels. Read by
+  `src/domain/athlete/levels.ts` (`LEVEL_TABLE`, `getAttributePointsBetween`), checked on load
+  (levels in order, level 1 at 0 XP, XP rising).
+- **Equipment table** `src/data/equipment.csv`: id, name, type, level, price, pack, thumbnail
+  (`assets/ui/equipment/`), avatar layer (`assets/runner/avatar/`, e.g. `footwear/x.webp`; poles and
+  backpacks without one are drawn), race-only attribute bonuses, time multipliers (`flat`, `climb`,
+  `descent`, `technical_penalty`, `wear`), effect text (written from the bonuses when empty) and
+  description. Read by `src/domain/equipment/items.ts` (`parseEquipment`). Ids are saved: never
+  rename or remove one. Tests check every named file exists.
+- Both tables are also in the Edge Function bundle (`scripts/functionsBuild.mjs` loads `?raw`
+  imports). **Automatic deploy:** on every push to main, CI (`.github/workflows/ci.yml`) rebuilds the
+  bundle, runs every check, and only then deploys `career-ops` with the Supabase CLI
+  (`supabase/config.toml`: entrypoint `index.js`, JWT verification on; secret
+  `SUPABASE_ACCESS_TOKEN`) and commits the rebuilt `index.js` if it changed. Editing a CSV on
+  GitHub is enough; a broken table stops at the checks and nothing is deployed.
+- **Race clips** `assets/race/clips/{race id}/segment-{n}.mp4` (optional `.webm`, poster `.jpg`):
+  played full screen after Start and after each aid station (`RaceClipPlayer`, `raceClips.ts`),
+  before the next aid-station report or the result; skippable, skipped with reduced motion or when
+  not started within 5 s. Format and naming: `assets/race/clips/README.md`. The server step is
+  sent once from the tap; the clip only delays showing its result. The screen also waits for the
+  last step before moving to the result, so the level-up note reaches the result screen.
+
 ### Simple strategy, stops by race length, nutrition default (owner decisions, 2 November 2026)
 
 Owner: strategy must not be complicated; it should move a few places, not take a winner to 18th.

@@ -459,6 +459,15 @@ Nothing else changes; the race in progress lives inside `game_state`.
 Do steps 2 and 3 together: the released app sends the old `race` operation, which the new function
 refuses, and the new app sends `race-start`, which the old function refuses.
 
+## Automatic Edge Function deploy (3 November 2026)
+
+Every push to main runs CI; when all checks pass, the `deploy-functions` job rebuilds
+`supabase/functions/career-ops/index.js`, deploys it with `supabase functions deploy career-ops
+--use-api` (CLI 2.121.0, settings in `supabase/config.toml`) and commits the rebuilt bundle if it
+changed. It needs the repository secret `SUPABASE_ACCESS_TOKEN` (a Supabase personal access token,
+Account → Access Tokens). Migrations are still applied by hand. Pasting `index.js` in the dashboard
+keeps working as a fallback.
+
 ## Not done yet (next phases)
 
 Sign in with Apple, the coin ledger (`coin_transactions` stays empty), sign-out, native

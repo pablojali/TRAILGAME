@@ -1,3 +1,6 @@
+> **Source of truth (3 November 2026):** the game reads levels from `src/data/levels.csv`. This page
+> documents them; edit the CSV to change the game.
+
 # Levels and what each one brings (1 November 2026)
 
 Generated from the game's rules (`src/domain/athlete/levels.ts`, `shirts.ts`, `heads.ts`,

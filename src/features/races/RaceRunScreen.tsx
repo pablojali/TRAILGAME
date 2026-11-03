@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
@@ -27,6 +27,8 @@ import {
   STOP_OPTIONS,
   stopDuration,
 } from './raceStrategyText'
+import { RaceClipPlayer } from './RaceClipPlayer'
+import { raceClip } from './raceClips'
 import { durationText, ordinal, raceTimeText } from './raceText'
 import styles from './Races.module.css'
 
@@ -71,6 +73,39 @@ export function RaceRunScreen() {
   const entry = getEntry(state, entryId)
   const race = entry && getRace(entry.raceId)
   const [finished, setFinished] = useState<RaceDayResult | null>(null)
+  // A start or step waiting for the server: the screen does not move on by itself meanwhile.
+  const [waiting, setWaiting] = useState(false)
+  // The segment clip being shown (owner request, 3 November 2026), and the finish it leads to.
+  const [clipRun, setClipRun] = useState<{ segment: number; ready: boolean; finished: RaceDayResult | null } | null>(null)
+
+  /**
+   * Runs a race start or step, showing the clip of the segment it runs (1-based `segment`) when the
+   * race has one. The clip is only presentation: the step is the server's, sent once from a tap.
+   */
+  async function present<R>(
+    segment: number,
+    action: () => Promise<R>,
+    outcome: (result: R) => { ok: boolean; finished: RaceDayResult | null },
+  ): Promise<R> {
+    const clip = race ? raceClip(race.id, segment) : null
+    setWaiting(true)
+    if (clip) setClipRun({ segment, ready: false, finished: null })
+    const result = await action()
+    const { ok, finished: raced } = outcome(result)
+    setWaiting(false)
+    if (!ok) setClipRun(null)
+    else if (clip) setClipRun({ segment, ready: true, finished: raced })
+    else if (raced) setFinished(raced)
+    return result
+  }
+
+  const clipFinish = useRef<RaceDayResult | null>(null)
+  clipFinish.current = clipRun?.finished ?? null
+  const clipDone = useCallback(() => {
+    const raced = clipFinish.current
+    setClipRun(null)
+    if (raced) setFinished(raced)
+  }, [])
 
   if (finished) {
     return (
@@ -90,8 +125,22 @@ export function RaceRunScreen() {
       </Screen>
     )
   }
-  if (entry.status === 'finished') return <Navigate to={`/races/results/${entry.id}`} replace />
-  if (state.activeRace?.entryId === entry.id) return <AidStation race={race} onFinish={setFinished} />
+  const clip = clipRun && raceClip(race.id, clipRun.segment)
+  const overlay = clipRun && clip && (
+    <RaceClipPlayer clip={clip} title={clipTitle(race, clipRun.segment)} ready={clipRun.ready} onDone={clipDone} />
+  )
+  if (entry.status === 'finished') {
+    // Just finished here: wait for the result (and its clip) before going to the result.
+    return waiting || clipRun ? overlay : <Navigate to={`/races/results/${entry.id}`} replace />
+  }
+  if (state.activeRace?.entryId === entry.id) {
+    return (
+      <>
+        <AidStation race={race} present={present} />
+        {overlay}
+      </>
+    )
+  }
   if (!isRaceDayToday(state) || state.activeRace) {
     return (
       <Screen eyebrow={race.name} title="Not race day" description="This race is not run today.">
@@ -101,11 +150,31 @@ export function RaceRunScreen() {
       </Screen>
     )
   }
-  return <Preparation race={race} entryId={entry.id} />
+  return (
+    <>
+      <Preparation race={race} entryId={entry.id} present={present} />
+      {overlay}
+    </>
+  )
+}
+
+/** Runs a start or step with its clip (see `RaceRunScreen.present`). */
+type Present = <R>(
+  segment: number,
+  action: () => Promise<R>,
+  outcome: (result: R) => { ok: boolean; finished: RaceDayResult | null },
+) => Promise<R>
+
+/** "Segment 2 of 4 · 5.5 km · +433 m". */
+function clipTitle(race: Race, segment: number): string {
+  const segments = getRaceSegments(race)
+  const info = segments[segment - 1]
+  const course = info ? ` · ${(info.distanceM / 1000).toFixed(1)} km · +${Math.round(info.gainM)} m` : ''
+  return `${race.name} · Segment ${segment} of ${segments.length}${course}`
 }
 
 /** Course, equipment, nutrition and the first intensity, then Start. */
-function Preparation({ race, entryId }: { race: Race; entryId: string }) {
+function Preparation({ race, entryId, present }: { race: Race; entryId: string; present: Present }) {
   const { state, startRace } = useCareer()
   const { consumables, week } = state
   const segments = getRaceSegments(race)
@@ -123,11 +192,16 @@ function Preparation({ race, entryId }: { race: Race; entryId: string }) {
     if (busy) return
     setBusy(true)
     setError('')
-    const failure = await startRace({ week: week.number, dayIndex: week.currentDayIndex }, entryId, {
-      intensity,
-      gel: gel && consumables.gel > 0,
-      bar: bar && consumables.bar > 0,
-    })
+    const failure = await present(
+      1,
+      () =>
+        startRace({ week: week.number, dayIndex: week.currentDayIndex }, entryId, {
+          intensity,
+          gel: gel && consumables.gel > 0,
+          bar: bar && consumables.bar > 0,
+        }),
+      (result) => ({ ok: result === null, finished: null }),
+    )
     setBusy(false)
     if (failure) setError(START_ERRORS[failure])
   }
@@ -231,7 +305,7 @@ function NutritionToggle({
 }
 
 /** The report at an aid station and the decisions for the next segment. */
-function AidStation({ race, onFinish }: { race: Race; onFinish(result: RaceDayResult): void }) {
+function AidStation({ race, present }: { race: Race; present: Present }) {
   const { state, stepRace } = useCareer()
   const report = getRaceReport(state)!
   const [stop, setStop] = useState<AidStop>('normal')
@@ -253,10 +327,14 @@ function AidStation({ race, onFinish }: { race: Race; onFinish(result: RaceDayRe
     if (busy) return
     setBusy(true)
     setError('')
-    const result = await stepRace({ segment: report.segmentsDone, stop, intensity })
+    // The step runs segment index `segmentsDone`, i.e. segment number segmentsDone + 1.
+    const result = await present(
+      report.segmentsDone + 1,
+      () => stepRace({ segment: report.segmentsDone, stop, intensity }),
+      (r) => ({ ok: r.ok, finished: r.ok ? r.finished : null }),
+    )
     setBusy(false)
-    if (!result.ok) return setError(STEP_ERRORS[result.error])
-    if (result.finished) onFinish(result.finished)
+    if (!result.ok) setError(STEP_ERRORS[result.error])
   }
 
   return (

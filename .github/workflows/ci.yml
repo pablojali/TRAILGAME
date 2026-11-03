@@ -18,6 +18,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # The owner's art (assets/runner/**.png) becomes the game's layers and shop pictures, so art
+      # uploaded on GitHub is checked and used without a manual step (Pillow pinned: same output).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install pillow==12.3.0
+      - run: python3 scripts/prepare_avatar_art.py
       # The Edge Function bundle is rebuilt from the code and the owner's tables (src/data/*.csv),
       # so a table edited on GitHub is checked and deployed without a manual rebuild.
       - run: npm run build:functions
@@ -46,15 +53,22 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # The owner's art (assets/runner/**.png) becomes the game's layers and shop pictures, so art
+      # uploaded on GitHub is checked and used without a manual step (Pillow pinned: same output).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install pillow==12.3.0
+      - run: python3 scripts/prepare_avatar_art.py
       - run: npm run build:functions
       - name: Deploy career-ops
         run: npx --yes supabase@2.121.0 functions deploy career-ops --project-ref zalyfrjfmsirvsrkdroy --use-api
-      - name: Commit the rebuilt bundle if it changed
+      - name: Commit the rebuilt bundle and prepared art if they changed
         run: |
-          if ! git diff --quiet -- supabase/functions/career-ops/index.js; then
+          git add supabase/functions/career-ops/index.js assets/runner/avatar assets/ui/equipment
+          if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add supabase/functions/career-ops/index.js
-            git commit -m "Rebuild career-ops bundle (deployed by CI) [skip ci]"
+            git commit -m "Rebuild career-ops bundle and prepared art (by CI) [skip ci]"
             git push
           fi

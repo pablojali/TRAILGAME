@@ -441,10 +441,10 @@ trail-shoes,Technical trail shoes,shoes,2,70,,,footwear/trail-shoes.webp,,,,4,,,
 trail-shoes-light,Light trail shoes,shoes,2,70,,,footwear/trail-shoes-light.webp,3,,,,,,,,0.98,1.3,,,"Fast on flats and descents, with less grip on technical ground."
 poles,Poles,poles,1,25,,,,,,2,,,,1.01,,,,,,Folding poles that help on climbs.
 poles-2,Poles,poles,2,50,,,,,1,3,,,,1.01,,,,,,Light carbon poles.
-hydration-backpack,Hydration backpack,pack,1,30,,,,,1,,,,,,,,,0.9,,Carries water and food for long races.
+hydration-backpack,Hydration backpack,pack,1,30,,lvl1_back_01.webp,accessories/lvl1_back_01.webp,,1,,,,,,,,,0.9,,Carries water and food for long races.
 hydration-backpack-2,Hydration backpack,pack,2,90,,,,,2,,,,,,,,,0.85,,"A larger, better-fitting race vest."
-energy-gel,Energy gel,gel,,10,3,,,,,,,,,,,,,,1.5% faster for the whole race. Used up by the race.,Energy gel for races. One is enough for a whole race.
-cereal-bar,Cereal bar,bar,,10,3,,,,,,,,,,,,,,1.5% less fatigue for the whole race. Used up by the race.,Cereal bar for races. One is enough for a whole race.
+energy-gel,Energy gel,gel,,5,3,,,,,,,,,,,,,,1.5% faster for the whole race. Used up by the race.,Energy gel for races. One is enough for a whole race.
+cereal-bar,Cereal bar,bar,,5,3,,,,,,,,,,,,,,1.5% less fatigue for the whole race. Used up by the race.,Cereal bar for races. One is enough for a whole race.
 `;
 
 // src/domain/equipment/items.ts

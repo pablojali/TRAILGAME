@@ -8,6 +8,11 @@ Reads the original PNGs (all on the same 1024x1536 transparent canvas) and write
     heads/lvl{L}_{men|women}_head_{NN}_tone{n}.png -> avatar/heads/lvl{L}_{men|women}_head_{NN}_tone{n}.webp
     Clothing/lvl{L}_{men|women}_shirt_{NN}.png     -> avatar/clothing/lvl{L}_{men|women}_shirt_{NN}.webp
     footwear/{source}.png                          -> avatar/footwear/{item id}.webp (FOOTWEAR below)
+    accesories/{name}.png                          -> avatar/accessories/{name}.webp (worn on the runner)
+                                                    + ui/equipment/{name}.webp (shop picture, cropped)
+
+Accessories (owner request, 3 November 2026: backpacks, poles, gels, bars) keep their file name; the
+equipment table (src/data/equipment.csv) names them in its avatar_layer and thumbnail columns.
 
 Heads and shirts keep their file name: the game reads level, sex, design (and tone) from it. They are cleaned
 on the way, because they were cut out of a white background:
@@ -75,6 +80,25 @@ def save(image: Image.Image, folder: str, name: str, source: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     WRITTEN.add(out)
     image.resize(SIZE, Image.LANCZOS).save(out, "WEBP", quality=QUALITY, method=6)
+    print(f"{source.relative_to(SOURCE)} -> {out.relative_to(ROOT)} ({out.stat().st_size // 1024} kB)")
+
+
+THUMBNAILS = ROOT / "assets" / "ui" / "equipment"
+THUMBNAIL_SIZE = 512
+
+
+def save_thumbnail(image: Image.Image, source: Path) -> None:
+    """The shop picture of an accessory: its drawn part, centred on a square transparent canvas."""
+    box = image.getchannel("A").getbbox()
+    if box is None:
+        return
+    part = image.crop(box)
+    side = round(max(part.size) * 1.1)
+    square = Image.new("RGBA", (side, side))
+    square.paste(part, ((side - part.width) // 2, (side - part.height) // 2))
+    out = THUMBNAILS / f"{source.stem}.webp"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    square.resize((THUMBNAIL_SIZE, THUMBNAIL_SIZE), Image.LANCZOS).save(out, "WEBP", quality=QUALITY, method=6)
     print(f"{source.relative_to(SOURCE)} -> {out.relative_to(ROOT)} ({out.stat().st_size // 1024} kB)")
 
 
@@ -181,6 +205,10 @@ def main() -> None:
     for path in sorted((SOURCE / "footwear").glob("*.png")):
         if path.name not in listed:
             print(f"skipped footwear/{path.name}: not assigned to an item in FOOTWEAR")
+    for path in sorted((SOURCE / "accesories").glob("*.png")):
+        image = load(path)
+        save(image, "accessories", path.stem, path)
+        save_thumbnail(image, path)
     for stale in sorted(set(TARGET.rglob("*.webp")) - WRITTEN):
         stale.unlink()
         print(f"removed {stale.relative_to(ROOT)} (no source)")

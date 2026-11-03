@@ -69,7 +69,7 @@ describe('getEarnedAttributePoints', () => {
 })
 
 describe('levels table (src/data/levels.csv, owner request 3 November 2026)', () => {
-  it('reads the owner table: 50 levels, the original curve, 2 points per level', () => {
+  it('reads the levels table (test copy): 50 levels, the original curve, 2 points per level', () => {
     expect(LEVEL_TABLE).toHaveLength(50)
     expect(LEVEL_TABLE.slice(0, 5)).toEqual([
       { level: 1, minXp: 0, attributePoints: 0 },

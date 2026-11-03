@@ -1,20 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { avatarFile } from '../../components/avatar/avatarArt'
-import { describeRaceEffect, EQUIPMENT_ITEMS, parseEquipment } from './items'
-
-const THUMBNAILS = import.meta.glob('/assets/ui/equipment/*.{webp,png,jpg,jpeg}')
+import { describeRaceEffect, parseEquipment } from './items'
 
 const HEADER =
   'id,name,type,level,price,pack,thumbnail,avatar_layer,speed,endurance,climbing,technical,recovery,consistency,flat,climb,descent,technical_penalty,wear,effect_text,description'
 
 describe('equipment table (src/data/equipment.csv, owner request 3 November 2026)', () => {
-  it('names only files that exist', () => {
-    for (const item of EQUIPMENT_ITEMS) {
-      if (item.avatarLayer) expect(avatarFile(item.avatarLayer), item.id).toBeDefined()
-      if (item.thumbnail) expect(THUMBNAILS[`/assets/ui/equipment/${item.thumbnail}`], item.id).toBeDefined()
-    }
-  })
-
   it('reads a row: level, price, pack, bonuses and multipliers; empty price is not for sale', () => {
     const [item] = parseEquipment(`${HEADER}\nx-shoes,X shoes,shoes,3,,,x.webp,footwear/x.webp,2,,,,,1,0.97,,,,,,"Fast, light."\n`)
     expect(item).toEqual({

@@ -965,7 +965,11 @@ Fitness 0 by week 6:
   description. Read by `src/domain/equipment/items.ts` (`parseEquipment`). Ids are saved: never
   rename or remove one. Tests check every named file exists.
 - Both tables are also in the Edge Function bundle (`scripts/functionsBuild.mjs` loads `?raw`
-  imports): after editing them, run `npm run build:functions` and redeploy `career-ops`.
+  imports). **Automatic deploy:** on every push to main, CI (`.github/workflows/ci.yml`) rebuilds the
+  bundle, runs every check, and only then deploys `career-ops` with the Supabase CLI
+  (`supabase/config.toml`: entrypoint `index.js`, JWT verification on; secret
+  `SUPABASE_ACCESS_TOKEN`) and commits the rebuilt `index.js` if it changed. Editing a CSV on
+  GitHub is enough; a broken table stops at the checks and nothing is deployed.
 - **Race clips** `assets/race/clips/{race id}/segment-{n}.mp4` (optional `.webm`, poster `.jpg`):
   played full screen after Start and after each aid station (`RaceClipPlayer`, `raceClips.ts`),
   before the next aid-station report or the result; skippable, skipped with reduced motion or when

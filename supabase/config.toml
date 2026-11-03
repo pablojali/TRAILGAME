@@ -1,0 +1,10 @@
+# Supabase CLI settings, used by the GitHub Action that deploys the Edge Function (owner request,
+# 3 November 2026). Only the function settings matter here: the database is set up by the
+# migrations in supabase/migrations (see docs/SUPABASE_SETUP.md).
+project_id = "zalyfrjfmsirvsrkdroy"
+
+[functions.career-ops]
+# The game checks the player's session itself; keep JWT verification on as before.
+verify_jwt = true
+# The bundled function (npm run build:functions), not an index.ts.
+entrypoint = "./functions/career-ops/index.js"

@@ -90,7 +90,7 @@
   flex: 1;
   width: 100%;
   min-height: 0;
-  max-height: 64px;
+  max-height: 96px;
 }
 
 .boxArt svg {

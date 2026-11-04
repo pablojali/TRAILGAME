@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { HEAD_FILES, HEADS } from '../../domain/athlete/heads'
-import { SHIRT_FILES } from '../../domain/athlete/shirts'
 import { EQUIPMENT_ITEMS } from '../../domain/equipment/items'
 import { art, headArt } from './avatarArt'
 
@@ -25,7 +24,11 @@ describe('avatar art', () => {
     }
   })
 
-  it('the shirt catalog lists exactly the prepared shirt files', () => {
+  it('the shirt catalog lists exactly the prepared shirt files', async () => {
+    // The real catalog, not the fixed copy the other tests use (src/test/setup.ts).
+    const { SHIRT_FILES } = await vi.importActual<typeof import('../../domain/athlete/shirtFiles')>(
+      '../../domain/athlete/shirtFiles',
+    )
     expect(SHIRT_FILES.map((shirt) => shirt.file).sort()).toEqual(names(SHIRT_ASSETS))
   })
 

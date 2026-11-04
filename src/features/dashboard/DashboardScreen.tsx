@@ -2,7 +2,6 @@ import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
-import { Coins } from '../../components/Coins'
 import { formatDelta, formatStat } from '../../components/format'
 import {
   ATTRIBUTE_IDS,
@@ -49,7 +48,7 @@ export function DashboardScreen() {
 
       {/* First screen: the runner with attributes on the left and condition on the right. */}
       <div className={styles.hero}>
-        {/* Year progress on the left, day centred, coins on the right (owner requests). */}
+        {/* Year progress on the left, day centred (owner requests); the coins are in the top bar. */}
         <div className={styles.topBar}>
           <div className={styles.year}>
             <span className={styles.yearLabel}>Year {career.year}</span>
@@ -72,9 +71,6 @@ export function DashboardScreen() {
             {/* Short day name on small phones, so the year block keeps its room. */}
             <span className={styles.dayLong}>{weekdayLong(today.day)}</span>
             <span className={styles.dayShort}>{weekdayShort(today.day)}</span>
-          </p>
-          <p className={styles.balance}>
-            <Coins amount={state.coins} />
           </p>
         </div>
 

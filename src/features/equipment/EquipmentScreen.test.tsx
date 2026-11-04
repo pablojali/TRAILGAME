@@ -16,16 +16,18 @@ describe('Equipment', () => {
     expect(screen.getByRole('tab', { name: 'Equipped' })).toHaveAttribute('aria-selected', 'true')
     expect(layers(/with the equipment worn/)).toEqual(['body'])
     const boxes = within(screen.getByRole('list', { name: 'Equipped items' })).getAllByRole('button')
-    // Owner's order: gels, cereal bars, shoes, backpack, poles.
+    // Owner's order: gels and bars (one box), shoes, backpack, poles.
     expect(boxes.map((b) => b.getAttribute('aria-label'))).toEqual([
       // Gels and cereal bars are counted, not worn.
-      'Gels: 2 in stock. Show gels cards',
-      'Cereal bars: 0 in stock. Show cereal bars cards',
+      'Gels & bars: 2 gels, 0 bars in stock. Show gels and bars cards',
       'Shoes: empty. Show shoes cards',
       'Backpack: empty. Show backpack cards',
       'Poles: Poles · Lvl 2. Show poles cards',
     ])
+    expect(boxes[0]).toHaveTextContent('Gels ×2Bars ×0')
     expect(screen.queryByText(/Race attributes/)).not.toBeInTheDocument()
+    // The balance is in the top bar, not on the screen (owner request, 3 November 2026).
+    expect(screen.queryByText('Balance')).not.toBeInTheDocument()
   })
 
   it('opens the cards of a slot, then a card, and equips and takes it off, saving each change', async () => {
@@ -71,7 +73,7 @@ describe('Equipment', () => {
     const user = userEvent.setup()
     seedCareer({ ...newGame(), coins: 60 })
     await renderApp('/equipment')
-    expect(screen.getByText('Balance').parentElement).toHaveTextContent('Balance 60 coins')
+    expect(within(screen.getAllByRole('banner')[0]!).getByText('60').parentElement).toHaveTextContent('60 coins')
     await user.click(screen.getByRole('tab', { name: 'Shop' }))
     await user.click(screen.getByRole('button', { name: 'Poles' }))
     expect(screen.getByRole('button', { name: 'Poles' })).toHaveAttribute('aria-pressed', 'true')
@@ -86,7 +88,15 @@ describe('Equipment', () => {
     // Same order as the slots: gels and cereal bars first, poles last.
     expect(within(grid()).getAllByRole('button')[0]).toHaveAccessibleName(/^Energy gel/)
     expect(within(grid()).getAllByRole('button')[10]).toHaveAccessibleName(/^Poles · Lvl 2/)
-    // One pack of gels and bars together, shown with the gels (owner decision, 3 November 2026).
+    // Gels and bars filter: every gel, bar and gels-and-bars pack.
+    await user.click(screen.getByRole('button', { name: 'Gels & bars' }))
+    expect(within(grid()).getAllByRole('button').map((b) => b.getAttribute('aria-label')?.split(',')[0])).toEqual([
+      'Energy gel',
+      'Cereal bar',
+      'Gels & bars',
+    ])
+    await user.click(screen.getByRole('button', { name: 'All' }))
+    // One pack of gels and bars together (owner decision, 3 November 2026).
     expect(within(grid()).getByRole('button', { name: 'Gels & bars, 10 coins, 0 gels, 0 bars in stock, Buy pack of 3' })).toBeInTheDocument()
     expect(within(grid()).getByRole('button', { name: 'Energy gel, 10 coins, 0 in stock, Buy pack of 3' })).toBeInTheDocument()
     expect(within(grid()).getByRole('button', { name: 'Hydration backpack · Lvl 2, 90 coins, Need 30 coins more' })).toBeInTheDocument()

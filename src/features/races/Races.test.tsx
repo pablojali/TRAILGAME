@@ -26,7 +26,8 @@ describe('Race Hub', () => {
     seedCareer()
     const { router } = await renderApp('/races')
     expect(screen.getByRole('heading', { level: 1, name: 'Races' })).toBeInTheDocument()
-    expect(screen.getByText('Level 1').parentElement).toHaveTextContent('Level 1·25 coins')
+    expect(screen.getByText('Level 1')).toBeInTheDocument()
+    expect(within(screen.getAllByRole('banner')[0]!).getByText('25').parentElement).toHaveTextContent('25 coins')
     expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Open', 'Trail', 'Mountain', 'Elite'])
     // Level 1: the Open tab first, with its three races.
     expect(screen.getByRole('tab', { name: 'Open' })).toHaveAttribute('aria-selected', 'true')

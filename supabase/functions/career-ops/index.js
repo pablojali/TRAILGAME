@@ -150,16 +150,23 @@ function getHead(sex, id) {
   return HEADS.find((head) => head.sex === sex && head.id === id);
 }
 
-// src/domain/athlete/shirts.ts
+// src/domain/athlete/shirtFiles.ts
 var SHIRT_FILES = [
   { file: "lvl1_men_shirt_01", label: "Charcoal T-shirt" },
   { file: "lvl2_men_shirt_01", label: "Navy T-shirt" },
   { file: "lvl3_men_shirt_01", label: "Burgundy T-shirt" },
   { file: "lvl3_men_shirt_02", label: "Green T-shirt" },
+  { file: "lvl2_men_shirt_02", label: "Brick red T-shirt" },
+  { file: "lvl3_men_shirt_03", label: "Steel blue T-shirt" },
   { file: "lvl1_women_shirt_01", label: "Blue tank top" },
   { file: "lvl2_women_shirt_01", label: "Coral tank top" },
-  { file: "lvl3_women_shirt_01", label: "Green tank top" }
+  { file: "lvl3_women_shirt_01", label: "Green tank top" },
+  { file: "lvl1_women_shirt_02", label: "Cream tank top" },
+  { file: "lvl2_women_shirt_02", label: "Teal and grey tank top" },
+  { file: "lvl3_women_shirt_03", label: "Pink and white tank top" }
 ];
+
+// src/domain/athlete/shirts.ts
 var NAME2 = /^lvl(\d+)_(men|women)_shirt_(\d{2})$/;
 function buildShirtCatalog(files) {
   const shirts = [];
@@ -439,11 +446,11 @@ starter-shoes,Starter shoes,shoes,,0,,,footwear/starter-shoes.webp,,,,,,,,,,,,,B
 trail-shoes-basic,Trail shoes,shoes,1,35,,,footwear/trail-shoes-basic.webp,1,,,1,,,,,,,,,A small all-round upgrade on the starter shoes.
 trail-shoes,Technical trail shoes,shoes,2,70,,,footwear/trail-shoes.webp,,,,4,,,,,,0.7,,,Grippy shoes for rocky and technical ground.
 trail-shoes-light,Light trail shoes,shoes,2,70,,,footwear/trail-shoes-light.webp,3,,,,,,,,0.98,1.3,,,"Fast on flats and descents, with less grip on technical ground."
-poles,Poles,poles,1,25,,,,,,2,,,,1.01,,,,,,Folding poles that help on climbs.
+poles,Poles,poles,1,25,,lvl1_poles_01.webp,accessories/lvl1_poles_01.webp,,,2,,,,1.01,,,,,,Folding poles that help on climbs.
 poles-2,Poles,poles,2,50,,,,,1,3,,,,1.01,,,,,,Light carbon poles.
 hydration-backpack,Hydration backpack,pack,1,30,,lvl1_back_01.webp,accessories/lvl1_back_01.webp,,1,,,,,,,,,0.9,,Carries water and food for long races.
-hydration-backpack-2,Hydration backpack,pack,2,90,,,,,2,,,,,,,,,0.85,,"A larger, better-fitting race vest."
-gels-and-bars,Gels & bars,nutrition,,5,3,,,,,,,,,,,,,,"Gel: 1.5% faster; cereal bar: 1.5% less fatigue, for the whole race. A race uses one of each.",3 energy gels and 3 cereal bars. One of each is enough for a whole race.
+hydration-backpack-2,Hydration backpack,pack,2,90,,lvl3_back_01.webp,accessories/lvl3_back_01.webp,,2,,,,,,,,,0.85,,"A larger, better-fitting race vest."
+gels-and-bars,Gels & bars,nutrition,,5,3,lvl1_gels_01.webp,,,,,,,,,,,,,"Gel: 1.5% faster; cereal bar: 1.5% less fatigue, for the whole race. A race uses one of each.",3 energy gels and 3 cereal bars. One of each is enough for a whole race.
 `;
 
 // src/domain/equipment/items.ts

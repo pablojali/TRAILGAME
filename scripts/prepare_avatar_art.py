@@ -10,6 +10,7 @@ Reads the original PNGs (all on the same 1024x1536 transparent canvas) and write
     footwear/{source}.png                          -> avatar/footwear/{item id}.webp (FOOTWEAR below)
     accesories/{name}.png                          -> avatar/accessories/{name}.webp (worn on the runner)
                                                     + ui/equipment/{name}.webp (shop picture, cropped)
+                                                    (art not on the 1024x1536 canvas: shop picture only)
 
 Accessories (owner request, 3 November 2026: backpacks, poles, gels, bars) keep their file name; the
 equipment table (src/data/equipment.csv) names them in its avatar_layer and thumbnail columns.
@@ -206,8 +207,12 @@ def main() -> None:
         if path.name not in listed:
             print(f"skipped footwear/{path.name}: not assigned to an item in FOOTWEAR")
     for path in sorted((SOURCE / "accesories").glob("*.png")):
-        image = load(path)
-        save(image, "accessories", path.stem, path)
+        image = Image.open(path).convert("RGBA")
+        if image.size == CANVAS:
+            save(image, "accessories", path.stem, path)
+        else:
+            # Not drawn on the avatar canvas (e.g. a gels-and-bars picture): a shop picture only.
+            print(f"  {path.name}: {image.size[0]}x{image.size[1]}, not the avatar canvas: shop picture only")
         save_thumbnail(image, path)
     for stale in sorted(set(TARGET.rglob("*.webp")) - WRITTEN):
         stale.unlink()

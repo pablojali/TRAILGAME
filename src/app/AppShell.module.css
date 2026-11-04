@@ -74,6 +74,14 @@
   font-size: var(--font-size-sm);
 }
 
+.balance {
+  margin: 0;
+  color: #f2c531;
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .settingsLink {
   display: flex;
   align-items: center;

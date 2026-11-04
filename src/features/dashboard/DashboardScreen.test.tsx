@@ -23,7 +23,7 @@ function attributeValues() {
 }
 
 function identity() {
-  return screen.getByRole('heading', { level: 2, name: / - .* \(Lv \d+\)/ }).textContent
+  return screen.getByRole('heading', { level: 2, name: / - / }).textContent
 }
 
 describe('DashboardScreen — first screen', () => {
@@ -31,7 +31,7 @@ describe('DashboardScreen — first screen', () => {
     seedCareer(newGame('climber'))
     await renderApp('/')
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
-    expect(identity()).toBe('Demo Runner - Climber (Lv 1)')
+    expect(identity()).toBe('Demo Runner - Climber')
     expect(screen.getByText('Monday')).toBeInTheDocument()
     // Year progress at the top left (owner choice): week 1 of 52.
     expect(screen.getByText('Year 1')).toBeInTheDocument()
@@ -49,7 +49,8 @@ describe('DashboardScreen — first screen', () => {
       'Consistency 15',
     ])
     expect(stat('Level')).toBe('1')
-    expect(identity()).toMatch(/\(Lv 1\)$/)
+    // No level beside the name (owner request, 4 November 2026): it is in the top bar.
+    expect(identity()).not.toMatch(/Lv/)
     expect(stat('XP')).toBe('0')
     expect(stat('Fitness')).toBe('20.0')
     expect(stat('Fatigue')).toBe('0')
@@ -101,7 +102,7 @@ describe('DashboardScreen — first screen', () => {
     seedCareer(state)
     await renderApp('/')
 
-    expect(identity()).toBe('Marta - Sprinter (Lv 3)')
+    expect(identity()).toBe('Marta - Sprinter')
     // Coins in the top bar beside the cloud, with the gold coin symbol (owner request, 3 November 2026).
     const coins = within(screen.getAllByRole('banner')[0]!).getByText('1,240')
     expect(coins.parentElement).toHaveTextContent('1,240 coins')

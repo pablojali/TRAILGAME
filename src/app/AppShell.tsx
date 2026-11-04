@@ -43,16 +43,16 @@ export function AppShell() {
 
       <header className={styles.brandBar}>
         <img className={styles.brandMark} src={logoUrl} alt="" width="40" height="40" />
-        <span className={styles.brandName}>Trail Manager</span>
-        {/* After the logo: level, coins, cloud, settings, on every screen (owner requests, 3–4 November 2026). */}
-        {phase.kind === 'playing' && (
-          <>
-            <p className={styles.level}>Lvl {getLevel(phase.state.athlete.xp)}</p>
+        {/* The name with the coins under it (owner request, 4 November 2026), then level, cloud, settings. */}
+        <div className={styles.brandText}>
+          <span className={styles.brandName}>Trail Manager</span>
+          {phase.kind === 'playing' && (
             <p className={styles.balance}>
               <Coins amount={phase.state.coins} />
             </p>
-          </>
-        )}
+          )}
+        </div>
+        {phase.kind === 'playing' && <p className={styles.level}>Lvl {getLevel(phase.state.athlete.xp)}</p>}
         {!inSetup && <SyncIndicator />}
         {!inSetup && (
           <NavLink

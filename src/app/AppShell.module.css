@@ -66,8 +66,15 @@
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
 }
 
-.brandName {
+.brandText {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.brandName {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -75,7 +82,7 @@
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
 }
 
 .level {

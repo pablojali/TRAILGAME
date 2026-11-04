@@ -4,11 +4,11 @@ import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { formatStat } from '../../components/format'
 import { Screen } from '../../components/Screen'
-import { Chips } from '../../components/Tabs'
-import { getEquipmentItem, itemName } from '../../domain/equipment/items'
+import { Chips, Tabs } from '../../components/Tabs'
+import { getEquipmentItem } from '../../domain/equipment/items'
+import { ItemArt } from '../equipment/EquipmentScreen'
 import { getRace, type Race } from '../../domain/races/races'
 import type { AidStop, Intensity } from '../../domain/races/strategyConfig'
-import type { GameState } from '../../game-engine/gameState'
 import { getRaceSegments } from '../../game-engine/raceEngine'
 import { isRaceDayToday } from '../../game-engine/raceSchedule'
 import {
@@ -187,6 +187,7 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
   const bar = barChoice ?? consumables.bar > 0
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [tab, setTab] = useState<'strategy' | 'equipment'>('strategy')
 
   async function start() {
     if (busy) return
@@ -208,47 +209,61 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
 
   return (
     <Screen eyebrow={`${race.name} · Race day`} title="Race preparation" description="Choose what to carry and how hard to start.">
-      {/* Tiles that fit the screen (owner request, 1 November 2026): no scrolling. */}
+      {/*
+       * Two tabs (owner request, 4 November 2026): Strategy and the equipment worn, so the finish arch
+       * and the ground of the picture stay visible. Start race is under both.
+       */}
       <div className={styles.tileScreen}>
-        <section className={`${styles.tile} ${styles.tileWide}`} aria-label="Course">
-          <span className={styles.tileLabel}>
-            Course · {segments.length} segments, {segments.length - 1} aid stations
-          </span>
-          <ol className={styles.segmentCells}>
-            {segments.map((segment) => (
-              <li key={segment.index}>
-                <span>S{segment.index + 1}</span>
-                <span>{(segment.distanceM / 1000).toFixed(1)} km</span>
-                <span>
-                  +{Math.round(segment.gainM)} / −{Math.round(segment.lossM)}
+        <Tabs<'strategy' | 'equipment'>
+          label="Race preparation"
+          tabs={[
+            { id: 'strategy', label: 'Strategy' },
+            { id: 'equipment', label: 'Equipment' },
+          ]}
+          value={tab}
+          onChange={setTab}
+        >
+          {tab === 'strategy' ? (
+            <div className={styles.prepPanel}>
+              <section className={`${styles.tile} ${styles.tileWide}`} aria-label="Course">
+                <span className={styles.tileLabel}>
+                  Course · {segments.length} segments, {segments.length - 1} aid {segments.length === 2 ? 'station' : 'stations'}
                 </span>
-              </li>
-            ))}
-          </ol>
-        </section>
+                <ol className={styles.segmentCells}>
+                  {segments.map((segment) => (
+                    <li key={segment.index}>
+                      <span>S{segment.index + 1}</span>
+                      <span>{(segment.distanceM / 1000).toFixed(1)} km</span>
+                      <span>
+                        +{Math.round(segment.gainM)} / −{Math.round(segment.lossM)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
 
-        <Link to="/equipment" className={`${styles.tile} ${styles.tileLink}`}>
-          <span className={styles.tileLabel}>Equipment ›</span>
-          <span className={styles.tileValue}>{equipmentText(state)}</span>
-        </Link>
+              <div className={styles.choiceTiles} role="group" aria-label="Nutrition">
+                <NutritionToggle label="Energy gel" effect="1.5% faster" stock={consumables.gel} taken={gel} onChange={setGel} />
+                <NutritionToggle label="Cereal bar" effect="1.5% less fatigue" stock={consumables.bar} taken={bar} onChange={setBar} />
+              </div>
+              {(consumables.gel === 0 || consumables.bar === 0) && (
+                <Link to="/equipment?tab=shop" className={styles.tileNote}>
+                  Buy gel and bar packs in the shop ›
+                </Link>
+              )}
 
-        <div className={styles.choiceTiles} role="group" aria-label="Nutrition">
-          <NutritionToggle label="Energy gel" effect="1.5% faster" stock={consumables.gel} taken={gel} onChange={setGel} />
-          <NutritionToggle label="Cereal bar" effect="1.5% less fatigue" stock={consumables.bar} taken={bar} onChange={setBar} />
-        </div>
-        {(consumables.gel === 0 || consumables.bar === 0) && (
-          <Link to="/equipment?tab=shop" className={styles.tileNote}>
-            Buy gel and bar packs in the shop ›
-          </Link>
-        )}
-
-        <section className={styles.tile} aria-label="Segment 1 intensity">
-          <span className={styles.tileLabel}>Segment 1 intensity</span>
-          <div className={styles.chipsTight}>
-            <Chips<Intensity> label="Segment 1 intensity" options={INTENSITY_OPTIONS} value={intensity} onChange={setIntensity} />
-          </div>
-          <span className={`${styles.tileNote} ${styles.tileHint}`}>{intensityHint(intensity)}</span>
-        </section>
+              <section className={styles.tile} aria-label="Segment 1 intensity">
+                <span className={styles.tileLabel}>Segment 1 intensity</span>
+                <div className={styles.chipsTight}>
+                  <Chips<Intensity> label="Segment 1 intensity" options={INTENSITY_OPTIONS} value={intensity} onChange={setIntensity} />
+                </div>
+                <span className={`${styles.tileNote} ${styles.tileHint}`}>{intensityHint(intensity)}</span>
+              </section>
+            </div>
+          ) : (
+            <WornEquipment />
+          )}
+        </Tabs>
 
         <div className={styles.grow} />
         {error && (
@@ -264,12 +279,32 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
   )
 }
 
-function equipmentText(state: GameState): string {
-  const names = state.equipment
-    .map((id) => getEquipmentItem(id))
-    .filter((item) => item !== undefined)
-    .map((item) => itemName(item))
-  return names.length ? names.join(', ') : 'Nothing equipped.'
+/** The pictures of the equipment worn, each with its name and level; opens Equipment. */
+function WornEquipment() {
+  const { state } = useCareer()
+  const worn = state.equipment.map((id) => getEquipmentItem(id)).filter((item) => item !== undefined)
+  return (
+    <div className={styles.prepPanel}>
+      {worn.length ? (
+        <ul className={styles.wornGrid} aria-label="Equipment worn">
+          {worn.map((item) => (
+            <li key={item.id} className={styles.wornItem}>
+              <span className={styles.wornArt}>
+                <ItemArt item={item} />
+              </span>
+              <span className={styles.wornName}>{item.label}</span>
+              {item.level !== undefined && <span className={styles.wornLevel}>Lvl {item.level}</span>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={styles.tileNote}>Nothing equipped.</p>
+      )}
+      <Link to="/equipment" className={styles.tileNote}>
+        Change equipment ›
+      </Link>
+    </div>
+  )
 }
 
 function NutritionToggle({

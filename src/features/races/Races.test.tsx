@@ -273,8 +273,11 @@ describe('Race day and results', () => {
     seedCareer(onSunday(entered.state))
     const first = await renderApp('/races/run/entry-1')
     expect(screen.getByRole('heading', { level: 1, name: 'Race preparation' })).toBeInTheDocument()
-    expect(screen.getByText('Course · 4 segments, 3 aid stations')).toBeInTheDocument()
+    // Two tabs (owner request, 4 November 2026): the equipment worn is in the second.
+    await user.click(screen.getByRole('tab', { name: 'Equipment' }))
     expect(screen.getByText('Nothing equipped.')).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Strategy' }))
+    expect(screen.getByText('Course · 4 segments, 3 aid stations')).toBeInTheDocument()
     // The gel is taken by default (in stock); there is no bar to take.
     expect(screen.getByRole('button', { name: /^Take energy gel/ })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: /^No cereal bar/ })).toHaveAttribute('aria-disabled', 'true')

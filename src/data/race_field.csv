@@ -1,0 +1,12 @@
+# Race field by category (owner table, 4 November 2026). One row per category: open, trail, mountain, elite.
+# The field is built on typical runners of the race's level (2 levels above about 2nd, the race's level 15th, 2 below 22nd).
+# training_gain: attribute points per level (each attribute) the typical runner gains from training, on top of the level table's points.
+# fitness_bonus: extra Fitness of the typical runner at level 1, fading to none at level 30 (where Fitness reaches 90).
+# front_ranks: the first rivals (of 29) who race all out: front_intensity (recovery, easy, target, hard or best) and front_stop (quick, normal, slow or best).
+# best: the intensity or stop that gives the fastest time on that course (Hard and Quick in short races; gentler in long ones).
+# Everyone wears the best shop gear of their level and takes a gel and a cereal bar; the rest of the field runs at target pace.
+category,training_gain,fitness_bonus,front_intensity,front_stop,front_ranks
+open,0.2,3,best,best,10
+trail,0.2,3,best,best,10
+mountain,0.2,3,best,best,10
+elite,0.2,3,best,best,10

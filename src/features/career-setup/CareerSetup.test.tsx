@@ -211,7 +211,7 @@ describe('career creation — name step', () => {
     const profile = 'all-rounder'
 
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'Alex - All-rounder (Lv 1)' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Alex - All-rounder' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
     const save = readSave()!
     expect(save.schemaVersion).toBe(2)
@@ -244,7 +244,7 @@ describe('career creation — name step', () => {
 
     await renderApp('/')
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'Leo - All-rounder (Lv 1)' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Leo - All-rounder' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /^Leo, male runner/ })).toBeInTheDocument()
     expect(readSave()!.state.athlete.sex).toBe('male')
   })

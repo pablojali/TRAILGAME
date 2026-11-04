@@ -83,6 +83,13 @@ export const RACE_STRATEGY = {
    * (owner decision, 2 November 2026): 2 above is 2nd, the recommended level 15th, 2 below 22nd.
    * Rival index (0-based) whose finishing time equals that runner's (ties go to the runner).
    */
+  /**
+   * The typical runners the field is anchored on race like a player (owner decision, 4 November
+   * 2026): Target pace, Normal stops, the best shop gear of their level in each slot (highest level
+   * not above theirs; the first in the equipment table on a tie) and, when set, a gel and a bar.
+   */
+  typicalGear: true,
+  typicalNutrition: { gel: true, bar: true },
   /** Minimum time gap (share) between the race's level and 2 levels either side in the field. */
   minLevelGap: 0.03,
   levelAnchors: [

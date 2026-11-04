@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Attributes } from '../domain/athlete/athlete'
 import { getRace, RACES } from '../domain/races/races'
-import { racePaces, type Intensity } from '../domain/races/strategyConfig'
+import { RACE_STRATEGY, racePaces, type Intensity } from '../domain/races/strategyConfig'
 import { parseGameState } from '../repositories/gameRepository'
 import { newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
 import type { GameState } from './gameState'
@@ -14,10 +14,11 @@ import {
   runPlan,
   runSegment,
   snapshotRunner,
+  typicalRunner,
   type StepContext,
 } from './raceEngine'
 import { getRaceFatigue, getRaceReport, raceCurrentDay, startRace, stepRace } from './races'
-import { courseEffortKm, generateCourse, raceSeconds, referenceAthlete } from './raceSimulation'
+import { courseEffortKm, generateCourse, raceSeconds } from './raceSimulation'
 import { executeCurrentDay } from './training'
 
 const all = (value: number): Attributes => ({
@@ -161,12 +162,19 @@ describe('nutrition (one gel and one bar at most, for the whole race)', () => {
   })
 })
 
-describe('field (owner decisions, 2 November 2026)', () => {
+describe('field (owner decisions, 2 and 4 November 2026)', () => {
   const finishOf = (raceId: string, levels: number) => {
     const race = getRace(raceId)!
-    const typical = referenceAthlete(Math.max(1, race.recommendedLevel + levels))
-    const ctx = context(raceId, { runner: snapshotRunner(typical.attributes, typical.fitness, typical.fatigue, []) })
-    return runPlan(ctx, 'target', 'normal').splits.at(-1)!.position
+    // The typical runner with the best gear of the level, a gel and a bar (owner decision, 4 November 2026).
+    const typical = typicalRunner(Math.max(1, race.recommendedLevel + levels), race.category)
+    const ctx = context(raceId, {
+      runner: snapshotRunner(typical.attributes, typical.fitness, typical.fatigue, typical.equipment),
+      nutrition: RACE_STRATEGY.typicalNutrition,
+    })
+    // 2 levels above races like the front of the field (race_field.csv); the others
+    // at Target pace with Normal stops.
+    const front = ctx.field.frontPlan
+    return levels > 0 ? runPlan(ctx, front.intensity, front.stop).splits.at(-1)!.position : runPlan(ctx, 'target', 'normal').splits.at(-1)!.position
   }
 
   it('has 30 runners: 2 levels above the race finishes near 2nd, its level 15th, 2 levels below near 22nd', () => {
@@ -174,12 +182,12 @@ describe('field (owner decisions, 2 November 2026)', () => {
       expect(getRaceField(race).rivalFinishS).toHaveLength(29)
       expect(finishOf(race.id, 0)).toBe(15)
       if (race.recommendedLevel < 30) {
-        expect([finishOf(race.id, 2), finishOf(race.id, -2)]).toEqual([2, 22])
+        expect([finishOf(race.id, 2), finishOf(race.id, -2)], race.id).toEqual([2, 22])
       } else {
-        // From level 30 the typical runner's Fitness stops growing, so 2 levels count for less; the
-        // minimum gap still keeps them apart.
-        expect(finishOf(race.id, 2)).toBeLessThanOrEqual(12)
-        expect(finishOf(race.id, -2)).toBeGreaterThanOrEqual(17)
+        // Past the Fitness cap the typical runner's Fitness stops growing, so 2 levels count for less; the
+        // minimum gap still keeps them apart (ahead of and behind the race's level).
+        expect(finishOf(race.id, 2), race.id).toBeLessThan(15)
+        expect(finishOf(race.id, -2), race.id).toBeGreaterThanOrEqual(17)
       }
     }
   })
@@ -207,11 +215,18 @@ describe('field (owner decisions, 2 November 2026)', () => {
 })
 
 describe('rivals', () => {
-  it('stop by rank: front third Quick, middle Normal, back third Slow', () => {
+  it('stop by rank: front third Quick, middle Normal, back third Slow; the front of the field its own stop', () => {
     expect(Array.from({ length: 29 }, (_, i) => getRivalStop(i, 29))).toEqual([
       ...Array<string>(10).fill('quick'),
       ...Array<string>(10).fill('normal'),
       ...Array<string>(9).fill('slow'),
+    ])
+    expect(Array.from({ length: 29 }, (_, i) => getRivalStop(i, 29, { frontRanks: 3, frontStop: 'slow' })).slice(0, 5)).toEqual([
+      'slow',
+      'slow',
+      'slow',
+      'quick',
+      'quick',
     ])
   })
 

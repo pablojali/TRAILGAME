@@ -80,7 +80,7 @@ export function DashboardScreen() {
               <span className={styles.nameplateName}>{athlete.name}</span>
               <span className={styles.srOnly}> - </span>
               <span className={styles.nameplateRole}>
-                {PROFILES[athlete.profile].label} (Lv {progress.level})
+                {PROFILES[athlete.profile].label}
               </span>
             </h2>
           </div>

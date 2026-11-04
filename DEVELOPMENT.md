@@ -964,7 +964,12 @@ Fitness 0 by week 6:
   `descent`, `technical_penalty`, `wear`), effect text (written from the bonuses when empty) and
   description. Read by `src/domain/equipment/items.ts` (`parseEquipment`). Ids are saved: never
   rename or remove one. Tests check every named file exists.
-- Both tables are also in the Edge Function bundle (`scripts/functionsBuild.mjs` loads `?raw`
+- **Race field table** `src/data/race_field.csv` (owner request, 4 November 2026): one row per race
+  category with the typical runner's `training_gain` (attribute points per level, each attribute)
+  and `fitness_bonus`, and how the first `front_ranks` rivals race (`front_intensity`, `front_stop`;
+  `best` = the fastest plan on that course, resolved per race into `RaceField.frontPlan`). Read by
+  `src/domain/races/raceField.ts`; used by `typicalRunner` and `getRaceField` (raceEngine.ts).
+- The tables are also in the Edge Function bundle (`scripts/functionsBuild.mjs` loads `?raw`
   imports). **Automatic deploy:** on every push to main, CI (`.github/workflows/ci.yml`) rebuilds the
   bundle, runs every check, and only then deploys `career-ops` with the Supabase CLI
   (`supabase/config.toml`: entrypoint `index.js`, JWT verification on; secret

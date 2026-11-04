@@ -1,12 +1,18 @@
-import type { Attributes } from '../domain/athlete/athlete'
+import { ATTRIBUTE_IDS, type Attributes } from '../domain/athlete/athlete'
+import { getAttributePointsBetween } from '../domain/athlete/levels'
 import { roundStat } from '../domain/athlete/athlete'
 import type { Race } from '../domain/races/races'
+import type { RaceCategory } from '../domain/races/categories'
+import { RACE_FIELD } from '../domain/races/raceField'
+import { EQUIPMENT_ITEMS, type EquipmentItem } from '../domain/equipment/items'
 import { RACE_SIMULATION as SIM } from '../domain/races/simulationConfig'
 import {
   fatiguePaceWeight,
   RACE_STRATEGY as C,
   racePaces,
   stopSeconds,
+  AID_STOPS,
+  INTENSITIES,
   type AidStop,
   type Intensity,
 } from '../domain/races/strategyConfig'
@@ -17,8 +23,6 @@ import {
   generateCourse,
   InvalidCourseError,
   prepareRunner,
-  raceSeconds,
-  referenceAthlete,
   splitEvenly,
   type CourseSegment,
   type RaceAthleteInput,
@@ -182,6 +186,8 @@ export function getFatigueScale(race: Race, segments: readonly RaceSegment[] = g
 /** The race as the field sees it: segments, the rivals' times at each aid station and at the finish. */
 export interface RaceField {
   segments: RaceSegment[]
+  /** How the front of the field races (race_field.csv; `best` resolved for this race). */
+  frontPlan: TypicalPlan
   fatigueScale: number
   /**
    * Seconds of race time per second of the ability model (the race's course factor): the model's
@@ -200,54 +206,99 @@ export interface RaceField {
   rivalFinishS: number[]
 }
 
-/** The stop a rival makes at every aid station: front third Quick, middle Normal, back third Slow. */
-export function getRivalStop(rivalIndex: number, rivals: number): AidStop {
+/**
+ * The stop a rival makes at every aid station: front third Quick, middle Normal, back third Slow;
+ * the front of the field (race_field.csv `front_ranks`) makes the table's `front_stop`.
+ */
+export function getRivalStop(rivalIndex: number, rivals: number, front?: { frontRanks: number; frontStop: AidStop }): AidStop {
+  if (front && rivalIndex < front.frontRanks) return front.frontStop
   return C.rivalStops[Math.min(2, Math.floor((rivalIndex * 3) / rivals))]!
 }
 
 /**
  * The field (owner decisions, 2 November 2026): 29 rivals whose finishing times are anchored on
  * typical runners of the race's level: 2 levels above finishes 2nd, the recommended level 15th,
- * 2 levels below 22nd (each with Target pace and Normal stops). The winner and the last finisher
+ * 2 levels below 22nd. Typical runners race like a player (gear, gel and bar): the front of the
+ * field all out (race_field.csv, owner request 4 November 2026), the others at Target pace with
+ * Normal stops. The winner and the last finisher
  * run at the owner's paces for the race's effort-km; times in between are interpolated. The model's
  * times are scaled by one factor per race (`timeScale`) that the runner's times use too.
  */
 export function getRaceField(race: Race): RaceField {
+  const { frontIntensity, frontStop } = RACE_FIELD[race.category]
+  if (frontIntensity !== 'best' && frontStop !== 'best') return buildRaceField(race, { intensity: frontIntensity, stop: frontStop })
+  // `best`: a first field with Target and Normal in place of `best` gives the race's time scale and
+  // stop lengths; the front then takes the plan that is fastest on them.
+  const draft = buildRaceField(race, {
+    intensity: frontIntensity === 'best' ? 'target' : frontIntensity,
+    stop: frontStop === 'best' ? 'normal' : frontStop,
+  })
+  const intensities = frontIntensity === 'best' ? INTENSITIES : [frontIntensity]
+  const stops = frontStop === 'best' ? AID_STOPS : [frontStop]
+  const level = race.recommendedLevel + C.levelAnchors[0]!.levels
+  let best: { plan: TypicalPlan; seconds: number } | undefined
+  for (const intensity of intensities) {
+    for (const stop of stops) {
+      const plan = { intensity, stop }
+      const seconds =
+        typicalModelSeconds(race, draft.segments, level, plan) * draft.timeScale + (draft.segments.length - 1) * draft.stopS[stop]
+      // Ties: the earlier option (the gentler intensity, the shorter stop).
+      if (!best || seconds < best.seconds - 1e-6) best = { plan, seconds }
+    }
+  }
+  return buildRaceField(race, best!.plan)
+}
+
+function buildRaceField(race: Race, front: TypicalPlan): RaceField {
   const segments = getRaceSegments(race)
   const course = generateCourse(race)
   const effort = courseEffortKm(course)
   const stations = segments.length - 1
   const rivals = C.fieldSize - 1
   const R = race.recommendedLevel
+  const table = { frontRanks: RACE_FIELD[race.category].frontRanks, frontStop: front.stop }
+  const planOf = (rivalIndex: number): TypicalPlan =>
+    rivalIndex < table.frontRanks ? front : { intensity: 'target', stop: 'normal' }
   // The typical runner's time 2 levels either side, at least `minLevelGap` apart from the race's
   // level (owner request: the leading group not so tight that small choices move many places;
   // matters most in the longest races, where Fitness stops growing with the level).
-  const rawTime = (levels: number) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)))
-  const atLevel = rawTime(0)
-  const modelTime = (levels: number) =>
-    levels > 0
-      ? Math.min(rawTime(levels), atLevel / (1 + C.minLevelGap))
+  const rawTime = (levels: number, plan: TypicalPlan) => typicalModelSeconds(race, segments, Math.max(1, R + levels), plan)
+  const anchorOf = (levels: number) => C.levelAnchors.find((a) => a.levels === levels)!
+  // The gap is measured against the race's level racing the same plan (stops change the running time).
+  const modelTime = (levels: number) => {
+    const plan = planOf(anchorOf(levels).rivalIndex)
+    const raw = rawTime(levels, plan)
+    const atLevel = rawTime(0, plan)
+    return levels > 0
+      ? Math.min(raw, atLevel / (1 + C.minLevelGap))
       : levels < 0
-        ? Math.max(rawTime(levels), atLevel * (1 + C.minLevelGap))
+        ? Math.max(raw, atLevel * (1 + C.minLevelGap))
         : atLevel
+  }
 
   const stopS = stopSeconds(effort)
 
   // The course factor: the winner runs at the owner's winner pace and finishes one rank ahead of
   // the anchor two levels above, at the same gap per rank as down to the recommended level (owner
-  // request: the winner is not out on their own). The winner's Quick stops count.
+  // request: the winner is not out on their own). The winner's stops count.
+  // Gaps are taken on finishing times (stops included), as the anchors may stop differently:
+  // winner = top − k × (middle − top), with k = top's rank / ranks from top to middle.
   const [top, middle] = C.levelAnchors
   const topModel = modelTime(top.levels)
-  const perRank = (modelTime(middle.levels) - topModel) / (middle.rivalIndex - top.rivalIndex)
+  const middleModel = modelTime(middle.levels)
   const paces = racePaces(effort)
   const winnerRun = effort * paces.winner * 60
-  const timeScale = (winnerRun - stations * (stopS.normal - stopS.quick)) / (topModel - top.rivalIndex * perRank)
+  const stopOf = (i: number) => stations * stopS[getRivalStop(i, rivals, table)]
+  const anchorStop = (i: number) => stations * stopS[planOf(i).stop]
+  const k = top.rivalIndex / (middle.rivalIndex - top.rivalIndex)
+  const topStops = anchorStop(top.rivalIndex)
+  const timeScale =
+    (winnerRun + stopOf(0) - topStops + k * (anchorStop(middle.rivalIndex) - topStops)) / (topModel - k * (middleModel - topModel))
 
   // Finishing times (stops included) at the anchor ranks, then interpolated rank by rank.
-  const stopOf = (i: number) => stations * stopS[getRivalStop(i, rivals)]
   const anchors: [number, number][] = [
     [0, winnerRun + stopOf(0)],
-    ...C.levelAnchors.map((a): [number, number] => [a.rivalIndex, modelTime(a.levels) * timeScale + stations * stopS.normal]),
+    ...C.levelAnchors.map((a): [number, number] => [a.rivalIndex, modelTime(a.levels) * timeScale + anchorStop(a.rivalIndex)]),
     [rivals - 1, effort * paces.last * 60 + stopOf(rivals - 1)],
   ]
   for (let j = 1; j < anchors.length; j++) {
@@ -263,7 +314,7 @@ export function getRaceField(race: Race): RaceField {
   }
 
   // Splits: each rival's running time over the segments like the typical runner's.
-  const reference = referenceAthlete(R)
+  const reference = typicalRunner(R, race.category)
   const runner = prepareRunner(reference)
   const referenceSegments = segments.map((seg) => segmentBaseSeconds(runner, seg, reference.fatigue, 0))
   const referenceTotal = referenceSegments.reduce((x, y) => x + y, 0)
@@ -273,13 +324,14 @@ export function getRaceField(race: Race): RaceField {
     sum += seconds
     cumulativeShares.push(sum / referenceTotal)
   }
-  const stopsS = finish.map((_, i) => stopS[getRivalStop(i, rivals)])
+  const stopsS = finish.map((_, i) => stopS[getRivalStop(i, rivals, table)])
   const rivalBaseS = finish.map((t, i) => t - stations * stopsS[i]!)
   const rivalArrivalsS = segments
     .slice(0, -1)
     .map((_, k) => rivalBaseS.map((t, i) => Math.round(t * cumulativeShares[k]!) + k * stopsS[i]!))
   return {
     segments,
+    frontPlan: front,
     fatigueScale: getFatigueScale(race, segments),
     timeScale,
     stopS,
@@ -413,12 +465,68 @@ export function runPlan(
   return progress
 }
 
-/** The typical runner's finishing time with Normal stops (what the rivals around 24th do). */
+/** The typical runner's finishing time with Normal stops (the field's anchor at the race's level). */
 export function getReferenceFinishS(race: Race, field: RaceField = getRaceField(race)): number {
   return (
-    Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel)) * field.timeScale) +
+    Math.round(typicalModelSeconds(race, field.segments, race.recommendedLevel, { intensity: 'target', stop: 'normal' }) * field.timeScale) +
     (field.segments.length - 1) * field.stopS.normal
   )
+}
+
+/**
+ * The typical runner of a level as they race (owner decision, 4 November 2026): they train like a
+ * player (each attribute: 16, its share of the level table's attribute points, plus the training
+ * gains per level) and wear the best shop gear of that level in each slot. The older
+ * `referenceAthlete` stays for results saved before the segment engine.
+ */
+export function typicalRunner(level: number, category: RaceCategory): RaceRunner {
+  const { trainingGain, fitnessBonus } = RACE_FIELD[category]
+  const value = 16 + getAttributePointsBetween(1, level) / ATTRIBUTE_IDS.length + trainingGain * (level - 1)
+  const base: RaceAthleteInput = {
+    attributes: Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, value])) as Attributes,
+    // From 25 + the training bonus at level 1 to Fitness 90 at level 30 (owner decisions, 29 October
+    // and 4 November 2026).
+    fitness: Math.min(90, 25 + fitnessBonus + ((65 - fitnessBonus) * (level - 1)) / 29),
+    fatigue: SIM.referenceFatigue,
+  }
+  const equipment: string[] = []
+  if (C.typicalGear) {
+    for (const slot of ['shoes', 'pack', 'poles'] as const) {
+      let best: EquipmentItem | undefined
+      for (const item of EQUIPMENT_ITEMS) {
+        if (item.slot !== slot || item.price === null || (item.level ?? 0) > level) continue
+        if (!best || (item.level ?? 0) > (best.level ?? 0)) best = item
+      }
+      if (best) equipment.push(best.id)
+    }
+  }
+  return { ...base, equipment }
+}
+
+export interface TypicalPlan {
+  intensity: Intensity
+  stop: AidStop
+}
+
+
+/**
+ * Running seconds (no stop time, before the race's time scale) of the typical runner of `level`
+ * with a plan, a gel and a bar. The same model the player's own race uses.
+ */
+function typicalModelSeconds(race: Race, segments: RaceSegment[], level: number, plan: TypicalPlan): number {
+  const model: RaceField = {
+    segments,
+    frontPlan: plan,
+    fatigueScale: getFatigueScale(race, segments),
+    timeScale: 1,
+    stopS: { quick: 0, normal: 0, slow: 0 },
+    fatigueWeight: fatiguePaceWeight(courseEffortKm(generateCourse(race))),
+    rivalBaseS: [],
+    rivalArrivalsS: segments.map(() => []),
+    rivalFinishS: [],
+  }
+  const ctx: StepContext = { race, field: model, runner: typicalRunner(level, race.category), dayForm: 0, nutrition: C.typicalNutrition }
+  return runPlan(ctx, plan.intensity, plan.stop).elapsedS
 }
 
 export function snapshotRunner(attributes: Attributes, fitness: number, fatigue: number, equipment: readonly string[]): RaceRunner {

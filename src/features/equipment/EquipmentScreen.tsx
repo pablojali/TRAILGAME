@@ -128,7 +128,8 @@ const THUMBNAILS = import.meta.glob<string>('/assets/ui/equipment/*.{webp,png,jp
   import: 'default',
 })
 
-function ItemArt({ item }: { item: EquipmentItem }) {
+/** An item's picture: its thumbnail, the shoes on the feet, or the slot icon (also used on race day). */
+export function ItemArt({ item }: { item: EquipmentItem }) {
   const { state } = useCareer()
   const { athlete } = state
   const thumbnail = item.thumbnail && THUMBNAILS[`/assets/ui/equipment/${item.thumbnail}`]

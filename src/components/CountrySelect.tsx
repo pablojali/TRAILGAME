@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { countriesByName, countryFlag } from '../domain/athlete/countries'
+import { useI18n } from '../i18n/i18n'
 
 interface CountrySelectProps {
   id: string
@@ -12,7 +13,8 @@ interface CountrySelectProps {
 
 /** Every country by name, each with its flag (owner request, 4 November 2026). */
 export function CountrySelect({ id, value, onChange, className, invalid, describedBy }: CountrySelectProps) {
-  const countries = useMemo(() => countriesByName(), [])
+  const { t, locale } = useI18n()
+  const countries = useMemo(() => countriesByName(locale), [locale])
   return (
     <select
       id={id}
@@ -23,7 +25,7 @@ export function CountrySelect({ id, value, onChange, className, invalid, describ
       onChange={(event) => onChange(event.target.value)}
     >
       <option value="" disabled>
-        Choose a country
+        {t('country.choose')}
       </option>
       {countries.map(({ code, name }) => (
         <option key={code} value={code}>

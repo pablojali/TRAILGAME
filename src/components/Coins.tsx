@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/i18n'
 import styles from './Coins.module.css'
 
 /** Gold coin symbol. Decorative: pair it with the amount in text. */
@@ -14,11 +15,12 @@ export function CoinIcon({ className }: { className?: string }) {
 
 /** An amount of coins: the gold coin symbol and the number; screen readers hear "N coins". */
 export function Coins({ amount, className }: { amount: number; className?: string }) {
+  const { t, locale } = useI18n()
   return (
     <span className={`${styles.coins} ${className ?? ''}`}>
       <CoinIcon />
-      <span>{amount.toLocaleString('en-US')}</span>
-      <span className={styles.srOnly}> {amount === 1 ? 'coin' : 'coins'}</span>
+      <span>{amount.toLocaleString(locale)}</span>
+      <span className={styles.srOnly}> {t('common.coinWord', { count: amount })}</span>
     </span>
   )
 }

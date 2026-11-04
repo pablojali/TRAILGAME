@@ -1558,3 +1558,15 @@ design; the code is the delivered state.
 | 12 | Profile change at season end | Requires a season system | Not implemented | Open |
 | 13 | Rest effects | Fatigue −8, Fitness −2 (Bible 1.2 §4.4) | Same | Resolved (owner decisions, 28 Oct 2026) |
 | 14 | Injury | Fatigue > 95 after a session: no XP, −15 Fitness, 5 forced Rest days (Bible 1.2 §4.7) | Same | Resolved (owner decision, 28 Oct 2026) |
+
+
+### Languages (owner request, 4 November 2026)
+
+English, Spanish, French, Italian and German. Texts are in `src/i18n/locales/{en,es,fr,it,de}.json`
+by key; English is the reference and the fallback. `useI18n()` (src/i18n/i18n.tsx) gives `t(key, vars)`
+and the `locale`: `{name}` placeholders, plural forms as `{ "one": …, "other": … }` chosen by
+`count`, numbers formatted per language. The language comes from Settings (kept on the device,
+`trailgame.locale`), else the browser's languages. A test checks that every language has every
+English key with the same placeholders. Converted so far: navigation, top bar, Settings language,
+country picker and the Equipment screen; the other screens and the owner's tables (item names,
+effects, descriptions) are still English only.

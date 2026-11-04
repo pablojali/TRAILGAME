@@ -16,10 +16,12 @@ import { useGame } from './game/gameContext'
 import { GameNotices } from './game/GameNotices'
 import { LevelUpDialog } from './game/LevelUpDialog'
 import { NAV_ITEMS } from './navigation'
+import { useI18n } from '../i18n/i18n'
 import styles from './AppShell.module.css'
 
 export function AppShell() {
   const { phase, retryLoad } = useGame()
+  const { t } = useI18n()
   const { pathname } = useLocation()
   const main = useRef<HTMLElement>(null)
   const previousPhase = useRef(phase.kind)
@@ -47,7 +49,7 @@ export function AppShell() {
         {/* Level and coins side by side, small, then cloud and settings (owner request, 4 November 2026). */}
         {phase.kind === 'playing' && (
           <div className={styles.status}>
-            <p className={styles.level}>Lvl {getLevel(phase.state.athlete.xp)}</p>
+            <p className={styles.level}>{t('common.lvl', { level: getLevel(phase.state.athlete.xp) })}</p>
             <p className={styles.balance}>
               <Coins amount={phase.state.coins} />
             </p>
@@ -66,7 +68,7 @@ export function AppShell() {
       </header>
 
       {!inSetup && (
-        <nav className={styles.nav} aria-label="Main">
+        <nav className={styles.nav} aria-label={t('nav.main')}>
           <ul className={styles.navList}>
             {NAV_ITEMS.map((item) => (
               <li key={item.id}>
@@ -78,7 +80,7 @@ export function AppShell() {
                   }
                 >
                   <Icon name={item.icon} />
-                  <span className={styles.navLabel}>{item.label}</span>
+                  <span className={styles.navLabel}>{t(`nav.${item.id}`)}</span>
                 </NavLink>
               </li>
             ))}

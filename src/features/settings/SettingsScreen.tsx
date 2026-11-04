@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { CountrySelect } from '../../components/CountrySelect'
+import { isLocale, LOCALES, useI18n } from '../../i18n/i18n'
 import { useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
@@ -17,12 +18,33 @@ export function SettingsScreen({ accountService = getAccountService() }: { accou
   return (
     <Screen title="Settings" description="Game options.">
       <ScrollPanel label="Settings">
+        <LanguageCard />
         <RunnerCard />
         {accountService && <AccountCard service={accountService} />}
         <CloudSaveCard />
         <ResetDemo />
       </ScrollPanel>
     </Screen>
+  )
+}
+
+/** The game's language (owner request, 4 November 2026), kept on this device. */
+function LanguageCard() {
+  const { locale, setLocale, t } = useI18n()
+  const id = useId()
+  return (
+    <Card title={t('settings.languageCard')}>
+      <label htmlFor={id} className={styles.label}>
+        {t('settings.language')}
+      </label>
+      <select id={id} className={styles.select} value={locale} onChange={(event) => isLocale(event.target.value) && setLocale(event.target.value)}>
+        {LOCALES.map(({ id: value, label }) => (
+          <option key={value} value={value} lang={value}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </Card>
   )
 }
 

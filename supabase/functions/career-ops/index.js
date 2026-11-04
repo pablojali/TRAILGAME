@@ -437,7 +437,7 @@ function applyFitnessDecay(state, now) {
 // raw:src/data/equipment.csv
 var equipment_default = `# Equipment (owner table, 3 November 2026). One row per item. Keep each id once and never rename it (saves use it).
 # type: shoes, pack, poles, nutrition (gels and bars together), or gel / bar (one kind). level: empty for none. price: coins (of one pack for gel/bar); empty = not for sale.
-# pack: units per pack (nutrition: that many gels and that many bars). thumbnail: file in assets/ui/equipment (empty = the game's own picture).
+# pack: units per pack (nutrition: that many gels and that many bars). thumbnail: file in assets/ui/thumbnails (thumb_*.png, 512 x 512) or assets/ui/equipment (empty = the game's own picture).
 # avatar_layer: file in assets/runner/avatar shown on the runner, e.g. footwear/trail-shoes.webp (empty = none, or the drawn poles/backpack).
 # speed\u2026consistency: race-only attribute bonuses. flat, climb, descent, technical_penalty, wear: time multipliers (empty = 1; 0.9 = 10% less, 1.01 = 1% more).
 # effect_text: leave empty to have it written from the bonuses.

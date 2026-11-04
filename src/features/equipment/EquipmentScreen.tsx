@@ -121,18 +121,26 @@ function SlotIcon({ slot, className }: { slot: EquipmentSlot; className?: string
   )
 }
 
-/** Pictures named in the equipment table's thumbnail column (assets/ui/equipment). */
-const THUMBNAILS = import.meta.glob<string>('/assets/ui/equipment/*.{webp,png,jpg,jpeg}', {
+/**
+ * Pictures named in the equipment table's thumbnail column: the owner's shop pictures in
+ * assets/ui/thumbnails (`thumb_*.png`, 512 × 512; owner request, 4 November 2026), else the ones
+ * cut from the avatar art in assets/ui/equipment.
+ */
+const THUMBNAILS = import.meta.glob<string>('/assets/ui/{thumbnails,equipment}/*.{webp,png,jpg,jpeg}', {
   eager: true,
   query: '?url',
   import: 'default',
 })
 
+function thumbnailUrl(file: string): string | undefined {
+  return THUMBNAILS[`/assets/ui/thumbnails/${file}`] ?? THUMBNAILS[`/assets/ui/equipment/${file}`]
+}
+
 /** An item's picture: its thumbnail, the shoes on the feet, or the slot icon (also used on race day). */
 export function ItemArt({ item }: { item: EquipmentItem }) {
   const { state } = useCareer()
   const { athlete } = state
-  const thumbnail = item.thumbnail && THUMBNAILS[`/assets/ui/equipment/${item.thumbnail}`]
+  const thumbnail = item.thumbnail && thumbnailUrl(item.thumbnail)
   if (thumbnail) return <img className={styles.thumbnail} src={thumbnail} alt="" />
   if (item.slot === 'shoes') {
     return (

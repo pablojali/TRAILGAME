@@ -64,10 +64,11 @@
 }
 
 /*
- * Career: the picture a little larger and anchored at the top, so the summit (runner and flag)
- * sits just under the season card (owner request, 1 November 2026).
+ * Career: the picture larger and higher, so the summit (runner and flag) sits above the season card
+ * (owner requests, 1 and 4 November 2026).
  */
 .backdrop[data-scene='career'][data-art='image'] .art {
+  top: -14%;
   height: 130%;
   object-position: center top;
 }

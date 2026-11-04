@@ -12,7 +12,9 @@ const { default: equipmentCsv } = await import('./equipment.csv?raw')
 const { default: levelsCsv } = await import('./levels.csv?raw')
 const { default: raceFieldCsv } = await import('./race_field.csv?raw')
 
-const THUMBNAILS = import.meta.glob('/assets/ui/equipment/*.{webp,png,jpg,jpeg}')
+const THUMBNAILS = import.meta.glob('/assets/ui/{thumbnails,equipment}/*.{webp,png,jpg,jpeg}')
+const hasThumbnail = (file: string) =>
+  `/assets/ui/thumbnails/${file}` in THUMBNAILS || `/assets/ui/equipment/${file}` in THUMBNAILS
 
 /**
  * The owner's tables (src/data/*.csv, 3 November 2026) are free to change: these checks only make
@@ -31,7 +33,7 @@ describe("owner's tables", () => {
     const items = parseEquipment(equipmentCsv)
     for (const item of items) {
       if (item.avatarLayer) expect(avatarFile(item.avatarLayer), `${item.id}: avatar_layer ${item.avatarLayer}`).toBeDefined()
-      if (item.thumbnail) expect(THUMBNAILS[`/assets/ui/equipment/${item.thumbnail}`], `${item.id}: thumbnail ${item.thumbnail}`).toBeDefined()
+      if (item.thumbnail) expect(hasThumbnail(item.thumbnail), `${item.id}: thumbnail ${item.thumbnail}`).toBe(true)
       if (item.price !== null) expect(item.price, item.id).toBeGreaterThanOrEqual(0)
     }
     // The starting shoes (every career owns them), and something that refills gels and bars.

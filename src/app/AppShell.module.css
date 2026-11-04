@@ -66,15 +66,8 @@
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
 }
 
-.brandText {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-
 .brandName {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -85,21 +78,28 @@
   font-size: var(--font-size-xs);
 }
 
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .level {
   margin: 0;
-  padding: 0 6px;
+  padding: 0 5px;
   border: 1px solid var(--accent-secondary);
   border-radius: var(--radius-sm);
   color: var(--accent-secondary);
-  font-size: var(--font-size-xs);
+  font-size: 11px;
   font-weight: 800;
+  line-height: 1.5;
   white-space: nowrap;
 }
 
 .balance {
   margin: 0;
   color: #f2c531;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 800;
   white-space: nowrap;
 }

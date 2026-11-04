@@ -310,5 +310,5 @@
 /* Room for the summit of the background picture, between the season card and the tabs. */
 .hero {
   flex: none;
-  height: clamp(24px, 14dvh, 140px);
+  height: clamp(0px, 4dvh, 40px);
 }

@@ -68,16 +68,31 @@
 
 .brandName {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   font-size: var(--font-size-sm);
 }
 
+.level {
+  margin: 0;
+  padding: 0 6px;
+  border: 1px solid var(--accent-secondary);
+  border-radius: var(--radius-sm);
+  color: var(--accent-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .balance {
   margin: 0;
   color: #f2c531;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
   font-weight: 800;
   white-space: nowrap;
 }
@@ -86,9 +101,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--touch-target);
+  width: 36px;
   height: var(--touch-target);
-  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0;
+  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2));
   border-radius: var(--radius-md);
   color: var(--text-muted);
 }

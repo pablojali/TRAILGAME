@@ -37,11 +37,6 @@ export function RacesScreen() {
     <Screen
       title="Races"
       description="Pick a race to see its course and prizes. Entry is free; each race opens 2 levels below its recommended level."
-      aside={
-        <p className={styles.balance}>
-          <span>Level {level}</span>
-        </p>
-      }
     >
       <Tabs
         label="Race categories"

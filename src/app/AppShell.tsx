@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { NavLink, Outlet, ScrollRestoration, useLocation } from 'react-router'
 import logoUrl from '../../assets/ui/brand/logo-128.png'
 import { Coins } from '../components/Coins'
+import { getLevel } from '../domain/athlete/levels'
 import { Backdrop } from '../components/backdrop/Backdrop'
 import { sceneForPath } from '../components/backdrop/backdrops'
 import { Icon } from '../components/Icon'
@@ -43,11 +44,14 @@ export function AppShell() {
       <header className={styles.brandBar}>
         <img className={styles.brandMark} src={logoUrl} alt="" width="40" height="40" />
         <span className={styles.brandName}>Trail Manager</span>
-        {/* The coin balance beside the cloud, on every screen (owner request, 3 November 2026). */}
+        {/* After the logo: level, coins, cloud, settings, on every screen (owner requests, 3–4 November 2026). */}
         {phase.kind === 'playing' && (
-          <p className={styles.balance}>
-            <Coins amount={phase.state.coins} />
-          </p>
+          <>
+            <p className={styles.level}>Lvl {getLevel(phase.state.athlete.xp)}</p>
+            <p className={styles.balance}>
+              <Coins amount={phase.state.coins} />
+            </p>
+          </>
         )}
         {!inSetup && <SyncIndicator />}
         {!inSetup && (
@@ -56,7 +60,7 @@ export function AppShell() {
             aria-label="Settings"
             className={({ isActive }) => `${styles.settingsLink} ${isActive ? styles.settingsLinkActive : ''}`}
           >
-            <Icon name="settings" />
+            <Icon name="settings" size={20} />
           </NavLink>
         )}
       </header>

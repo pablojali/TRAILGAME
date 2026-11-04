@@ -81,22 +81,24 @@ function inSlot(item: EquipmentItem, slot: EquipmentSlot): boolean {
   return boxOf(item) === slot
 }
 
-/** Where an item sorts: gels and bars first. */
+/** Shop order (owner request, 4 November 2026): shoes, backpack, poles, then gels and bars. */
+const SHOP_ORDER: readonly EquipmentSlot[] = ['shoes', 'pack', 'poles', 'nutrition']
+
 function slotOrder(item: EquipmentItem): number {
-  return SLOTS.findIndex((s) => s.id === boxOf(item))
+  return SHOP_ORDER.indexOf(boxOf(item))
 }
 
 type ShopFilter = EquipmentSlot | 'all'
 
 const SHOP_FILTERS: readonly { id: ShopFilter; label: string }[] = [
   { id: 'all', label: 'All' },
-  { id: 'nutrition', label: 'Gels & bars' },
   { id: 'shoes', label: 'Shoes' },
   { id: 'pack', label: 'Backpack' },
   { id: 'poles', label: 'Poles' },
+  { id: 'nutrition', label: 'Gels & bars' },
 ]
 
-/** Items in the slot order above, then in catalog order. */
+/** Items in the shop order, then in catalog order. */
 const ITEMS_IN_ORDER: readonly EquipmentItem[] = [...EQUIPMENT_ITEMS].sort(
   (a, b) => slotOrder(a) - slotOrder(b),
 )
@@ -272,9 +274,9 @@ function EquippedTab({ onOpen }: { onOpen(slot: EquipmentSlot): void }) {
                     {pack ? <ItemArt item={pack} /> : <SlotIcon slot={id} />}
                   </span>
                   <span className={styles.slotLabel}>{label}</span>
-                  <span className={styles.boxName}>
-                    <span>Gels ×{gel}</span>
-                    <span>Bars ×{bar}</span>
+                  {/* Stock in the corner, like a level (one number when gels and bars match). */}
+                  <span className={styles.cornerBadge} aria-hidden="true">
+                    {gel === bar ? `×${gel}` : `×${gel} / ×${bar}`}
                   </span>
                 </button>
               </li>
@@ -293,10 +295,12 @@ function EquippedTab({ onOpen }: { onOpen(slot: EquipmentSlot): void }) {
                   {worn ? <ItemArt item={worn} /> : <SlotIcon slot={id} className={styles.iconEmpty} />}
                 </span>
                 <span className={styles.slotLabel}>{label}</span>
-                <span className={styles.boxName}>
-                  {worn ? worn.label : 'Empty'}
-                  {worn?.level !== undefined && <span className={styles.levelBadge}>Lvl {worn.level}</span>}
-                </span>
+                {/* Only the slot name and the level (owner request, 4 November 2026): bigger pictures. */}
+                {worn?.level !== undefined && (
+                  <span className={styles.cornerBadge} aria-hidden="true">
+                    Lvl {worn.level}
+                  </span>
+                )}
               </button>
             </li>
           )

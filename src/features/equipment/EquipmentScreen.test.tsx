@@ -24,7 +24,9 @@ describe('Equipment', () => {
       'Backpack: empty. Show backpack cards',
       'Poles: Poles · Lvl 2. Show poles cards',
     ])
-    expect(boxes[0]).toHaveTextContent('Gels ×2Bars ×0')
+    // Only the slot name, with the level or the stock in the corner (owner request, 4 November 2026).
+    expect(boxes[0]).toHaveTextContent('Gels & bars×2 / ×0')
+    expect(boxes[3]).toHaveTextContent(/^PolesLvl 2$/)
     expect(screen.queryByText(/Race attributes/)).not.toBeInTheDocument()
     // The balance is in the top bar, not on the screen (owner request, 3 November 2026).
     expect(screen.queryByText('Balance')).not.toBeInTheDocument()
@@ -85,9 +87,9 @@ describe('Equipment', () => {
     // Every item is in the grid under All, gels and cereal bars included, without invented values.
     await user.click(screen.getByRole('button', { name: 'All' }))
     expect(within(grid()).getAllByRole('button')).toHaveLength(11)
-    // Same order as the slots: gels and cereal bars first, poles last.
-    expect(within(grid()).getAllByRole('button')[0]).toHaveAccessibleName(/^Energy gel/)
-    expect(within(grid()).getAllByRole('button')[10]).toHaveAccessibleName(/^Poles · Lvl 2/)
+    // Shop order: shoes, backpack, poles, then gels and bars last (owner request, 4 November 2026).
+    expect(within(grid()).getAllByRole('button')[0]).toHaveAccessibleName(/^Starter shoes/)
+    expect(within(grid()).getAllByRole('button')[10]).toHaveAccessibleName(/^Gels & bars/)
     // Gels and bars filter: every gel, bar and gels-and-bars pack.
     await user.click(screen.getByRole('button', { name: 'Gels & bars' }))
     expect(within(grid()).getAllByRole('button').map((b) => b.getAttribute('aria-label')?.split(',')[0])).toEqual([

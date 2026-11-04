@@ -15,7 +15,7 @@ export function SyncIndicator() {
   const text = CLOUD_STATUS_TEXT[cloudStatus]
   return (
     <NavLink to="/settings" className={styles.indicator} data-status={cloudStatus} aria-label={`Cloud save: ${text}`} title={text}>
-      <Icon name="cloud" />
+      <Icon name="cloud" size={20} />
       <span className={styles.dot} aria-hidden="true" />
     </NavLink>
   )

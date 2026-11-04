@@ -166,12 +166,15 @@ describe('field (owner decisions, 2 and 4 November 2026)', () => {
   const finishOf = (raceId: string, levels: number) => {
     const race = getRace(raceId)!
     // The typical runner with the best gear of the level, a gel and a bar (owner decision, 4 November 2026).
-    const typical = typicalRunner(Math.max(1, race.recommendedLevel + levels))
+    const typical = typicalRunner(Math.max(1, race.recommendedLevel + levels), race.category)
     const ctx = context(raceId, {
       runner: snapshotRunner(typical.attributes, typical.fitness, typical.fatigue, typical.equipment),
       nutrition: RACE_STRATEGY.typicalNutrition,
     })
-    return runPlan(ctx, 'target', 'normal').splits.at(-1)!.position
+    // 2 levels above races like the front of the field (race_field.csv); the others
+    // at Target pace with Normal stops.
+    const front = ctx.field.frontPlan
+    return levels > 0 ? runPlan(ctx, front.intensity, front.stop).splits.at(-1)!.position : runPlan(ctx, 'target', 'normal').splits.at(-1)!.position
   }
 
   it('has 30 runners: 2 levels above the race finishes near 2nd, its level 15th, 2 levels below near 22nd', () => {
@@ -179,7 +182,7 @@ describe('field (owner decisions, 2 and 4 November 2026)', () => {
       expect(getRaceField(race).rivalFinishS).toHaveLength(29)
       expect(finishOf(race.id, 0)).toBe(15)
       if (race.recommendedLevel < 30) {
-        expect([finishOf(race.id, 2), finishOf(race.id, -2)]).toEqual([2, 22])
+        expect([finishOf(race.id, 2), finishOf(race.id, -2)], race.id).toEqual([2, 22])
       } else {
         // Past the Fitness cap the typical runner's Fitness stops growing, so 2 levels count for less; the
         // minimum gap still keeps them apart (ahead of and behind the race's level).
@@ -212,11 +215,18 @@ describe('field (owner decisions, 2 and 4 November 2026)', () => {
 })
 
 describe('rivals', () => {
-  it('stop by rank: front third Quick, middle Normal, back third Slow', () => {
+  it('stop by rank: front third Quick, middle Normal, back third Slow; the front of the field its own stop', () => {
     expect(Array.from({ length: 29 }, (_, i) => getRivalStop(i, 29))).toEqual([
       ...Array<string>(10).fill('quick'),
       ...Array<string>(10).fill('normal'),
       ...Array<string>(9).fill('slow'),
+    ])
+    expect(Array.from({ length: 29 }, (_, i) => getRivalStop(i, 29, { frontRanks: 3, frontStop: 'slow' })).slice(0, 5)).toEqual([
+      'slow',
+      'slow',
+      'slow',
+      'quick',
+      'quick',
     ])
   })
 

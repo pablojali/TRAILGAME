@@ -34,14 +34,6 @@ export const RACE_SIMULATION = {
   rivalExponent: 1.3,
   /** Fatigue of the reference athlete. */
   referenceFatigue: 20,
-  /**
-   * The segment engine's typical runner of a level (raceEngine `typicalRunner`) trains like a player (owner decision, 4 November 2026): each
-   * attribute has 16, plus its share of the level table's attribute points, plus this much per level
-   * gained from training sessions (+0.1 per session; about 6 points in all by level 6).
-   */
-  referenceTrainingGainPerLevel: 0.2,
-  /** Extra Fitness from training at level 1, fading to none at level 30 (where the curve reaches 90). */
-  referenceFitnessBonus: 3,
   /** Maximum day form (D1), narrowed by Consistency. */
   dayFormMax: 0.04,
   /** Effects smaller than this share of the finishing time are not shown as explanations. */

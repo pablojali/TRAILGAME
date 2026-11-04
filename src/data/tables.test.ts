@@ -1,13 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 import { avatarFile } from '../components/avatar/avatarArt'
 import { parseLevels } from '../domain/athlete/levels'
+import { parseRaceField } from '../domain/races/raceField'
 import { consumableKinds, parseEquipment } from '../domain/equipment/items'
 
 // The real tables, not the test copies other tests use (src/test/setup.ts).
 vi.unmock('./equipment.csv?raw')
 vi.unmock('./levels.csv?raw')
+vi.unmock('./race_field.csv?raw')
 const { default: equipmentCsv } = await import('./equipment.csv?raw')
 const { default: levelsCsv } = await import('./levels.csv?raw')
+const { default: raceFieldCsv } = await import('./race_field.csv?raw')
 
 const THUMBNAILS = import.meta.glob('/assets/ui/equipment/*.{webp,png,jpg,jpeg}')
 
@@ -18,6 +21,10 @@ const THUMBNAILS = import.meta.glob('/assets/ui/equipment/*.{webp,png,jpg,jpeg}'
 describe("owner's tables", () => {
   it('levels.csv is a valid levels table', () => {
     expect(parseLevels(levelsCsv).length).toBeGreaterThan(1)
+  })
+
+  it('race_field.csv has one valid row per race category', () => {
+    expect(Object.keys(parseRaceField(raceFieldCsv)).sort()).toEqual(['elite', 'mountain', 'open', 'trail'])
   })
 
   it('equipment.csv is a valid equipment table whose files exist, with the starting shoes and gels and bars for sale', () => {

@@ -10,6 +10,7 @@ import {
   type Sex,
 } from '../domain/athlete/athlete'
 import { parseAppearance } from '../domain/athlete/appearance'
+import { isCountryCode } from '../domain/athlete/countries'
 import { STARTING_COINS } from '../domain/economy/coins'
 import { getEquipmentItem, isConsumable, OWNED_FROM_START } from '../domain/equipment/items'
 import { PRIZE_BANDS } from '../domain/races/categories'
@@ -416,6 +417,8 @@ export function parseGameState(value: unknown, now: number): GameState | null {
       sex,
       // Missing: a career saved before appearance existed. Never rejects a save (cosmetic only).
       appearance: parseAppearance(athlete.appearance, sex),
+      // Missing or unknown: no country (cosmetic; never rejects a save).
+      ...(isCountryCode(athlete.country) ? { country: athlete.country } : {}),
       profile: athlete.profile,
       xp: athlete.xp,
       fitness: athlete.fitness,

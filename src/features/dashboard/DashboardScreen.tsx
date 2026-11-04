@@ -1,3 +1,4 @@
+import { countryFlag, countryName } from '../../domain/athlete/countries'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
@@ -77,7 +78,15 @@ export function DashboardScreen() {
         <div className={styles.stage}>
           <div className={styles.intro}>
             <h2 className={styles.nameplate}>
-              <span className={styles.nameplateName}>{athlete.name}</span>
+              <span className={styles.nameplateName}>
+                {athlete.name}
+                {athlete.country && (
+                  <span className={styles.flag} role="img" aria-label={countryName(athlete.country)} title={countryName(athlete.country)}>
+                    {' '}
+                    {countryFlag(athlete.country)}
+                  </span>
+                )}
+              </span>
               <span className={styles.srOnly}> - </span>
               <span className={styles.nameplateRole}>
                 {PROFILES[athlete.profile].label}

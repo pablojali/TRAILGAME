@@ -88,6 +88,8 @@ export interface GameContextValue {
   setItemEquipped(itemId: string, equipped: boolean): Promise<EquipError | ServerError | null>
   /** Changes the runner's look. Options above the runner's level are refused. */
   setAppearance(appearance: Appearance): AppearanceError | null
+  /** Changes the runner's country (ISO 3166-1 alpha-2). Unknown codes are refused. */
+  setCountry(country: string): 'invalid' | null
   /**
    * Starts the scheduled race (Race Engine V1): the server runs the first segment with the chosen
    * intensity and takes the gel and bar asked for. The race in progress is then `state.activeRace`.

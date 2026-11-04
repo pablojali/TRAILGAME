@@ -1,3 +1,5 @@
+import { CountrySelect } from '../../components/CountrySelect'
+import { guessCountry, isCountryCode } from '../../domain/athlete/countries'
 import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import { useNavigate } from 'react-router'
 import { useGame, type StartCareerError } from '../../app/game/gameContext'
@@ -164,12 +166,17 @@ function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepPr
   const { startCareer } = useGame()
   const navigate = useNavigate()
   const [name, setName] = useState('')
+  // A first guess from the browser's language (e.g. es-AR → Argentina); the player confirms it.
+  const [country, setCountry] = useState(() => guessCountry(typeof navigator === 'undefined' ? [] : navigator.languages ?? []) ?? '')
+  const [showCountryError, setShowCountryError] = useState(false)
   const [showError, setShowError] = useState(false)
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState('')
   const inputId = useId()
   const hintId = useId()
   const errorId = useId()
+  const countryId = useId()
+  const countryErrorId = useId()
 
   return (
     <section className={styles.step} aria-labelledby="creation-title">
@@ -179,7 +186,7 @@ function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepPr
         <h1 id="creation-title" ref={headingRef} tabIndex={-1} className={styles.title}>
           Name your runner
         </h1>
-        <p className={styles.help}>Your runner's name appears on the Dashboard.</p>
+        <p className={styles.help}>Your runner's name and country appear on the Dashboard.</p>
       </header>
 
       <div className={styles.preview}>
@@ -202,14 +209,15 @@ function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepPr
           event.preventDefault()
           if (starting) return
           const clean = cleanAthleteName(name)
-          if (!clean) {
-            setShowError(true)
+          if (!clean || !isCountryCode(country)) {
+            setShowError(!clean)
+            setShowCountryError(!isCountryCode(country))
             return
           }
           setStarting(true)
           setStartError('')
           // With cloud saves the server creates the career; nothing starts until it confirms.
-          const failure = await startCareer({ name: clean, sex, appearance })
+          const failure = await startCareer({ name: clean, sex, appearance, country })
           setStarting(false)
           if (failure) {
             setStartError(START_ERRORS[failure])
@@ -243,6 +251,25 @@ function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepPr
         {showError && (
           <p id={errorId} role="alert" className={styles.error}>
             Enter a name for your runner.
+          </p>
+        )}
+        <label htmlFor={countryId} className={styles.fieldLabel}>
+          Country
+        </label>
+        <CountrySelect
+          id={countryId}
+          className={styles.input}
+          value={country}
+          invalid={showCountryError}
+          describedBy={showCountryError ? countryErrorId : undefined}
+          onChange={(code) => {
+            setCountry(code)
+            setShowCountryError(false)
+          }}
+        />
+        {showCountryError && (
+          <p id={countryErrorId} role="alert" className={styles.error}>
+            Choose your runner's country.
           </p>
         )}
         {replacing && (

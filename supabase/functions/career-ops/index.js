@@ -594,6 +594,13 @@ function buyItem(state, itemId, confirmedPrice) {
   };
 }
 
+// src/domain/athlete/countries.ts
+var COUNTRY_CODES = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" ");
+var CODES = new Set(COUNTRY_CODES);
+function isCountryCode(value) {
+  return typeof value === "string" && CODES.has(value);
+}
+
 // src/domain/economy/coins.ts
 var STARTING_COINS = 25;
 
@@ -622,6 +629,7 @@ function createInitialGameState(profile, now, identity) {
       name: identity.name,
       sex: identity.sex,
       appearance: identity.appearance ?? defaultAppearance(),
+      ...isCountryCode(identity.country) ? { country: identity.country } : {},
       profile,
       xp: 0,
       fitness: 20,
@@ -1871,6 +1879,8 @@ function parseGameState(value, now) {
       sex,
       // Missing: a career saved before appearance existed. Never rejects a save (cosmetic only).
       appearance: parseAppearance(athlete.appearance, sex),
+      // Missing or unknown: no country (cosmetic; never rejects a save).
+      ...isCountryCode(athlete.country) ? { country: athlete.country } : {},
       profile: athlete.profile,
       xp: athlete.xp,
       fitness: athlete.fitness,
@@ -1909,7 +1919,12 @@ function readRecord(record, now) {
 function mergeClientFields(server, client, now) {
   let merged = {
     ...server,
-    athlete: { ...server.athlete, name: client.athlete.name, sex: client.athlete.sex }
+    athlete: {
+      ...server.athlete,
+      name: client.athlete.name,
+      sex: client.athlete.sex,
+      ...client.athlete.country === void 0 ? {} : { country: client.athlete.country }
+    }
   };
   const look = setAppearance(merged, client.athlete.appearance);
   if (look.ok) merged = look.state;

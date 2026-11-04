@@ -1,3 +1,4 @@
+import { isCountryCode } from '../../domain/athlete/countries'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { AttributeId } from '../../domain/athlete/athlete'
 import { STARTING_PROFILE } from '../../domain/athlete/profiles'
@@ -541,6 +542,16 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
     [commit, currentState],
   )
 
+  const changeCountry = useCallback(
+    (country: string) => {
+      const state = currentState()
+      if (!state || !isCountryCode(country)) return 'invalid' as const
+      commit({ kind: 'playing', state: { ...state, athlete: { ...state.athlete, country } } })
+      return null
+    },
+    [commit, currentState],
+  )
+
   const value = useMemo<GameContextValue>(
     () => ({
       phase,
@@ -570,6 +581,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       setItemEquipped: equip,
       buyItem: buy,
       setAppearance: changeAppearance,
+      setCountry: changeCountry,
     }),
     [
       phase,
@@ -595,6 +607,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       equip,
       buy,
       changeAppearance,
+      changeCountry,
     ],
   )
 

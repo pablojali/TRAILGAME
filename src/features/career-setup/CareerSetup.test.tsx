@@ -21,6 +21,7 @@ async function createCareer(user: User, sex: Sex, name: string) {
   await user.click(screen.getByRole('radio', { name: sex === 'male' ? 'Male' : 'Female' }))
   await user.click(screen.getByRole('button', { name: 'Continue' }))
   await user.type(screen.getByLabelText('Runner name'), name)
+  await user.selectOptions(screen.getByLabelText('Country'), 'AR')
   await user.click(screen.getByRole('button', { name: 'Start career' }))
   await started()
 }
@@ -211,7 +212,8 @@ describe('career creation — name step', () => {
     const profile = 'all-rounder'
 
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'Alex - All-rounder' })).toBeInTheDocument()
+    // The country's flag beside the name (owner request, 4 November 2026).
+    expect(screen.getByRole('heading', { level: 2, name: 'Alex Argentina - All-rounder' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
     const save = readSave()!
     expect(save.schemaVersion).toBe(2)
@@ -219,6 +221,7 @@ describe('career creation — name step', () => {
       name: 'Alex',
       sex,
       appearance: defaultAppearance(),
+      country: 'AR',
       profile,
       xp: 0,
       fitness: 20,
@@ -227,6 +230,19 @@ describe('career creation — name step', () => {
       spentAttributePoints: 0,
     })
     expect(save.state.fitnessDecayReference).toBe(T0)
+  })
+
+  it('asks for the country, guessed from the browser language, and requires one', async () => {
+    const user = userEvent.setup()
+    await renderApp('/')
+    await chooseAndContinue(user)
+    // jsdom's language is en-US.
+    expect(screen.getByLabelText('Country')).toHaveValue('US')
+    await user.selectOptions(screen.getByLabelText('Country'), 'ES')
+    await user.type(screen.getByLabelText('Runner name'), 'Marta')
+    await user.click(screen.getByRole('button', { name: 'Start career' }))
+    await started()
+    expect(readSave()!.state.athlete.country).toBe('ES')
   })
 
   it('opens the Dashboard after starting, whichever route showed the flow', async () => {
@@ -244,7 +260,7 @@ describe('career creation — name step', () => {
 
     await renderApp('/')
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'Leo - All-rounder' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Leo Argentina - All-rounder' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /^Leo, male runner/ })).toBeInTheDocument()
     expect(readSave()!.state.athlete.sex).toBe('male')
   })

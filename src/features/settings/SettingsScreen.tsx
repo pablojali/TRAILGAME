@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { CountrySelect } from '../../components/CountrySelect'
 import { useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
@@ -16,11 +17,29 @@ export function SettingsScreen({ accountService = getAccountService() }: { accou
   return (
     <Screen title="Settings" description="Game options.">
       <ScrollPanel label="Settings">
+        <RunnerCard />
         {accountService && <AccountCard service={accountService} />}
         <CloudSaveCard />
         <ResetDemo />
       </ScrollPanel>
     </Screen>
+  )
+}
+
+/** The runner's country (owner request, 4 November 2026), also for careers started before it existed. */
+function RunnerCard() {
+  const { phase, setCountry } = useGame()
+  const id = useId()
+  if (phase.kind !== 'playing') return null
+  const country = phase.state.athlete.country ?? ''
+  return (
+    <Card title="Runner">
+      <label htmlFor={id} className={styles.label}>
+        Country
+      </label>
+      <CountrySelect id={id} className={styles.select} value={country} onChange={(code) => setCountry(code)} />
+      {!country && <p className={styles.muted}>Choose the country your runner represents.</p>}
+    </Card>
   )
 }
 

@@ -71,6 +71,8 @@ export interface Athlete {
   sex: Sex
   /** Cosmetic only. Saves without it load with the default appearance for the runner's sex. */
   appearance: Appearance
+  /** Cosmetic for now: ISO 3166-1 alpha-2 code. Saves from before it existed have none. */
+  country?: string
   profile: ProfileId
   /** Cumulative XP; never decreases. Level and earned attribute points derive from it. */
   xp: number

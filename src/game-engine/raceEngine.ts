@@ -1,6 +1,8 @@
-import type { Attributes } from '../domain/athlete/athlete'
+import { ATTRIBUTE_IDS, type Attributes } from '../domain/athlete/athlete'
+import { getAttributePointsBetween } from '../domain/athlete/levels'
 import { roundStat } from '../domain/athlete/athlete'
 import type { Race } from '../domain/races/races'
+import { EQUIPMENT_ITEMS, type EquipmentItem } from '../domain/equipment/items'
 import { RACE_SIMULATION as SIM } from '../domain/races/simulationConfig'
 import {
   fatiguePaceWeight,
@@ -17,8 +19,6 @@ import {
   generateCourse,
   InvalidCourseError,
   prepareRunner,
-  raceSeconds,
-  referenceAthlete,
   splitEvenly,
   type CourseSegment,
   type RaceAthleteInput,
@@ -222,7 +222,7 @@ export function getRaceField(race: Race): RaceField {
   // The typical runner's time 2 levels either side, at least `minLevelGap` apart from the race's
   // level (owner request: the leading group not so tight that small choices move many places;
   // matters most in the longest races, where Fitness stops growing with the level).
-  const rawTime = (levels: number) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)))
+  const rawTime = (levels: number) => typicalModelSeconds(race, segments, Math.max(1, R + levels))
   const atLevel = rawTime(0)
   const modelTime = (levels: number) =>
     levels > 0
@@ -263,7 +263,7 @@ export function getRaceField(race: Race): RaceField {
   }
 
   // Splits: each rival's running time over the segments like the typical runner's.
-  const reference = referenceAthlete(R)
+  const reference = typicalRunner(R)
   const runner = prepareRunner(reference)
   const referenceSegments = segments.map((seg) => segmentBaseSeconds(runner, seg, reference.fatigue, 0))
   const referenceTotal = referenceSegments.reduce((x, y) => x + y, 0)
@@ -413,12 +413,61 @@ export function runPlan(
   return progress
 }
 
-/** The typical runner's finishing time with Normal stops (what the rivals around 24th do). */
+/** The typical runner's finishing time with Normal stops (the field's anchor at the race's level). */
 export function getReferenceFinishS(race: Race, field: RaceField = getRaceField(race)): number {
   return (
-    Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel)) * field.timeScale) +
+    Math.round(typicalModelSeconds(race, field.segments, race.recommendedLevel) * field.timeScale) +
     (field.segments.length - 1) * field.stopS.normal
   )
+}
+
+/**
+ * The typical runner of a level as they race (owner decision, 4 November 2026): they train like a
+ * player (each attribute: 16, its share of the level table's attribute points, plus the training
+ * gains per level) and wear the best shop gear of that level in each slot. The older
+ * `referenceAthlete` stays for results saved before the segment engine.
+ */
+export function typicalRunner(level: number): RaceRunner {
+  const value =
+    16 + getAttributePointsBetween(1, level) / ATTRIBUTE_IDS.length + SIM.referenceTrainingGainPerLevel * (level - 1)
+  const base: RaceAthleteInput = {
+    attributes: Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, value])) as Attributes,
+    // From 25 + the training bonus at level 1 to Fitness 90 at level 30 (owner decisions, 29 October
+    // and 4 November 2026).
+    fitness: Math.min(90, 25 + SIM.referenceFitnessBonus + ((65 - SIM.referenceFitnessBonus) * (level - 1)) / 29),
+    fatigue: SIM.referenceFatigue,
+  }
+  const equipment: string[] = []
+  if (C.typicalGear) {
+    for (const slot of ['shoes', 'pack', 'poles'] as const) {
+      let best: EquipmentItem | undefined
+      for (const item of EQUIPMENT_ITEMS) {
+        if (item.slot !== slot || item.price === null || (item.level ?? 0) > level) continue
+        if (!best || (item.level ?? 0) > (best.level ?? 0)) best = item
+      }
+      if (best) equipment.push(best.id)
+    }
+  }
+  return { ...base, equipment }
+}
+
+/**
+ * Running seconds (no stop time, before the race's time scale) of the typical runner of `level`:
+ * Target pace, Normal stops, the typical gel and bar. The same model the player's own race uses.
+ */
+function typicalModelSeconds(race: Race, segments: RaceSegment[], level: number): number {
+  const model: RaceField = {
+    segments,
+    fatigueScale: getFatigueScale(race, segments),
+    timeScale: 1,
+    stopS: { quick: 0, normal: 0, slow: 0 },
+    fatigueWeight: fatiguePaceWeight(courseEffortKm(generateCourse(race))),
+    rivalBaseS: [],
+    rivalArrivalsS: segments.map(() => []),
+    rivalFinishS: [],
+  }
+  const ctx: StepContext = { race, field: model, runner: typicalRunner(level), dayForm: 0, nutrition: C.typicalNutrition }
+  return runPlan(ctx, 'target', 'normal').elapsedS
 }
 
 export function snapshotRunner(attributes: Attributes, fitness: number, fatigue: number, equipment: readonly string[]): RaceRunner {

@@ -738,6 +738,14 @@ var RACE_SIMULATION = {
   rivalExponent: 1.3,
   /** Fatigue of the reference athlete. */
   referenceFatigue: 20,
+  /**
+   * The segment engine's typical runner of a level (raceEngine `typicalRunner`) trains like a player (owner decision, 4 November 2026): each
+   * attribute has 16, plus its share of the level table's attribute points, plus this much per level
+   * gained from training sessions (+0.1 per session; about 6 points in all by level 6).
+   */
+  referenceTrainingGainPerLevel: 0.2,
+  /** Extra Fitness from training at level 1, fading to none at level 30 (where the curve reaches 90). */
+  referenceFitnessBonus: 3,
   /** Maximum day form (D1), narrowed by Consistency. */
   dayFormMax: 0.04,
   /** Effects smaller than this share of the finishing time are not shown as explanations. */
@@ -829,6 +837,13 @@ var RACE_STRATEGY = {
    * (owner decision, 2 November 2026): 2 above is 2nd, the recommended level 15th, 2 below 22nd.
    * Rival index (0-based) whose finishing time equals that runner's (ties go to the runner).
    */
+  /**
+   * The typical runners the field is anchored on race like a player (owner decision, 4 November
+   * 2026): Target pace, Normal stops, the best shop gear of their level in each slot (highest level
+   * not above theirs; the first in the equipment table on a tie) and, when set, a gel and a bar.
+   */
+  typicalGear: true,
+  typicalNutrition: { gel: true, bar: true },
   /** Minimum time gap (share) between the race's level and 2 levels either side in the field. */
   minLevelGap: 0.03,
   levelAnchors: [
@@ -1138,7 +1153,7 @@ function getRaceField(race) {
   const stations = segments.length - 1;
   const rivals = RACE_STRATEGY.fieldSize - 1;
   const R = race.recommendedLevel;
-  const rawTime = (levels) => raceSeconds(course, referenceAthlete(Math.max(1, R + levels)));
+  const rawTime = (levels) => typicalModelSeconds(race, segments, Math.max(1, R + levels));
   const atLevel = rawTime(0);
   const modelTime = (levels) => levels > 0 ? Math.min(rawTime(levels), atLevel / (1 + RACE_STRATEGY.minLevelGap)) : levels < 0 ? Math.max(rawTime(levels), atLevel * (1 + RACE_STRATEGY.minLevelGap)) : atLevel;
   const stopS = stopSeconds(effort);
@@ -1164,7 +1179,7 @@ function getRaceField(race) {
     const [i0, t0] = anchors[Math.max(0, j - 1)];
     finish.push(Math.round(i1 === i0 ? t1 : t0 + (i - i0) / (i1 - i0) * (t1 - t0)));
   }
-  const reference = referenceAthlete(R);
+  const reference = typicalRunner(R);
   const runner = prepareRunner(reference);
   const referenceSegments = segments.map((seg) => segmentBaseSeconds(runner, seg, reference.fatigue, 0));
   const referenceTotal = referenceSegments.reduce((x, y) => x + y, 0);
@@ -1229,8 +1244,53 @@ function makeStop(ctx, progress, stop) {
   const split = { ...progress.splits[k], stop, stopS: seconds, fatigueAfterStop: roundStat(Math.min(100, fatigue)) };
   return { elapsedS: progress.elapsedS + seconds, fatigue, splits: [...progress.splits.slice(0, k), split] };
 }
+function runPlan(ctx, intensities, stops) {
+  let progress = { elapsedS: 0, fatigue: ctx.runner.fatigue, splits: [] };
+  const n = ctx.field.segments.length;
+  for (let k = 0; k < n; k++) {
+    progress = runSegment(ctx, progress, typeof intensities === "string" ? intensities : intensities[k]);
+    if (k < n - 1) progress = makeStop(ctx, progress, typeof stops === "string" ? stops : stops[k]);
+  }
+  return progress;
+}
 function getReferenceFinishS(race, field = getRaceField(race)) {
-  return Math.round(raceSeconds(generateCourse(race), referenceAthlete(race.recommendedLevel)) * field.timeScale) + (field.segments.length - 1) * field.stopS.normal;
+  return Math.round(typicalModelSeconds(race, field.segments, race.recommendedLevel) * field.timeScale) + (field.segments.length - 1) * field.stopS.normal;
+}
+function typicalRunner(level) {
+  const value = 16 + getAttributePointsBetween(1, level) / ATTRIBUTE_IDS.length + RACE_SIMULATION.referenceTrainingGainPerLevel * (level - 1);
+  const base = {
+    attributes: Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, value])),
+    // From 25 + the training bonus at level 1 to Fitness 90 at level 30 (owner decisions, 29 October
+    // and 4 November 2026).
+    fitness: Math.min(90, 25 + RACE_SIMULATION.referenceFitnessBonus + (65 - RACE_SIMULATION.referenceFitnessBonus) * (level - 1) / 29),
+    fatigue: RACE_SIMULATION.referenceFatigue
+  };
+  const equipment = [];
+  if (RACE_STRATEGY.typicalGear) {
+    for (const slot of ["shoes", "pack", "poles"]) {
+      let best;
+      for (const item of EQUIPMENT_ITEMS) {
+        if (item.slot !== slot || item.price === null || (item.level ?? 0) > level) continue;
+        if (!best || (item.level ?? 0) > (best.level ?? 0)) best = item;
+      }
+      if (best) equipment.push(best.id);
+    }
+  }
+  return { ...base, equipment };
+}
+function typicalModelSeconds(race, segments, level) {
+  const model = {
+    segments,
+    fatigueScale: getFatigueScale(race, segments),
+    timeScale: 1,
+    stopS: { quick: 0, normal: 0, slow: 0 },
+    fatigueWeight: fatiguePaceWeight(courseEffortKm(generateCourse(race))),
+    rivalBaseS: [],
+    rivalArrivalsS: segments.map(() => []),
+    rivalFinishS: []
+  };
+  const ctx = { race, field: model, runner: typicalRunner(level), dayForm: 0, nutrition: RACE_STRATEGY.typicalNutrition };
+  return runPlan(ctx, "target", "normal").elapsedS;
 }
 function snapshotRunner(attributes, fitness, fatigue, equipment) {
   return { attributes: { ...attributes }, fitness, fatigue, equipment: [...equipment] };

@@ -4,19 +4,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--touch-target);
+  width: 36px;
   height: var(--touch-target);
-  margin: calc(-1 * var(--space-2)) 0;
+  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2));
   border-radius: var(--radius-md);
   color: var(--text-muted);
 }
 
 .dot {
   position: absolute;
-  top: 12px;
-  right: 9px;
-  width: 8px;
-  height: 8px;
+  top: 13px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: transparent;
 }

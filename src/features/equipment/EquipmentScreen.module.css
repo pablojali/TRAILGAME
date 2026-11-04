@@ -54,6 +54,7 @@
 }
 
 .slotBox {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -90,7 +91,7 @@
   flex: 1;
   width: 100%;
   min-height: 0;
-  max-height: 96px;
+  max-height: 120px;
 }
 
 .boxArt svg {
@@ -114,25 +115,22 @@
   text-transform: uppercase;
 }
 
-.boxName {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 2px 4px;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  line-height: 1.2;
-}
 
-.levelBadge {
-  padding: 0 4px;
+/* Level or stock in the top-right corner of a slot box. */
+.cornerBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 0 5px;
   border: 1px solid var(--accent-secondary);
   border-radius: var(--radius-sm);
+  background: rgb(8 10 12 / 0.6);
   color: var(--accent-secondary);
   font-size: 11px;
   font-weight: 800;
+  line-height: 1.5;
 }
+
 
 /* The cards of one slot. */
 .sheetHeader {

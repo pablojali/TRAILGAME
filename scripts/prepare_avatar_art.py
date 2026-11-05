@@ -50,8 +50,8 @@ BODY_NAME = re.compile(r"^(men|women)_body_01_tone(\d)\.png$")
 HEAD_NAME = re.compile(r"^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)\.png$")
 SHIRT_NAME = re.compile(r"^lvl(\d+)_(men|women)_shirt_(\d{2})\.png$")
 # Shoe art by equipment item id (owner decision, 31 October 2026; new art 5 November 2026: the
-# starting shoes are lvl0_shoes_01). lvl1_shoes_02 and lvl3_shoes_01 have no shop item yet; they
-# are prepared so they are ready when one is added.
+# starting shoes are lvl0_shoes_01; lvl3_shoes_01 is the mountain trail shoes). lvl1_shoes_02 has no shop item yet; it
+# is prepared so it is ready when one is added.
 FOOTWEAR = {
     "starter-shoes": "footwear/lvl0_shoes_01.png",
     "lvl1-shoes-02": "footwear/lvl1_shoes_02.png",

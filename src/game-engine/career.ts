@@ -1,4 +1,4 @@
-import { RACE_CATEGORIES, type RaceCategory } from '../domain/races/categories'
+import { DIFFICULTIES, difficultyOf, type Difficulty } from '../domain/races/format'
 import { getRace, type Race } from '../domain/races/races'
 import type { FinishedRaceEntry, GameState } from './gameState'
 
@@ -25,7 +25,7 @@ export interface MedalCount {
 }
 
 export interface MedalTable {
-  byCategory: Record<RaceCategory, MedalCount>
+  byDifficulty: Record<Difficulty, MedalCount>
   total: MedalCount
 }
 
@@ -46,19 +46,19 @@ export function getRaceHistory(state: GameState): HistoryRow[] {
   return finished(state).reverse()
 }
 
-/** Gold, silver and bronze medals won, by race category and in total. */
+/** Gold, silver and bronze medals won, by race difficulty and in total. */
 export function getMedalTable(state: GameState): MedalTable {
   const empty = (): MedalCount => ({ gold: 0, silver: 0, bronze: 0, races: 0 })
-  const byCategory = Object.fromEntries(RACE_CATEGORIES.map((c) => [c, empty()])) as Record<RaceCategory, MedalCount>
+  const byDifficulty = Object.fromEntries(DIFFICULTIES.map((d) => [d, empty()])) as Record<Difficulty, MedalCount>
   const total = empty()
   for (const { entry, race } of finished(state)) {
     const medal = medalFor(entry.result.position)
-    for (const count of [byCategory[race.category], total]) {
+    for (const count of [byDifficulty[difficultyOf(race)], total]) {
       count.races++
       if (medal) count[medal]++
     }
   }
-  return { byCategory, total }
+  return { byDifficulty, total }
 }
 
 export interface PersonalBest {

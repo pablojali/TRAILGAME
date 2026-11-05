@@ -55,7 +55,7 @@ describe('Career', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Trophies' }))
     const table = screen.getByRole('table')
-    expect(within(table).getByRole('row', { name: 'Open 1 0 0 2' })).toBeInTheDocument()
+    expect(within(table).getByRole('row', { name: 'Difficulty I 1 0 0 2' })).toBeInTheDocument()
     expect(within(table).getByRole('row', { name: 'Total 1 0 0 2' })).toBeInTheDocument()
     expect(within(table).getByRole('img', { name: 'Gold' })).toBeInTheDocument()
 

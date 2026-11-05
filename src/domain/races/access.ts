@@ -1,5 +1,5 @@
 import { GROSS_PRIZES, REWARD_MULTIPLIERS } from './categories'
-import type { Race } from './races'
+import { RACES, type Race } from './races'
 
 /**
  * How an entry was made. `free`: every entry since 1 November 2026 (NPC races are free).
@@ -9,19 +9,33 @@ import type { Race } from './races'
 export type EntryType = 'free' | 'standard' | 'early'
 
 /**
- * Levels below a race's recommended level at which it opens (owner decision, 1 November 2026:
- * a race can be entered from 2 levels below its recommended level).
+ * The entry window around a race's recommended level (owner decision, 5 November 2026, points
+ * system v3): from 5 levels below to 2 levels above. Level sets access; it never changes ranking
+ * points.
  */
-export const LEVELS_BELOW_RECOMMENDED = 2
+export const LEVELS_BELOW_RECOMMENDED = 5
+export const LEVELS_ABOVE_RECOMMENDED = 2
 
 /** The lowest level that may enter a race. */
 export function getMinimumLevel(race: Race): number {
   return Math.max(1, race.recommendedLevel - LEVELS_BELOW_RECOMMENDED)
 }
 
-/** True if an athlete of `level` may enter the race. Entry is always free. */
+/** The highest level that may enter a race. */
+export function getMaximumLevel(race: Race): number {
+  return race.recommendedLevel + LEVELS_ABOVE_RECOMMENDED
+}
+
+/**
+ * True if an athlete of `level` may enter the race. Entry is always free. Within the window, or the
+ * hardest race whose minimum the athlete reaches, so that no level is left without a race (the
+ * catalog has gaps, e.g. level 34, and nothing above level 52 otherwise).
+ */
 export function canEnterAtLevel(race: Race, level: number): boolean {
-  return level >= getMinimumLevel(race)
+  if (level < getMinimumLevel(race)) return false
+  if (level <= getMaximumLevel(race)) return true
+  const reachable = RACES.filter((other) => level >= getMinimumLevel(other))
+  return reachable.every((other) => other.recommendedLevel <= race.recommendedLevel)
 }
 
 /** Anti-farming multipliers for an athlete of `level` in `race` (§10.9). */

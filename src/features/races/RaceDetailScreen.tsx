@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import { difficultyOf, raceFormat } from '../../domain/races/format'
 import { Link, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Screen } from '../../components/Screen'
 import { getLevel } from '../../domain/athlete/levels'
-import { getGrossPrizes, getMinimumLevel, getRewardMultiplier } from '../../domain/races/access'
+import { canEnterAtLevel, getGrossPrizes, getMaximumLevel, getMinimumLevel, getRewardMultiplier } from '../../domain/races/access'
 import { PRIZE_BANDS } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
@@ -24,6 +25,7 @@ const ERRORS: Record<RaceEntryError | ServerError, MessageKey> = {
   'unknown-race': 'races.error.unknown-race',
   'already-entered': 'races.error.already-entered',
   'level-too-low': 'races.error.level-too-low',
+  'level-too-high': 'races.error.level-too-high',
   'race-scheduled': 'races.error.race-scheduled',
 }
 
@@ -53,11 +55,11 @@ function RaceDetail({ race }: { race: Race }) {
 
   return (
     <Screen
-      eyebrow={t('races.categoryRace', { category: t(`category.${race.category}`) })}
+      eyebrow={t('races.formatRace', { format: t(`format.${raceFormat(race)}`), difficulty: difficultyOf(race) })}
       title={race.name}
       description={courseText(race, t, locale)}
       aside={
-        <Link to={`/races?category=${race.category}`} className={styles.back}>
+        <Link to={`/races?difficulty=${difficultyOf(race)}`} className={styles.back}>
           {t('races.allRaces')}
         </Link>
       }
@@ -85,7 +87,8 @@ function RaceDetail({ race }: { race: Race }) {
         <div className={styles.tile}>
           <dt>{t('races.entry')}</dt>
           <dd>
-            {t('races.free')} <span className={styles.tileNote}>{t('races.fromLevel', { level: minimum })}</span>
+            {t('races.free')}{' '}
+            <span className={styles.tileNote}>{t('races.levelRange', { min: minimum, max: getMaximumLevel(race) })}</span>
           </dd>
         </div>
         <div className={`${styles.tile} ${styles.tileWide}`}>
@@ -149,6 +152,9 @@ function EntryPanel({ race }: { race: Race }) {
   const level = getLevel(state.athlete.xp)
   const minimum = getMinimumLevel(race)
   const tooLow = level < minimum
+  // Above the window (5 below to 2 above the recommended level): the race no longer takes entries.
+  const tooHigh = !tooLow && !canEnterAtLevel(race, level)
+  const blocked = tooLow || tooHigh
   const entry = getPendingEntry(state, race.id)
   const [confirming, setConfirming] = useState(false)
   const [message, setMessage] = useState('')
@@ -200,19 +206,21 @@ function EntryPanel({ race }: { race: Race }) {
         <div className={styles.entryText}>
           <p className={styles.entryTitle}>{t('races.sundayWeek', { week: getRaceWeek(state) })}</p>
           <p>{t('races.free')}</p>
-          {tooLow && (
+          {blocked && (
             <p className={styles.warning} id="race-level">
-              {t('races.opensAt', { level: minimum, you: level })}
+              {tooLow
+                ? t('races.opensAt', { level: minimum, you: level })
+                : t('races.closedAbove', { level: getMaximumLevel(race), you: level })}
             </p>
           )}
         </div>
         <button
           type="button"
           className={`${button.button} ${button.primary}`}
-          aria-disabled={tooLow || undefined}
-          aria-describedby={tooLow ? 'race-level' : undefined}
+          aria-disabled={blocked || undefined}
+          aria-describedby={blocked ? 'race-level' : undefined}
           onClick={() => {
-            if (tooLow) return
+            if (blocked) return
             setMessage('')
             setConfirming(true)
           }}

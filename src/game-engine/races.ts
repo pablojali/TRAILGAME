@@ -1,7 +1,7 @@
 import { rankingPoints, rankingSeason } from '../domain/ranking/ranking'
 import { applyAchievementRewards, type AchievementEarned } from './achievements'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
-import { canEnterAtLevel, getRewardMultiplier } from '../domain/races/access'
+import { canEnterAtLevel, getMinimumLevel, getRewardMultiplier } from '../domain/races/access'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_MIN_XP, RACE_XP_BAND_PCT, RACE_XP_BASE } from '../domain/races/categories'
 import { getRace, type Race } from '../domain/races/races'
 import { RACE_SIMULATION } from '../domain/races/simulationConfig'
@@ -35,6 +35,7 @@ export type RaceEntryError =
   | 'race-scheduled'
   /** The athlete is more than 2 levels below the race's recommended level. */
   | 'level-too-low'
+  | 'level-too-high'
 
 export type RaceEntryResult = { ok: true; state: GameState; entry: RaceEntry } | { ok: false; error: RaceEntryError }
 
@@ -65,7 +66,8 @@ export function enterRace(state: GameState, raceId: string, now: number): RaceEn
   if (getPendingEntry(state, raceId)) return { ok: false, error: 'already-entered' }
   if (getScheduledEntry(state)) return { ok: false, error: 'race-scheduled' }
   const level = getLevel(state.athlete.xp)
-  if (!canEnterAtLevel(race, level)) return { ok: false, error: 'level-too-low' }
+  if (level < getMinimumLevel(race)) return { ok: false, error: 'level-too-low' }
+  if (!canEnterAtLevel(race, level)) return { ok: false, error: 'level-too-high' }
 
   const entry: RaceEntry = {
     id: `entry-${state.raceEntries.length + 1}`,
@@ -214,9 +216,9 @@ export function startRace(
   const race = getRace(entry.raceId)
   if (!race) return { ok: false, error: 'unknown-race' }
   // Free entries (since 1 November 2026) were checked at entry and levels never go down, so this
-  // only guards the rule on the server's own state. Entries paid under the earlier rules (no
-  // minimum level) stay valid.
-  if (entry.entryType === 'free' && !canEnterAtLevel(race, getLevel(state.athlete.xp))) {
+  // only guards the minimum on the server's own state (a runner who levels up during the week
+  // still runs the race entered). Entries paid under the earlier rules (no minimum level) stay valid.
+  if (entry.entryType === 'free' && getLevel(state.athlete.xp) < getMinimumLevel(race)) {
     return { ok: false, error: 'level-too-low' }
   }
   if (!isIntensity(decisions.intensity)) return { ok: false, error: 'unknown-intensity' }
@@ -347,7 +349,7 @@ function finishRace(state: GameState, active: ActiveRace, race: Race, field: Rac
     factors: explanation.factors.map((f) => ({ ...f, effectS: Math.round(f.effectS * field.timeScale) })),
     rivalTimesS: field.rivalFinishS,
     // Rankings (owner request, 5 November 2026): the month the race is finished in, and its points.
-    ...rankingFields(race.id, position, rewards.multiplierPct, now),
+    ...rankingFields(race.id, position, now),
     splits: active.splits,
     nutrition: active.nutrition,
   }
@@ -489,9 +491,9 @@ export function getStandings(race: Race, result: RaceResult): StandingRow[] {
 function rankingFields(
   raceId: string,
   position: number,
-  rewardPct: number,
   now: number,
 ): { rankingSeason?: number; rankingPoints?: number; rankingAt?: number } {
   const season = rankingSeason(now)
-  return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, rewardPct), rankingAt: now } : {}
+  // Standard races only for now: Majors and the World Cup are future events.
+  return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, 'standard'), rankingAt: now } : {}
 }

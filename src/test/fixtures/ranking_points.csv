@@ -1,53 +1,61 @@
-# Ranking points (owner table, 5 November 2026). kind,key,value:
-# setting best_results: how many of a player's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC): results before it never count.
-# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December (owner decision, 5 November 2026).
-# setting annual_months: the Annual ranking adds up each season's best results from the last that many months.
-# Majors (multiplayer races, 4 per season, one each weekend; a later milestone) will be race rows with their own, higher base points.
-# race: base points of each race (by its difficulty: distance and climb). position: percent of the base points for each finishing position (positions not listed: 0).
-# Points of a result = base x position percent x the race's reward percent at the runner's level (races far below the runner's level give less or nothing).
+# Ranking points (owner tables, 5 November 2026; points system v3 the same day). kind,key,value:
+# setting best_results: how many of a runner's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC).
+# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December. setting annual_months: the Annual ranking adds up each season's best results from the last that many months.
+# Points of a result = difficulty base points x position percent x competition percent, rounded to whole points.
+# The runner's level and sex never change the points (Game Design Bible 11.1); level only sets which races a runner may enter.
+# difficulty: base points of each difficulty (I Moderate ... V Extreme). race: the difficulty of each race (distance, climb, technicality and overall demands, not distance alone).
+# position: percent for each finishing position (positions not listed, 31st and later: 0). competition: percent of each competition format (standard races, weekly Majors, the annual World Cup).
 kind,key,value
 setting,best_results,10
 setting,first_season,2026-11
 setting,annual_months,12
-race,RACE-001,62
-race,RACE-002,102
-race,RACE-003,135
-race,RACE-004,175
-race,RACE-005,225
-race,RACE-006,275
-race,RACE-007,350
-race,RACE-008,450
-race,RACE-009,570
-race,RACE-010,700
-race,RACE-011,910
-race,RACE-012,1180
+difficulty,I,100
+difficulty,II,125
+difficulty,III,160
+difficulty,IV,200
+difficulty,V,250
+race,RACE-001,I
+race,RACE-002,I
+race,RACE-003,I
+race,RACE-004,II
+race,RACE-005,II
+race,RACE-006,II
+race,RACE-007,III
+race,RACE-008,III
+race,RACE-009,IV
+race,RACE-010,IV
+race,RACE-011,V
+race,RACE-012,V
 position,1,100
 position,2,85
 position,3,75
-position,4,67
-position,5,60
-position,6,54
-position,7,49
-position,8,45
-position,9,41
-position,10,38
-position,11,35
-position,12,32
-position,13,30
-position,14,28
-position,15,26
-position,16,24
-position,17,22
-position,18,20
-position,19,18
+position,4,70
+position,5,65
+position,6,60
+position,7,56
+position,8,52
+position,9,48
+position,10,45
+position,11,43
+position,12,40
+position,13,37
+position,14,34
+position,15,31
+position,16,28
+position,17,25
+position,18,22
+position,19,19
 position,20,16
-position,21,15
-position,22,14
-position,23,13
+position,21,12
+position,22,12
+position,23,12
 position,24,12
-position,25,11
-position,26,10
-position,27,9
+position,25,12
+position,26,8
+position,27,8
 position,28,8
-position,29,7
-position,30,5
+position,29,8
+position,30,8
+competition,standard,100
+competition,major,150
+competition,world_cup,200

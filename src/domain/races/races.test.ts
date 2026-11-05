@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canEnterAtLevel, getGrossPrizes, getMinimumLevel, getRewardMultiplier } from './access'
+import { canEnterAtLevel, getGrossPrizes, getMaximumLevel, getMinimumLevel, getRewardMultiplier } from './access'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_CATEGORY_CONFIG } from './categories'
 import { getRace, isRaceId, RACES, type Race } from './races'
 
@@ -53,20 +53,32 @@ describe('race catalog', () => {
   })
 })
 
-describe('race entry (free, from 2 levels below the recommended level; 1 November 2026)', () => {
-  it('opens each race 2 levels below its recommended level, never below level 1', () => {
-    expect(RACES.map((r) => [r.id, getMinimumLevel(r)])).toEqual(RACES.map((r) => [r.id, Math.max(1, r.recommendedLevel - 2)]))
-    expect(getMinimumLevel(race('RACE-001'))).toBe(2)
-    expect(getMinimumLevel(race('RACE-004'))).toBe(9)
-    expect(getMinimumLevel(race('RACE-012'))).toBe(48)
+describe('race entry window (owner decision, 5 November 2026: from 5 levels below to 2 above the recommended level)', () => {
+  it('opens each race 5 levels below its recommended level, never below level 1, and closes it 2 levels above', () => {
+    expect(RACES.map((r) => [r.id, getMinimumLevel(r)])).toEqual(RACES.map((r) => [r.id, Math.max(1, r.recommendedLevel - 5)]))
+    expect(RACES.map((r) => [r.id, getMaximumLevel(r)])).toEqual(RACES.map((r) => [r.id, r.recommendedLevel + 2]))
+    expect(getMinimumLevel(race('RACE-001'))).toBe(1)
+    expect(getMinimumLevel(race('RACE-004'))).toBe(6)
+    expect(getMinimumLevel(race('RACE-012'))).toBe(45)
   })
 
-  it('lets a runner enter from the minimum level up', () => {
-    expect(canEnterAtLevel(race('RACE-001'), 1)).toBe(false)
-    expect(canEnterAtLevel(race('RACE-001'), 2)).toBe(true)
-    expect(canEnterAtLevel(race('RACE-004'), 8)).toBe(false)
-    expect(canEnterAtLevel(race('RACE-004'), 9)).toBe(true)
-    expect(canEnterAtLevel(race('RACE-004'), 50)).toBe(true)
+  it('lets a runner enter within the window only', () => {
+    expect(canEnterAtLevel(race('RACE-001'), 1)).toBe(true)
+    expect(canEnterAtLevel(race('RACE-001'), 6)).toBe(true)
+    expect(canEnterAtLevel(race('RACE-001'), 7)).toBe(false)
+    expect(canEnterAtLevel(race('RACE-004'), 5)).toBe(false)
+    expect(canEnterAtLevel(race('RACE-004'), 6)).toBe(true)
+    expect(canEnterAtLevel(race('RACE-004'), 13)).toBe(true)
+    expect(canEnterAtLevel(race('RACE-004'), 14)).toBe(false)
+  })
+
+  it('always leaves a race open: the hardest race whose minimum the runner reaches', () => {
+    const open = (level: number) => RACES.filter((r) => canEnterAtLevel(r, level)).map((r) => r.id)
+    for (let level = 1; level <= 80; level++) expect(open(level).length, `level ${level}`).toBeGreaterThan(0)
+    // Between windows (level 34: RACE-010 closes at 33, RACE-011 opens at 35) and above the last one.
+    expect(open(34)).toEqual(['RACE-010'])
+    expect(open(43)).toEqual(['RACE-011'])
+    expect(open(60)).toEqual(['RACE-012'])
   })
 })
 

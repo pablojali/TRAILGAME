@@ -9,7 +9,7 @@ import { Card, Meter } from '../../components/Card'
 import { MedalIcon } from '../../components/Medal'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { Tabs } from '../../components/Tabs'
-import { RACE_CATEGORIES } from '../../domain/races/categories'
+import { DIFFICULTIES } from '../../domain/races/format'
 import { WEEKS_PER_YEAR } from '../../domain/training/calendar'
 import { getAchievements, getSeason, type AchievementProgress } from '../../game-engine/achievements'
 import {
@@ -129,7 +129,7 @@ export function CareerScreen({ rankingService = getRankingService() }: { ranking
                 <table className={styles.medalTable}>
                   <thead>
                     <tr>
-                      <th scope="col">{t('career.category')}</th>
+                      <th scope="col">{t('career.difficulty')}</th>
                       {MEDALS.map((medal) => (
                         <th scope="col" key={medal} className={styles.num}>
                           <MedalIcon medal={medal} label={t(`medal.${medal}`)} />
@@ -141,8 +141,8 @@ export function CareerScreen({ rankingService = getRankingService() }: { ranking
                     </tr>
                   </thead>
                   <tbody>
-                    {RACE_CATEGORIES.map((category) => (
-                      <MedalRow key={category} label={t(`category.${category}`)} count={table.byCategory[category]} />
+                    {DIFFICULTIES.map((difficulty) => (
+                      <MedalRow key={difficulty} label={t('race.difficulty', { difficulty })} count={table.byDifficulty[difficulty]} />
                     ))}
                   </tbody>
                   <tfoot>

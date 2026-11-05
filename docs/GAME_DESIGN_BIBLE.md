@@ -1,8 +1,10 @@
 # TRAIL GAME — GAME DESIGN BIBLE
 
-**Version:** 1.4
+**Version:** 1.5
 
 **Status:** Approved design baseline — partially implemented (M0, M1 and M2 accepted); remaining systems pending milestone assignment
+
+**Changes in 1.5 (owner decisions, 5 November 2026):** ranking points system v3 (§11.2): difficulty I–V base points × position percent × competition percent, with no level factor; races shown by format and difficulty; race entry from 5 levels below to 2 above the recommended level (§10.3).
 
 **Changes in 1.4 (owner decision, 5 November 2026):** one competition, one set of rules, one ranking: classification, scoring and rewards are independent of the runner's sex, for normal races and Majors alike (§11.1).
 
@@ -737,7 +739,7 @@ M4 introduces four race categories. The values below are initial balancing value
 
 1. If the athlete's level is at or above the race's recommended level, the standard entry fee applies.
 2. If the athlete's level is below the recommended level, the player may enter by paying the higher early-entry fee.
-3. There are no hard level locks in M4. Any category, including Elite, may be attempted from the beginning if the player can afford the applicable fee. **Superseded on 1 November 2026:** NPC race entry is free and each race opens 2 levels below its recommended level (DEVELOPMENT.md, Phase 3B.2).
+3. There are no hard level locks in M4. Any category, including Elite, may be attempted from the beginning if the player can afford the applicable fee. **Superseded on 1 November 2026:** NPC race entry is free and each race opens 2 levels below its recommended level (DEVELOPMENT.md, Phase 3B.2). **Superseded on 5 November 2026:** each race takes runners from 5 levels below to 2 levels above its recommended level; the hardest race whose minimum a runner reaches stays open too, so no level is left without a race (§11.2).
 4. Open races are always free to enter.
 5. If the player cannot afford the applicable fee, entry must be disabled and the shortfall clearly displayed.
 6. Before confirmation, show the applicable fee, current coin balance, and remaining balance.
@@ -1075,6 +1077,28 @@ sporting performance inside the game, not a sex category.
   is no Men / Women filter.
 - The runner's sex stays as profile data and for the artwork (§2.1); it never affects performance,
   points or rewards.
+
+### 11.2 Ranking points system v3 (owner decisions, 5 November 2026)
+
+**Ranking Points = Race Base Points × Position Multiplier × Competition Multiplier**, rounded to whole
+points. The runner's level and sex never change the points: level only decides which races a runner
+may enter. A lower-level runner can reach the top of the world ranking with strong results.
+
+- **Race format:** Trail; Ultra Trail (over 42 km); more formats may come. Open / Trail / Mountain /
+  Elite are no longer shown and never decide points; they stay internal for XP, coin prizes and the
+  rivals' field. Major and World Cup are competitions, not formats.
+- **Difficulty** (distance, climb, technicality and overall demands, not distance alone): I Moderate
+  100 (RACE-001–003), II Challenging 125 (004–006), III Hard 160 (007–008), IV Very Hard 200 (009–010),
+  V Extreme 250 (011–012).
+- **Position:** 1st 100 %, 2nd 85 %, 3rd 75 %, 4th 70 %, 5th 65 %, 6th 60 %, 7th 56 %, 8th 52 %, 9th 48 %,
+  10th 45 %, 11th 43 %, 12th 40 %, 13th 37 %, 14th 34 %, 15th 31 %, 16th 28 %, 17th 25 %, 18th 22 %,
+  19th 19 %, 20th 16 %, 21st–25th 12 %, 26th–30th 8 %, 31st and later 0 %.
+- **Competition:** standard race ×1.00; Major ×1.50 (one every Sunday at a fixed global start time);
+  World Cup ×2.00 (once a year). Majors and the World Cup are designed separately.
+- **Access:** each race takes runners from 5 levels below to 2 levels above its recommended level.
+- **Ranking:** World and Country, one general classification, monthly seasons and the rolling
+  12 months; only completed races score; the best 10 results of each season count. All values are
+  in `src/data/ranking_points.csv`; the server computes every point.
 
 ---
 

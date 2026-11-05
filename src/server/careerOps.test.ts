@@ -409,8 +409,8 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
   it('rejects a runner below the race\'s minimum level, changing nothing', async () => {
     const memory = memoryStore()
     memory.seed('ana', rich(1000))
-    // Level 1: Forest First Steps opens at Level 2, Ridge Runner at 9.
-    expect((await call(memory, { action: 'enter-race', operationId: op(1), raceId: 'RACE-001' })).body).toMatchObject({ ok: false, error: 'level-too-low' })
+    // Level 1: Pine Loop Challenge opens at Level 3, Ridge Runner at 6.
+    expect((await call(memory, { action: 'enter-race', operationId: op(1), raceId: 'RACE-003' })).body).toMatchObject({ ok: false, error: 'level-too-low' })
     expect((await call(memory, { action: 'enter-race', operationId: op(2), raceId: 'RACE-004' })).body).toMatchObject({ ok: false, error: 'level-too-low' })
     expect(memory.stateOf('ana')).toMatchObject({ coins: 1000, raceEntries: [] })
     expect(memory.commits()).toBe(0)
@@ -603,7 +603,7 @@ describe('career-ops: races step by step on the server (Race Engine V1)', () => 
 
   it('refuses a free entry below the race\'s minimum level; entries paid under the earlier rules still run', async () => {
     const memory = memoryStore()
-    // Level 2 holding a free entry for Ridge Runner (opens at Level 9): only reachable by tampering.
+    // Level 2 holding a free entry for Ridge Runner (opens at Level 6): only reachable by tampering.
     const made = withEntry(withAthlete(newGame(), { xp: 100 }), 'RACE-004')
     const freeEntry = { ...made.entry, entryType: 'free' as const }
     const low = { state: { ...made.state, raceEntries: [freeEntry] }, entry: freeEntry }

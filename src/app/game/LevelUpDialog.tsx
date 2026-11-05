@@ -1,4 +1,5 @@
 import { lookName } from '../../i18n/looks'
+import { difficultyOf } from '../../domain/races/format'
 import { useI18n } from '../../i18n/i18n'
 import { useEffect, useId, useRef } from 'react'
 import { useNavigate } from 'react-router'
@@ -87,7 +88,7 @@ export function LevelUpDialog() {
               </span>
               <span>
                 <strong>{t('levelUp.racesOpen')}</strong>{' '}
-                {rewards.races.map((race) => `${race.name} (${t(`category.${race.category}`)})`).join(', ')}
+                {rewards.races.map((race) => `${race.name} (${t('race.difficulty', { difficulty: difficultyOf(race) })})`).join(', ')}
               </span>
             </li>
           )}

@@ -32,9 +32,9 @@ describe("owner's tables", () => {
     expect(parseLevels(levelsCsv).length).toBeGreaterThan(1)
   })
 
-  it('ranking_points.csv is a valid ranking table with points for every race', () => {
+  it('ranking_points.csv is a valid ranking table with a difficulty for every race', () => {
     const table = parseRankingTable(rankingCsv)
-    expect(Object.keys(table.racePoints).sort()).toEqual(RACES.map((race) => race.id).sort())
+    expect(Object.keys(table.raceDifficulty).sort()).toEqual(RACES.map((race) => race.id).sort())
   })
 
   it('achievements.csv has valid levels for every achievement', () => {

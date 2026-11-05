@@ -83,5 +83,6 @@
   "achievement.desc.dedicated": {
     "one": "Complete {count} training week.",
     "other": "Complete {count} training weeks."
-  }
+  },
+  "career.reward": "Reward"
 }

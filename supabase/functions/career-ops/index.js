@@ -658,7 +658,8 @@ function createInitialGameState(profile, now, identity) {
     equipment: [],
     ownedEquipment: [...OWNED_FROM_START],
     consumables: { gel: 0, bar: 0 },
-    activeRace: null
+    activeRace: null,
+    achievementLevelsRewarded: {}
   };
 }
 function getCurrentDay(week) {
@@ -666,6 +667,9 @@ function getCurrentDay(week) {
   if (!day) throw new Error(`Invalid current day index ${week.currentDayIndex}`);
   return day;
 }
+
+// raw:src/data/achievements.csv
+var achievements_default = "# Achievements (owner table, 5 November 2026). One row per achievement level, levels 1, 2, 3\u2026 in order.\n# achievement: first-steps (races finished), trail-explorer, first-summit, elite (races of that category), podium (top 3 finishes),\n# champion (wins), rising-star (total XP), level (runner level), dedicated (training weeks completed).\n# target: what the level asks for (rising in each achievement). coins and xp: the reward when the level is reached, given once.\nachievement,level,target,coins,xp\nfirst-steps,1,1,20,50\nfirst-steps,2,5,40,100\nfirst-steps,3,10,80,200\nfirst-steps,4,25,150,400\nfirst-steps,5,50,300,800\ntrail-explorer,1,1,50,100\ntrail-explorer,2,5,100,200\ntrail-explorer,3,10,200,400\ntrail-explorer,4,25,400,800\nfirst-summit,1,1,100,200\nfirst-summit,2,5,200,400\nfirst-summit,3,10,400,800\nfirst-summit,4,25,800,1600\nelite,1,1,200,400\nelite,2,5,400,800\nelite,3,10,800,1600\npodium,1,1,30,50\npodium,2,5,80,150\npodium,3,10,150,300\npodium,4,25,300,600\nchampion,1,1,50,100\nchampion,2,3,120,250\nchampion,3,10,300,600\nrising-star,1,1000,30,0\nrising-star,2,5000,80,0\nrising-star,3,20000,200,0\nrising-star,4,50000,400,0\nlevel,1,5,30,0\nlevel,2,10,60,0\nlevel,3,20,150,0\nlevel,4,30,300,0\nlevel,5,50,600,0\ndedicated,1,4,20,50\ndedicated,2,13,60,150\ndedicated,3,26,120,300\ndedicated,4,52,250,600\ndedicated,5,104,500,1200\n";
 
 // src/domain/races/categories.ts
 var RACE_CATEGORIES = ["open", "trail", "mountain", "elite"];
@@ -695,20 +699,6 @@ var REWARD_MULTIPLIERS = [
   { levelDifference: 3, xp: 0, coins: 0 }
 ];
 
-// src/domain/races/access.ts
-var LEVELS_BELOW_RECOMMENDED = 2;
-function getMinimumLevel(race) {
-  return Math.max(1, race.recommendedLevel - LEVELS_BELOW_RECOMMENDED);
-}
-function canEnterAtLevel(race, level) {
-  return level >= getMinimumLevel(race);
-}
-function getRewardMultiplier(race, level) {
-  const levelDifference = level - race.recommendedLevel;
-  const row = [...REWARD_MULTIPLIERS].reverse().find((entry) => levelDifference >= entry.levelDifference) ?? REWARD_MULTIPLIERS[0];
-  return { levelDifference, xp: row.xp, coins: row.coins };
-}
-
 // src/domain/races/races.ts
 var RACES = [
   { id: "RACE-001", name: "Forest First Steps", category: "open", distanceKm: 5, elevationGainM: 120, terrain: "Non-technical forest paths", recommendedLevel: 4, technicality: 0 },
@@ -730,6 +720,189 @@ function getRace(id) {
 }
 function isRaceId(value) {
   return typeof value === "string" && BY_ID.has(value);
+}
+
+// src/game-engine/career.ts
+function medalFor(position) {
+  return position === 1 ? "gold" : position === 2 ? "silver" : position === 3 ? "bronze" : null;
+}
+function finished(state) {
+  return state.raceEntries.flatMap((entry) => {
+    const race = entry.status === "finished" ? getRace(entry.raceId) : void 0;
+    return entry.status === "finished" && race ? [{ entry, race }] : [];
+  });
+}
+function getRaceHistory(state) {
+  return finished(state).reverse();
+}
+
+// src/game-engine/achievements.ts
+var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+function finishedIn(state, category) {
+  return getRaceHistory(state).filter(({ race }) => category === void 0 || race.category === category).length;
+}
+function positions(state) {
+  return getRaceHistory(state).map(({ entry }) => entry.result.position);
+}
+var ACHIEVEMENT_IDS = [
+  "first-steps",
+  "trail-explorer",
+  "first-summit",
+  "elite",
+  "podium",
+  "champion",
+  "rising-star",
+  "level",
+  "dedicated"
+];
+function parseAchievementTable(text) {
+  const table = /* @__PURE__ */ new Map();
+  parseCsv(text).forEach((row, i) => {
+    const where = `achievements.csv row ${i + 1}`;
+    if (!ACHIEVEMENT_IDS.includes(row.achievement ?? "")) {
+      throw new Error(`${where}: unknown achievement "${row.achievement}"`);
+    }
+    const parsed = {
+      achievement: row.achievement,
+      level: csvInt(row.level, where),
+      target: csvInt(row.target, where),
+      coins: csvInt(row.coins, where),
+      xp: csvInt(row.xp, where)
+    };
+    if (parsed.coins < 0 || parsed.xp < 0) throw new Error(`${where}: rewards must not be negative`);
+    const rows = table.get(parsed.achievement) ?? [];
+    if (parsed.level !== rows.length + 1) throw new Error(`${where}: level ${parsed.level} out of order`);
+    if (rows.length && parsed.target <= rows[rows.length - 1].target) throw new Error(`${where}: target must rise`);
+    if (parsed.target < 1) throw new Error(`${where}: target must be at least 1`);
+    rows.push(parsed);
+    table.set(parsed.achievement, rows);
+  });
+  for (const id of ACHIEVEMENT_IDS) if (!table.has(id)) throw new Error(`achievements.csv: no rows for "${id}"`);
+  return table;
+}
+var TABLE = parseAchievementTable(achievements_default);
+var targetsOf = (id) => TABLE.get(id).map((row) => row.target);
+var rewardsOf = (id) => TABLE.get(id).map(({ coins, xp }) => ({ coins, xp }));
+var DEFINITIONS = [
+  {
+    id: "first-steps",
+    title: "Race Starter",
+    describe: (n) => `Finish ${plural(n, "race", "races")}.`,
+    value: (state) => finishedIn(state)
+  },
+  {
+    id: "trail-explorer",
+    title: "Trail Explorer",
+    describe: (n) => `Finish ${plural(n, "trail race", "trail races")}.`,
+    value: (state) => finishedIn(state, "trail")
+  },
+  {
+    id: "first-summit",
+    title: "First Summit",
+    describe: (n) => `Finish ${plural(n, "mountain race", "mountain races")}.`,
+    value: (state) => finishedIn(state, "mountain")
+  },
+  {
+    id: "elite",
+    title: "Among the Elite",
+    describe: (n) => `Finish ${plural(n, "elite race", "elite races")}.`,
+    value: (state) => finishedIn(state, "elite")
+  },
+  {
+    id: "podium",
+    title: "Podium Hunter",
+    describe: (n) => `Finish in the top 3 ${plural(n, "time", "times")}.`,
+    value: (state) => positions(state).filter((p) => medalFor(p) !== null).length
+  },
+  {
+    id: "champion",
+    title: "Champion",
+    describe: (n) => `Win ${plural(n, "race", "races")}.`,
+    value: (state) => positions(state).filter((p) => p === 1).length
+  },
+  {
+    id: "rising-star",
+    title: "Rising Star",
+    describe: (n) => `Reach ${n.toLocaleString("en-US")} XP.`,
+    value: (state) => state.athlete.xp
+  },
+  {
+    id: "level",
+    title: "Climbing the Ranks",
+    describe: (n) => `Reach Level ${n}.`,
+    value: (state) => getLevel(state.athlete.xp)
+  },
+  {
+    id: "dedicated",
+    title: "Dedicated",
+    describe: (n) => `Complete ${plural(n, "training week", "training weeks")}.`,
+    value: (state) => state.week.number - 1
+  }
+];
+var ACHIEVEMENTS = DEFINITIONS.map((definition) => ({
+  ...definition,
+  targets: targetsOf(definition.id),
+  rewards: rewardsOf(definition.id)
+}));
+function getAchievements(state) {
+  return ACHIEVEMENTS.map((definition) => {
+    const value = definition.value(state);
+    const reached = definition.targets.filter((target2) => value >= target2).length;
+    const complete = reached === definition.targets.length;
+    const index = complete ? definition.targets.length - 1 : reached;
+    const target = definition.targets[index];
+    return {
+      definition,
+      reached,
+      level: index + 1,
+      target,
+      value: Math.min(value, target),
+      complete,
+      reward: definition.rewards[index]
+    };
+  });
+}
+function getReachedLevels(state) {
+  return Object.fromEntries(getAchievements(state).map((a) => [a.definition.id, a.reached]));
+}
+function applyAchievementRewards(state) {
+  const earned = [];
+  let current = state;
+  for (let guard = 0; guard < 100; guard++) {
+    const rewarded = current.achievementLevelsRewarded;
+    const fresh = [];
+    for (const progress of getAchievements(current)) {
+      const id = progress.definition.id;
+      for (let level = (rewarded[id] ?? 0) + 1; level <= progress.reached; level++) {
+        fresh.push({ id, level, ...progress.definition.rewards[level - 1] });
+      }
+    }
+    if (fresh.length === 0) break;
+    const next = { ...rewarded };
+    for (const e of fresh) next[e.id] = Math.max(next[e.id] ?? 0, e.level);
+    current = {
+      ...current,
+      coins: current.coins + fresh.reduce((sum, e) => sum + e.coins, 0),
+      athlete: { ...current.athlete, xp: current.athlete.xp + fresh.reduce((sum, e) => sum + e.xp, 0) },
+      achievementLevelsRewarded: next
+    };
+    earned.push(...fresh);
+  }
+  return { state: current, earned };
+}
+
+// src/domain/races/access.ts
+var LEVELS_BELOW_RECOMMENDED = 2;
+function getMinimumLevel(race) {
+  return Math.max(1, race.recommendedLevel - LEVELS_BELOW_RECOMMENDED);
+}
+function canEnterAtLevel(race, level) {
+  return level >= getMinimumLevel(race);
+}
+function getRewardMultiplier(race, level) {
+  const levelDifference = level - race.recommendedLevel;
+  const row = [...REWARD_MULTIPLIERS].reverse().find((entry) => levelDifference >= entry.levelDifference) ?? REWARD_MULTIPLIERS[0];
+  return { levelDifference, xp: row.xp, coins: row.coins };
 }
 
 // src/domain/races/simulationConfig.ts
@@ -1489,11 +1662,13 @@ function executeCurrentDay(state, ref, now) {
   const outcome = previewSession(state, day.session);
   const levelBefore = getLevel(state.athlete.xp);
   const advanced = completeCurrentDay(state, outcome, day.session !== "rest", now);
-  const levelAfter = getLevel(advanced.state.athlete.xp);
+  const rewarded = applyAchievementRewards(advanced.state);
+  const levelAfter = getLevel(rewarded.state.athlete.xp);
   return {
     ok: true,
     value: {
-      state: advanced.state,
+      state: rewarded.state,
+      achievementsEarned: rewarded.earned,
       executed: { ...ref, session: day.session },
       outcome: advanced.outcome,
       levelBefore,
@@ -1719,17 +1894,19 @@ function finishRace(state, active, race, field, now) {
     splits: active.splits,
     nutrition: active.nutrition
   };
-  const finished = { ...entry, status: "finished", result };
+  const finished2 = { ...entry, status: "finished", result };
   const advanced = completeCurrentDay({ ...state, activeRace: null }, outcome, true, now);
-  const nextState = {
+  const rewarded = applyAchievementRewards({
     ...advanced.state,
     coins: advanced.state.coins + rewards.coinsAwarded,
-    raceEntries: advanced.state.raceEntries.map((e) => e.id === entry.id ? finished : e)
-  };
+    raceEntries: advanced.state.raceEntries.map((e) => e.id === entry.id ? finished2 : e)
+  });
+  const nextState = rewarded.state;
   const levelAfter = getLevel(nextState.athlete.xp);
   return {
     state: nextState,
-    entry: finished,
+    achievementsEarned: rewarded.earned,
+    entry: finished2,
     levelBefore: levelAtStart,
     levelAfter,
     attributePointsAwarded: getAttributePointsBetween(levelAtStart, levelAfter),
@@ -1779,11 +1956,11 @@ function isRaceResult(value, feePaid) {
 function isNutrition(value) {
   return isRecord(value) && typeof value.gel === "boolean" && typeof value.bar === "boolean";
 }
-function isSplitList(splits, fieldSize, finished) {
+function isSplitList(splits, fieldSize, finished2) {
   let previous = 0;
   return splits.every((split, index) => {
     const last = index === splits.length - 1;
-    const ok = isRecord(split) && isIntensity(split.intensity) && isInt(split.segmentS, 0) && isInt(split.arrivalS, 1) && split.arrivalS >= previous && isFiniteNumber(split.fatigue) && isInt(split.position, 1, fieldSize) && (last && !finished ? split.stop === void 0 : last ? split.stop === void 0 && split.stopS === void 0 : isAidStop(split.stop) && isInt(split.stopS, 0) && isFiniteNumber(split.fatigueAfterStop));
+    const ok = isRecord(split) && isIntensity(split.intensity) && isInt(split.segmentS, 0) && isInt(split.arrivalS, 1) && split.arrivalS >= previous && isFiniteNumber(split.fatigue) && isInt(split.position, 1, fieldSize) && (last && !finished2 ? split.stop === void 0 : last ? split.stop === void 0 && split.stopS === void 0 : isAidStop(split.stop) && isInt(split.stopS, 0) && isFiniteNumber(split.fatigueAfterStop));
     if (ok) previous = split.arrivalS + (split.stopS ?? 0);
     return ok;
   });
@@ -1885,7 +2062,13 @@ function parseGameState(value, now) {
   const previousDayActive = value.previousDayActive === void 0 ? previousDay !== void 0 && (previousDay.outcome?.raceEntryId !== void 0 || previousDay.session !== "rest") : value.previousDayActive;
   if (typeof previousDayActive !== "boolean") return null;
   const reference = value.fitnessDecayReference;
-  return {
+  const rewarded = value.achievementLevelsRewarded;
+  if (rewarded !== void 0 && (!isRecord(rewarded) || !Object.entries(rewarded).every(
+    ([id, level]) => ACHIEVEMENT_IDS.includes(id) && isInt(level, 0)
+  ))) {
+    return null;
+  }
+  const parsed = {
     athlete: {
       name: athlete.name,
       sex,
@@ -1917,8 +2100,11 @@ function parseGameState(value, now) {
     equipment: [...equipment],
     ownedEquipment: [...ownedEquipment],
     consumables: { gel: rawConsumables.gel, bar: rawConsumables.bar },
-    activeRace
+    activeRace,
+    achievementLevelsRewarded: {}
   };
+  parsed.achievementLevelsRewarded = rewarded === void 0 ? getReachedLevels(parsed) : { ...rewarded };
+  return parsed;
 }
 
 // src/server/careerOps.ts

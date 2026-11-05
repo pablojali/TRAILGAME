@@ -1,3 +1,4 @@
+import { applyAchievementRewards, type AchievementEarned } from './achievements'
 import { roundStat, STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import {
@@ -58,6 +59,8 @@ export interface ExecutionResult {
   weekCompleted: boolean
   /** True when the session caused an injury. */
   injured: boolean
+  /** Achievement levels reached by this day, with their coins and XP (already added). */
+  achievementsEarned: AchievementEarned[]
 }
 
 /** Keeps a Fitness or Fatigue value in 0–100, at 2 decimals. */
@@ -190,12 +193,14 @@ export function executeCurrentDay(
   const outcome = previewSession(state, day.session)
   const levelBefore = getLevel(state.athlete.xp)
   const advanced = completeCurrentDay(state, outcome, day.session !== 'rest', now)
-  const levelAfter = getLevel(advanced.state.athlete.xp)
+  const rewarded = applyAchievementRewards(advanced.state)
+  const levelAfter = getLevel(rewarded.state.athlete.xp)
 
   return {
     ok: true,
     value: {
-      state: advanced.state,
+      state: rewarded.state,
+      achievementsEarned: rewarded.earned,
       executed: { ...ref, session: day.session },
       outcome: advanced.outcome,
       levelBefore,

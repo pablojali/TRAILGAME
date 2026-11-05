@@ -1,0 +1,42 @@
+# Achievements (owner table, 5 November 2026). One row per achievement level, levels 1, 2, 3… in order.
+# achievement: first-steps (races finished), trail-explorer, first-summit, elite (races of that category), podium (top 3 finishes),
+# champion (wins), rising-star (total XP), level (runner level), dedicated (training weeks completed).
+# target: what the level asks for (rising in each achievement). coins and xp: the reward when the level is reached, given once.
+achievement,level,target,coins,xp
+first-steps,1,1,0,0
+first-steps,2,5,0,0
+first-steps,3,10,0,0
+first-steps,4,25,0,0
+first-steps,5,50,0,0
+trail-explorer,1,1,0,0
+trail-explorer,2,5,0,0
+trail-explorer,3,10,0,0
+trail-explorer,4,25,0,0
+first-summit,1,1,0,0
+first-summit,2,5,0,0
+first-summit,3,10,0,0
+first-summit,4,25,0,0
+elite,1,1,0,0
+elite,2,5,0,0
+elite,3,10,0,0
+podium,1,1,0,0
+podium,2,5,0,0
+podium,3,10,0,0
+podium,4,25,0,0
+champion,1,1,0,0
+champion,2,3,0,0
+champion,3,10,0,0
+rising-star,1,1000,0,0
+rising-star,2,5000,0,0
+rising-star,3,20000,0,0
+rising-star,4,50000,0,0
+level,1,5,0,0
+level,2,10,0,0
+level,3,20,0,0
+level,4,30,0,0
+level,5,50,0,0
+dedicated,1,4,0,0
+dedicated,2,13,0,0
+dedicated,3,26,0,0
+dedicated,4,52,0,0
+dedicated,5,104,0,0

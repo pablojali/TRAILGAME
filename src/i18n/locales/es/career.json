@@ -83,5 +83,6 @@
   "achievement.desc.dedicated": {
     "one": "Completa {count} semana de entrenamiento.",
     "other": "Completa {count} semanas de entrenamiento."
-  }
+  },
+  "career.reward": "Recompensa"
 }

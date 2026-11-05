@@ -83,5 +83,6 @@
   "achievement.desc.dedicated": {
     "one": "Schließe {count} Trainingswoche ab.",
     "other": "Schließe {count} Trainingswochen ab."
-  }
+  },
+  "career.reward": "Belohnung"
 }

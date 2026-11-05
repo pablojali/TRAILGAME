@@ -77,6 +77,11 @@ export interface GameState {
    * at a time; it ends, and becomes the entry's result, when the finish is reached.
    */
   activeRace: ActiveRace | null
+  /**
+   * Achievement levels already rewarded, by achievement id (owner request, 5 November 2026): each
+   * level gives its coins and XP once. Server-decided like the rest of the progression.
+   */
+  achievementLevelsRewarded: Record<string, number>
 }
 
 /** A race between its start and its finish: the inputs fixed at the start and the segments run. */
@@ -241,6 +246,7 @@ export function createInitialGameState(
     ownedEquipment: [...OWNED_FROM_START],
     consumables: { gel: 0, bar: 0 },
     activeRace: null,
+    achievementLevelsRewarded: {},
   }
 }
 

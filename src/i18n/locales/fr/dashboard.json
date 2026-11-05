@@ -64,5 +64,12 @@
   "category.open": "Open",
   "category.trail": "Trail",
   "category.mountain": "Montagne",
-  "category.elite": "Élite"
+  "category.elite": "Élite",
+  "dashboard.challenge": "Défi en cours",
+  "dashboard.inProgress": "En cours",
+  "dashboard.challengeProgress": "{value} / {target}",
+  "dashboard.rewardCoins": "+{coins}",
+  "dashboard.rewardXp": "+{xp} XP",
+  "dashboard.viewChallenges": "Voir tous les défis ›",
+  "dashboard.allDone": "Tous les défis sont terminés."
 }

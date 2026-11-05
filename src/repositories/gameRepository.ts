@@ -1,3 +1,4 @@
+import { ACHIEVEMENT_IDS, getReachedLevels } from '../game-engine/achievements'
 import {
   ATTRIBUTE_IDS,
   ATTRIBUTE_MIN,
@@ -411,7 +412,17 @@ export function parseGameState(value: unknown, now: number): GameState | null {
   if (typeof previousDayActive !== 'boolean') return null
 
   const reference = value.fitnessDecayReference
-  return {
+  const rewarded = value.achievementLevelsRewarded
+  if (
+    rewarded !== undefined &&
+    (!isRecord(rewarded) ||
+      !Object.entries(rewarded).every(
+        ([id, level]) => (ACHIEVEMENT_IDS as readonly string[]).includes(id) && isInt(level, 0),
+      ))
+  ) {
+    return null
+  }
+  const parsed: GameState = {
     athlete: {
       name: athlete.name,
       sex,
@@ -444,7 +455,13 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     ownedEquipment: [...(ownedEquipment as string[])],
     consumables: { gel: rawConsumables.gel as number, bar: rawConsumables.bar as number },
     activeRace,
+    achievementLevelsRewarded: {},
   }
+  // Missing: a career saved before achievement rewards existed. Levels already reached count as
+  // rewarded, so nothing is given for them afterwards.
+  parsed.achievementLevelsRewarded =
+    rewarded === undefined ? getReachedLevels(parsed) : { ...(rewarded as Record<string, number>) }
+  return parsed
 }
 
 /** Classifies a raw saved string. Never throws. */

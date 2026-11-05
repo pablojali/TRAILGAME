@@ -2,15 +2,18 @@ import { describe, expect, it, vi } from 'vitest'
 import { avatarFile } from '../components/avatar/avatarArt'
 import { parseLevels } from '../domain/athlete/levels'
 import { parseRaceField } from '../domain/races/raceField'
+import { ACHIEVEMENT_IDS, parseAchievementTable } from '../game-engine/achievements'
 import { consumableKinds, parseEquipment } from '../domain/equipment/items'
 
 // The real tables, not the test copies other tests use (src/test/setup.ts).
 vi.unmock('./equipment.csv?raw')
 vi.unmock('./levels.csv?raw')
 vi.unmock('./race_field.csv?raw')
+vi.unmock('./achievements.csv?raw')
 const { default: equipmentCsv } = await import('./equipment.csv?raw')
 const { default: levelsCsv } = await import('./levels.csv?raw')
 const { default: raceFieldCsv } = await import('./race_field.csv?raw')
+const { default: achievementsCsv } = await import('./achievements.csv?raw')
 
 const THUMBNAILS = import.meta.glob('/assets/ui/{thumbnails,equipment}/*.{webp,png,jpg,jpeg}')
 const hasThumbnail = (file: string) =>
@@ -23,6 +26,10 @@ const hasThumbnail = (file: string) =>
 describe("owner's tables", () => {
   it('levels.csv is a valid levels table', () => {
     expect(parseLevels(levelsCsv).length).toBeGreaterThan(1)
+  })
+
+  it('achievements.csv has valid levels for every achievement', () => {
+    expect([...parseAchievementTable(achievementsCsv).keys()].sort()).toEqual([...ACHIEVEMENT_IDS].sort())
   })
 
   it('race_field.csv has one valid row per race category', () => {

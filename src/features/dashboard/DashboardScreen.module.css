@@ -189,10 +189,12 @@
 
 /* Name plate. */
 .nameplate {
-  display: flex;
-  flex-direction: column;
+  grid-column: 3;
+  justify-self: end;
+  margin: 0;
   max-width: 100%;
   line-height: 1.1;
+  text-align: right;
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.8);
 }
 
@@ -369,4 +371,94 @@
 /* The runner's country flag beside the name (owner request, 4 November 2026). */
 .flag {
   font-size: 0.9em;
+}
+
+/* Active challenge under Today (owner request, 5 November 2026). */
+.challenge {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-lg);
+  background: rgb(10 12 14 / 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.challengeTop,
+.challengeRow,
+.challengeBottom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.challengeTop {
+  justify-content: space-between;
+}
+
+.challengeLabel {
+  color: var(--accent-secondary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.challengeTag {
+  padding: 0 6px;
+  border: 1px solid #2f9e5b;
+  border-radius: var(--radius-sm);
+  color: #5fd08f;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.challengeTitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
+.challengeText,
+.challengeCount {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.challenge [role='meter'].challengeMeter {
+  flex: 1;
+  height: 6px;
+  color: var(--accent);
+}
+
+.challengePercent {
+  color: var(--accent);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+}
+
+.challengeRewards {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  color: #f2c531;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+}
+
+.challengeXp {
+  color: var(--accent-secondary);
+}
+
+.challengeLink {
+  color: var(--accent);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
 }

@@ -1,3 +1,4 @@
+import { Coins } from '../../components/Coins'
 import { useI18n } from '../../i18n/i18n'
 import { weekdayShortKey } from '../../i18n/labels'
 import { Link, useSearchParams } from 'react-router'
@@ -57,43 +58,49 @@ export function CareerScreen() {
   const tab = CAREER_TABS.find((id) => id === params.get('tab')) ?? 'achievements'
 
   return (
-    <Screen title={t('career.title')} description={t('career.description')} showDescription>
-      {/* The summit of the picture (runner and flag) shows above the season card, which sits right
-          above the tabs (owner request, 4 November 2026). */}
+    <Screen
+      title={t('career.title')}
+      description={t('career.description')}
+      showDescription
+      aside={
+          <section className={`${styles.season} ${styles.seasonCompact}`} aria-labelledby="season-title">
+            <div className={styles.seasonMain}>
+              <h2 id="season-title" className={styles.seasonTitle}>
+                {t('career.season', { year: season.year })}
+              </h2>
+              <Meter
+                label={t('career.seasonProgress', { year: season.year })}
+                value={season.weekOfYear}
+                max={WEEKS_PER_YEAR}
+                valueText={t('career.seasonValue', { week: season.weekOfYear, weeks: WEEKS_PER_YEAR })}
+                className={styles.seasonMeter}
+              />
+              <p className={styles.seasonLine}>
+                {t('career.seasonLine', {
+                  week: season.weekOfYear,
+                  weeks: WEEKS_PER_YEAR,
+                  races: t('career.races', { count: season.races }),
+                  medals: t('career.medals', { count: season.medals }),
+                })}
+              </p>
+            </div>
+            <div className={styles.rank}>
+              <span className={styles.rankBadge} aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8l-1-3H9z" />
+                </svg>
+              </span>
+              <span className={styles.rankText}>
+                <span className={styles.rankLabel}>{t('career.bestFinish')}</span>
+                <span className={styles.rankValue}>{season.bestFinish === null ? '—' : `#${season.bestFinish}`}</span>
+              </span>
+            </div>
+          </section>
+      }
+    >
+      {/* The summit of the picture (runner and flag) shows between the title and the tabs; the
+          season is a small card at the top right (owner request, 5 November 2026). */}
       <div className={styles.hero} aria-hidden="true" />
-      <section className={styles.season} aria-labelledby="season-title">
-        <div className={styles.seasonMain}>
-          <h2 id="season-title" className={styles.seasonTitle}>
-            {t('career.season', { year: season.year })}
-          </h2>
-          <Meter
-            label={t('career.seasonProgress', { year: season.year })}
-            value={season.weekOfYear}
-            max={WEEKS_PER_YEAR}
-            valueText={t('career.seasonValue', { week: season.weekOfYear, weeks: WEEKS_PER_YEAR })}
-            className={styles.seasonMeter}
-          />
-          <p className={styles.seasonLine}>
-            {t('career.seasonLine', {
-              week: season.weekOfYear,
-              weeks: WEEKS_PER_YEAR,
-              races: t('career.races', { count: season.races }),
-              medals: t('career.medals', { count: season.medals }),
-            })}
-          </p>
-        </div>
-        <div className={styles.rank}>
-          <span className={styles.rankBadge} aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8l-1-3H9z" />
-            </svg>
-          </span>
-          <span className={styles.rankText}>
-            <span className={styles.rankLabel}>{t('career.bestFinish')}</span>
-            <span className={styles.rankValue}>{season.bestFinish === null ? '—' : `#${season.bestFinish}`}</span>
-          </span>
-        </div>
-      </section>
 
       {history.length === 0 && (
         <p className={styles.muted}>
@@ -229,6 +236,14 @@ function Achievement({ progress }: { progress: AchievementProgress }) {
         <span className={styles.achievementLevel}>
           {t('career.level', { level })}
           {complete && t('career.complete')}
+          {/* What the level pays (owner request, 5 November 2026). */}
+          {(progress.reward.coins > 0 || progress.reward.xp > 0) && (
+            <span className={styles.achievementReward}>
+              <span className={styles.srOnly}>{t('career.reward')}: </span>
+              {progress.reward.coins > 0 && <Coins amount={progress.reward.coins} />}
+              {progress.reward.xp > 0 && <span className={styles.rewardXp}>+{number(progress.reward.xp)} XP</span>}
+            </span>
+          )}
         </span>
         <span className={styles.muted}>{t(`achievement.desc.${definition.id as AchievementId}`, { count: target })}</span>
         <Meter

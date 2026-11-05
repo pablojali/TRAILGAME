@@ -1,3 +1,4 @@
+import { applyAchievementRewards, type AchievementEarned } from './achievements'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import { canEnterAtLevel, getRewardMultiplier } from '../domain/races/access'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_MIN_XP, RACE_XP_BAND_PCT, RACE_XP_BASE } from '../domain/races/categories'
@@ -154,6 +155,8 @@ export interface RaceDayResult {
   levelAfter: number
   attributePointsAwarded: number
   weekCompleted: boolean
+  /** Achievement levels reached by this race, with their coins and XP (already added). */
+  achievementsEarned: AchievementEarned[]
 }
 
 /** What the runner decides before the start. */
@@ -349,14 +352,16 @@ function finishRace(state: GameState, active: ActiveRace, race: Race, field: Rac
 
   // A race is an active day: a Rest the next day is a recovery Rest. It also resets decay (D3).
   const advanced = completeCurrentDay({ ...state, activeRace: null }, outcome, true, now)
-  const nextState: GameState = {
+  const rewarded = applyAchievementRewards({
     ...advanced.state,
     coins: advanced.state.coins + rewards.coinsAwarded,
     raceEntries: advanced.state.raceEntries.map((e) => (e.id === entry.id ? finished : e)),
-  }
+  })
+  const nextState: GameState = rewarded.state
   const levelAfter = getLevel(nextState.athlete.xp)
   return {
     state: nextState,
+    achievementsEarned: rewarded.earned,
     entry: finished,
     levelBefore: levelAtStart,
     levelAfter,

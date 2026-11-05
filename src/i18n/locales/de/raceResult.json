@@ -49,5 +49,7 @@
   "result.you": "{name} (du)",
   "result.rival": "Rivale {number}",
   "result.prizesNote": "Brutto-Münzpreise nach Platz, vor dem Belohnungsmultiplikator.",
-  "result.orLower": "{position} oder schlechter"
+  "result.orLower": "{position} oder schlechter",
+  "result.rankingPoints": "Ranglistenpunkte",
+  "result.rankingValue": "{points} Pkt. · Saison {season}"
 }

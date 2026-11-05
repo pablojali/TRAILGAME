@@ -1582,3 +1582,21 @@ English key with the same placeholders.
 - Shirt names: `src/i18n/looks.ts` (a shirt missing there keeps its English name). Race names stay as
   they are; race terrains are in `races.json` by race id.
 - The server and the saved data never depend on the language.
+
+
+### Rankings (owner request, 5 November 2026)
+
+World and country rankings, asynchronous: every player races in their own career. When the server
+finishes a race (`finishRace`), the result gets `rankingSeason` (one calendar month, UTC; Season 1 =
+November 2026) and `rankingPoints` = the race's base points × the percent of the finishing position ×
+the race's reward percent at the runner's level. Values: `src/data/ranking_points.csv` (base points by
+race, percent by position, `best_results` counted per season, `first_season`). Results from before
+rankings carry no season and never count. Training and challenges give no ranking points.
+
+The database function `get_ranking(season, country, sex, best, limit)` (migration
+`20261105090000_rankings.sql`, security definer, authenticated only) adds up each player's best
+results of the season from the stored careers and returns only public fields (runner name, country,
+sex, XP, points) plus the caller's row; it never exposes anything else and the careers table keeps its
+row level security. The client (`src/repositories/supabase/rankingClient.ts`) shows it in Career →
+Ranking (World / Country, Overall / Men / Women, season arrows). It reads every career on each call:
+fine for now; a summary table would be the next step with many players. Tests: `npm run db:test`.

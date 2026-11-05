@@ -668,6 +668,68 @@ function getCurrentDay(week) {
   return day;
 }
 
+// raw:src/data/ranking_points.csv
+var ranking_points_default = "# Ranking points (owner table, 5 November 2026). kind,key,value:\n# setting best_results: how many of a player's best results of the season count. setting first_season: the month (YYYY-MM, UTC) of Season 1; each season is one calendar month.\n# race: base points of each race (by its difficulty: distance and climb). position: percent of the base points for each finishing position (positions not listed: 0).\n# Points of a result = base x position percent x the race's reward percent at the runner's level (races far below the runner's level give less or nothing).\nkind,key,value\nsetting,best_results,10\nsetting,first_season,2026-11\nrace,RACE-001,62\nrace,RACE-002,102\nrace,RACE-003,135\nrace,RACE-004,175\nrace,RACE-005,225\nrace,RACE-006,275\nrace,RACE-007,350\nrace,RACE-008,450\nrace,RACE-009,570\nrace,RACE-010,700\nrace,RACE-011,910\nrace,RACE-012,1180\nposition,1,100\nposition,2,85\nposition,3,75\nposition,4,67\nposition,5,60\nposition,6,54\nposition,7,49\nposition,8,45\nposition,9,41\nposition,10,38\nposition,11,35\nposition,12,32\nposition,13,30\nposition,14,28\nposition,15,26\nposition,16,24\nposition,17,22\nposition,18,20\nposition,19,18\nposition,20,16\nposition,21,15\nposition,22,14\nposition,23,13\nposition,24,12\nposition,25,11\nposition,26,10\nposition,27,9\nposition,28,8\nposition,29,7\nposition,30,5\n";
+
+// src/domain/races/races.ts
+var RACES = [
+  { id: "RACE-001", name: "Forest First Steps", category: "open", distanceKm: 5, elevationGainM: 120, terrain: "Non-technical forest paths", recommendedLevel: 4, technicality: 0 },
+  { id: "RACE-002", name: "Riverside Trail", category: "open", distanceKm: 8, elevationGainM: 220, terrain: "Packed dirt, rolling hills", recommendedLevel: 6, technicality: 0 },
+  { id: "RACE-003", name: "Pine Loop Challenge", category: "open", distanceKm: 10, elevationGainM: 350, terrain: "Forest trail, short climbs", recommendedLevel: 8, technicality: 1 },
+  { id: "RACE-004", name: "Ridge Runner", category: "trail", distanceKm: 12, elevationGainM: 550, terrain: "Rolling ridges, mixed trail", recommendedLevel: 11, technicality: 1 },
+  { id: "RACE-005", name: "Stone Path Classic", category: "trail", distanceKm: 15, elevationGainM: 750, terrain: "Rocky sections, moderate technicality", recommendedLevel: 14, technicality: 2 },
+  { id: "RACE-006", name: "Wildwood Ascent", category: "trail", distanceKm: 18, elevationGainM: 950, terrain: "Sustained climbs, forest terrain", recommendedLevel: 18, technicality: 1 },
+  { id: "RACE-007", name: "Summit Quest", category: "mountain", distanceKm: 22, elevationGainM: 1300, terrain: "Steep climbs, rocky descents", recommendedLevel: 21, technicality: 2 },
+  { id: "RACE-008", name: "Alpine Traverse", category: "mountain", distanceKm: 28, elevationGainM: 1700, terrain: "Alpine paths, technical descents", recommendedLevel: 25, technicality: 3 },
+  { id: "RACE-009", name: "Sky Ridge Ultra", category: "mountain", distanceKm: 35, elevationGainM: 2200, terrain: "Exposed ridges, sustained elevation", recommendedLevel: 28, technicality: 2 },
+  { id: "RACE-010", name: "High Peaks Challenge", category: "elite", distanceKm: 42, elevationGainM: 2800, terrain: "Highly technical mountain terrain", recommendedLevel: 31, technicality: 3 },
+  { id: "RACE-011", name: "Legends of the Crest", category: "elite", distanceKm: 55, elevationGainM: 3600, terrain: "Long mountain ultra, technical sections", recommendedLevel: 40, technicality: 3 },
+  { id: "RACE-012", name: "Beyond the Skyline", category: "elite", distanceKm: 70, elevationGainM: 4800, terrain: "Extreme ultra, long climbs and descents", recommendedLevel: 50, technicality: 3 }
+];
+var BY_ID = new Map(RACES.map((race) => [race.id, race]));
+function getRace(id) {
+  return BY_ID.get(id);
+}
+function isRaceId(value) {
+  return typeof value === "string" && BY_ID.has(value);
+}
+
+// src/domain/ranking/ranking.ts
+function parseRankingTable(text) {
+  const table = { bestResults: 0, firstSeason: { year: 0, month: 0 }, racePoints: {}, positionPercent: {} };
+  parseCsv(text).forEach((row, i) => {
+    const where = `ranking_points.csv row ${i + 1}`;
+    if (row.kind === "setting" && row.key === "best_results") table.bestResults = csvInt(row.value, where);
+    else if (row.kind === "setting" && row.key === "first_season") {
+      const match = /^(\d{4})-(\d{2})$/.exec(row.value ?? "");
+      if (!match || Number(match[2]) < 1 || Number(match[2]) > 12) throw new Error(`${where}: first_season must be YYYY-MM`);
+      table.firstSeason = { year: Number(match[1]), month: Number(match[2]) };
+    } else if (row.kind === "race") {
+      if (!RACES.some((race) => race.id === row.key)) throw new Error(`${where}: unknown race "${row.key}"`);
+      table.racePoints[row.key] = csvInt(row.value, where);
+    } else if (row.kind === "position") {
+      const position = csvInt(row.key, where);
+      const percent = csvInt(row.value, where);
+      if (position < 1 || percent < 0 || percent > 100) throw new Error(`${where}: position from 1, percent 0\u2013100`);
+      table.positionPercent[position] = percent;
+    } else throw new Error(`${where}: unknown row "${row.kind},${row.key}"`);
+  });
+  if (table.bestResults < 1) throw new Error("ranking_points.csv: best_results must be at least 1");
+  if (!table.firstSeason.year) throw new Error("ranking_points.csv: first_season is missing");
+  return table;
+}
+var RANKING = parseRankingTable(ranking_points_default);
+function rankingSeason(at, table = RANKING) {
+  const date = new Date(at);
+  const months = (date.getUTCFullYear() - table.firstSeason.year) * 12 + (date.getUTCMonth() + 1 - table.firstSeason.month);
+  return months >= 0 ? months + 1 : 0;
+}
+function rankingPoints(raceId, position, rewardPct, table = RANKING) {
+  const base = table.racePoints[raceId] ?? 0;
+  const percent = table.positionPercent[position] ?? 0;
+  return Math.round(base * percent * rewardPct / 1e4);
+}
+
 // raw:src/data/achievements.csv
 var achievements_default = "# Achievements (owner table, 5 November 2026). One row per achievement level, levels 1, 2, 3\u2026 in order.\n# achievement: first-steps (races finished), trail-explorer, first-summit, elite (races of that category), podium (top 3 finishes),\n# champion (wins), rising-star (total XP), level (runner level), dedicated (training weeks completed).\n# target: what the level asks for (rising in each achievement). coins and xp: the reward when the level is reached, given once.\nachievement,level,target,coins,xp\nfirst-steps,1,1,20,50\nfirst-steps,2,5,40,100\nfirst-steps,3,10,80,200\nfirst-steps,4,25,150,400\nfirst-steps,5,50,300,800\ntrail-explorer,1,1,50,100\ntrail-explorer,2,5,100,200\ntrail-explorer,3,10,200,400\ntrail-explorer,4,25,400,800\nfirst-summit,1,1,100,200\nfirst-summit,2,5,200,400\nfirst-summit,3,10,400,800\nfirst-summit,4,25,800,1600\nelite,1,1,200,400\nelite,2,5,400,800\nelite,3,10,800,1600\npodium,1,1,30,50\npodium,2,5,80,150\npodium,3,10,150,300\npodium,4,25,300,600\nchampion,1,1,50,100\nchampion,2,3,120,250\nchampion,3,10,300,600\nrising-star,1,1000,30,0\nrising-star,2,5000,80,0\nrising-star,3,20000,200,0\nrising-star,4,50000,400,0\nlevel,1,5,30,0\nlevel,2,10,60,0\nlevel,3,20,150,0\nlevel,4,30,300,0\nlevel,5,50,600,0\ndedicated,1,4,20,50\ndedicated,2,13,60,150\ndedicated,3,26,120,300\ndedicated,4,52,250,600\ndedicated,5,104,500,1200\n";
 
@@ -698,29 +760,6 @@ var REWARD_MULTIPLIERS = [
   { levelDifference: 2, xp: 0.4, coins: 0.4 },
   { levelDifference: 3, xp: 0, coins: 0 }
 ];
-
-// src/domain/races/races.ts
-var RACES = [
-  { id: "RACE-001", name: "Forest First Steps", category: "open", distanceKm: 5, elevationGainM: 120, terrain: "Non-technical forest paths", recommendedLevel: 4, technicality: 0 },
-  { id: "RACE-002", name: "Riverside Trail", category: "open", distanceKm: 8, elevationGainM: 220, terrain: "Packed dirt, rolling hills", recommendedLevel: 6, technicality: 0 },
-  { id: "RACE-003", name: "Pine Loop Challenge", category: "open", distanceKm: 10, elevationGainM: 350, terrain: "Forest trail, short climbs", recommendedLevel: 8, technicality: 1 },
-  { id: "RACE-004", name: "Ridge Runner", category: "trail", distanceKm: 12, elevationGainM: 550, terrain: "Rolling ridges, mixed trail", recommendedLevel: 11, technicality: 1 },
-  { id: "RACE-005", name: "Stone Path Classic", category: "trail", distanceKm: 15, elevationGainM: 750, terrain: "Rocky sections, moderate technicality", recommendedLevel: 14, technicality: 2 },
-  { id: "RACE-006", name: "Wildwood Ascent", category: "trail", distanceKm: 18, elevationGainM: 950, terrain: "Sustained climbs, forest terrain", recommendedLevel: 18, technicality: 1 },
-  { id: "RACE-007", name: "Summit Quest", category: "mountain", distanceKm: 22, elevationGainM: 1300, terrain: "Steep climbs, rocky descents", recommendedLevel: 21, technicality: 2 },
-  { id: "RACE-008", name: "Alpine Traverse", category: "mountain", distanceKm: 28, elevationGainM: 1700, terrain: "Alpine paths, technical descents", recommendedLevel: 25, technicality: 3 },
-  { id: "RACE-009", name: "Sky Ridge Ultra", category: "mountain", distanceKm: 35, elevationGainM: 2200, terrain: "Exposed ridges, sustained elevation", recommendedLevel: 28, technicality: 2 },
-  { id: "RACE-010", name: "High Peaks Challenge", category: "elite", distanceKm: 42, elevationGainM: 2800, terrain: "Highly technical mountain terrain", recommendedLevel: 31, technicality: 3 },
-  { id: "RACE-011", name: "Legends of the Crest", category: "elite", distanceKm: 55, elevationGainM: 3600, terrain: "Long mountain ultra, technical sections", recommendedLevel: 40, technicality: 3 },
-  { id: "RACE-012", name: "Beyond the Skyline", category: "elite", distanceKm: 70, elevationGainM: 4800, terrain: "Extreme ultra, long climbs and descents", recommendedLevel: 50, technicality: 3 }
-];
-var BY_ID = new Map(RACES.map((race) => [race.id, race]));
-function getRace(id) {
-  return BY_ID.get(id);
-}
-function isRaceId(value) {
-  return typeof value === "string" && BY_ID.has(value);
-}
 
 // src/game-engine/career.ts
 function medalFor(position) {
@@ -1891,6 +1930,8 @@ function finishRace(state, active, race, field, now) {
     // The explanation's effects in race time (the model's seconds × the course factor).
     factors: explanation.factors.map((f) => ({ ...f, effectS: Math.round(f.effectS * field.timeScale) })),
     rivalTimesS: field.rivalFinishS,
+    // Rankings (owner request, 5 November 2026): the month the race is finished in, and its points.
+    ...rankingFields(race.id, position, rewards.multiplierPct, now),
     splits: active.splits,
     nutrition: active.nutrition
   };
@@ -1912,6 +1953,10 @@ function finishRace(state, active, race, field, now) {
     attributePointsAwarded: getAttributePointsBetween(levelAtStart, levelAfter),
     weekCompleted: advanced.weekCompleted
   };
+}
+function rankingFields(raceId, position, rewardPct, now) {
+  const season = rankingSeason(now);
+  return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, rewardPct) } : {};
 }
 
 // src/repositories/gameRepository.ts
@@ -1951,7 +1996,7 @@ function isFactor(value) {
   return isRecord(value) && FACTOR_IDS.includes(value.id) && isFiniteNumber(value.value) && isFiniteNumber(value.reference) && isWholeNumber(value.effectS);
 }
 function isRaceResult(value, feePaid) {
-  return isRecord(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1))) && (value.splits === void 0 || Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true)) && (value.nutrition === void 0 || isNutrition(value.nutrition));
+  return isRecord(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && (value.rankingSeason === void 0 || isInt(value.rankingSeason, 1)) && (value.rankingPoints === void 0 || isInt(value.rankingPoints, 0)) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1))) && (value.splits === void 0 || Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true)) && (value.nutrition === void 0 || isNutrition(value.nutrition));
 }
 function isNutrition(value) {
   return isRecord(value) && typeof value.gel === "boolean" && typeof value.bar === "boolean";

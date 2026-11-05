@@ -122,6 +122,12 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
               <dt>{t('stat.fatigue')}</dt>
               <dd>{formatChange(result.fatigueChange)}</dd>
             </div>
+            {result.rankingPoints !== undefined && result.rankingSeason !== undefined && (
+              <div className={styles.tile}>
+                <dt>{t('result.rankingPoints')}</dt>
+                <dd>{t('result.rankingValue', { points: result.rankingPoints, season: result.rankingSeason })}</dd>
+              </div>
+            )}
             <div className={styles.tile}>
               <dt>{t('result.rewards')}</dt>
               <dd className={result.multiplierPct < 100 ? styles.warning : undefined}>{result.multiplierPct}%</dd>

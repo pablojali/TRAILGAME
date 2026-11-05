@@ -49,5 +49,7 @@
   "result.you": "{name} (you)",
   "result.rival": "Rival {number}",
   "result.prizesNote": "Prizes are gross coins by position, before the reward multiplier.",
-  "result.orLower": "{position} or lower"
+  "result.orLower": "{position} or lower",
+  "result.rankingPoints": "Ranking points",
+  "result.rankingValue": "{points} pts · Season {season}"
 }

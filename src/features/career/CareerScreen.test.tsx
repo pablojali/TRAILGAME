@@ -35,7 +35,7 @@ describe('Career', () => {
     expect(within(screen.getByRole('table')).getByRole('row', { name: 'Total 0 0 0 0' })).toBeInTheDocument()
   })
 
-  it('shows the medal table, personal bests and race history, newest first, each opening its result', async () => {
+  it('shows the medal table and race history, newest first, each opening its result', async () => {
     const user = userEvent.setup()
     // A very fit runner wins Forest First Steps, then an unfit one runs it again.
     let state = race(newGame(), 'RACE-001', 100)
@@ -59,13 +59,8 @@ describe('Career', () => {
     expect(within(table).getByRole('row', { name: 'Total 1 0 0 2' })).toBeInTheDocument()
     expect(within(table).getByRole('img', { name: 'Gold' })).toBeInTheDocument()
 
-    // Personal best: the win, and the faster time (the same race).
-    await user.click(screen.getByRole('tab', { name: 'Bests' }))
-    expect(screen.getByRole('link', { name: 'Best position in Forest First Steps: 1st' })).toHaveAttribute(
-      'href',
-      `/races/results/${first.id}`,
-    )
-    expect(screen.getByText(/· Open · 2 runs/)).toBeInTheDocument()
+    // Bests made way for the Ranking tab (owner request, 5 November 2026).
+    expect(screen.queryByRole('tab', { name: 'Bests' })).not.toBeInTheDocument()
 
     // History: newest first, each row links to its result.
     await user.click(screen.getByRole('tab', { name: 'History' }))

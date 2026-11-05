@@ -49,5 +49,7 @@
   "result.you": "{name} (tú)",
   "result.rival": "Rival {number}",
   "result.prizesNote": "Premios brutos en monedas por puesto, antes del multiplicador de recompensa.",
-  "result.orLower": "{position} o peor"
+  "result.orLower": "{position} o peor",
+  "result.rankingPoints": "Puntos de ranking",
+  "result.rankingValue": "{points} pts · Temporada {season}"
 }

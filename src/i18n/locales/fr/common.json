@@ -66,5 +66,11 @@
   "common.dismiss": "Fermer",
   "common.continue": "Continuer",
   "common.back": "Retour",
-  "common.changeLook": "Changer de look"
+  "common.changeLook": "Changer de look",
+  "shell.skip": "Aller au contenu",
+  "shell.settings": "Réglages",
+  "shell.loading": "Chargement de ta carrière…",
+  "shell.loadFailed": "Impossible de charger ta carrière",
+  "shell.loadFailedDescription": "Ta carrière enregistrée n'a pas pu être lue.",
+  "shell.tryAgain": "Réessayer"
 }

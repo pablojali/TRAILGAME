@@ -78,5 +78,16 @@
   "equipment.equipError.not-owned": "Du besitzt diesen Artikel nicht.",
   "equipment.equipError.consumable": "Gels und Riegel werden nicht getragen: Wähle sie vor einem Rennen.",
   "equipment.equipError.offline": "Der Server ist nicht erreichbar: Deine Ausrüstung hat sich nicht geändert. Prüfe deine Verbindung und versuche es erneut.",
-  "equipment.equipError.server-error": "Der Server konnte deine Ausrüstung nicht ändern. Versuche es erneut."
+  "equipment.equipError.server-error": "Der Server konnte deine Ausrüstung nicht ändern. Versuche es erneut.",
+  "effect.flats.better": "Flachstücke {percent} schneller",
+  "effect.flats.worse": "Flachstücke {percent} langsamer",
+  "effect.climbs.better": "Anstiege {percent} schneller",
+  "effect.climbs.worse": "Anstiege {percent} langsamer",
+  "effect.descents.better": "Abstiege {percent} schneller",
+  "effect.descents.worse": "Abstiege {percent} langsamer",
+  "effect.technical.better": "technische Abstiege {percent} leichter",
+  "effect.technical.worse": "technische Abstiege {percent} schwerer",
+  "effect.wear.better": "{percent} weniger Verschleiß über die Distanz",
+  "effect.wear.worse": "{percent} mehr Verschleiß über die Distanz",
+  "effect.but": ", aber "
 }

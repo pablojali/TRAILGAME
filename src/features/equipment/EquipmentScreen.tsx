@@ -1,3 +1,4 @@
+import { itemDescription, itemDisplayName, itemEffect, itemLabel } from '../../i18n/equipmentText'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
@@ -13,7 +14,6 @@ import {
   getEquipmentItem,
   consumableKinds,
   isConsumable,
-  itemName,
   type EquipmentItem,
   type EquipmentSlot,
 } from '../../domain/equipment/items'
@@ -159,8 +159,9 @@ function itemStockText(item: EquipmentItem, consumables: GameState['consumables'
 }
 
 /** What the item does in races, in words; "To be defined" for items without defined effects. */
-function effectText(item: EquipmentItem, t: Translate): string {
-  if (item.effectText) return item.effectText.replace(/^Races: /, '')
+function effectText(item: EquipmentItem, t: Translate, locale: Locale): string {
+  const effect = itemEffect(item, locale, t)
+  if (effect) return effect
   return item.price === null ? t('equipment.toBeDefined') : t('equipment.noRaceEffect')
 }
 
@@ -296,7 +297,7 @@ function EquippedTab({ onOpen }: { onOpen(slot: EquipmentSlot): void }) {
                 className={`${styles.slotBox} ${worn ? styles.slotWorn : ''}`}
                 aria-label={t('equipment.slotBox', {
                   slot: label,
-                  item: worn ? itemName(worn) : t('equipment.empty'),
+                  item: worn ? itemDisplayName(worn, locale, t) : t('equipment.empty'),
                   slotLower: lowerSlot(label, locale),
                 })}
                 onClick={() => onOpen(id)}
@@ -400,7 +401,7 @@ function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string
   const { state } = useCareer()
   const owned = state.ownedEquipment.includes(item.id)
   const worn = isEquipped(state, item.id)
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const status = shopStatus(item, state.coins, owned, worn, t)
   const priceText =
     item.price === null ? t('equipment.priceToBeDefined') : item.price === 0 ? t('equipment.freeLower') : t('common.coins', { count: item.price })
@@ -409,20 +410,20 @@ function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string
     <button
       type="button"
       className={styles.card}
-      aria-label={`${itemName(item)}, ${priceText}${isConsumable(item) ? `, ${itemStockText(item, state.consumables, t)}` : ''}, ${status.text}`}
+      aria-label={`${itemDisplayName(item, locale, t)}, ${priceText}${isConsumable(item) ? `, ${itemStockText(item, state.consumables, t)}` : ''}, ${status.text}`}
       onClick={() => onOpen(item.id)}
     >
       <span className={styles.cardTop}>
         {item.level !== undefined ? <span className={styles.cardLevel}>{t('common.lvl', { level: item.level })}</span> : <span />}
         <span className={styles.cardType}>{t(SLOT_LABELS[item.slot])}</span>
       </span>
-      <span className={styles.cardName}>{item.label}</span>
+      <span className={styles.cardName}>{itemLabel(item, locale)}</span>
       <span className={styles.cardArt}>
         <ItemArt item={item} />
       </span>
       <span className={styles.cardValues}>
         {isConsumable(item)
-          ? `${effectText(item, t).replace(/ Used up by the race\.$/, '')} · ${itemStockText(item, state.consumables, t)}`
+          ? `${effectText(item, t, locale).replace(/ Used up by the race\.$/, '')} · ${itemStockText(item, state.consumables, t)}`
           : itemBonuses.length
             ? itemBonuses.join(' · ')
             : item.price === null
@@ -451,7 +452,7 @@ function ItemDetail({
   onMessage(text: string): void
 }) {
   const { state, buyItem, setItemEquipped } = useCareer()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const coins = (count: number) => t('common.coins', { count })
   const heading = useRef<HTMLHeadingElement>(null)
   const [confirming, setConfirming] = useState(false)
@@ -464,7 +465,7 @@ function ItemDetail({
   const owned = !consumable && state.ownedEquipment.includes(item.id)
   const worn = isEquipped(state, item.id)
   const price = item.price
-  const what = consumable ? t('equipment.packOf', { name: item.label, count: item.packSize! }) : itemName(item)
+  const what = consumable ? t('equipment.packOf', { name: itemLabel(item, locale), count: item.packSize! }) : itemDisplayName(item, locale, t)
   const shortfall = price === null ? 0 : Math.max(0, price - state.coins)
   const shortfallId = `${item.id}-shortfall`
 
@@ -492,7 +493,7 @@ function ItemDetail({
           <span className={styles.cardType}>{t(SLOT_LABELS[item.slot])}</span>
         </span>
         <h2 id="item-detail-title" ref={heading} tabIndex={-1} className={styles.bigName}>
-          {item.label}
+          {itemLabel(item, locale)}
         </h2>
         <span className={styles.bigArt}>
           <ItemArt item={item} />
@@ -524,14 +525,14 @@ function ItemDetail({
           )}
           <div>
             <dt>{t('equipment.fact.raceEffect')}</dt>
-            <dd className={item.effectText ? styles.effect : undefined}>{effectText(item, t)}</dd>
+            <dd className={item.effectText ? styles.effect : undefined}>{effectText(item, t, locale)}</dd>
           </div>
           <div>
             <dt>{t('equipment.fact.price')}</dt>
             <dd>{price === null ? t('equipment.toBeDefined') : price === 0 ? t('equipment.free') : <Coins amount={price} />}</dd>
           </div>
         </dl>
-        <p className={styles.muted}>{item.description}</p>
+        <p className={styles.muted}>{itemDescription(item, locale)}</p>
       </div>
 
       {shortfall > 0 && !owned && (
@@ -560,13 +561,13 @@ function ItemDetail({
               run('equipping', async () => {
                 const failure = await setItemEquipped(item.id, !worn)
                 if (failure) return t(EQUIP_ERRORS[failure])
-                onMessage(t(worn ? 'equipment.takenOffMessage' : 'equipment.equippedMessage', { name: itemName(item) }))
+                onMessage(t(worn ? 'equipment.takenOffMessage' : 'equipment.equippedMessage', { name: itemDisplayName(item, locale, t) }))
                 return null
               })
             }
           >
             {busy === 'equipping' ? t('equipment.saving') : worn ? t('equipment.takeOff') : t('equipment.equip')}
-            <span className={styles.srOnly}> {itemName(item).toLowerCase()}</span>
+            <span className={styles.srOnly}> {itemDisplayName(item, locale, t).toLowerCase()}</span>
           </button>
         ) : price === null ? (
           <p className={styles.muted}>{t('equipment.notForSale')}</p>
@@ -610,7 +611,7 @@ function ItemDetail({
             }}
           >
             {consumable ? t('equipment.buyPack', { count: item.packSize! }) : t('equipment.buy')}
-            <span className={styles.srOnly}> {(consumable ? item.label : itemName(item)).toLowerCase()}</span>
+            <span className={styles.srOnly}> {(consumable ? itemLabel(item, locale) : itemDisplayName(item, locale, t)).toLowerCase()}</span>
           </button>
         )}
       </div>

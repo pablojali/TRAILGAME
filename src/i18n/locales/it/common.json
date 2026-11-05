@@ -66,5 +66,11 @@
   "common.dismiss": "Chiudi",
   "common.continue": "Continua",
   "common.back": "Indietro",
-  "common.changeLook": "Cambia look"
+  "common.changeLook": "Cambia look",
+  "shell.skip": "Vai al contenuto",
+  "shell.settings": "Impostazioni",
+  "shell.loading": "Caricamento della carriera…",
+  "shell.loadFailed": "Impossibile caricare la carriera",
+  "shell.loadFailedDescription": "Non è stato possibile leggere la carriera salvata.",
+  "shell.tryAgain": "Riprova"
 }

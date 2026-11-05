@@ -40,7 +40,7 @@ export function AppShell() {
     <div className={`${styles.shell} ${inSetup ? styles.setup : styles.scenic}`}>
       {!inSetup && <Backdrop scene={sceneForPath(pathname, phase.kind === 'playing' && phase.state.activeRace !== null)} />}
       <a href="#main-content" className={styles.skipLink}>
-        Skip to content
+        {t('shell.skip')}
       </a>
 
       <header className={styles.brandBar}>
@@ -59,7 +59,7 @@ export function AppShell() {
         {!inSetup && (
           <NavLink
             to="/settings"
-            aria-label="Settings"
+            aria-label={t('shell.settings')}
             className={({ isActive }) => `${styles.settingsLink} ${isActive ? styles.settingsLinkActive : ''}`}
           >
             <Icon name="settings" size={20} />
@@ -97,13 +97,13 @@ export function AppShell() {
           {phase.kind === 'new-career' && <CareerCreationScreen replacing={phase.replacing} />}
           {phase.kind === 'loading' && (
             <p role="status" className={styles.loading}>
-              Loading your career…
+              {t('shell.loading')}
             </p>
           )}
           {phase.kind === 'load-failed' && (
-            <Screen title="Could not load your career" description="Your saved career could not be read." showDescription>
+            <Screen title={t('shell.loadFailed')} description={t('shell.loadFailedDescription')} showDescription>
               <button type="button" className={`${button.button} ${button.primary}`} onClick={retryLoad}>
-                Try again
+                {t('shell.tryAgain')}
               </button>
             </Screen>
           )}

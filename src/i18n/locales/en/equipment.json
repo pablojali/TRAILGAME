@@ -78,5 +78,16 @@
   "equipment.equipError.not-owned": "You do not own that item.",
   "equipment.equipError.consumable": "Gels and cereal bars are not worn: choose them before a race.",
   "equipment.equipError.offline": "Could not reach the server, so your equipment did not change. Check your connection and try again.",
-  "equipment.equipError.server-error": "The server could not change your equipment. Try again."
+  "equipment.equipError.server-error": "The server could not change your equipment. Try again.",
+  "effect.flats.better": "flats {percent} faster",
+  "effect.flats.worse": "flats {percent} slower",
+  "effect.climbs.better": "climbs {percent} faster",
+  "effect.climbs.worse": "climbs {percent} slower",
+  "effect.descents.better": "descents {percent} faster",
+  "effect.descents.worse": "descents {percent} slower",
+  "effect.technical.better": "technical descents {percent} easier",
+  "effect.technical.worse": "technical descents {percent} harder",
+  "effect.wear.better": "{percent} less wear over distance",
+  "effect.wear.worse": "{percent} more wear over distance",
+  "effect.but": ", but "
 }

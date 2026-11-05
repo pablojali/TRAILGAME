@@ -78,5 +78,16 @@
   "equipment.equipError.not-owned": "Tu ne possèdes pas cet article.",
   "equipment.equipError.consumable": "Les gels et les barres ne se portent pas : choisis-les avant une course.",
   "equipment.equipError.offline": "Impossible de joindre le serveur : ton équipement n'a pas changé. Vérifie ta connexion et réessaie.",
-  "equipment.equipError.server-error": "Le serveur n'a pas pu changer ton équipement. Réessaie."
+  "equipment.equipError.server-error": "Le serveur n'a pas pu changer ton équipement. Réessaie.",
+  "effect.flats.better": "plat {percent} plus rapide",
+  "effect.flats.worse": "plat {percent} plus lent",
+  "effect.climbs.better": "montées {percent} plus rapides",
+  "effect.climbs.worse": "montées {percent} plus lentes",
+  "effect.descents.better": "descentes {percent} plus rapides",
+  "effect.descents.worse": "descentes {percent} plus lentes",
+  "effect.technical.better": "descentes techniques {percent} plus faciles",
+  "effect.technical.worse": "descentes techniques {percent} plus difficiles",
+  "effect.wear.better": "{percent} d'usure en moins sur la distance",
+  "effect.wear.worse": "{percent} d'usure en plus sur la distance",
+  "effect.but": ", mais "
 }

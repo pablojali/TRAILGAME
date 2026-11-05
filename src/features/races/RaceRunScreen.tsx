@@ -1,3 +1,4 @@
+import { itemLabel } from '../../i18n/equipmentText'
 import { useI18n, type MessageKey, type Translate } from '../../i18n/i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
@@ -291,7 +292,7 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
 function WornEquipment() {
   const { state } = useCareer()
   const worn = state.equipment.map((id) => getEquipmentItem(id)).filter((item) => item !== undefined)
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   return (
     <div className={styles.prepPanel}>
       {worn.length ? (
@@ -301,7 +302,7 @@ function WornEquipment() {
               <span className={styles.wornArt}>
                 <ItemArt item={item} />
               </span>
-              <span className={styles.wornName}>{item.label}</span>
+              <span className={styles.wornName}>{itemLabel(item, locale)}</span>
               {item.level !== undefined && <span className={styles.wornLevel}>{t('common.lvl', { level: item.level })}</span>}
             </li>
           ))}

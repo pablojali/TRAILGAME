@@ -66,5 +66,11 @@
   "common.dismiss": "Cerrar",
   "common.continue": "Continuar",
   "common.back": "Volver",
-  "common.changeLook": "Cambiar look"
+  "common.changeLook": "Cambiar look",
+  "shell.skip": "Ir al contenido",
+  "shell.settings": "Ajustes",
+  "shell.loading": "Cargando tu carrera…",
+  "shell.loadFailed": "No se pudo cargar tu carrera",
+  "shell.loadFailedDescription": "No se pudo leer tu carrera guardada.",
+  "shell.tryAgain": "Volver a intentar"
 }

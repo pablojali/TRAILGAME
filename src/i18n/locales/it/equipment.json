@@ -78,5 +78,16 @@
   "equipment.equipError.not-owned": "Non possiedi questo articolo.",
   "equipment.equipError.consumable": "Gel e barrette non si indossano: si scelgono prima di una gara.",
   "equipment.equipError.offline": "Impossibile raggiungere il server: la tua attrezzatura non è cambiata. Controlla la connessione e riprova.",
-  "equipment.equipError.server-error": "Il server non ha potuto cambiare la tua attrezzatura. Riprova."
+  "equipment.equipError.server-error": "Il server non ha potuto cambiare la tua attrezzatura. Riprova.",
+  "effect.flats.better": "pianura {percent} più veloce",
+  "effect.flats.worse": "pianura {percent} più lenta",
+  "effect.climbs.better": "salite {percent} più veloci",
+  "effect.climbs.worse": "salite {percent} più lente",
+  "effect.descents.better": "discese {percent} più veloci",
+  "effect.descents.worse": "discese {percent} più lente",
+  "effect.technical.better": "discese tecniche {percent} più facili",
+  "effect.technical.worse": "discese tecniche {percent} più difficili",
+  "effect.wear.better": "{percent} di usura in meno sulla distanza",
+  "effect.wear.worse": "{percent} di usura in più sulla distanza",
+  "effect.but": ", ma "
 }

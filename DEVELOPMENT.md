@@ -1560,13 +1560,20 @@ design; the code is the delivered state.
 | 14 | Injury | Fatigue > 95 after a session: no XP, −15 Fitness, 5 forced Rest days (Bible 1.2 §4.7) | Same | Resolved (owner decision, 28 Oct 2026) |
 
 
-### Languages (owner request, 4 November 2026)
+### Languages (owner requests, 4–5 November 2026)
 
-English, Spanish, French, Italian and German. Texts are in `src/i18n/locales/{en,es,fr,it,de}.json`
-by key; English is the reference and the fallback. `useI18n()` (src/i18n/i18n.tsx) gives `t(key, vars)`
-and the `locale`: `{name}` placeholders, plural forms as `{ "one": …, "other": … }` chosen by
-`count`, numbers formatted per language. The language comes from Settings (kept on the device,
+English, Spanish, French, Italian and German, on every screen. Texts are in
+`src/i18n/locales/{en,es,fr,it,de}/{part}.json` by key (one file per part of the game, the same files
+in every language; a new English file is also added to `EN` in `src/i18n/i18n.tsx`). English is the
+reference and the fallback. `useI18n()` gives `t(key, vars)` and the `locale`: `{name}`
+placeholders, plural forms as `{ "one": …, "other": … }` chosen by `count`, numbers formatted per
+language, positions by `ordinal(n, locale)`. The language comes from Settings (kept on the device,
 `trailgame.locale`), else the browser's languages. A test checks that every language has every
-English key with the same placeholders. Converted so far: navigation, top bar, Settings language,
-country picker and the Equipment screen; the other screens and the owner's tables (item names,
-effects, descriptions) are still English only.
+English key with the same placeholders.
+
+- Equipment table: optional columns `name_xx`, `effect_text_xx`, `description_xx` (xx = es, fr, it,
+  de; `src/i18n/equipmentText.ts`). Empty = English; effects without a text of their own are written
+  from the bonuses in the player's language.
+- Shirt names: `src/i18n/looks.ts` (a shirt missing there keeps its English name). Race names stay as
+  they are; race terrains are in `races.json` by race id.
+- The server and the saved data never depend on the language.

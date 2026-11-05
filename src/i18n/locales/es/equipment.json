@@ -78,5 +78,16 @@
   "equipment.equipError.not-owned": "No tienes ese artículo.",
   "equipment.equipError.consumable": "Los geles y las barritas no se equipan: se eligen antes de una carrera.",
   "equipment.equipError.offline": "No se pudo conectar con el servidor: tu equipo no cambió. Revisa tu conexión y vuelve a intentarlo.",
-  "equipment.equipError.server-error": "El servidor no pudo cambiar tu equipo. Vuelve a intentarlo."
+  "equipment.equipError.server-error": "El servidor no pudo cambiar tu equipo. Vuelve a intentarlo.",
+  "effect.flats.better": "llano {percent} más rápido",
+  "effect.flats.worse": "llano {percent} más lento",
+  "effect.climbs.better": "subidas {percent} más rápidas",
+  "effect.climbs.worse": "subidas {percent} más lentas",
+  "effect.descents.better": "bajadas {percent} más rápidas",
+  "effect.descents.worse": "bajadas {percent} más lentas",
+  "effect.technical.better": "bajadas técnicas {percent} más fáciles",
+  "effect.technical.worse": "bajadas técnicas {percent} más difíciles",
+  "effect.wear.better": "{percent} menos desgaste con la distancia",
+  "effect.wear.worse": "{percent} más desgaste con la distancia",
+  "effect.but": ", pero "
 }

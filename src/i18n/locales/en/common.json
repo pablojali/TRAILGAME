@@ -66,5 +66,11 @@
   "common.dismiss": "Dismiss",
   "common.continue": "Continue",
   "common.back": "Back",
-  "common.changeLook": "Change look"
+  "common.changeLook": "Change look",
+  "shell.skip": "Skip to content",
+  "shell.settings": "Settings",
+  "shell.loading": "Loading your career…",
+  "shell.loadFailed": "Could not load your career",
+  "shell.loadFailedDescription": "Your saved career could not be read.",
+  "shell.tryAgain": "Try again"
 }

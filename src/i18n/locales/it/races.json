@@ -61,17 +61,5 @@
   "races.freeEntry": "Iscrizione gratuita.",
   "races.balanceStays": " Il saldo resta {coins}.",
   "races.entering": "Iscrizione…",
-  "races.confirmFree": "Conferma l'iscrizione gratuita",
-  "raceTerrain.RACE-001": "Sentieri nel bosco senza difficoltà tecniche",
-  "raceTerrain.RACE-002": "Sterrato compatto, colline dolci",
-  "raceTerrain.RACE-003": "Sentiero nel bosco, salite brevi",
-  "raceTerrain.RACE-004": "Creste ondulate, sentiero misto",
-  "raceTerrain.RACE-005": "Tratti rocciosi, tecnica moderata",
-  "raceTerrain.RACE-006": "Salite lunghe, terreno boschivo",
-  "raceTerrain.RACE-007": "Salite ripide, discese rocciose",
-  "raceTerrain.RACE-008": "Sentieri alpini, discese tecniche",
-  "raceTerrain.RACE-009": "Creste esposte, quota costante",
-  "raceTerrain.RACE-010": "Terreno di montagna molto tecnico",
-  "raceTerrain.RACE-011": "Lunga ultra di montagna, tratti tecnici",
-  "raceTerrain.RACE-012": "Ultra estrema, lunghe salite e discese"
+  "races.confirmFree": "Conferma l'iscrizione gratuita"
 }

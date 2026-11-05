@@ -1,37 +1,77 @@
-import type { RaceCategory } from './categories'
+import { csvInt, parseCsv } from '../../data/csv'
+import racesCsv from '../../data/races.csv?raw'
+import { isRaceCategory, type RaceCategory } from './categories'
+
+/** Languages the race table has terrain texts for (English is the terrain column). */
+export const RACE_LANGUAGES = ['es', 'fr', 'it', 'de'] as const
+export type RaceLanguage = (typeof RACE_LANGUAGES)[number]
+
+/** Descent technicality runs from 0 (none) to this (extreme); owner decision, 5 November 2026. */
+export const MAX_TECHNICALITY = 5
 
 /**
- * Initial race catalog (Game Design Bible §10.4). Fictional events; ids are stable and saved.
- * Recommended levels spread over the category ranges (owner decision, 29 October 2026); Open races
- * at levels 4, 6 and 8 (owner decision, 30 October 2026; were 1, 4 and 8).
+ * The race catalog: the owner's table src/data/races.csv (owner request, 5 November 2026; until
+ * then the Game Design Bible §10.4 list in code). Fictional events; ids are stable and saved.
  */
 export interface Race {
   id: string
   name: string
+  /** Internal (XP, coin prizes, the rivals' field): not shown, never decides ranking points. */
   category: RaceCategory
   distanceKm: number
   elevationGainM: number
+  /** Terrain in English; `terrains` in the other languages. */
   terrain: string
-  /** Intended level, not a requirement: below it the early-entry fee applies. */
+  terrains?: Partial<Record<RaceLanguage, string>>
+  /** The race's level: runners may enter from 5 levels below to 2 above. */
   recommendedLevel: number
-  /** Descent technicality, 0 (none) to 3 (high), used by the race simulation (owner decision D6). */
+  /** Descent technicality, 0 (none) to 5 (extreme), used by the race simulation. */
   technicality: number
 }
 
-export const RACES: readonly Race[] = [
-  { id: 'RACE-001', name: 'Forest First Steps', category: 'open', distanceKm: 5, elevationGainM: 120, terrain: 'Non-technical forest paths', recommendedLevel: 4, technicality: 0 },
-  { id: 'RACE-002', name: 'Riverside Trail', category: 'open', distanceKm: 8, elevationGainM: 220, terrain: 'Packed dirt, rolling hills', recommendedLevel: 6, technicality: 0 },
-  { id: 'RACE-003', name: 'Pine Loop Challenge', category: 'open', distanceKm: 10, elevationGainM: 350, terrain: 'Forest trail, short climbs', recommendedLevel: 8, technicality: 1 },
-  { id: 'RACE-004', name: 'Ridge Runner', category: 'trail', distanceKm: 12, elevationGainM: 550, terrain: 'Rolling ridges, mixed trail', recommendedLevel: 11, technicality: 1 },
-  { id: 'RACE-005', name: 'Stone Path Classic', category: 'trail', distanceKm: 15, elevationGainM: 750, terrain: 'Rocky sections, moderate technicality', recommendedLevel: 14, technicality: 2 },
-  { id: 'RACE-006', name: 'Wildwood Ascent', category: 'trail', distanceKm: 18, elevationGainM: 950, terrain: 'Sustained climbs, forest terrain', recommendedLevel: 18, technicality: 1 },
-  { id: 'RACE-007', name: 'Summit Quest', category: 'mountain', distanceKm: 22, elevationGainM: 1300, terrain: 'Steep climbs, rocky descents', recommendedLevel: 21, technicality: 2 },
-  { id: 'RACE-008', name: 'Alpine Traverse', category: 'mountain', distanceKm: 28, elevationGainM: 1700, terrain: 'Alpine paths, technical descents', recommendedLevel: 25, technicality: 3 },
-  { id: 'RACE-009', name: 'Sky Ridge Ultra', category: 'mountain', distanceKm: 35, elevationGainM: 2200, terrain: 'Exposed ridges, sustained elevation', recommendedLevel: 28, technicality: 2 },
-  { id: 'RACE-010', name: 'High Peaks Challenge', category: 'elite', distanceKm: 42, elevationGainM: 2800, terrain: 'Highly technical mountain terrain', recommendedLevel: 31, technicality: 3 },
-  { id: 'RACE-011', name: 'Legends of the Crest', category: 'elite', distanceKm: 55, elevationGainM: 3600, terrain: 'Long mountain ultra, technical sections', recommendedLevel: 40, technicality: 3 },
-  { id: 'RACE-012', name: 'Beyond the Skyline', category: 'elite', distanceKm: 70, elevationGainM: 4800, terrain: 'Extreme ultra, long climbs and descents', recommendedLevel: 50, technicality: 3 },
-]
+/** Reads the race table; throws with the row on any mistake. */
+export function parseRaces(text: string): Race[] {
+  const races: Race[] = []
+  const seen = new Set<string>()
+  parseCsv(text).forEach((row, i) => {
+    const where = `races.csv row ${i + 1}`
+    const id = row.id ?? ''
+    if (!/^RACE-\d{3}$/.test(id)) throw new Error(`${where}: id must look like RACE-013`)
+    if (seen.has(id)) throw new Error(`${where}: ${id} is listed twice`)
+    seen.add(id)
+    if (!row.name) throw new Error(`${where}: name is missing`)
+    if (!isRaceCategory(row.category)) throw new Error(`${where}: category must be open, trail, mountain or elite`)
+    if (!row.terrain) throw new Error(`${where}: terrain is missing`)
+    const race: Race = {
+      id,
+      name: row.name,
+      category: row.category,
+      distanceKm: csvInt(row.distance_km, where),
+      elevationGainM: csvInt(row.elevation_gain_m, where),
+      terrain: row.terrain,
+      recommendedLevel: csvInt(row.recommended_level, where),
+      technicality: csvInt(row.technicality, where),
+    }
+    if (race.distanceKm < 1) throw new Error(`${where}: distance_km must be at least 1`)
+    if (race.elevationGainM < 0) throw new Error(`${where}: elevation_gain_m cannot be negative`)
+    if (race.recommendedLevel < 1) throw new Error(`${where}: recommended_level must be at least 1`)
+    if (race.technicality < 0 || race.technicality > MAX_TECHNICALITY) {
+      throw new Error(`${where}: technicality must be 0 to ${MAX_TECHNICALITY}`)
+    }
+    const terrains: Partial<Record<RaceLanguage, string>> = {}
+    for (const language of RACE_LANGUAGES) {
+      const text = row[`terrain_${language}`]
+      if (text) terrains[language] = text
+    }
+    if (Object.keys(terrains).length) race.terrains = terrains
+    races.push(race)
+  })
+  if (races.length === 0) throw new Error('races.csv: no races')
+  // Listed from the easiest: the Races screen and the level-up rewards follow the recommended level.
+  return races.sort((x, y) => x.recommendedLevel - y.recommendedLevel || x.id.localeCompare(y.id))
+}
+
+export const RACES: readonly Race[] = parseRaces(racesCsv)
 
 const BY_ID = new Map(RACES.map((race) => [race.id, race]))
 

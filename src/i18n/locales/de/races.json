@@ -61,17 +61,5 @@
   "races.freeEntry": "Anmeldung gratis.",
   "races.balanceStays": " Dein Guthaben bleibt bei {coins}.",
   "races.entering": "Anmeldung…",
-  "races.confirmFree": "Gratis anmelden",
-  "raceTerrain.RACE-001": "Einfache Waldwege",
-  "raceTerrain.RACE-002": "Fester Boden, sanfte Hügel",
-  "raceTerrain.RACE-003": "Waldpfad, kurze Anstiege",
-  "raceTerrain.RACE-004": "Wellige Grate, gemischte Pfade",
-  "raceTerrain.RACE-005": "Felsige Abschnitte, mittlere Technik",
-  "raceTerrain.RACE-006": "Lange Anstiege, Waldgelände",
-  "raceTerrain.RACE-007": "Steile Anstiege, felsige Abstiege",
-  "raceTerrain.RACE-008": "Alpine Pfade, technische Abstiege",
-  "raceTerrain.RACE-009": "Ausgesetzte Grate, viel Höhe",
-  "raceTerrain.RACE-010": "Sehr technisches Berggelände",
-  "raceTerrain.RACE-011": "Langer Bergultra, technische Abschnitte",
-  "raceTerrain.RACE-012": "Extremer Ultra, lange Anstiege und Abstiege"
+  "races.confirmFree": "Gratis anmelden"
 }

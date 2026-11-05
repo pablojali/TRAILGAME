@@ -18,7 +18,7 @@ export function RacePhoto({ race }: { race: Race }) {
   const colors = DRAWN[race.category]
   const id = `race-sky-${race.id}`
   // Steeper, taller ridges for harder races; peaks placed by the race number so each race differs.
-  const peak = 14 + race.technicality * 6
+  const peak = 14 + race.technicality * 3.6
   const n = Number(race.id.replace(/\D/g, '')) || 0
   const a = 12 + ((n * 7) % 14)
   const b = 44 + ((n * 11) % 16)

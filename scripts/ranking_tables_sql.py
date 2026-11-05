@@ -1,6 +1,7 @@
 """Prints the data part of a ranking migration (owner tables, 5 November 2026).
 
-Reads src/data/ranking_npcs.csv, src/data/ranking_points.csv and the races' recommended levels, and
+Reads src/data/ranking_npcs.csv, src/data/ranking_points.csv and the recommended levels in
+src/data/races.csv, and
 prints SQL that replaces the rows of ranking_npcs, ranking_race_points and ranking_position_percent.
 After editing either table: python3 scripts/ranking_tables_sql.py >> supabase/migrations/<new>.sql
 (--points-only: only the race points and position percents). Rows are upserted, so the SQL never
@@ -12,7 +13,8 @@ import os
 R=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '')
 npcs=[r for r in csv.reader(l for l in open(R+'src/data/ranking_npcs.csv') if not l.startswith('#'))][1:]
 pts=[r for r in csv.reader(l for l in open(R+'src/data/ranking_points.csv') if l.strip() and not l.startswith('#'))][1:]
-rec={m.group(1):int(m.group(2)) for m in re.finditer(r"id: '(RACE-\d+)'.*?recommendedLevel: (\d+)",open(R+'src/domain/races/races.ts').read())}
+races=list(csv.DictReader(l for l in open(R+'src/data/races.csv') if not l.startswith('#')))
+rec={r['id']:int(r['recommended_level']) for r in races}
 q=lambda s:"'"+s.replace("'","''")+"'"
 points_only='--points-only' in sys.argv
 base={k:int(v) for kind,k,v in pts if kind=='difficulty'}

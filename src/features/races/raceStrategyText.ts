@@ -52,7 +52,7 @@ export function segmentTerrainText(segment: RaceSegment): string {
     .filter(([, share]) => share >= 0.005)
     .sort((a, b) => b[1] - a[1])
     .map(([name, share]) => `${name} ${percent(share)}`)
-  const technical = segment.technicality > 0 ? ` · technicality ${segment.technicality}/3` : ''
+  const technical = segment.technicality > 0 ? ` · technicality ${segment.technicality}/5` : ''
   return `${parts.join(', ')}${technical}`
 }
 

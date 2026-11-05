@@ -58,7 +58,8 @@ describe('course generation', () => {
   })
 
   it('uses the approved technicality per race (D6)', () => {
-    expect(RACES.map((r) => r.technicality)).toEqual([0, 0, 1, 1, 2, 1, 2, 3, 2, 3, 3, 3])
+    // The 0–3 values on the 0–5 scale (owner decision, 5 November 2026): 1 → 2, 2 → 3, 3 → 5.
+    expect(RACES.map((r) => r.technicality)).toEqual([0, 0, 2, 2, 3, 2, 3, 5, 3, 5, 5, 5])
   })
 
   it('handles edge cases', () => {
@@ -87,10 +88,10 @@ describe('race simulation — approved test cases (docs/race-simulation/results.
     ['All-rounder F80 Fa10', 'RACE-001', athlete('all-rounder', 80, 10), '0:37:04', 1],
     ['Sprinter F60 Fa20', 'RACE-001', athlete('sprinter', 60, 20), '0:40:54', 11],
     ['Climber F60 Fa20', 'RACE-001', athlete('climber', 60, 20), '0:43:01', 17],
-    ['All-rounder F60 Fa0', 'RACE-004', athlete('all-rounder', 60, 0), '1:55:17', 20],
-    ['All-rounder F60 Fa80', 'RACE-004', athlete('all-rounder', 60, 80), '2:25:12', 47],
-    ['Climber F60 Fa20', 'RACE-007', athlete('climber', 60, 20), '4:24:01', 47],
-    ['Sprinter F60 Fa20', 'RACE-007', athlete('sprinter', 60, 20), '4:32:51', 50],
+    ['All-rounder F60 Fa0', 'RACE-004', athlete('all-rounder', 60, 0), '1:55:46', 20],
+    ['All-rounder F60 Fa80', 'RACE-004', athlete('all-rounder', 60, 80), '2:25:48', 47],
+    ['Climber F60 Fa20', 'RACE-007', athlete('climber', 60, 20), '4:23:09', 47],
+    ['Sprinter F60 Fa20', 'RACE-007', athlete('sprinter', 60, 20), '4:31:42', 50],
     ['Endurance F60 Fa20', 'RACE-012', athlete('endurance', 60, 20), '18:18:42', 50],
     ['Climber F60 Fa20', 'RACE-012', athlete('climber', 60, 20), '18:37:41', 50],
   ])('%s in %s: %s, position %i', (_, id, input, time, position) => {
@@ -178,12 +179,12 @@ describe('day form (D1)', () => {
 describe('result explanation (D10)', () => {
   it('lists the three largest single effects against the typical runner, largest first', () => {
     const explanation = explainRace(race('RACE-004'), athlete('climber', 70, 30))
-    expect(explanation.referenceTimeS).toBe(1 * 3600 + 59 * 60 + 37)
+    expect(explanation.referenceTimeS).toBe(2 * 3600 + 0 * 60 + 6)
     expect(explanation.gapS).toBe(simulateRace(race('RACE-004'), athlete('climber', 70, 30)).timeS - explanation.referenceTimeS)
     expect(explanation.factors.map((f) => [f.id, f.value, f.effectS])).toEqual([
-      ['fitness', 70, -721],
-      ['speed', 13, 415],
-      ['fatigue', 30, 221],
+      ['fitness', 70, -723],
+      ['speed', 13, 410],
+      ['fatigue', 30, 222],
     ])
     expect(explanation.factors[0]!.reference).toBeCloseTo(47.41, 2)
   })
@@ -232,11 +233,11 @@ describe('equipment race effects (owner approval, 29 October 2026; balance revie
   it.each<[string[], string, number]>([
     // Owner's catalog after the balance review (30 October 2026), All-rounder at Fitness 60, Fatigue 20; see results.md §10.
     [['poles'], 'RACE-001', -0.0014],
-    [['poles'], 'RACE-004', -0.0085],
+    [['poles'], 'RACE-004', -0.0084],
     [['poles'], 'RACE-012', -0.014],
     [['poles-2'], 'RACE-001', -0.0104],
-    [['trail-shoes-basic'], 'RACE-004', -0.0105],
-    [['trail-shoes'], 'RACE-004', -0.0114],
+    [['trail-shoes-basic'], 'RACE-004', -0.0107],
+    [['trail-shoes'], 'RACE-004', -0.0136],
     [['trail-shoes'], 'RACE-012', -0.0362],
     [['trail-shoes-light'], 'RACE-001', -0.0389],
     [['trail-shoes-light'], 'RACE-012', -0.0008],

@@ -26,5 +26,6 @@ vi.mock('../data/equipment.csv?raw', async () => ({ default: (await import('./fi
 vi.mock('../data/race_field.csv?raw', async () => ({ default: (await import('./fixtures/race_field.csv?raw')).default }))
 vi.mock('../data/achievements.csv?raw', async () => ({ default: (await import('./fixtures/achievements.csv?raw')).default }))
 vi.mock('../data/ranking_points.csv?raw', async () => ({ default: (await import('./fixtures/ranking_points.csv?raw')).default }))
+vi.mock('../data/races.csv?raw', async () => ({ default: (await import('./fixtures/races.csv?raw')).default }))
 vi.mock('../data/levels.csv?raw', async () => ({ default: (await import('./fixtures/levels.csv?raw')).default }))
 vi.mock('../domain/athlete/shirtFiles', () => import('./fixtures/shirtFiles'))

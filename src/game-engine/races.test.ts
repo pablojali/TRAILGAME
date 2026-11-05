@@ -114,6 +114,20 @@ describe('raceCurrentDay', () => {
     expect(result.value.state.athlete.attributes.consistency).toBe(16.1)
   })
 
+  it('one competition for everyone: sex never changes the result, the prizes or the ranking points (Bible §11.1)', () => {
+    const run = (sex: 'male' | 'female') => {
+      const base = newGame()
+      const { state, entry } = enteredOnSunday({ ...base, athlete: { ...base.athlete, sex } }, 'RACE-001')
+      // Raced in Season 11 · 2026, so the result also carries ranking points.
+      const result = race(state, entry.id, Date.UTC(2026, 10, 8, 9))
+      if (!result.ok) throw new Error(result.error)
+      expect(result.value.state.raceEntries.some((e) => e.status === 'finished' && (e.result.rankingPoints ?? 0) > 0)).toBe(true)
+      // Everything but the sex itself must be identical.
+      return { ...result.value.state, athlete: { ...result.value.state.athlete, sex: 'any' } }
+    }
+    expect(run('female')).toEqual(run('male'))
+  })
+
   it('runs on Sundays only; on race Sunday the day cannot be trained or re-planned', () => {
     const { state, entry } = entered(newGame(), 'RACE-001')
     expect(getScheduledEntry(state)).toEqual(entry)

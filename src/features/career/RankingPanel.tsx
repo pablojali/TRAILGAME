@@ -13,7 +13,6 @@ import styles from './RankingPanel.module.css'
 
 type Mode = 'season' | 'annual'
 type Scope = 'world' | 'country'
-type Filter = 'all' | 'male' | 'female'
 
 /** How many runners each ranking shows (plus the player's own row). */
 const LIMIT = 50
@@ -28,7 +27,6 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
   const current = Math.max(firstSeason(), rankingSeason(Date.now()))
   const [mode, setMode] = useState<Mode>('season')
   const [scope, setScope] = useState<Scope>('world')
-  const [filter, setFilter] = useState<Filter>('all')
   const [season, setSeason] = useState(current)
   const [rows, setRows] = useState<RankingRow[] | 'offline' | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -42,12 +40,11 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
       season: mode === 'season' ? season : undefined,
       months: RANKING.annualMonths,
       country: scope === 'country' ? country : undefined,
-      sex: filter === 'all' ? undefined : filter,
       bestResults: RANKING.bestResults,
       limit: LIMIT,
     })
     setRows(result)
-  }, [service, mode, scope, country, season, filter])
+  }, [service, mode, scope, country, season])
 
   useEffect(() => {
     void load()
@@ -60,11 +57,6 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
   const dates = `${new Date(bounds.start).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })} – ${new Date(
     bounds.end - 1,
   ).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
-  const filters = [
-    { id: 'all' as const, label: t('ranking.all') },
-    { id: 'male' as const, label: t('ranking.men') },
-    { id: 'female' as const, label: t('ranking.women') },
-  ]
   const number = (n: number) => n.toLocaleString(locale)
   const me = Array.isArray(rows) ? rows.find((row) => row.isMe) : undefined
 
@@ -116,9 +108,7 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
           </button>
         ))}
       </div>
-      <div className={styles.modes}>
-        <Chips<Filter> label={t('ranking.filter')} options={filters} value={filter} onChange={setFilter} />
-      </div>
+      {/* One general classification for everyone (owner decision, 5 November 2026): no men / women filter. */}
       <h3 className={styles.title}>
         {t(mode === 'season' ? 'ranking.seasonTitle' : 'ranking.annualTitle', {
           scope: scope === 'world' ? t('ranking.world') : country ? countryName(country, locale) : t('ranking.country'),

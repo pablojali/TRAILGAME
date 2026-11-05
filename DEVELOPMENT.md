@@ -1612,7 +1612,8 @@ World and country rankings, asynchronous: every player races in their own career
   section of the table with higher base points; a Major result takes one of the season's best-result
   slots like any race. Nothing else needs to change.
 - The client (`src/repositories/supabase/rankingClient.ts`) shows it in Career → Ranking
-  (Season / Annual, World / Country, Overall / Men / Women, season arrows). Tests: `npm run db:test`.
+  (Season / Annual, World / Country, season arrows; one general classification for everyone, no
+  men / women filter: owner decision, 5 November 2026, Game Design Bible §11.1). Tests: `npm run db:test`.
 - **NPC runners** (owner request, 5 November 2026): 200 runners from `src/data/ranking_npcs.csv`
   (name, country, sex, level, XP, strength 0–100, races per week) fill the rankings and look like any
   runner. Migration `20261105160000_ranking_npcs.sql` loads them into `ranking_npcs` (with copies of

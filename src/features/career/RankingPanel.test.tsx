@@ -14,7 +14,7 @@ describe('Career ranking (owner design, 5 November 2026)', () => {
     fetch.mockReset()
   })
 
-  it('shows the world ranking, the player’s position, and filters by country and sex', async () => {
+  it('shows the world ranking, the player’s position, and filters by country, with one general classification for everyone', async () => {
     const user = userEvent.setup()
     const base = newGame()
     seedCareer({ ...base, athlete: { ...base.athlete, name: 'PJ88', country: 'AR' } })
@@ -31,18 +31,20 @@ describe('Career ranking (owner design, 5 November 2026)', () => {
     const you = screen.getByRole('region', { name: 'Your position' })
     expect(you).toHaveTextContent('#248 · PJ88')
     expect(you).toHaveTextContent('3,420 pts')
-    expect(fetch).toHaveBeenLastCalledWith(expect.objectContaining({ mode: 'season', season: expect.any(Number), months: 12, country: undefined, sex: undefined, bestResults: 10, limit: 50 }))
+    expect(fetch).toHaveBeenLastCalledWith(expect.objectContaining({ mode: 'season', season: expect.any(Number), months: 12, country: undefined, bestResults: 10, limit: 50 }))
 
     await user.click(screen.getByRole('button', { name: /Country/ }))
     expect(await screen.findByRole('heading', { name: 'Argentina · season ranking' })).toBeInTheDocument()
     expect(fetch).toHaveBeenLastCalledWith(expect.objectContaining({ country: 'AR' }))
-    await user.click(screen.getByRole('button', { name: 'Women' }))
-    expect(fetch).toHaveBeenLastCalledWith(expect.objectContaining({ country: 'AR', sex: 'female' }))
+    // Men and women compete in one classification (owner decision, 5 November 2026).
+    expect(screen.queryByRole('button', { name: 'Women' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Men' })).not.toBeInTheDocument()
+    expect(fetch.mock.calls.every(([query]) => !('sex' in query))).toBe(true)
 
     await user.click(screen.getByRole('button', { name: 'Annual' }))
     expect(await screen.findByRole('heading', { name: 'Argentina · annual ranking' })).toBeInTheDocument()
     expect(screen.getByText('Last 12 months')).toBeInTheDocument()
-    expect(fetch).toHaveBeenLastCalledWith(expect.objectContaining({ mode: 'annual', season: undefined, months: 12, country: 'AR', sex: 'female' }))
+    expect(fetch).toHaveBeenLastCalledWith(expect.objectContaining({ mode: 'annual', season: undefined, months: 12, country: 'AR' }))
   })
 
   it('says so when the ranking cannot be loaded', async () => {

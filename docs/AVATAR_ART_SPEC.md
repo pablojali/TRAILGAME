@@ -71,13 +71,14 @@ file to a shop item (`FOOTWEAR` in `scripts/prepare_avatar_art.py`). Today (owne
 
 | File | Item |
 |---|---|
-| `starter_shoes_01.png` | Starter shoes |
+| `lvl0_shoes_01.png` | Starter shoes |
 | `lvl1_shoes_01.png` | Trail shoes (level 1) |
 | `lvl2_shoes_01.png` | Technical trail shoes (level 2) |
 | `lvl2_shoes_02.png` | Light trail shoes (level 2) |
-| `lvl3_shoes_01.png` | none yet: prepared, waiting for a level-3 shop item |
+| `lvl3_shoes_01.png` | Mountain trail shoes (level 3) |
+| `lvl1_shoes_02.png` | none yet: prepared, waiting for a shop item |
 
-Poles and backpacks are still placeholder vector art.
+Poles and backpacks come from `accesories/` (backpacks per body: `lvl{L}_{men|women}_back_{NN}.png`).
 
 ## Drawing order (back to front)
 

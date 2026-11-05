@@ -5,6 +5,19 @@
 # The runner's level and sex never change the points (Game Design Bible 11.1); level only sets which races a runner may enter.
 # difficulty: base points of each difficulty (I Moderate ... V Extreme). race: the difficulty of each race (distance, climb, technicality and overall demands, not distance alone).
 # position: percent for each finishing position (positions not listed, 31st and later: 0). competition: percent of each competition format (standard races, weekly Majors, the annual World Cup).
+# Reference for choosing each race's difficulty (not read by the game): id, name, km, D+ m, D+ per km, effort km (km + D+/100), technicality 0-3, recommended level.
+#   RACE-001 Forest First Steps: 5 km, 120 m D+, 24 m/km, effort 6.2 km, technicality 0, level 4
+#   RACE-002 Riverside Trail: 8 km, 220 m D+, 28 m/km, effort 10.2 km, technicality 0, level 6
+#   RACE-003 Pine Loop Challenge: 10 km, 350 m D+, 35 m/km, effort 13.5 km, technicality 1, level 8
+#   RACE-004 Ridge Runner: 12 km, 550 m D+, 46 m/km, effort 17.5 km, technicality 1, level 11
+#   RACE-005 Stone Path Classic: 15 km, 750 m D+, 50 m/km, effort 22.5 km, technicality 2, level 14
+#   RACE-006 Wildwood Ascent: 18 km, 950 m D+, 53 m/km, effort 27.5 km, technicality 1, level 18
+#   RACE-007 Summit Quest: 22 km, 1300 m D+, 59 m/km, effort 35 km, technicality 2, level 21
+#   RACE-008 Alpine Traverse: 28 km, 1700 m D+, 61 m/km, effort 45 km, technicality 3, level 25
+#   RACE-009 Sky Ridge Ultra: 35 km, 2200 m D+, 63 m/km, effort 57 km, technicality 2, level 28
+#   RACE-010 High Peaks Challenge: 42 km, 2800 m D+, 67 m/km, effort 70 km, technicality 3, level 31
+#   RACE-011 Legends of the Crest: 55 km, 3600 m D+, 65 m/km, effort 91 km, technicality 3, level 40
+#   RACE-012 Beyond the Skyline: 70 km, 4800 m D+, 69 m/km, effort 118 km, technicality 3, level 50
 kind,key,value
 setting,best_results,10
 setting,first_season,2026-11

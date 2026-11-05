@@ -26,7 +26,12 @@ export function durationText(seconds: number): string {
   return s >= 3600 ? raceTimeText(s) : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-export function ordinal(n: number): string {
+/** A finishing position, e.g. 1st, 1.º, 1er, 1º, 1. (by language). */
+export function ordinal(n: number, locale = 'en'): string {
+  if (locale === 'es') return `${n}.º`
+  if (locale === 'it') return `${n}º`
+  if (locale === 'fr') return n === 1 ? '1er' : `${n}e`
+  if (locale === 'de') return `${n}.`
   const mod100 = n % 100
   const suffix = mod100 >= 11 && mod100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'
   return `${n}${suffix}`

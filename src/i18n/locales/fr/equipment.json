@@ -1,34 +1,10 @@
 {
-  "nav.dashboard": "Accueil",
-  "nav.training": "Entraînement",
-  "nav.equipment": "Équipement",
-  "nav.races": "Courses",
-  "nav.career": "Carrière",
-  "nav.main": "Principal",
-
-  "common.coins": { "one": "{count} pièce", "other": "{count} pièces" },
-  "common.coinWord": { "one": "pièce", "other": "pièces" },
-  "common.lvl": "Niv. {level}",
-  "common.cancel": "Annuler",
-
-  "attr.endurance": "Endurance",
-  "attr.climbing": "Montée",
-  "attr.speed": "Vitesse",
-  "attr.technical": "Technique",
-  "attr.recovery": "Récupération",
-  "attr.consistency": "Régularité",
-
-  "country.choose": "Choisis un pays",
-  "settings.language": "Langue",
-  "settings.languageCard": "Langue",
-
   "slot.nutrition": "Gels et barres",
   "slot.shoes": "Chaussures",
   "slot.pack": "Sac",
   "slot.poles": "Bâtons",
   "slot.gel": "Gels",
   "slot.bar": "Barres de céréales",
-
   "equipment.title": "Équipement",
   "equipment.description": "Achète du matériel et choisis ce que porte ton coureur. L'équipement porté aide en course ; il ne change jamais l'entraînement.",
   "equipment.tabs": "Équipement",
@@ -53,8 +29,14 @@
   "equipment.noRaceEffect": "Aucun effet en course",
   "equipment.noAttributeBonus": "Aucun bonus d'attribut",
   "equipment.inStock": "{count} en stock",
-  "equipment.gels": { "one": "{count} gel", "other": "{count} gels" },
-  "equipment.bars": { "one": "{count} barre", "other": "{count} barres" },
+  "equipment.gels": {
+    "one": "{count} gel",
+    "other": "{count} gels"
+  },
+  "equipment.bars": {
+    "one": "{count} barre",
+    "other": "{count} barres"
+  },
   "equipment.gelsBars": "{gels}, {bars}",
   "equipment.gelsBarsInStock": "{gels}, {bars} en stock",
   "equipment.status.need": "Il manque {coins}",
@@ -85,7 +67,6 @@
   "equipment.pay": "Payer {coins}",
   "equipment.buyPack": "Acheter un lot de {count}",
   "equipment.buy": "Acheter",
-
   "equipment.buyError.unknown-item": "Cet article n'existe pas.",
   "equipment.buyError.already-owned": "Tu possèdes déjà cet article.",
   "equipment.buyError.insufficient-coins": "Tu n'as pas assez de pièces pour cet article.",

@@ -1,7 +1,7 @@
+import { useI18n } from '../../i18n/i18n'
 import { useEffect, useId, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import button from '../../components/Button.module.css'
-import { RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
 import { getLevelRewards } from '../../game-engine/levelRewards'
 import { useGame } from './gameContext'
 import styles from './LevelUpDialog.module.css'
@@ -15,6 +15,7 @@ export function LevelUpDialog() {
   const { phase, levelUp, dismissLevelUp } = useGame()
   const navigate = useNavigate()
   const titleId = useId()
+  const { t } = useI18n()
   const heading = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
@@ -51,20 +52,21 @@ export function LevelUpDialog() {
           </svg>
         </div>
         <h2 id={titleId} ref={heading} tabIndex={-1} className={styles.title}>
-          Level up!
+          {t('levelUp.title')}
         </h2>
         <p className={styles.level}>
-          Level {levelUp.from} <span aria-hidden="true">→</span>
-          <span className={styles.srOnly}> to </span> <strong>Level {levelUp.to}</strong>
+          {t('levelUp.from', { level: levelUp.from })} <span aria-hidden="true">→</span>
+          <span className={styles.srOnly}>{t('levelUp.to')}</span> <strong>{t('levelUp.from', { level: levelUp.to })}</strong>
         </p>
 
-        <ul className={styles.rewards} aria-label="Rewards">
+        <ul className={styles.rewards} aria-label={t('levelUp.rewards')}>
           <li>
             <span className={styles.rewardIcon} aria-hidden="true">
               +
             </span>
             <span>
-              <strong>{rewards.attributePoints} attribute points</strong> to spend
+              <strong>{t('levelUp.points', { count: rewards.attributePoints })}</strong>
+              {t('levelUp.toSpend')}
             </span>
           </li>
           {rewards.looks.length > 0 && (
@@ -73,7 +75,7 @@ export function LevelUpDialog() {
                 ★
               </span>
               <span>
-                <strong>New look:</strong> {rewards.looks.join(', ')}
+                <strong>{t('levelUp.newLook')}</strong> {rewards.looks.join(', ')}
               </span>
             </li>
           )}
@@ -83,8 +85,8 @@ export function LevelUpDialog() {
                 ⚑
               </span>
               <span>
-                <strong>Races open:</strong>{' '}
-                {rewards.races.map((race) => `${race.name} (${RACE_CATEGORY_CONFIG[race.category].label})`).join(', ')}
+                <strong>{t('levelUp.racesOpen')}</strong>{' '}
+                {rewards.races.map((race) => `${race.name} (${t(`category.${race.category}`)})`).join(', ')}
               </span>
             </li>
           )}
@@ -92,15 +94,15 @@ export function LevelUpDialog() {
 
         <div className={styles.actions}>
           <button type="button" className={`${button.button} ${button.primary}`} onClick={() => go('/attributes')}>
-            Spend points
+            {t('levelUp.spend')}
           </button>
           {rewards.looks.length > 0 && (
             <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => go('/appearance')}>
-              Change look
+              {t('common.changeLook')}
             </button>
           )}
           <button type="button" className={`${button.button} ${button.secondary}`} onClick={dismissLevelUp}>
-            Continue
+            {t('common.continue')}
           </button>
         </div>
       </section>

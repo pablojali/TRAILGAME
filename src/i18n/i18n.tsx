@@ -1,13 +1,14 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import de from './locales/de.json'
-import en from './locales/en.json'
-import es from './locales/es.json'
-import fr from './locales/fr.json'
-import it from './locales/it.json'
+import enCommon from './locales/en/common.json'
+import enDashboard from './locales/en/dashboard.json'
+import enTraining from './locales/en/training.json'
+import enEquipment from './locales/en/equipment.json'
+import enSettings from './locales/en/settings.json'
 
 /**
  * The game's languages (owner request, 4 November 2026): English, Spanish, French, Italian and
- * German. Texts live in src/i18n/locales/{locale}.json by key; English is the reference and the
+ * German. Texts live in src/i18n/locales/{locale}/{screen}.json by key (one file per part of the
+ * game, the same files in every language); English is the reference and the
  * fallback for any missing text. A text may hold `{name}` placeholders, and plural forms as an
  * object (`{ "one": "{count} race", "other": "{count} races" }`, chosen by `count`).
  */
@@ -24,9 +25,22 @@ export const LOCALES: readonly { id: Locale; label: string }[] = [
 type Message = string | Partial<Record<Intl.LDMLPluralRule, string>>
 export type Messages = Record<string, Message>
 
-export const MESSAGES: Record<Locale, Messages> = { en, es, fr, it, de }
+/** English, the reference: its keys type `t()`. Add a new file here and in every language. */
+const EN = { ...enCommon, ...enSettings, ...enEquipment, ...enDashboard, ...enTraining }
 
-export type MessageKey = keyof typeof en
+const FILES = import.meta.glob<Messages>('./locales/*/*.json', { eager: true, import: 'default' })
+
+function load(locale: Locale): Messages {
+  const merged: Messages = {}
+  for (const [path, messages] of Object.entries(FILES)) {
+    if (path.startsWith(`./locales/${locale}/`)) Object.assign(merged, messages)
+  }
+  return merged
+}
+
+export const MESSAGES: Record<Locale, Messages> = { en: load('en'), es: load('es'), fr: load('fr'), it: load('it'), de: load('de') }
+
+export type MessageKey = keyof typeof EN
 export type Vars = Record<string, string | number>
 
 const STORAGE_KEY = 'trailgame.locale'
@@ -55,7 +69,7 @@ function storedLocale(): Locale | null {
 
 /** The text of `key` in `locale` with its placeholders filled; English when the locale lacks it. */
 export function translate(locale: Locale, key: MessageKey, vars: Vars = {}): string {
-  const message = MESSAGES[locale][key] ?? MESSAGES.en[key] ?? key
+  const message: Message = MESSAGES[locale][key] ?? MESSAGES.en[key] ?? (EN[key] as Message | undefined) ?? key
   let text: string
   if (typeof message === 'string') {
     text = message

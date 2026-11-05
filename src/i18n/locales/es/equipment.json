@@ -1,34 +1,10 @@
 {
-  "nav.dashboard": "Inicio",
-  "nav.training": "Entreno",
-  "nav.equipment": "Equipo",
-  "nav.races": "Carreras",
-  "nav.career": "Trayectoria",
-  "nav.main": "Principal",
-
-  "common.coins": { "one": "{count} moneda", "other": "{count} monedas" },
-  "common.coinWord": { "one": "moneda", "other": "monedas" },
-  "common.lvl": "Nv {level}",
-  "common.cancel": "Cancelar",
-
-  "attr.endurance": "Resistencia",
-  "attr.climbing": "Subida",
-  "attr.speed": "Velocidad",
-  "attr.technical": "Técnica",
-  "attr.recovery": "Recuperación",
-  "attr.consistency": "Regularidad",
-
-  "country.choose": "Elige un país",
-  "settings.language": "Idioma",
-  "settings.languageCard": "Idioma",
-
   "slot.nutrition": "Geles y barritas",
   "slot.shoes": "Zapatillas",
   "slot.pack": "Mochila",
   "slot.poles": "Bastones",
   "slot.gel": "Geles",
   "slot.bar": "Barritas",
-
   "equipment.title": "Equipo",
   "equipment.description": "Compra material y elige qué lleva tu corredor. El equipo puesto ayuda en las carreras; nunca cambia el entrenamiento.",
   "equipment.tabs": "Equipo",
@@ -53,8 +29,14 @@
   "equipment.noRaceEffect": "Sin efecto en carrera",
   "equipment.noAttributeBonus": "Sin bonus de atributos",
   "equipment.inStock": "{count} en stock",
-  "equipment.gels": { "one": "{count} gel", "other": "{count} geles" },
-  "equipment.bars": { "one": "{count} barrita", "other": "{count} barritas" },
+  "equipment.gels": {
+    "one": "{count} gel",
+    "other": "{count} geles"
+  },
+  "equipment.bars": {
+    "one": "{count} barrita",
+    "other": "{count} barritas"
+  },
   "equipment.gelsBars": "{gels}, {bars}",
   "equipment.gelsBarsInStock": "{gels}, {bars} en stock",
   "equipment.status.need": "Faltan {coins}",
@@ -85,7 +67,6 @@
   "equipment.pay": "Pagar {coins}",
   "equipment.buyPack": "Comprar pack de {count}",
   "equipment.buy": "Comprar",
-
   "equipment.buyError.unknown-item": "Ese artículo no existe.",
   "equipment.buyError.already-owned": "Ya tienes este artículo.",
   "equipment.buyError.insufficient-coins": "No tienes monedas suficientes para este artículo.",

@@ -1,34 +1,10 @@
 {
-  "nav.dashboard": "Übersicht",
-  "nav.training": "Training",
-  "nav.equipment": "Ausrüstung",
-  "nav.races": "Rennen",
-  "nav.career": "Karriere",
-  "nav.main": "Hauptmenü",
-
-  "common.coins": { "one": "{count} Münze", "other": "{count} Münzen" },
-  "common.coinWord": { "one": "Münze", "other": "Münzen" },
-  "common.lvl": "Lvl {level}",
-  "common.cancel": "Abbrechen",
-
-  "attr.endurance": "Ausdauer",
-  "attr.climbing": "Aufstieg",
-  "attr.speed": "Tempo",
-  "attr.technical": "Technik",
-  "attr.recovery": "Erholung",
-  "attr.consistency": "Beständigkeit",
-
-  "country.choose": "Land wählen",
-  "settings.language": "Sprache",
-  "settings.languageCard": "Sprache",
-
   "slot.nutrition": "Gels & Riegel",
   "slot.shoes": "Schuhe",
   "slot.pack": "Rucksack",
   "slot.poles": "Stöcke",
   "slot.gel": "Gels",
   "slot.bar": "Müsliriegel",
-
   "equipment.title": "Ausrüstung",
   "equipment.description": "Kaufe Ausrüstung und wähle, was dein Läufer trägt. Getragene Ausrüstung hilft im Rennen; das Training ändert sie nie.",
   "equipment.tabs": "Ausrüstung",
@@ -53,8 +29,14 @@
   "equipment.noRaceEffect": "Keine Wirkung im Rennen",
   "equipment.noAttributeBonus": "Kein Attributbonus",
   "equipment.inStock": "{count} vorrätig",
-  "equipment.gels": { "one": "{count} Gel", "other": "{count} Gels" },
-  "equipment.bars": { "one": "{count} Riegel", "other": "{count} Riegel" },
+  "equipment.gels": {
+    "one": "{count} Gel",
+    "other": "{count} Gels"
+  },
+  "equipment.bars": {
+    "one": "{count} Riegel",
+    "other": "{count} Riegel"
+  },
   "equipment.gelsBars": "{gels}, {bars}",
   "equipment.gelsBarsInStock": "{gels}, {bars} vorrätig",
   "equipment.status.need": "Es fehlen {coins}",
@@ -85,7 +67,6 @@
   "equipment.pay": "{coins} bezahlen",
   "equipment.buyPack": "{count}er-Pack kaufen",
   "equipment.buy": "Kaufen",
-
   "equipment.buyError.unknown-item": "Diesen Artikel gibt es nicht.",
   "equipment.buyError.already-owned": "Du besitzt diesen Artikel schon.",
   "equipment.buyError.insufficient-coins": "Du hast nicht genug Münzen für diesen Artikel.",

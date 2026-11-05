@@ -1,34 +1,10 @@
 {
-  "nav.dashboard": "Dashboard",
-  "nav.training": "Training",
-  "nav.equipment": "Equipment",
-  "nav.races": "Races",
-  "nav.career": "Career",
-  "nav.main": "Main",
-
-  "common.coins": { "one": "{count} coin", "other": "{count} coins" },
-  "common.coinWord": { "one": "coin", "other": "coins" },
-  "common.lvl": "Lvl {level}",
-  "common.cancel": "Cancel",
-
-  "attr.endurance": "Endurance",
-  "attr.climbing": "Climbing",
-  "attr.speed": "Speed",
-  "attr.technical": "Technical",
-  "attr.recovery": "Recovery",
-  "attr.consistency": "Consistency",
-
-  "country.choose": "Choose a country",
-  "settings.language": "Language",
-  "settings.languageCard": "Language",
-
   "slot.nutrition": "Gels & bars",
   "slot.shoes": "Shoes",
   "slot.pack": "Backpack",
   "slot.poles": "Poles",
   "slot.gel": "Gels",
   "slot.bar": "Cereal bars",
-
   "equipment.title": "Equipment",
   "equipment.description": "Buy gear and choose what your runner wears. Equipped items help in races; they never change training.",
   "equipment.tabs": "Equipment",
@@ -53,8 +29,14 @@
   "equipment.noRaceEffect": "No race effect",
   "equipment.noAttributeBonus": "No attribute bonus",
   "equipment.inStock": "{count} in stock",
-  "equipment.gels": { "one": "{count} gel", "other": "{count} gels" },
-  "equipment.bars": { "one": "{count} bar", "other": "{count} bars" },
+  "equipment.gels": {
+    "one": "{count} gel",
+    "other": "{count} gels"
+  },
+  "equipment.bars": {
+    "one": "{count} bar",
+    "other": "{count} bars"
+  },
   "equipment.gelsBars": "{gels}, {bars}",
   "equipment.gelsBarsInStock": "{gels}, {bars} in stock",
   "equipment.status.need": "Need {coins} more",
@@ -85,7 +67,6 @@
   "equipment.pay": "Pay {coins}",
   "equipment.buyPack": "Buy pack of {count}",
   "equipment.buy": "Buy",
-
   "equipment.buyError.unknown-item": "That item does not exist.",
   "equipment.buyError.already-owned": "You already own this item.",
   "equipment.buyError.insufficient-coins": "You do not have enough coins for this item.",

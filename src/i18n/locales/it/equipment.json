@@ -1,34 +1,10 @@
 {
-  "nav.dashboard": "Home",
-  "nav.training": "Allenamento",
-  "nav.equipment": "Attrezzatura",
-  "nav.races": "Gare",
-  "nav.career": "Carriera",
-  "nav.main": "Principale",
-
-  "common.coins": { "one": "{count} moneta", "other": "{count} monete" },
-  "common.coinWord": { "one": "moneta", "other": "monete" },
-  "common.lvl": "Liv. {level}",
-  "common.cancel": "Annulla",
-
-  "attr.endurance": "Resistenza",
-  "attr.climbing": "Salita",
-  "attr.speed": "Velocità",
-  "attr.technical": "Tecnica",
-  "attr.recovery": "Recupero",
-  "attr.consistency": "Costanza",
-
-  "country.choose": "Scegli un paese",
-  "settings.language": "Lingua",
-  "settings.languageCard": "Lingua",
-
   "slot.nutrition": "Gel e barrette",
   "slot.shoes": "Scarpe",
   "slot.pack": "Zaino",
   "slot.poles": "Bastoncini",
   "slot.gel": "Gel",
   "slot.bar": "Barrette",
-
   "equipment.title": "Attrezzatura",
   "equipment.description": "Compra l'attrezzatura e scegli cosa indossa il tuo corridore. L'attrezzatura indossata aiuta in gara; non cambia mai l'allenamento.",
   "equipment.tabs": "Attrezzatura",
@@ -53,8 +29,14 @@
   "equipment.noRaceEffect": "Nessun effetto in gara",
   "equipment.noAttributeBonus": "Nessun bonus agli attributi",
   "equipment.inStock": "{count} disponibili",
-  "equipment.gels": { "one": "{count} gel", "other": "{count} gel" },
-  "equipment.bars": { "one": "{count} barretta", "other": "{count} barrette" },
+  "equipment.gels": {
+    "one": "{count} gel",
+    "other": "{count} gel"
+  },
+  "equipment.bars": {
+    "one": "{count} barretta",
+    "other": "{count} barrette"
+  },
   "equipment.gelsBars": "{gels}, {bars}",
   "equipment.gelsBarsInStock": "{gels}, {bars} disponibili",
   "equipment.status.need": "Mancano {coins}",
@@ -85,7 +67,6 @@
   "equipment.pay": "Paga {coins}",
   "equipment.buyPack": "Compra confezione da {count}",
   "equipment.buy": "Compra",
-
   "equipment.buyError.unknown-item": "Questo articolo non esiste.",
   "equipment.buyError.already-owned": "Possiedi già questo articolo.",
   "equipment.buyError.insufficient-coins": "Non hai abbastanza monete per questo articolo.",

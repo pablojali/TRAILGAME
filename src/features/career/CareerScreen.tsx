@@ -62,44 +62,42 @@ export function CareerScreen() {
       title={t('career.title')}
       description={t('career.description')}
       showDescription
-      aside={
-          <section className={`${styles.season} ${styles.seasonCompact}`} aria-labelledby="season-title">
-            <div className={styles.seasonMain}>
-              <h2 id="season-title" className={styles.seasonTitle}>
-                {t('career.season', { year: season.year })}
-              </h2>
-              <Meter
-                label={t('career.seasonProgress', { year: season.year })}
-                value={season.weekOfYear}
-                max={WEEKS_PER_YEAR}
-                valueText={t('career.seasonValue', { week: season.weekOfYear, weeks: WEEKS_PER_YEAR })}
-                className={styles.seasonMeter}
-              />
-              <p className={styles.seasonLine}>
-                {t('career.seasonLine', {
-                  week: season.weekOfYear,
-                  weeks: WEEKS_PER_YEAR,
-                  races: t('career.races', { count: season.races }),
-                  medals: t('career.medals', { count: season.medals }),
-                })}
-              </p>
-            </div>
-            <div className={styles.rank}>
-              <span className={styles.rankBadge} aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8l-1-3H9z" />
-                </svg>
-              </span>
-              <span className={styles.rankText}>
-                <span className={styles.rankLabel}>{t('career.bestFinish')}</span>
-                <span className={styles.rankValue}>{season.bestFinish === null ? '—' : `#${season.bestFinish}`}</span>
-              </span>
-            </div>
-          </section>
-      }
     >
-      {/* The summit of the picture (runner and flag) shows between the title and the tabs; the
-          season is a small card at the top right (owner request, 5 November 2026). */}
+      {/* The season in one compact row under the title, then the summit of the picture and the tabs
+          (owner requests, 5 November 2026). */}
+      <section className={`${styles.season} ${styles.seasonCompact}`} aria-labelledby="season-title">
+        <div className={styles.seasonMain}>
+          <h2 id="season-title" className={styles.seasonTitle}>
+            {t('career.season', { year: season.year })}
+          </h2>
+          <Meter
+            label={t('career.seasonProgress', { year: season.year })}
+            value={season.weekOfYear}
+            max={WEEKS_PER_YEAR}
+            valueText={t('career.seasonValue', { week: season.weekOfYear, weeks: WEEKS_PER_YEAR })}
+            className={styles.seasonMeter}
+          />
+          <p className={styles.seasonLine}>
+            {t('career.seasonLine', {
+              week: season.weekOfYear,
+              weeks: WEEKS_PER_YEAR,
+              races: t('career.races', { count: season.races }),
+              medals: t('career.medals', { count: season.medals }),
+            })}
+          </p>
+        </div>
+        <div className={styles.rank}>
+          <span className={styles.rankBadge} aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8l-1-3H9z" />
+            </svg>
+          </span>
+          <span className={styles.rankText}>
+            <span className={styles.rankLabel}>{t('career.bestFinish')}</span>
+            <span className={styles.rankValue}>{season.bestFinish === null ? '—' : `#${season.bestFinish}`}</span>
+          </span>
+        </div>
+      </section>
       <div className={styles.hero} aria-hidden="true" />
 
       {history.length === 0 && (

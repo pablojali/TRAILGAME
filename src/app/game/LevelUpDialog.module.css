@@ -148,3 +148,79 @@
     transform: rotate(360deg);
   }
 }
+
+/* Challenge completed (owner design, 5 November 2026). */
+.trophy svg {
+  width: 44px;
+  height: 44px;
+  fill: none;
+  stroke: #f2c531;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.challengeName {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 800;
+}
+
+.challengeText {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.challengeRewards {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.challengeRewards > li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.rewardLabel {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.rewardIconCoin svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: #f2c531;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rewardValue {
+  color: #f2c531;
+  font-size: var(--font-size-xl);
+  font-weight: 900;
+}
+
+.claimed {
+  margin: 0;
+  padding: 2px var(--space-3);
+  border-radius: 999px;
+  background: rgb(47 158 91 / 0.18);
+  color: #3fbf6f;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.challengeTitle {
+  font-size: var(--font-size-lg);
+}

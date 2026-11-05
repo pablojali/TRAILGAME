@@ -84,5 +84,39 @@
     "one": "Schließe {count} Trainingswoche ab.",
     "other": "Schließe {count} Trainingswochen ab."
   },
-  "career.reward": "Belohnung"
+  "career.reward": "Belohnung",
+  "challenge.title": "Herausforderung geschafft!",
+  "challenge.milestone": "Ein neuer Meilenstein in deiner Karriere!",
+  "challenge.coins": "Münzen",
+  "challenge.claimed": "Belohnung erhalten",
+  "achievement.done.first-steps": {
+    "one": "Du hast {count} Rennen beendet.",
+    "other": "Du hast {count} Rennen beendet."
+  },
+  "achievement.done.trail-explorer": {
+    "one": "Du hast {count} Trail-Rennen beendet.",
+    "other": "Du hast {count} Trail-Rennen beendet."
+  },
+  "achievement.done.first-summit": {
+    "one": "Du hast {count} Bergrennen beendet.",
+    "other": "Du hast {count} Bergrennen beendet."
+  },
+  "achievement.done.elite": {
+    "one": "Du hast {count} Elite-Rennen beendet.",
+    "other": "Du hast {count} Elite-Rennen beendet."
+  },
+  "achievement.done.podium": {
+    "one": "Du warst {count}-mal unter den ersten 3.",
+    "other": "Du warst {count}-mal unter den ersten 3."
+  },
+  "achievement.done.champion": {
+    "one": "Du hast {count} Rennen gewonnen.",
+    "other": "Du hast {count} Rennen gewonnen."
+  },
+  "achievement.done.rising-star": "Du hast {number} XP erreicht.",
+  "achievement.done.level": "Du hast Level {count} erreicht.",
+  "achievement.done.dedicated": {
+    "one": "Du hast {count} Trainingswoche abgeschlossen.",
+    "other": "Du hast {count} Trainingswochen abgeschlossen."
+  }
 }

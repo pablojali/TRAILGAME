@@ -84,5 +84,39 @@
     "one": "Completa {count} settimana di allenamento.",
     "other": "Completa {count} settimane di allenamento."
   },
-  "career.reward": "Ricompensa"
+  "career.reward": "Ricompensa",
+  "challenge.title": "Sfida completata!",
+  "challenge.milestone": "Un nuovo traguardo nella tua carriera!",
+  "challenge.coins": "Monete",
+  "challenge.claimed": "Ricompensa ottenuta",
+  "achievement.done.first-steps": {
+    "one": "Hai completato {count} gara.",
+    "other": "Hai completato {count} gare."
+  },
+  "achievement.done.trail-explorer": {
+    "one": "Hai completato {count} gara trail.",
+    "other": "Hai completato {count} gare trail."
+  },
+  "achievement.done.first-summit": {
+    "one": "Hai completato {count} gara di montagna.",
+    "other": "Hai completato {count} gare di montagna."
+  },
+  "achievement.done.elite": {
+    "one": "Hai completato {count} gara élite.",
+    "other": "Hai completato {count} gare élite."
+  },
+  "achievement.done.podium": {
+    "one": "Sei arrivato tra i primi 3 {count} volta.",
+    "other": "Sei arrivato tra i primi 3 {count} volte."
+  },
+  "achievement.done.champion": {
+    "one": "Hai vinto {count} gara.",
+    "other": "Hai vinto {count} gare."
+  },
+  "achievement.done.rising-star": "Hai raggiunto {number} XP.",
+  "achievement.done.level": "Hai raggiunto il livello {count}.",
+  "achievement.done.dedicated": {
+    "one": "Hai completato {count} settimana di allenamento.",
+    "other": "Hai completato {count} settimane di allenamento."
+  }
 }

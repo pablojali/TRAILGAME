@@ -3,11 +3,12 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import { Avatar } from '../../components/avatar/Avatar'
+import { filesForSex } from '../../components/avatar/avatarArt'
 import { Coins } from '../../components/Coins'
 import button from '../../components/Button.module.css'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { Chips, Tabs } from '../../components/Tabs'
-import type { AttributeId } from '../../domain/athlete/athlete'
+import type { AttributeId, Sex } from '../../domain/athlete/athlete'
 import { useI18n, type Locale, type MessageKey, type Translate } from '../../i18n/i18n'
 import {
   EQUIPMENT_ITEMS,
@@ -121,15 +122,19 @@ const THUMBNAILS = import.meta.glob<string>('/assets/ui/{thumbnails,equipment}/*
   import: 'default',
 })
 
-function thumbnailUrl(file: string): string | undefined {
-  return THUMBNAILS[`/assets/ui/thumbnails/${file}`] ?? THUMBNAILS[`/assets/ui/equipment/${file}`]
+function thumbnailUrl(file: string, sex: Sex): string | undefined {
+  for (const candidate of filesForSex(file, sex)) {
+    const url = THUMBNAILS[`/assets/ui/thumbnails/${candidate}`] ?? THUMBNAILS[`/assets/ui/equipment/${candidate}`]
+    if (url) return url
+  }
+  return undefined
 }
 
 /** An item's picture: its thumbnail, the shoes on the feet, or the slot icon (also used on race day). */
 export function ItemArt({ item }: { item: EquipmentItem }) {
   const { state } = useCareer()
   const { athlete } = state
-  const thumbnail = item.thumbnail && thumbnailUrl(item.thumbnail)
+  const thumbnail = item.thumbnail && thumbnailUrl(item.thumbnail, athlete.sex)
   if (thumbnail) return <img className={styles.thumbnail} src={thumbnail} alt="" />
   if (item.slot === 'shoes') {
     return (

@@ -23,7 +23,23 @@ export function headArt(sex: Sex, hair: string, tone: number): string | undefine
   return file === undefined ? undefined : art(`heads/${file}`)
 }
 
+/**
+ * The files an equipment table entry names for a runner (owner request, 5 November 2026: backpacks
+ * drawn for men and for women): `{sex}` stands for `men` or `women`, and the men file is the
+ * fallback while there is no women one. A name without `{sex}` is the same for everyone.
+ */
+export function filesForSex(file: string, sex: Sex): string[] {
+  if (!file.includes('{sex}')) return [file]
+  const own = file.replaceAll('{sex}', sex === 'female' ? 'women' : 'men')
+  const men = file.replaceAll('{sex}', 'men')
+  return own === men ? [men] : [own, men]
+}
+
 /** The bundled URL of a file in assets/runner/avatar named by the equipment table, e.g. `footwear/trail-shoes.webp`. */
-export function avatarFile(file: string): string | undefined {
-  return ART[`/assets/runner/avatar/${file}`]
+export function avatarFile(file: string, sex: Sex = 'male'): string | undefined {
+  for (const candidate of filesForSex(file, sex)) {
+    const url = ART[`/assets/runner/avatar/${candidate}`]
+    if (url) return url
+  }
+  return undefined
 }

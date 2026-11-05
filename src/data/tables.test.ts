@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { avatarFile } from '../components/avatar/avatarArt'
+import { avatarFile, filesForSex } from '../components/avatar/avatarArt'
 import { parseLevels } from '../domain/athlete/levels'
 import { parseRaceField } from '../domain/races/raceField'
 import { parseRankingTable } from '../domain/ranking/ranking'
@@ -20,8 +20,8 @@ const { default: achievementsCsv } = await import('./achievements.csv?raw')
 const { default: rankingCsv } = await import('./ranking_points.csv?raw')
 
 const THUMBNAILS = import.meta.glob('/assets/ui/{thumbnails,equipment}/*.{webp,png,jpg,jpeg}')
-const hasThumbnail = (file: string) =>
-  `/assets/ui/thumbnails/${file}` in THUMBNAILS || `/assets/ui/equipment/${file}` in THUMBNAILS
+const hasThumbnail = (file: string, sex: 'male' | 'female') =>
+  filesForSex(file, sex).some((name) => `/assets/ui/thumbnails/${name}` in THUMBNAILS || `/assets/ui/equipment/${name}` in THUMBNAILS)
 
 /**
  * The owner's tables (src/data/*.csv, 3 November 2026) are free to change: these checks only make
@@ -48,8 +48,10 @@ describe("owner's tables", () => {
   it('equipment.csv is a valid equipment table whose files exist, with the starting shoes and gels and bars for sale', () => {
     const items = parseEquipment(equipmentCsv)
     for (const item of items) {
-      if (item.avatarLayer) expect(avatarFile(item.avatarLayer), `${item.id}: avatar_layer ${item.avatarLayer}`).toBeDefined()
-      if (item.thumbnail) expect(hasThumbnail(item.thumbnail), `${item.id}: thumbnail ${item.thumbnail}`).toBe(true)
+      for (const sex of ['male', 'female'] as const) {
+        if (item.avatarLayer) expect(avatarFile(item.avatarLayer, sex), `${item.id}: avatar_layer ${item.avatarLayer} (${sex})`).toBeDefined()
+        if (item.thumbnail) expect(hasThumbnail(item.thumbnail, sex), `${item.id}: thumbnail ${item.thumbnail} (${sex})`).toBe(true)
+      }
       if (item.price !== null) expect(item.price, item.id).toBeGreaterThanOrEqual(0)
     }
     // The starting shoes (every career owns them), and something that refills gels and bars.

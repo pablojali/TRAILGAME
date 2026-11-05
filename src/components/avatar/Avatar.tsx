@@ -125,9 +125,9 @@ function Vest({ id }: { id: string }) {
 }
 
 /** The runner layer of an equipped item, from the equipment table (avatar_layer), if it has art. */
-function layerOf(id: string): string | undefined {
+function layerOf(id: string, sex: Sex): string | undefined {
   const file = getEquipmentItem(id)?.avatarLayer
-  return file ? avatarFile(file) : undefined
+  return file ? avatarFile(file, sex) : undefined
 }
 
 function EquipmentLayer({ id, href }: { id: string; href: string }) {
@@ -148,7 +148,7 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
     // The chosen head is drawn over the body's basic head, in the body's skin tone.
     { id: 'head', href: headArt(sex, appearance.hair, Number(appearance.skin.slice('tone-'.length))) },
     // Shoes: the art the equipment table names for each item (avatar_layer).
-    ...bySlot('shoes').map((id) => ({ id, href: layerOf(id) })),
+    ...bySlot('shoes').map((id) => ({ id, href: layerOf(id, sex) })),
     ...(shirt ? [{ id: shirt.id, href: art(`clothing/${shirt.file}`) }] : []),
   ]
   const zoomed = focus === 'face' && crop === 'full'
@@ -177,14 +177,14 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
       <g className={styles.zoom} style={{ transform: zoomed ? FACE_TRANSFORM : 'none' }} filter={`url(#${glowId})`}>
         {/* Poles and backpacks: the table's art when it names one, otherwise the drawn ones. */}
         {bySlot('poles').map((id) =>
-          layerOf(id) ? <EquipmentLayer key={id} id={id} href={layerOf(id)!} /> : POLE_COLORS[id] && <Poles key={id} id={id} />,
+          layerOf(id, sex) ? <EquipmentLayer key={id} id={id} href={layerOf(id, sex)!} /> : POLE_COLORS[id] && <Poles key={id} id={id} />,
         )}
         {layers.map(
           (layer) =>
             layer.href && <image key={layer.id} href={layer.href} width="640" height="960" data-layer={layer.id} />,
         )}
         {bySlot('pack').map((id) =>
-          layerOf(id) ? <EquipmentLayer key={id} id={id} href={layerOf(id)!} /> : PACK_COLORS[id] && <Vest key={id} id={id} />,
+          layerOf(id, sex) ? <EquipmentLayer key={id} id={id} href={layerOf(id, sex)!} /> : PACK_COLORS[id] && <Vest key={id} id={id} />,
         )}
       </g>
     </svg>

@@ -1,39 +1,31 @@
 import { RACE_STRATEGY, type AidStop, type Intensity } from '../../domain/races/strategyConfig'
+import type { MessageKey, Translate } from '../../i18n/i18n'
 import type { RaceSegment } from '../../game-engine/raceEngine'
 
-/** Intensity names and what each does (Race Engine V1). */
-export const INTENSITY_OPTIONS: readonly { id: Intensity; label: string }[] = [
-  { id: 'recovery', label: 'Recovery' },
-  { id: 'easy', label: 'Easy' },
-  { id: 'target', label: 'Target pace' },
-  { id: 'hard', label: 'Hard' },
-]
+/** Intensities and stops in order, with the keys of their names (Race Engine V1). */
+export const INTENSITY_IDS: readonly Intensity[] = ['recovery', 'easy', 'target', 'hard']
+export const STOP_IDS: readonly AidStop[] = ['quick', 'normal', 'slow']
 
-export const STOP_OPTIONS: readonly { id: AidStop; label: string }[] = [
-  { id: 'quick', label: 'Quick' },
-  { id: 'normal', label: 'Normal' },
-  { id: 'slow', label: 'Slow' },
-]
+export const intensityKey = (intensity: Intensity): MessageKey => `race.intensity.${intensity}`
+export const stopKey = (stop: AidStop): MessageKey => `race.stop.${stop}`
 
-export const INTENSITY_LABELS = Object.fromEntries(INTENSITY_OPTIONS.map((o) => [o.id, o.label])) as Record<Intensity, string>
-export const STOP_LABELS = Object.fromEntries(STOP_OPTIONS.map((o) => [o.id, o.label])) as Record<AidStop, string>
+/** The intensity chips in the player's language. */
+export function intensityOptions(t: Translate): { id: Intensity; label: string }[] {
+  return INTENSITY_IDS.map((id) => ({ id, label: t(intensityKey(id)) }))
+}
 
 function percent(fraction: number): string {
   return `${Math.round(Math.abs(fraction) * 100)}%`
 }
 
 /** e.g. "5% slower, 30% less fatigue". */
-export function intensityHint(intensity: Intensity): string {
+export function intensityHint(intensity: Intensity, t: Translate): string {
   const { pace, fatigue } = RACE_STRATEGY.intensity[intensity]
-  if (intensity === 'target') return 'Your normal race pace and fatigue.'
-  const speed = pace > 1 ? `${percent(pace - 1)} slower` : `${percent(1 - pace)} faster`
-  const tiring = fatigue < 1 ? `${percent(1 - fatigue)} less fatigue` : `${percent(fatigue - 1)} more fatigue`
-  return `${speed}, ${tiring}. Fatigue built up now slows the segments after.`
-}
-
-/** e.g. "2 min, recovers 25% of the race fatigue so far" (the stop's length depends on the race). */
-export function stopHint(stop: AidStop, seconds: number): string {
-  return `${stopDuration(seconds)}, recovers about ${percent(RACE_STRATEGY.stop[stop].recovery)} of the race fatigue so far.`
+  if (intensity === 'target') return t('race.hint.target')
+  const speed = pace > 1 ? t('race.hint.slower', { percent: percent(pace - 1) }) : t('race.hint.faster', { percent: percent(1 - pace) })
+  const tiring =
+    fatigue < 1 ? t('race.hint.lessFatigue', { percent: percent(1 - fatigue) }) : t('race.hint.moreFatigue', { percent: percent(fatigue - 1) })
+  return t('race.hint.other', { speed, tiring })
 }
 
 /** "45 s", "2 min", "2:30 min". */

@@ -2,6 +2,9 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import enCommon from './locales/en/common.json'
 import enDashboard from './locales/en/dashboard.json'
 import enTraining from './locales/en/training.json'
+import enRaces from './locales/en/races.json'
+import enRaceRun from './locales/en/raceRun.json'
+import enRaceResult from './locales/en/raceResult.json'
 import enEquipment from './locales/en/equipment.json'
 import enSettings from './locales/en/settings.json'
 
@@ -26,7 +29,7 @@ type Message = string | Partial<Record<Intl.LDMLPluralRule, string>>
 export type Messages = Record<string, Message>
 
 /** English, the reference: its keys type `t()`. Add a new file here and in every language. */
-const EN = { ...enCommon, ...enSettings, ...enEquipment, ...enDashboard, ...enTraining }
+const EN = { ...enCommon, ...enSettings, ...enEquipment, ...enDashboard, ...enTraining, ...enRaces, ...enRaceRun, ...enRaceResult }
 
 const FILES = import.meta.glob<Messages>('./locales/*/*.json', { eager: true, import: 'default' })
 

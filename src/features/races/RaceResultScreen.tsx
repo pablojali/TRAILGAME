@@ -1,3 +1,5 @@
+import { useI18n } from '../../i18n/i18n'
+import { weekdayLongKey } from '../../i18n/labels'
 import { useEffect, useRef } from 'react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
@@ -7,15 +9,13 @@ import { Screen, ScrollPanel } from '../../components/Screen'
 import { Tabs } from '../../components/Tabs'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
 import { getAttributePointsBetween } from '../../domain/athlete/levels'
-import { formatCoins } from '../../domain/economy/coins'
-import { GROSS_PRIZES, PRIZE_BANDS, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
+import { GROSS_PRIZES, PRIZE_BANDS } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
 import { INJURY_REST_DAYS } from '../../domain/training/injury'
-import { weekdayLong } from '../../domain/training/weekdays'
 import type { FinishedRaceEntry, RaceResult } from '../../game-engine/gameState'
 import { getEntry, getStandings } from '../../game-engine/races'
-import { formatChange, INTENSITY_LABELS, STOP_LABELS } from './raceStrategyText'
-import { durationText, ordinal, raceTimeText } from './raceText'
+import { formatChange, intensityKey, stopKey } from './raceStrategyText'
+import { bandLabel, durationText, ordinal, raceTimeText } from './raceText'
 import styles from './Races.module.css'
 
 /**
@@ -27,21 +27,22 @@ export function RaceResultScreen() {
   const { state } = useCareer()
   const entry = getEntry(state, entryId)
   const race = entry && getRace(entry.raceId)
+  const { t } = useI18n()
 
   if (!entry || !race) {
     return (
-      <Screen title="Result not found" description="There is no race result with this link.">
+      <Screen title={t('result.notFound')} description={t('result.notFoundDescription')}>
         <Link to="/races" className={`${button.button} ${button.secondary}`}>
-          Back to races
+          {t('result.backToRaces')}
         </Link>
       </Screen>
     )
   }
   if (entry.status !== 'finished') {
     return (
-      <Screen eyebrow={race.name} title="Not raced yet" description="This entry has no result yet.">
+      <Screen eyebrow={race.name} title={t('result.notRaced')} description={t('result.notRacedDescription')}>
         <Link to={`/races/${race.id}`} className={`${button.button} ${button.primary}`}>
-          Go to race day
+          {t('result.goToRaceDay')}
         </Link>
       </Screen>
     )
@@ -49,11 +50,7 @@ export function RaceResultScreen() {
   return <Result race={race} entry={entry} />
 }
 
-const RESULT_TABS = [
-  { id: 'result', label: 'Result' },
-  { id: 'splits', label: 'Splits' },
-  { id: 'standings', label: 'Full results' },
-] as const
+const RESULT_TABS = ['result', 'splits', 'standings'] as const
 
 function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
   const { result } = entry
@@ -68,19 +65,27 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
   )
 
   const [params, setParams] = useSearchParams()
+  const { t, locale } = useI18n()
   // Results saved before Race Engine V1 have no splits.
-  const tabs = result.splits ? RESULT_TABS : RESULT_TABS.filter((t) => t.id !== 'splits')
-  const tab = tabs.find((t) => t.id === params.get('tab'))?.id ?? 'result'
+  const tabs = (result.splits ? RESULT_TABS : RESULT_TABS.filter((id) => id !== 'splits')).map((id) => ({
+    id,
+    label: t(`result.tab.${id}`),
+  }))
+  const tab = tabs.find((item) => item.id === params.get('tab'))?.id ?? 'result'
 
   return (
     <Screen
-      eyebrow={`${race.name} · Result`}
-      title={`${ordinal(result.position)} of ${result.fieldSize}`}
-      description={`${RACE_CATEGORY_CONFIG[race.category].label} race · Week ${result.week}, ${weekdayLong(result.day)}`}
+      eyebrow={t('result.eyebrow', { race: race.name })}
+      title={t('result.title', { position: ordinal(result.position, locale), field: result.fieldSize })}
+      description={t('result.description', {
+        category: t(`category.${race.category}`),
+        week: result.week,
+        day: t(weekdayLongKey(result.day)),
+      })}
       showDescription
     >
       <Tabs
-        label="Race result"
+        label={t('result.tabs')}
         tabs={tabs}
         value={tab}
         // Keep the router state, so the level-up message survives switching tabs.
@@ -88,51 +93,56 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
       >
         {tab === 'result' && (
           // Tiles that fit the screen (owner request, 1 November 2026): no explanations.
-          <dl className={styles.tiles} aria-label="Result">
+          <dl className={styles.tiles} aria-label={t('result.result')}>
             <div className={styles.tile}>
-              <dt>Time</dt>
+              <dt>{t('result.time')}</dt>
               <dd className={styles.time}>{raceTimeText(result.timeS)}</dd>
             </div>
             <div className={styles.tile}>
-              <dt>Prize band</dt>
-              <dd>{PRIZE_BANDS[result.band]!.label}</dd>
-            </div>
-            <div className={styles.tile}>
-              <dt>Coins awarded</dt>
-              <dd>{formatCoins(result.coinsAwarded)}</dd>
-            </div>
-            <div className={styles.tile}>
-              <dt>XP awarded</dt>
+              <dt>{t('result.band')}</dt>
               <dd>
-                {result.xpAwarded} XP{result.injured ? ' (injured)' : ''}
+                {PRIZE_BANDS[result.band]!.to === null
+                  ? t('result.orLower', { position: ordinal(PRIZE_BANDS[result.band]!.from, locale) })
+                  : bandLabel(PRIZE_BANDS[result.band]!, locale)}
               </dd>
             </div>
             <div className={styles.tile}>
-              <dt>Fatigue</dt>
+              <dt>{t('result.coins')}</dt>
+              <dd>{t('common.coins', { count: result.coinsAwarded })}</dd>
+            </div>
+            <div className={styles.tile}>
+              <dt>{t('result.xp')}</dt>
+              <dd>
+                {t('result.xpValue', { xp: result.xpAwarded })}
+                {result.injured ? t('result.injuredTag') : ''}
+              </dd>
+            </div>
+            <div className={styles.tile}>
+              <dt>{t('stat.fatigue')}</dt>
               <dd>{formatChange(result.fatigueChange)}</dd>
             </div>
             <div className={styles.tile}>
-              <dt>Rewards</dt>
+              <dt>{t('result.rewards')}</dt>
               <dd className={result.multiplierPct < 100 ? styles.warning : undefined}>{result.multiplierPct}%</dd>
             </div>
             {result.injured && (
               <div className={`${styles.tile} ${styles.tileWide}`}>
-                <dt>Injured</dt>
+                <dt>{t('result.injured')}</dt>
                 <dd className={styles.warning}>
-                  Fitness {formatDelta(result.fitnessChange)} · {INJURY_REST_DAYS} forced rest days
+                  {t('result.injuredValue', { delta: formatDelta(result.fitnessChange), days: INJURY_REST_DAYS })}
                 </dd>
               </div>
             )}
             {levelsGained > 0 && (
               <div className={`${styles.tile} ${styles.tileWide}`}>
-                <dt>Level up!</dt>
+                <dt>{t('result.levelUp')}</dt>
                 <dd role="status">
-                  +{getAttributePointsBetween(result.levelAtStart, result.levelAtStart + levelsGained)} attribute points ·{' '}
-                  <Link to="/attributes">Allocate points</Link>
+                  {t('result.points', { points: getAttributePointsBetween(result.levelAtStart, result.levelAtStart + levelsGained) })}
+                  <Link to="/attributes">{t('result.allocate')}</Link>
                   {unlocks.length > 0 && (
                     <>
-                      {' '}
-                      · New look: {unlocks.join(', ')} · <Link to="/appearance">Change look</Link>
+                      {t('result.newLook', { looks: unlocks.join(', ') })}
+                      <Link to="/appearance">{t('common.changeLook')}</Link>
                     </>
                   )}
                 </dd>
@@ -141,7 +151,7 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
           </dl>
         )}
         {tab === 'splits' && result.splits && (
-          <ScrollPanel label="Splits">
+          <ScrollPanel label={t('result.splits')}>
             <Splits result={result} />
           </ScrollPanel>
         )}
@@ -150,10 +160,10 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
 
       <div className={styles.links}>
         <Link to={`/races?category=${race.category}`} className={`${button.button} ${button.primary}`}>
-          Back to races
+          {t('result.backToRaces')}
         </Link>
         <Link to="/training" className={`${button.button} ${button.secondary}`}>
-          Training
+          {t('result.training')}
         </Link>
       </div>
     </Screen>
@@ -163,35 +173,38 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
 /** Every segment as run (Race Engine V1): intensity, time, position on arrival and the stop after it. */
 function Splits({ result }: { result: RaceResult }) {
   const splits = result.splits ?? []
-  const nutrition = [result.nutrition?.gel && 'gel', result.nutrition?.bar && 'cereal bar'].filter(Boolean)
+  const { t } = useI18n()
+  const nutrition = [result.nutrition?.gel && t('result.gel'), result.nutrition?.bar && t('result.bar')].filter(Boolean)
   return (
     <>
       <table className={`${styles.standingsTable} ${styles.splitsTable}`}>
-        <caption className={styles.srOnly}>Splits by segment</caption>
+        <caption className={styles.srOnly}>{t('result.splitsCaption')}</caption>
         <thead>
           <tr>
-            <th scope="col">Seg.</th>
-            <th scope="col">Intensity</th>
-            <th scope="col">Time</th>
-            <th scope="col">Total</th>
-            <th scope="col">Pos.</th>
-            <th scope="col">Stop</th>
+            <th scope="col">{t('result.col.segment')}</th>
+            <th scope="col">{t('result.col.intensity')}</th>
+            <th scope="col">{t('result.col.time')}</th>
+            <th scope="col">{t('result.col.total')}</th>
+            <th scope="col">{t('result.col.position')}</th>
+            <th scope="col">{t('result.col.stop')}</th>
           </tr>
         </thead>
         <tbody>
           {splits.map((split, index) => (
             <tr key={index}>
               <td>{index + 1}</td>
-              <th scope="row">{INTENSITY_LABELS[split.intensity]}</th>
+              <th scope="row">{t(intensityKey(split.intensity))}</th>
               <td>{durationText(split.segmentS)}</td>
               <td>{raceTimeText(split.arrivalS)}</td>
               <td>{split.position}</td>
-              <td>{split.stop ? STOP_LABELS[split.stop] : 'Finish'}</td>
+              <td>{split.stop ? t(stopKey(split.stop)) : t('result.finish')}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className={styles.muted}>Nutrition: {nutrition.length ? nutrition.join(' and ') : 'none'}.</p>
+      <p className={styles.muted}>
+        {t('result.nutrition', { items: nutrition.length ? nutrition.join(t('result.and')) : t('result.nutritionNone') })}
+      </p>
     </>
   )
 }
@@ -202,20 +215,21 @@ function Standings({ race, entry, name }: { race: Race; entry: FinishedRaceEntry
   const winner = rows[0]!.timeS
   const prizes = GROSS_PRIZES[race.category]
   const you = useRef<HTMLTableRowElement>(null)
+  const { t } = useI18n()
   // Open the table at the player's row.
   useEffect(() => you.current?.scrollIntoView?.({ block: 'center' }), [])
   return (
     <>
-      <ScrollPanel label={`Full results · ${rows.length} runners`}>
+      <ScrollPanel label={t('result.standings', { count: rows.length })}>
         <table className={styles.standingsTable}>
-          <caption className={styles.srOnly}>Full results of {race.name}</caption>
+          <caption className={styles.srOnly}>{t('result.standingsCaption', { race: race.name })}</caption>
           <thead>
             <tr>
-              <th scope="col">Pos.</th>
-              <th scope="col">Runner</th>
-              <th scope="col">Time</th>
-              <th scope="col">Gap</th>
-              <th scope="col">Prize</th>
+              <th scope="col">{t('result.col.position')}</th>
+              <th scope="col">{t('result.col.runner')}</th>
+              <th scope="col">{t('result.col.time')}</th>
+              <th scope="col">{t('result.col.gap')}</th>
+              <th scope="col">{t('result.col.prize')}</th>
             </tr>
           </thead>
           <tbody>
@@ -230,7 +244,7 @@ function Standings({ race, entry, name }: { race: Race; entry: FinishedRaceEntry
                   aria-current={row.runner === 'you' ? 'true' : undefined}
                 >
                   <td>{row.position}</td>
-                  <th scope="row">{row.runner === 'you' ? `${name} (you)` : `Rival ${row.runner}`}</th>
+                  <th scope="row">{row.runner === 'you' ? t('result.you', { name }) : t('result.rival', { number: row.runner })}</th>
                   <td>{raceTimeText(row.timeS)}</td>
                   <td>{row.position === 1 ? '—' : `+${durationText(row.timeS - winner)}`}</td>
                   <td>{prizes[band]}</td>
@@ -240,7 +254,7 @@ function Standings({ race, entry, name }: { race: Race; entry: FinishedRaceEntry
           </tbody>
         </table>
       </ScrollPanel>
-      <p className={styles.standingsNote}>Prizes are gross coins by position, before the reward multiplier.</p>
+      <p className={styles.standingsNote}>{t('result.prizesNote')}</p>
     </>
   )
 }

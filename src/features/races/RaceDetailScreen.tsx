@@ -4,35 +4,38 @@ import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Screen } from '../../components/Screen'
 import { getLevel } from '../../domain/athlete/levels'
-import { formatCoins } from '../../domain/economy/coins'
 import { getGrossPrizes, getMinimumLevel, getRewardMultiplier } from '../../domain/races/access'
-import { PRIZE_BANDS, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
+import { PRIZE_BANDS } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
-import { weekdayShort } from '../../domain/training/weekdays'
+import { useI18n, type MessageKey } from '../../i18n/i18n'
+
+type RaceId = `RACE-${'001' | '002' | '003' | '004' | '005' | '006' | '007' | '008' | '009' | '010' | '011' | '012'}`
+import { weekdayShortKey } from '../../i18n/labels'
 import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
 import { getFinishedEntries, getPendingEntry, type RaceEntryError } from '../../game-engine/races'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import { RaceDayPanel } from './RaceDayPanel'
-import { courseText, feePaidText, ordinal, percentText, raceTimeText } from './raceText'
+import { bandLabel, courseText, feePaidText, ordinal, percentText, raceTimeText } from './raceText'
 import styles from './Races.module.css'
 
-const ERRORS: Record<RaceEntryError | ServerError, string> = {
-  offline: 'Could not reach the server, so you were not entered. Check your connection and try again.',
-  'server-error': 'The server could not complete the entry, so you were not entered. Try again.',
-  'unknown-race': 'This race does not exist.',
-  'already-entered': 'You have already entered this race.',
-  'level-too-low': 'Your level is too low for this race. Train to reach its minimum level.',
-  'race-scheduled': 'You already have a race this Sunday. Races are one per week.',
+const ERRORS: Record<RaceEntryError | ServerError, MessageKey> = {
+  offline: 'races.error.offline',
+  'server-error': 'races.error.server-error',
+  'unknown-race': 'races.error.unknown-race',
+  'already-entered': 'races.error.already-entered',
+  'level-too-low': 'races.error.level-too-low',
+  'race-scheduled': 'races.error.race-scheduled',
 }
 
 export function RaceDetailScreen() {
   const { raceId = '' } = useParams()
   const race = getRace(raceId)
+  const { t } = useI18n()
   if (!race) {
     return (
-      <Screen title="Race not found" description="This race is not in the catalog.">
+      <Screen title={t('races.notFound')} description={t('races.notFoundDescription')}>
         <Link to="/races" className={`${button.button} ${button.secondary}`}>
-          Back to races
+          {t('races.backToRaces')}
         </Link>
       </Screen>
     )
@@ -43,57 +46,58 @@ export function RaceDetailScreen() {
 function RaceDetail({ race }: { race: Race }) {
   const { state } = useCareer()
   const level = getLevel(state.athlete.xp)
-  const category = RACE_CATEGORY_CONFIG[race.category]
+  const { t, locale } = useI18n()
   const minimum = getMinimumLevel(race)
   const multiplier = getRewardMultiplier(race, level)
   const prizes = getGrossPrizes(race)
 
   return (
     <Screen
-      eyebrow={`${category.label} race`}
+      eyebrow={t('races.categoryRace', { category: t(`category.${race.category}`) })}
       title={race.name}
-      description={courseText(race)}
+      description={courseText(race, t, locale)}
       aside={
         <Link to={`/races?category=${race.category}`} className={styles.back}>
-          ← All races
+          {t('races.allRaces')}
         </Link>
       }
     >
       {/* Tiles that fit the screen (owner request, 1 November 2026): no scrolling, no prize notes. */}
       <dl className={`${styles.tiles} ${styles.grow}`}>
         <div className={styles.tile}>
-          <dt>Distance</dt>
+          <dt>{t('races.distance')}</dt>
           <dd>{race.distanceKm} km</dd>
         </div>
         <div className={styles.tile}>
-          <dt>Elevation gain</dt>
-          <dd>{race.elevationGainM.toLocaleString('en-US')} m</dd>
+          <dt>{t('races.elevation')}</dt>
+          <dd>{race.elevationGainM.toLocaleString(locale)} m</dd>
         </div>
         <div className={`${styles.tile} ${styles.tileWide}`}>
-          <dt>Terrain</dt>
-          <dd>{race.terrain}</dd>
+          <dt>{t('races.terrain')}</dt>
+          <dd>{t(`raceTerrain.${race.id as RaceId}`)}</dd>
         </div>
         <div className={styles.tile}>
-          <dt>Recommended level</dt>
+          <dt>{t('races.recommended')}</dt>
           <dd>
-            {race.recommendedLevel} <span className={styles.tileNote}>(you: {level})</span>
+            {race.recommendedLevel} <span className={styles.tileNote}>{t('races.you', { level })}</span>
           </dd>
         </div>
         <div className={styles.tile}>
-          <dt>Entry</dt>
+          <dt>{t('races.entry')}</dt>
           <dd>
-            Free <span className={styles.tileNote}>· from level {minimum}</span>
+            {t('races.free')} <span className={styles.tileNote}>{t('races.fromLevel', { level: minimum })}</span>
           </dd>
         </div>
         <div className={`${styles.tile} ${styles.tileWide}`}>
           <dt>
-            Prizes{multiplier.coins < 1 && <span className={styles.warning}> · {percentText(multiplier.coins)} at your level</span>}
+            {t('races.prizes')}
+            {multiplier.coins < 1 && <span className={styles.warning}>{t('races.atYourLevel', { percent: percentText(multiplier.coins) })}</span>}
           </dt>
           <dd>
-            <ul className={styles.prizeRow} aria-label="Gross coin prizes by finishing position">
+            <ul className={styles.prizeRow} aria-label={t('races.prizeList')}>
               {PRIZE_BANDS.map((band, i) => (
                 <li key={band.label}>
-                  <span>{band.label.replace(' or lower', '+')}</span>
+                  <span>{bandLabel(band, locale)}</span>
                   <span>{prizes[i]}</span>
                 </li>
               ))}
@@ -113,22 +117,25 @@ function RaceDetail({ race }: { race: Race }) {
 /** The best and latest result of this race, as one tile that opens the latest result. */
 function PastResults({ race }: { race: Race }) {
   const { state } = useCareer()
+  const { t, locale } = useI18n()
   const finished = getFinishedEntries(state, race.id)
   if (finished.length === 0) return null
   const latest = finished[finished.length - 1]!
   const best = finished.reduce((a, b) => (b.result.position < a.result.position ? b : a))
   return (
     <div className={`${styles.tile} ${styles.tileWide}`}>
-      <dt>Your results</dt>
+      <dt>{t('races.yourResults')}</dt>
       <dd>
         <Link to={`/races/results/${latest.id}`} className={styles.tileLink}>
           <span className={styles.tileValue}>
-            Best {ordinal(best.result.position)} · last {ordinal(latest.result.position)} in{' '}
-            {raceTimeText(latest.result.timeS)}
+            {t('races.bestLast', {
+              best: ordinal(best.result.position, locale),
+              last: ordinal(latest.result.position, locale),
+              time: raceTimeText(latest.result.timeS),
+            })}
           </span>{' '}
           <span className={styles.tileNote}>
-            · {finished.length} {finished.length === 1 ? 'race' : 'races'} · Week {latest.result.week},{' '}
-            {weekdayShort(latest.result.day)} ›
+            {t('races.resultsCount', { count: finished.length, week: latest.result.week, day: t(weekdayShortKey(latest.result.day)) })}
           </span>
         </Link>
       </dd>
@@ -150,6 +157,7 @@ function EntryPanel({ race }: { race: Race }) {
   const pending = useRef(false)
   const [justEntered, setJustEntered] = useState(false)
   const panel = useRef<HTMLHeadingElement>(null)
+  const { t } = useI18n()
 
   // Move focus to the confirmation, and to the result of confirming.
   useEffect(() => {
@@ -158,13 +166,13 @@ function EntryPanel({ race }: { race: Race }) {
 
   if (entry) {
     return (
-      <section className={styles.entryBar} aria-label="Your entry">
+      <section className={styles.entryBar} aria-label={t('races.yourEntry')}>
         <h2 ref={panel} tabIndex={-1} className={styles.srOnly}>
-          Race entry confirmed
+          {t('races.entryConfirmed')}
         </h2>
         <p role="status" className={styles.entryTitle}>
-          {justEntered ? 'Entry confirmed. ' : ''}
-          Entry fee paid: {feePaidText(entry.feePaid)}.
+          {justEntered ? t('races.entryConfirmedNow') : ''}
+          {t('races.feePaid', { fee: feePaidText(entry.feePaid, t) })}
         </p>
         <RaceDayPanel race={race} entryId={entry.id} />
       </section>
@@ -175,12 +183,11 @@ function EntryPanel({ race }: { race: Race }) {
   const scheduledRace = scheduled && getRace(scheduled.raceId)
   if (scheduled && scheduledRace) {
     return (
-      <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label="Enter this race">
-        <p className={`${styles.entryText} ${styles.warning}`}>
-          You are already entered in {scheduledRace.name} on Sunday. One race per week.
-        </p>
+      <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label={t('races.enterThis')}>
+        <p className={`${styles.entryText} ${styles.warning}`}>{t('races.alreadyEntered', { name: scheduledRace.name })}</p>
         <Link to={`/races/${scheduledRace.id}`} className={`${button.button} ${button.secondary}`}>
-          Go to race<span className={styles.srOnly}> {scheduledRace.name}</span>
+          {t('races.goToRace')}
+          <span className={styles.srOnly}> {scheduledRace.name}</span>
         </Link>
       </section>
     )
@@ -189,13 +196,13 @@ function EntryPanel({ race }: { race: Race }) {
   // A compact bar under the race details (owner request: the entry must not cover them).
   if (!confirming) {
     return (
-      <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label="Enter this race">
+      <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label={t('races.enterThis')}>
         <div className={styles.entryText}>
-          <p className={styles.entryTitle}>Sunday, week {getRaceWeek(state)}</p>
-          <p>Free</p>
+          <p className={styles.entryTitle}>{t('races.sundayWeek', { week: getRaceWeek(state) })}</p>
+          <p>{t('races.free')}</p>
           {tooLow && (
             <p className={styles.warning} id="race-level">
-              Opens at level {minimum} (you: {level}).
+              {t('races.opensAt', { level: minimum, you: level })}
             </p>
           )}
         </div>
@@ -210,19 +217,20 @@ function EntryPanel({ race }: { race: Race }) {
             setConfirming(true)
           }}
         >
-          Enter race
+          {t('races.enter')}
         </button>
       </section>
     )
   }
 
   return (
-    <section className={styles.entryBar} aria-label="Confirm entry">
+    <section className={styles.entryBar} aria-label={t('races.confirmEntry')}>
       <h2 ref={panel} tabIndex={-1} className={styles.srOnly}>
-        Confirm entry to {race.name}
+        {t('races.confirmEntryTo', { name: race.name })}
       </h2>
       <p>
-        <strong>Free entry.</strong> Balance stays {formatCoins(state.coins)}.
+        <strong>{t('races.freeEntry')}</strong>
+        {t('races.balanceStays', { coins: t('common.coins', { count: state.coins }) })}
       </p>
       {message && (
         <p role="alert" className={styles.warning}>
@@ -236,7 +244,7 @@ function EntryPanel({ race }: { race: Race }) {
           aria-disabled={entering || undefined}
           onClick={() => !entering && setConfirming(false)}
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           type="button"
@@ -251,14 +259,14 @@ function EntryPanel({ race }: { race: Race }) {
             pending.current = false
             setEntering(false)
             if (error) {
-              setMessage(ERRORS[error])
+              setMessage(t(ERRORS[error]))
               return
             }
             setJustEntered(true)
             setConfirming(false)
           }}
         >
-          {entering ? 'Entering…' : 'Confirm free entry'}
+          {entering ? t('races.entering') : t('races.confirmFree')}
         </button>
       </div>
     </section>

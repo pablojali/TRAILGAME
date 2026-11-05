@@ -1,13 +1,19 @@
-import { formatCoins } from '../../domain/economy/coins'
+import type { Locale, Translate } from '../../i18n/i18n'
 import type { Race } from '../../domain/races/races'
 
-export function courseText(race: Race): string {
-  return `${race.distanceKm} km · ${race.elevationGainM.toLocaleString('en-US')} m D+`
+export function courseText(race: Race, t: Translate, locale: Locale): string {
+  return t('races.course', { km: race.distanceKm, gain: race.elevationGainM.toLocaleString(locale) })
 }
 
 /** What an entry cost: free since 1 November 2026, the fee for older entries. */
-export function feePaidText(feePaid: number): string {
-  return feePaid === 0 ? 'free entry' : formatCoins(feePaid)
+export function feePaidText(feePaid: number, t: Translate): string {
+  return feePaid === 0 ? t('races.freeEntryLower') : t('common.coins', { count: feePaid })
+}
+
+/** A prize band's positions: "1st", "4th–10th", "11th+". */
+export function bandLabel(band: { from: number; to: number | null }, locale: Locale): string {
+  if (band.to === null) return `${ordinal(band.from, locale)}+`
+  return band.to === band.from ? ordinal(band.from, locale) : `${ordinal(band.from, locale)}–${ordinal(band.to, locale)}`
 }
 
 export function percentText(multiplier: number): string {

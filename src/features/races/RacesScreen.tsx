@@ -1,10 +1,11 @@
+import { useI18n } from '../../i18n/i18n'
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import { Screen } from '../../components/Screen'
 import { Tabs } from '../../components/Tabs'
 import { getLevel } from '../../domain/athlete/levels'
 import { canEnterAtLevel, getMinimumLevel } from '../../domain/races/access'
-import { isRaceCategory, RACE_CATEGORIES, RACE_CATEGORY_CONFIG, type RaceCategory } from '../../domain/races/categories'
+import { isRaceCategory, RACE_CATEGORIES, type RaceCategory } from '../../domain/races/categories'
 import { getRace, RACES } from '../../domain/races/races'
 import { getPendingEntry } from '../../game-engine/races'
 import { RacePhoto } from './RacePhoto'
@@ -32,15 +33,16 @@ export function RacesScreen() {
     ? asked
     : defaultCategory(level, pending ? getRace(pending.raceId)?.category : undefined)
   const races = RACES.filter((race) => race.category === category)
+  const { t, locale } = useI18n()
 
   return (
     <Screen
-      title="Races"
-      description="Pick a race to see its course and prizes. Entry is free; each race opens 2 levels below its recommended level."
+      title={t('races.title')}
+      description={t('races.description')}
     >
       <Tabs
-        label="Race categories"
-        tabs={RACE_CATEGORIES.map((id) => ({ id, label: RACE_CATEGORY_CONFIG[id].label }))}
+        label={t('races.categories')}
+        tabs={RACE_CATEGORIES.map((id) => ({ id, label: t(`category.${id}`) }))}
         value={category}
         onChange={(next) => setParams({ category: next }, { replace: true })}
       >
@@ -55,12 +57,12 @@ export function RacesScreen() {
                   <RacePhoto race={race} />
                   <span className={styles.raceBody}>
                     <span className={styles.raceName}>{race.name}</span>
-                    <span className={styles.raceMeta}>{courseText(race)}</span>
+                    <span className={styles.raceMeta}>{courseText(race, t, locale)}</span>
                     <span className={styles.raceTags}>
                       <span className={`${styles.tag} ${open ? '' : styles.tagEarly}`}>
-                        {open ? 'Free' : `Lvl ${getMinimumLevel(race)}`}
+                        {open ? t('races.free') : t('common.lvl', { level: getMinimumLevel(race) })}
                       </span>
-                      {entered && <span className={`${styles.tag} ${styles.tagEntered}`}>Entered</span>}
+                      {entered && <span className={`${styles.tag} ${styles.tagEntered}`}>{t('races.entered')}</span>}
                     </span>
                   </span>
                   <span className={styles.chevron} aria-hidden="true">

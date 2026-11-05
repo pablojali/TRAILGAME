@@ -1,3 +1,4 @@
+import { useI18n } from '../../i18n/i18n'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { RaceClip } from './raceClips'
@@ -28,6 +29,7 @@ export function RaceClipPlayer({
   ready: boolean
   onDone(): void
 }) {
+  const { t } = useI18n()
   const [ended, setEnded] = useState(prefersReducedMotion)
   const started = useRef(false)
   const done = useRef(false)
@@ -74,7 +76,7 @@ export function RaceClipPlayer({
         </p>
       ) : (
         <button type="button" className={styles.skip} onClick={() => setEnded(true)}>
-          Skip
+          {t('raceRun.skip')}
         </button>
       )}
     </div>,

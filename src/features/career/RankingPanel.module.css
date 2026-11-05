@@ -163,3 +163,21 @@
   color: var(--text-muted);
   font-size: var(--font-size-sm);
 }
+
+.modes {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.seasonText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.dates {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: none;
+}

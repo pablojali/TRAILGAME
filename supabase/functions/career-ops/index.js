@@ -669,7 +669,7 @@ function getCurrentDay(week) {
 }
 
 // raw:src/data/ranking_points.csv
-var ranking_points_default = "# Ranking points (owner table, 5 November 2026). kind,key,value:\n# setting best_results: how many of a player's best results of the season count. setting first_season: the month (YYYY-MM, UTC) of Season 1; each season is one calendar month.\n# race: base points of each race (by its difficulty: distance and climb). position: percent of the base points for each finishing position (positions not listed: 0).\n# Points of a result = base x position percent x the race's reward percent at the runner's level (races far below the runner's level give less or nothing).\nkind,key,value\nsetting,best_results,10\nsetting,first_season,2026-11\nrace,RACE-001,62\nrace,RACE-002,102\nrace,RACE-003,135\nrace,RACE-004,175\nrace,RACE-005,225\nrace,RACE-006,275\nrace,RACE-007,350\nrace,RACE-008,450\nrace,RACE-009,570\nrace,RACE-010,700\nrace,RACE-011,910\nrace,RACE-012,1180\nposition,1,100\nposition,2,85\nposition,3,75\nposition,4,67\nposition,5,60\nposition,6,54\nposition,7,49\nposition,8,45\nposition,9,41\nposition,10,38\nposition,11,35\nposition,12,32\nposition,13,30\nposition,14,28\nposition,15,26\nposition,16,24\nposition,17,22\nposition,18,20\nposition,19,18\nposition,20,16\nposition,21,15\nposition,22,14\nposition,23,13\nposition,24,12\nposition,25,11\nposition,26,10\nposition,27,9\nposition,28,8\nposition,29,7\nposition,30,5\n";
+var ranking_points_default = "# Ranking points (owner table, 5 November 2026). kind,key,value:\n# setting best_results: how many of a player's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC): results before it never count.\n# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December (owner decision, 5 November 2026).\n# setting annual_months: the Annual ranking adds up each season's best results from the last that many months.\n# Majors (multiplayer races, 4 per season, one each weekend; a later milestone) will be race rows with their own, higher base points.\n# race: base points of each race (by its difficulty: distance and climb). position: percent of the base points for each finishing position (positions not listed: 0).\n# Points of a result = base x position percent x the race's reward percent at the runner's level (races far below the runner's level give less or nothing).\nkind,key,value\nsetting,best_results,10\nsetting,first_season,2026-11\nsetting,annual_months,12\nrace,RACE-001,62\nrace,RACE-002,102\nrace,RACE-003,135\nrace,RACE-004,175\nrace,RACE-005,225\nrace,RACE-006,275\nrace,RACE-007,350\nrace,RACE-008,450\nrace,RACE-009,570\nrace,RACE-010,700\nrace,RACE-011,910\nrace,RACE-012,1180\nposition,1,100\nposition,2,85\nposition,3,75\nposition,4,67\nposition,5,60\nposition,6,54\nposition,7,49\nposition,8,45\nposition,9,41\nposition,10,38\nposition,11,35\nposition,12,32\nposition,13,30\nposition,14,28\nposition,15,26\nposition,16,24\nposition,17,22\nposition,18,20\nposition,19,18\nposition,20,16\nposition,21,15\nposition,22,14\nposition,23,13\nposition,24,12\nposition,25,11\nposition,26,10\nposition,27,9\nposition,28,8\nposition,29,7\nposition,30,5\n";
 
 // src/domain/races/races.ts
 var RACES = [
@@ -696,10 +696,11 @@ function isRaceId(value) {
 
 // src/domain/ranking/ranking.ts
 function parseRankingTable(text) {
-  const table = { bestResults: 0, firstSeason: { year: 0, month: 0 }, racePoints: {}, positionPercent: {} };
+  const table = { bestResults: 0, firstSeason: { year: 0, month: 0 }, annualMonths: 0, racePoints: {}, positionPercent: {} };
   parseCsv(text).forEach((row, i) => {
     const where = `ranking_points.csv row ${i + 1}`;
     if (row.kind === "setting" && row.key === "best_results") table.bestResults = csvInt(row.value, where);
+    else if (row.kind === "setting" && row.key === "annual_months") table.annualMonths = csvInt(row.value, where);
     else if (row.kind === "setting" && row.key === "first_season") {
       const match = /^(\d{4})-(\d{2})$/.exec(row.value ?? "");
       if (!match || Number(match[2]) < 1 || Number(match[2]) > 12) throw new Error(`${where}: first_season must be YYYY-MM`);
@@ -715,14 +716,18 @@ function parseRankingTable(text) {
     } else throw new Error(`${where}: unknown row "${row.kind},${row.key}"`);
   });
   if (table.bestResults < 1) throw new Error("ranking_points.csv: best_results must be at least 1");
+  if (table.annualMonths < 1) throw new Error("ranking_points.csv: annual_months must be at least 1");
   if (!table.firstSeason.year) throw new Error("ranking_points.csv: first_season is missing");
   return table;
 }
 var RANKING = parseRankingTable(ranking_points_default);
+function seasonId(year, number) {
+  return year * 100 + number;
+}
 function rankingSeason(at, table = RANKING) {
   const date = new Date(at);
-  const months = (date.getUTCFullYear() - table.firstSeason.year) * 12 + (date.getUTCMonth() + 1 - table.firstSeason.month);
-  return months >= 0 ? months + 1 : 0;
+  const id = seasonId(date.getUTCFullYear(), date.getUTCMonth() + 1);
+  return id >= seasonId(table.firstSeason.year, table.firstSeason.month) ? id : 0;
 }
 function rankingPoints(raceId, position, rewardPct, table = RANKING) {
   const base = table.racePoints[raceId] ?? 0;
@@ -1956,7 +1961,7 @@ function finishRace(state, active, race, field, now) {
 }
 function rankingFields(raceId, position, rewardPct, now) {
   const season = rankingSeason(now);
-  return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, rewardPct) } : {};
+  return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, rewardPct), rankingAt: now } : {};
 }
 
 // src/repositories/gameRepository.ts
@@ -1996,7 +2001,7 @@ function isFactor(value) {
   return isRecord(value) && FACTOR_IDS.includes(value.id) && isFiniteNumber(value.value) && isFiniteNumber(value.reference) && isWholeNumber(value.effectS);
 }
 function isRaceResult(value, feePaid) {
-  return isRecord(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && (value.rankingSeason === void 0 || isInt(value.rankingSeason, 1)) && (value.rankingPoints === void 0 || isInt(value.rankingPoints, 0)) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1))) && (value.splits === void 0 || Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true)) && (value.nutrition === void 0 || isNutrition(value.nutrition));
+  return isRecord(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && (value.rankingSeason === void 0 || isInt(value.rankingSeason, 190001, 999912)) && (value.rankingPoints === void 0 || isInt(value.rankingPoints, 0)) && (value.rankingAt === void 0 || isInt(value.rankingAt, 0)) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1))) && (value.splits === void 0 || Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true)) && (value.nutrition === void 0 || isNutrition(value.nutrition));
 }
 function isNutrition(value) {
   return isRecord(value) && typeof value.gel === "boolean" && typeof value.bar === "boolean";

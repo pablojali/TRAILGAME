@@ -123,13 +123,11 @@
   "ranking.world": "Mundial",
   "ranking.country": "País",
   "ranking.scope": "Ranking",
-  "ranking.worldTitle": "Ranking mundial",
-  "ranking.countryTitle": "Ranking de {country}",
   "ranking.filter": "Corredores",
   "ranking.all": "General",
   "ranking.men": "Hombres",
   "ranking.women": "Mujeres",
-  "ranking.season": "Temporada {season}",
+  "ranking.season": "Temporada {season} · {year}",
   "ranking.previous": "Temporada anterior",
   "ranking.next": "Temporada siguiente",
   "ranking.current": "actual",
@@ -146,5 +144,12 @@
   "ranking.unavailable": "El ranking es online: necesita el guardado en la nube.",
   "ranking.noCountry": "Elige el país de tu corredor en Ajustes para ver el ranking de tu país.",
   "ranking.settings": "Ir a Ajustes",
-  "ranking.how": "Los puntos salen solo de las carreras: dificultad de la carrera × tu puesto, contando tus {count} mejores resultados del mes."
+  "ranking.how": "Los puntos salen solo de las carreras: dificultad de la carrera × tu puesto, contando tus {count} mejores resultados de la temporada.",
+  "ranking.modes": "Ranking",
+  "ranking.mode.season": "Temporada",
+  "ranking.mode.annual": "Anual",
+  "ranking.annualPeriod": "Últimos {months} meses",
+  "ranking.seasonTitle": "{scope} · ranking de temporada",
+  "ranking.annualTitle": "{scope} · ranking anual",
+  "ranking.howAnnual": "Tus {count} mejores resultados de cada temporada de los últimos {months} meses: los más antiguos caducan día a día."
 }

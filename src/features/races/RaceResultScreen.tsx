@@ -1,3 +1,4 @@
+import { seasonParts } from '../../domain/ranking/ranking'
 import { lookName } from '../../i18n/looks'
 import { useI18n } from '../../i18n/i18n'
 import { weekdayLongKey } from '../../i18n/labels'
@@ -125,7 +126,13 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
             {result.rankingPoints !== undefined && result.rankingSeason !== undefined && (
               <div className={styles.tile}>
                 <dt>{t('result.rankingPoints')}</dt>
-                <dd>{t('result.rankingValue', { points: result.rankingPoints, season: result.rankingSeason })}</dd>
+                <dd>
+                  {t('result.rankingValue', {
+                    points: result.rankingPoints,
+                    season: seasonParts(result.rankingSeason).number,
+                    year: seasonParts(result.rankingSeason).year,
+                  })}
+                </dd>
               </div>
             )}
             <div className={styles.tile}>

@@ -485,8 +485,13 @@ export function getStandings(race: Race, result: RaceResult): StandingRow[] {
   return rows.map((row, i) => ({ ...row, position: i + 1 }))
 }
 
-/** The ranking season and points of a result finished at `now` (none before Season 1). */
-function rankingFields(raceId: string, position: number, rewardPct: number, now: number): { rankingSeason?: number; rankingPoints?: number } {
+/** The ranking season, points and moment (the server's clock) of a result finished at `now` (none before launch). */
+function rankingFields(
+  raceId: string,
+  position: number,
+  rewardPct: number,
+  now: number,
+): { rankingSeason?: number; rankingPoints?: number; rankingAt?: number } {
   const season = rankingSeason(now)
-  return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, rewardPct) } : {}
+  return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, rewardPct), rankingAt: now } : {}
 }

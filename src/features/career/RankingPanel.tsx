@@ -6,11 +6,12 @@ import { ScrollPanel } from '../../components/Screen'
 import { Chips } from '../../components/Tabs'
 import { countryFlag, countryName } from '../../domain/athlete/countries'
 import { getLevel } from '../../domain/athlete/levels'
-import { RANKING, rankingSeason } from '../../domain/ranking/ranking'
+import { firstSeason, RANKING, rankingSeason, seasonBounds, seasonParts, shiftSeason } from '../../domain/ranking/ranking'
 import { useI18n } from '../../i18n/i18n'
 import type { RankingRow, RankingService } from '../../repositories/supabase/rankingClient'
 import styles from './RankingPanel.module.css'
 
+type Mode = 'season' | 'annual'
 type Scope = 'world' | 'country'
 type Filter = 'all' | 'male' | 'female'
 
@@ -24,7 +25,8 @@ const LIMIT = 50
 export function RankingPanel({ service }: { service: RankingService | null }) {
   const { state } = useCareer()
   const { t, locale } = useI18n()
-  const current = Math.max(1, rankingSeason(Date.now()))
+  const current = Math.max(firstSeason(), rankingSeason(Date.now()))
+  const [mode, setMode] = useState<Mode>('season')
   const [scope, setScope] = useState<Scope>('world')
   const [filter, setFilter] = useState<Filter>('all')
   const [season, setSeason] = useState(current)
@@ -36,20 +38,28 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
     if (!service || (scope === 'country' && !country)) return
     setRows(null)
     const result = await service.fetch({
-      season,
+      mode,
+      season: mode === 'season' ? season : undefined,
+      months: RANKING.annualMonths,
       country: scope === 'country' ? country : undefined,
       sex: filter === 'all' ? undefined : filter,
       bestResults: RANKING.bestResults,
       limit: LIMIT,
     })
     setRows(result)
-  }, [service, scope, country, season, filter])
+  }, [service, mode, scope, country, season, filter])
 
   useEffect(() => {
     void load()
   }, [load, attempt])
 
   const scopes = (['world', 'country'] as const).map((id) => ({ id, label: t(`ranking.${id}`) }))
+  const modes = (['season', 'annual'] as const).map((id) => ({ id, label: t(`ranking.mode.${id}`) }))
+  const { year, number: seasonNumber } = seasonParts(season)
+  const bounds = seasonBounds(season)
+  const dates = `${new Date(bounds.start).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })} – ${new Date(
+    bounds.end - 1,
+  ).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
   const filters = [
     { id: 'all' as const, label: t('ranking.all') },
     { id: 'male' as const, label: t('ranking.men') },
@@ -60,6 +70,38 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
 
   return (
     <div className={styles.panel}>
+      {/* Season (one calendar month) or Annual (each season's best results of the last 12 months). */}
+      <div className={styles.bar}>
+        <Chips<Mode> label={t('ranking.modes')} options={modes} value={mode} onChange={setMode} />
+        {mode === 'season' ? (
+          <span className={styles.season}>
+            <button
+              type="button"
+              className={styles.arrow}
+              aria-label={t('ranking.previous')}
+              disabled={season <= firstSeason()}
+              onClick={() => setSeason((s) => shiftSeason(s, -1))}
+            >
+              ‹
+            </button>
+            <span className={styles.seasonText}>
+              {t('ranking.season', { season: seasonNumber, year })}
+              <span className={styles.dates}>{dates}</span>
+            </span>
+            <button
+              type="button"
+              className={styles.arrow}
+              aria-label={t('ranking.next')}
+              disabled={season >= current}
+              onClick={() => setSeason((s) => shiftSeason(s, 1))}
+            >
+              ›
+            </button>
+          </span>
+        ) : (
+          <span className={styles.season}>{t('ranking.annualPeriod', { months: RANKING.annualMonths })}</span>
+        )}
+      </div>
       <div className={styles.scopes} role="group" aria-label={t('ranking.scope')}>
         {scopes.map(({ id, label }) => (
           <button
@@ -74,32 +116,13 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
           </button>
         ))}
       </div>
-      <div className={styles.bar}>
+      <div className={styles.modes}>
         <Chips<Filter> label={t('ranking.filter')} options={filters} value={filter} onChange={setFilter} />
-        <span className={styles.season}>
-          <button
-            type="button"
-            className={styles.arrow}
-            aria-label={t('ranking.previous')}
-            disabled={season <= 1}
-            onClick={() => setSeason((s) => s - 1)}
-          >
-            ‹
-          </button>
-          {t('ranking.season', { season })}
-          <button
-            type="button"
-            className={styles.arrow}
-            aria-label={t('ranking.next')}
-            disabled={season >= current}
-            onClick={() => setSeason((s) => s + 1)}
-          >
-            ›
-          </button>
-        </span>
       </div>
       <h3 className={styles.title}>
-        {scope === 'world' ? t('ranking.worldTitle') : t('ranking.countryTitle', { country: country ? countryName(country, locale) : '' })}
+        {t(mode === 'season' ? 'ranking.seasonTitle' : 'ranking.annualTitle', {
+          scope: scope === 'world' ? t('ranking.world') : country ? countryName(country, locale) : t('ranking.country'),
+        })}
       </h3>
 
       {!service ? (
@@ -162,7 +185,9 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
             ) : (
               <span className={styles.meta}>{t('ranking.notRanked')}</span>
             )}
-            <span className={styles.how}>{t('ranking.how', { count: RANKING.bestResults })}</span>
+            <span className={styles.how}>
+              {t(mode === 'season' ? 'ranking.how' : 'ranking.howAnnual', { count: RANKING.bestResults, months: RANKING.annualMonths })}
+            </span>
           </section>
         </>
       )}

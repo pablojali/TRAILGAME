@@ -1,10 +1,14 @@
 # Ranking points (owner table, 5 November 2026). kind,key,value:
-# setting best_results: how many of a player's best results of the season count. setting first_season: the month (YYYY-MM, UTC) of Season 1; each season is one calendar month.
+# setting best_results: how many of a player's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC): results before it never count.
+# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December (owner decision, 5 November 2026).
+# setting annual_months: the Annual ranking adds up each season's best results from the last that many months.
+# Majors (multiplayer races, 4 per season, one each weekend; a later milestone) will be race rows with their own, higher base points.
 # race: base points of each race (by its difficulty: distance and climb). position: percent of the base points for each finishing position (positions not listed: 0).
 # Points of a result = base x position percent x the race's reward percent at the runner's level (races far below the runner's level give less or nothing).
 kind,key,value
 setting,best_results,10
 setting,first_season,2026-11
+setting,annual_months,12
 race,RACE-001,62
 race,RACE-002,102
 race,RACE-003,135

@@ -176,8 +176,9 @@ function isRaceResult(value: unknown, feePaid: number): value is RaceResult {
     isInt(value.band, 0, PRIZE_BANDS.length - 1) &&
     isInt(value.grossPrize, 0) &&
     isInt(value.multiplierPct, 0, 100) &&
-    (value.rankingSeason === undefined || isInt(value.rankingSeason, 1)) &&
+    (value.rankingSeason === undefined || isInt(value.rankingSeason, 190001, 999912)) &&
     (value.rankingPoints === undefined || isInt(value.rankingPoints, 0)) &&
+    (value.rankingAt === undefined || isInt(value.rankingAt, 0)) &&
     isInt(value.coinsAwarded, 0) &&
     isInt(value.xpAwarded, 0) &&
     value.netCoins === value.coinsAwarded - feePaid &&

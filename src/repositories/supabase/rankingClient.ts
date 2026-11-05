@@ -15,7 +15,12 @@ export interface RankingRow {
 }
 
 export interface RankingQuery {
-  season: number
+  /** season: one season's best results; annual: each season's best results of the last months. */
+  mode: 'season' | 'annual'
+  /** Season id (year × 100 + month), for the season mode. */
+  season?: number
+  /** Months the annual mode looks back. */
+  months: number
   /** Only players of this country (ISO code); all when missing. */
   country?: string
   /** Only men or only women; all when missing. */
@@ -54,7 +59,9 @@ export function createRankingService(client: () => Promise<RankingClient>, ensur
       try {
         await ensureSession()
         const { data, error } = await (await client()).rpc('get_ranking', {
-          p_season: query.season,
+          p_mode: query.mode,
+          p_season: query.season ?? null,
+          p_months: query.months,
           p_country: query.country ?? null,
           p_sex: query.sex ?? null,
           p_best: query.bestResults,

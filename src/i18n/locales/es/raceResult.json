@@ -51,5 +51,5 @@
   "result.prizesNote": "Premios brutos en monedas por puesto, antes del multiplicador de recompensa.",
   "result.orLower": "{position} o peor",
   "result.rankingPoints": "Puntos de ranking",
-  "result.rankingValue": "{points} pts · Temporada {season}"
+  "result.rankingValue": "{points} pts · Temporada {season} · {year}"
 }

@@ -51,5 +51,5 @@
   "result.prizesNote": "Prizes are gross coins by position, before the reward multiplier.",
   "result.orLower": "{position} or lower",
   "result.rankingPoints": "Ranking points",
-  "result.rankingValue": "{points} pts · Season {season}"
+  "result.rankingValue": "{points} pts · Season {season} · {year}"
 }

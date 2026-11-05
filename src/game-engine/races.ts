@@ -1,3 +1,4 @@
+import { rankingPoints, rankingSeason } from '../domain/ranking/ranking'
 import { applyAchievementRewards, type AchievementEarned } from './achievements'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import { canEnterAtLevel, getRewardMultiplier } from '../domain/races/access'
@@ -345,6 +346,8 @@ function finishRace(state: GameState, active: ActiveRace, race: Race, field: Rac
     // The explanation's effects in race time (the model's seconds × the course factor).
     factors: explanation.factors.map((f) => ({ ...f, effectS: Math.round(f.effectS * field.timeScale) })),
     rivalTimesS: field.rivalFinishS,
+    // Rankings (owner request, 5 November 2026): the month the race is finished in, and its points.
+    ...rankingFields(race.id, position, rewards.multiplierPct, now),
     splits: active.splits,
     nutrition: active.nutrition,
   }
@@ -480,4 +483,15 @@ export function getStandings(race: Race, result: RaceResult): StandingRow[] {
   // Ties go to the athlete, as in the simulation: they are placed before rivals with the same time.
   rows.splice(result.position - 1, 0, { position: 0, runner: 'you', timeS: result.timeS })
   return rows.map((row, i) => ({ ...row, position: i + 1 }))
+}
+
+/** The ranking season, points and moment (the server's clock) of a result finished at `now` (none before launch). */
+function rankingFields(
+  raceId: string,
+  position: number,
+  rewardPct: number,
+  now: number,
+): { rankingSeason?: number; rankingPoints?: number; rankingAt?: number } {
+  const season = rankingSeason(now)
+  return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, rewardPct), rankingAt: now } : {}
 }

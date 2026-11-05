@@ -49,5 +49,7 @@
   "result.you": "{name} (toi)",
   "result.rival": "Rival {number}",
   "result.prizesNote": "Prix bruts en pièces par place, avant le multiplicateur de récompense.",
-  "result.orLower": "{position} ou moins"
+  "result.orLower": "{position} ou moins",
+  "result.rankingPoints": "Points de classement",
+  "result.rankingValue": "{points} pts · Saison {season} · {year}"
 }

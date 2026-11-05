@@ -49,5 +49,7 @@
   "result.you": "{name} (tu)",
   "result.rival": "Rivale {number}",
   "result.prizesNote": "Premi lordi in monete per posizione, prima del moltiplicatore di ricompensa.",
-  "result.orLower": "{position} o peggio"
+  "result.orLower": "{position} o peggio",
+  "result.rankingPoints": "Punti classifica",
+  "result.rankingValue": "{points} pt · Stagione {season} · {year}"
 }

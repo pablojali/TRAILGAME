@@ -1582,3 +1582,34 @@ English key with the same placeholders.
 - Shirt names: `src/i18n/looks.ts` (a shirt missing there keeps its English name). Race names stay as
   they are; race terrains are in `races.json` by race id.
 - The server and the saved data never depend on the language.
+
+
+### Rankings (owner request, 5 November 2026; v2 the same day)
+
+World and country rankings, asynchronous: every player races in their own career.
+
+- **Seasons**: 12 per calendar year, one calendar month each (UTC). Season 1 = January, so
+  November 2026 is Season 11 · 2026, the first season with points (`first_season` in the table).
+  A season id is `year × 100 + month` (`src/domain/ranking/ranking.ts`). The 52-week Career Year is
+  unrelated and unchanged.
+- **Points**: when the server finishes a race (`finishRace`, server clock) the result gets
+  `rankingSeason`, `rankingPoints` = the race's base points × the percent of the finishing position ×
+  the race's reward percent at the runner's level, and `rankingAt` (epoch ms). Values:
+  `src/data/ranking_points.csv` (`best_results`, `first_season`, `annual_months`, base points by race,
+  percent by position). Results from before rankings carry no season and never count. Training and
+  challenges give no ranking points.
+- **Storage**: the trigger `record_ranking_results()` on `careers` copies every finished, scored
+  result into `public.ranking_results` (append-only, primary key user + finish time + entry). Players
+  cannot read or write it: RLS on, no grants. Results survive a career restart (ready for a future
+  Hall of Fame).
+- **Modes**: `get_ranking(mode, season, country, sex, best, limit, months)` (security definer,
+  authenticated only) returns only public fields (runner name, country, sex, XP, points) for the top
+  `limit` plus the caller's row.
+  - `season`: the sum of each player's `best` results of that season.
+  - `annual`: each season's `best` results (ranked inside their whole season) whose finish is within
+    the last `months` months; older results expire day by day.
+- **Majors** (future, 4 per season, one each weekend, multiplayer): add their rows to the race
+  section of the table with higher base points; a Major result takes one of the season's best-result
+  slots like any race. Nothing else needs to change.
+- The client (`src/repositories/supabase/rankingClient.ts`) shows it in Career → Ranking
+  (Season / Annual, World / Country, Overall / Men / Women, season arrows). Tests: `npm run db:test`.

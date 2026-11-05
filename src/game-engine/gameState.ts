@@ -182,6 +182,15 @@ export interface RaceResult {
   splits?: RaceSplit[]
   /** Race Engine V1: the gel and cereal bar taken. */
   nutrition?: Nutrition
+  /**
+   * Rankings (owner request, 5 November 2026): the season the result counts for and its points.
+   * Missing in results from before rankings existed: they count for no season.
+   */
+  /** Season id: year × 100 + month (UTC), e.g. 202611. */
+  rankingSeason?: number
+  rankingPoints?: number
+  /** When the server finished the race (epoch ms, UTC): the Annual ranking expires results by it. */
+  rankingAt?: number
 }
 
 /** Deterministic plan used for the first week and every following week. */

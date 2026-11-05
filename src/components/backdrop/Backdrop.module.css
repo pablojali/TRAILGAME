@@ -68,7 +68,7 @@
  * (owner requests, 1 and 4 November 2026).
  */
 .backdrop[data-scene='career'][data-art='image'] .art {
-  top: -17%;
+  top: -11%;
   height: 130%;
   object-position: center top;
 }

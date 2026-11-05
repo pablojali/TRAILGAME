@@ -65,6 +65,7 @@ export function CareerScreen() {
     >
       {/* The season in one compact row under the title, then the summit of the picture and the tabs
           (owner requests, 5 November 2026). */}
+      <div className={styles.hero} aria-hidden="true" />
       <section className={`${styles.season} ${styles.seasonCompact}`} aria-labelledby="season-title">
         <div className={styles.seasonMain}>
           <h2 id="season-title" className={styles.seasonTitle}>
@@ -98,7 +99,6 @@ export function CareerScreen() {
           </span>
         </div>
       </section>
-      <div className={styles.hero} aria-hidden="true" />
 
       {history.length === 0 && (
         <p className={styles.muted}>

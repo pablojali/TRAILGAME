@@ -25,9 +25,9 @@ describe('Career', () => {
     await renderApp('/career')
     expect(screen.getByRole('heading', { level: 1, name: 'Career' })).toBeInTheDocument()
     expect(screen.getByText(/No races yet/)).toBeInTheDocument()
-    // Season 1, no results yet; achievements first, none reached.
-    expect(screen.getByRole('heading', { level: 2, name: 'Season 1' })).toBeInTheDocument()
-    expect(screen.getByRole('meter', { name: 'Season 1 progress' })).toHaveAttribute('aria-valuetext', 'Week 1 of 52')
+    // Year 1, no results yet; achievements first, none reached.
+    expect(screen.getByRole('heading', { level: 2, name: 'Year 1' })).toBeInTheDocument()
+    expect(screen.getByRole('meter', { name: 'Year 1 progress' })).toHaveAttribute('aria-valuetext', 'Week 1 of 52')
     expect(screen.getByText('Best finish').nextElementSibling).toHaveTextContent('—')
     expect(screen.getByRole('tab', { name: 'Challenges' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('meter', { name: 'Race Starter, level 1' })).toHaveAttribute('aria-valuetext', '0 of 1')

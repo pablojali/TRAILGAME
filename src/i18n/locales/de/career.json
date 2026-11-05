@@ -6,8 +6,8 @@
   "career.tab.bests": "Bestzeiten",
   "career.tab.history": "Verlauf",
   "career.of": " von {count}",
-  "career.season": "Saison {year}",
-  "career.seasonProgress": "Fortschritt Saison {year}",
+  "career.season": "Jahr {year}",
+  "career.seasonProgress": "Fortschritt Jahr {year}",
   "career.seasonValue": "Woche {week} von {weeks}",
   "career.seasonLine": "Woche {week} / {weeks} · {races} · {medals}",
   "career.races": {

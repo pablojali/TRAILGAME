@@ -9,7 +9,7 @@
   "result.tab.standings": "Rangliste",
   "result.eyebrow": "{race} · Ergebnis",
   "result.title": "{position} von {field}",
-  "result.description": "Rennen: {category} · Woche {week}, {day}",
+  "result.description": "{format} · Schwierigkeit {difficulty} · Woche {week}, {day}",
   "result.tabs": "Rennergebnis",
   "result.result": "Ergebnis",
   "result.time": "Zeit",

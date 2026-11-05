@@ -16,9 +16,22 @@ select pg_temp.expect(not exists (select 1 from a where finished_at > now() or f
   'no result in the future or before the first season');
 select pg_temp.expect(not exists (select 1 from a where season <> extract(year from finished_at at time zone 'UTC')::int * 100
   + extract(month from finished_at at time zone 'UTC')::int), 'each result is in the season of its day');
-select pg_temp.expect((select max(points) from a) <= 1180 and (select min(points) from a) >= 0, 'points stay within the race table');
+select pg_temp.expect((select max(points) from a) <= 250 and (select min(points) from a) >= 0, 'points stay within the difficulty table (V: 250)');
+-- Points system v3: every NPC result is a difficulty base × a position percent, with no level factor.
+select pg_temp.expect(not exists (
+  select 1 from a where points not in (
+    select round(rp.points * pp.percent / 100.0)::integer from public.ranking_race_points rp cross join public.ranking_position_percent pp)),
+  'NPC points are base × position percent, never scaled by level');
 select pg_temp.expect((select count(*) from public.npc_ranking_results(date '2020-01-01')) = (select count(*) from a),
   'never before the first season');
+
+-- The entry window: an NPC above every race's window (level 60) still races the hardest race,
+-- and one of level 34 (between windows) races RACE-010.
+insert into public.ranking_npcs values ('W-60', 'Top', 'NZ', 'male', 60, 90000, 95, 7, 900), ('W-34', 'Gap', 'NZ', 'male', 34, 30000, 95, 7, 901);
+select pg_temp.expect((select max(points) from public.npc_ranking_results(date '2026-11-01') where npc_id = 'W-60') = 250,
+  'an NPC above every window races the hardest race (Difficulty V)');
+select pg_temp.expect((select max(points) from public.npc_ranking_results(date '2026-11-01') where npc_id = 'W-34') <= 200,
+  'an NPC of level 34 races within its reach (up to Difficulty IV)');
 
 -- Controlled runners: three in Uruguay who race every day, one who never races.
 delete from public.ranking_npcs;
@@ -44,8 +57,8 @@ select pg_temp.expect((select string_agg(name, ',' order by rank) from public.ge
   'NPCs rank by their points; a player without points retires nobody');
 select pg_temp.expect((select bool_and(not is_me) and min(xp) = 300 from public.get_ranking('season', (select now_season from s))),
   'NPC rows show their XP and are never the caller');
-select pg_temp.expect((select string_agg(name, ',' order by rank) from public.get_ranking('annual', null, 'UY', 'female')) = 'UyTwo',
-  'NPCs follow the country and sex filters');
+select pg_temp.expect((select string_agg(name, ',' order by rank) from public.get_ranking('annual', null, 'UY', 'female')) = 'UyOne,UyTwo,UyThree',
+  'NPCs follow the country filter, and men and women share one classification');
 reset role;
 
 -- The player gets ranking points: the first Uruguayan NPC of the list retires.

@@ -202,7 +202,6 @@ describe('TrainingScreen — completing sessions', () => {
     expect(rewards.map((r) => r.textContent)).toEqual([
       '+2 attribute points to spend',
       '★New look: Coral tank top',
-      '⚑Races open: Forest First Steps (Open)',
     ])
     await user.click(within(dialog).getByRole('button', { name: 'Continue' }))
     expect(screen.queryByRole('dialog', { name: 'Level up!' })).not.toBeInTheDocument()

@@ -46,9 +46,9 @@ describe('career statistics', () => {
         PENDING,
       ),
     )
-    expect(table.byCategory.open).toEqual({ gold: 1, silver: 0, bronze: 1, races: 2 })
-    expect(table.byCategory.trail).toEqual({ gold: 0, silver: 1, bronze: 0, races: 2 })
-    expect(table.byCategory.mountain).toEqual({ gold: 0, silver: 0, bronze: 0, races: 0 })
+    expect(table.byDifficulty.I).toEqual({ gold: 1, silver: 0, bronze: 1, races: 2 })
+    expect(table.byDifficulty.II).toEqual({ gold: 0, silver: 1, bronze: 0, races: 2 })
+    expect(table.byDifficulty.III).toEqual({ gold: 0, silver: 0, bronze: 0, races: 0 })
     expect(table.total).toEqual({ gold: 1, silver: 1, bronze: 1, races: 4 })
   })
 

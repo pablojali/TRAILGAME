@@ -9,7 +9,7 @@
   "result.tab.standings": "Full results",
   "result.eyebrow": "{race} · Result",
   "result.title": "{position} of {field}",
-  "result.description": "{category} race · Week {week}, {day}",
+  "result.description": "{format} · Difficulty {difficulty} · Week {week}, {day}",
   "result.tabs": "Race result",
   "result.result": "Result",
   "result.time": "Time",

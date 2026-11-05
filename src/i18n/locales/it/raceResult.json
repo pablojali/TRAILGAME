@@ -9,7 +9,7 @@
   "result.tab.standings": "Classifica",
   "result.eyebrow": "{race} · Risultato",
   "result.title": "{position} su {field}",
-  "result.description": "Gara {category} · Settimana {week}, {day}",
+  "result.description": "{format} · Difficoltà {difficulty} · Settimana {week}, {day}",
   "result.tabs": "Risultato della gara",
   "result.result": "Risultato",
   "result.time": "Tempo",

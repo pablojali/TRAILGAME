@@ -671,7 +671,7 @@ function getCurrentDay(week) {
 }
 
 // raw:src/data/ranking_points.csv
-var ranking_points_default = "# Ranking points (owner table, 5 November 2026). kind,key,value:\n# setting best_results: how many of a player's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC): results before it never count.\n# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December (owner decision, 5 November 2026).\n# setting annual_months: the Annual ranking adds up each season's best results from the last that many months.\n# Majors (multiplayer races, 4 per season, one each weekend; a later milestone) will be race rows with their own, higher base points.\n# race: base points of each race (by its difficulty: distance and climb). position: percent of the base points for each finishing position (positions not listed: 0).\n# Points of a result = base x position percent x the race's reward percent at the runner's level (races far below the runner's level give less or nothing).\nkind,key,value\nsetting,best_results,10\nsetting,first_season,2026-11\nsetting,annual_months,12\nrace,RACE-001,62\nrace,RACE-002,102\nrace,RACE-003,135\nrace,RACE-004,175\nrace,RACE-005,225\nrace,RACE-006,275\nrace,RACE-007,350\nrace,RACE-008,450\nrace,RACE-009,570\nrace,RACE-010,700\nrace,RACE-011,910\nrace,RACE-012,1180\nposition,1,100\nposition,2,85\nposition,3,75\nposition,4,67\nposition,5,60\nposition,6,54\nposition,7,49\nposition,8,45\nposition,9,41\nposition,10,38\nposition,11,35\nposition,12,32\nposition,13,30\nposition,14,28\nposition,15,26\nposition,16,24\nposition,17,22\nposition,18,20\nposition,19,18\nposition,20,16\nposition,21,15\nposition,22,14\nposition,23,13\nposition,24,12\nposition,25,11\nposition,26,10\nposition,27,9\nposition,28,8\nposition,29,7\nposition,30,5\n";
+var ranking_points_default = "# Ranking points (owner tables, 5 November 2026; points system v3 the same day). kind,key,value:\n# setting best_results: how many of a runner's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC).\n# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December. setting annual_months: the Annual ranking adds up each season's best results from the last that many months.\n# Points of a result = difficulty base points x position percent x competition percent, rounded to whole points.\n# The runner's level and sex never change the points (Game Design Bible 11.1); level only sets which races a runner may enter.\n# difficulty: base points of each difficulty (I Moderate ... V Extreme). race: the difficulty of each race (distance, climb, technicality and overall demands, not distance alone).\n# position: percent for each finishing position (positions not listed, 31st and later: 0). competition: percent of each competition format (standard races, weekly Majors, the annual World Cup).\n# Reference for choosing each race's difficulty (not read by the game): id, name, km, D+ m, D+ per km, effort km (km + D+/100), technicality 0-3, recommended level.\n#   RACE-001 Forest First Steps: 5 km, 120 m D+, 24 m/km, effort 6.2 km, technicality 0, level 4\n#   RACE-002 Riverside Trail: 8 km, 220 m D+, 28 m/km, effort 10.2 km, technicality 0, level 6\n#   RACE-003 Pine Loop Challenge: 10 km, 350 m D+, 35 m/km, effort 13.5 km, technicality 1, level 8\n#   RACE-004 Ridge Runner: 12 km, 550 m D+, 46 m/km, effort 17.5 km, technicality 1, level 11\n#   RACE-005 Stone Path Classic: 15 km, 750 m D+, 50 m/km, effort 22.5 km, technicality 2, level 14\n#   RACE-006 Wildwood Ascent: 18 km, 950 m D+, 53 m/km, effort 27.5 km, technicality 1, level 18\n#   RACE-007 Summit Quest: 22 km, 1300 m D+, 59 m/km, effort 35 km, technicality 2, level 21\n#   RACE-008 Alpine Traverse: 28 km, 1700 m D+, 61 m/km, effort 45 km, technicality 3, level 25\n#   RACE-009 Sky Ridge Ultra: 35 km, 2200 m D+, 63 m/km, effort 57 km, technicality 2, level 28\n#   RACE-010 High Peaks Challenge: 42 km, 2800 m D+, 67 m/km, effort 70 km, technicality 3, level 31\n#   RACE-011 Legends of the Crest: 55 km, 3600 m D+, 65 m/km, effort 91 km, technicality 3, level 40\n#   RACE-012 Beyond the Skyline: 70 km, 4800 m D+, 69 m/km, effort 118 km, technicality 3, level 50\nkind,key,value\nsetting,best_results,10\nsetting,first_season,2026-11\nsetting,annual_months,12\ndifficulty,I,100\ndifficulty,II,125\ndifficulty,III,160\ndifficulty,IV,200\ndifficulty,V,250\nrace,RACE-001,I\nrace,RACE-002,I\nrace,RACE-003,I\nrace,RACE-004,II\nrace,RACE-005,II\nrace,RACE-006,II\nrace,RACE-007,III\nrace,RACE-008,III\nrace,RACE-009,IV\nrace,RACE-010,IV\nrace,RACE-011,V\nrace,RACE-012,V\nposition,1,100\nposition,2,85\nposition,3,75\nposition,4,70\nposition,5,65\nposition,6,60\nposition,7,56\nposition,8,52\nposition,9,48\nposition,10,45\nposition,11,43\nposition,12,40\nposition,13,37\nposition,14,34\nposition,15,31\nposition,16,28\nposition,17,25\nposition,18,22\nposition,19,19\nposition,20,16\nposition,21,12\nposition,22,12\nposition,23,12\nposition,24,12\nposition,25,12\nposition,26,8\nposition,27,8\nposition,28,8\nposition,29,8\nposition,30,8\ncompetition,standard,100\ncompetition,major,150\ncompetition,world_cup,200\n";
 
 // src/domain/races/races.ts
 var RACES = [
@@ -697,8 +697,20 @@ function isRaceId(value) {
 }
 
 // src/domain/ranking/ranking.ts
+var DIFFICULTIES = ["I", "II", "III", "IV", "V"];
+var COMPETITIONS = ["standard", "major", "world_cup"];
+var isDifficulty = (value) => DIFFICULTIES.includes(value);
+var isCompetition = (value) => COMPETITIONS.includes(value);
 function parseRankingTable(text) {
-  const table = { bestResults: 0, firstSeason: { year: 0, month: 0 }, annualMonths: 0, racePoints: {}, positionPercent: {} };
+  const table = {
+    bestResults: 0,
+    firstSeason: { year: 0, month: 0 },
+    annualMonths: 0,
+    difficultyPoints: {},
+    raceDifficulty: {},
+    positionPercent: {},
+    competitionPercent: {}
+  };
   parseCsv(text).forEach((row, i) => {
     const where = `ranking_points.csv row ${i + 1}`;
     if (row.kind === "setting" && row.key === "best_results") table.bestResults = csvInt(row.value, where);
@@ -707,19 +719,32 @@ function parseRankingTable(text) {
       const match = /^(\d{4})-(\d{2})$/.exec(row.value ?? "");
       if (!match || Number(match[2]) < 1 || Number(match[2]) > 12) throw new Error(`${where}: first_season must be YYYY-MM`);
       table.firstSeason = { year: Number(match[1]), month: Number(match[2]) };
+    } else if (row.kind === "difficulty") {
+      if (!isDifficulty(row.key)) throw new Error(`${where}: unknown difficulty "${row.key}" (I to V)`);
+      table.difficultyPoints[row.key] = csvInt(row.value, where);
     } else if (row.kind === "race") {
       if (!RACES.some((race) => race.id === row.key)) throw new Error(`${where}: unknown race "${row.key}"`);
-      table.racePoints[row.key] = csvInt(row.value, where);
+      if (!isDifficulty(row.value)) throw new Error(`${where}: the difficulty must be I to V`);
+      table.raceDifficulty[row.key] = row.value;
     } else if (row.kind === "position") {
       const position = csvInt(row.key, where);
       const percent = csvInt(row.value, where);
       if (position < 1 || percent < 0 || percent > 100) throw new Error(`${where}: position from 1, percent 0\u2013100`);
       table.positionPercent[position] = percent;
+    } else if (row.kind === "competition") {
+      if (!isCompetition(row.key)) throw new Error(`${where}: unknown competition "${row.key}"`);
+      table.competitionPercent[row.key] = csvInt(row.value, where);
     } else throw new Error(`${where}: unknown row "${row.kind},${row.key}"`);
   });
   if (table.bestResults < 1) throw new Error("ranking_points.csv: best_results must be at least 1");
   if (table.annualMonths < 1) throw new Error("ranking_points.csv: annual_months must be at least 1");
   if (!table.firstSeason.year) throw new Error("ranking_points.csv: first_season is missing");
+  for (const difficulty of DIFFICULTIES) {
+    if (table.difficultyPoints[difficulty] === void 0) throw new Error(`ranking_points.csv: difficulty ${difficulty} is missing`);
+  }
+  for (const competition of COMPETITIONS) {
+    if (table.competitionPercent[competition] === void 0) throw new Error(`ranking_points.csv: competition ${competition} is missing`);
+  }
   return table;
 }
 var RANKING = parseRankingTable(ranking_points_default);
@@ -731,42 +756,17 @@ function rankingSeason(at, table = RANKING) {
   const id = seasonId(date.getUTCFullYear(), date.getUTCMonth() + 1);
   return id >= seasonId(table.firstSeason.year, table.firstSeason.month) ? id : 0;
 }
-function rankingPoints(raceId, position, rewardPct, table = RANKING) {
-  const base = table.racePoints[raceId] ?? 0;
+function raceDifficulty(raceId, table = RANKING) {
+  return table.raceDifficulty[raceId] ?? "I";
+}
+function rankingPoints(raceId, position, competition = "standard", table = RANKING) {
+  const base = table.difficultyPoints[raceDifficulty(raceId, table)];
   const percent = table.positionPercent[position] ?? 0;
-  return Math.round(base * percent * rewardPct / 1e4);
+  return Math.round(base * percent * table.competitionPercent[competition] / 1e4);
 }
 
 // raw:src/data/achievements.csv
 var achievements_default = "# Achievements (owner table, 5 November 2026). One row per achievement level, levels 1, 2, 3\u2026 in order.\n# achievement: first-steps (races finished), trail-explorer, first-summit, elite (races of that category), podium (top 3 finishes),\n# champion (wins), rising-star (total XP), level (runner level), dedicated (training weeks completed).\n# target: what the level asks for (rising in each achievement). coins and xp: the reward when the level is reached, given once.\nachievement,level,target,coins,xp\nfirst-steps,1,1,20,50\nfirst-steps,2,5,40,100\nfirst-steps,3,10,80,200\nfirst-steps,4,25,150,400\nfirst-steps,5,50,300,800\ntrail-explorer,1,1,50,100\ntrail-explorer,2,5,100,200\ntrail-explorer,3,10,200,400\ntrail-explorer,4,25,400,800\nfirst-summit,1,1,100,200\nfirst-summit,2,5,200,400\nfirst-summit,3,10,400,800\nfirst-summit,4,25,800,1600\nelite,1,1,200,400\nelite,2,5,400,800\nelite,3,10,800,1600\npodium,1,1,30,50\npodium,2,5,80,150\npodium,3,10,150,300\npodium,4,25,300,600\nchampion,1,1,50,100\nchampion,2,3,120,250\nchampion,3,10,300,600\nrising-star,1,1000,30,0\nrising-star,2,5000,80,0\nrising-star,3,20000,200,0\nrising-star,4,50000,400,0\nlevel,1,5,30,0\nlevel,2,10,60,0\nlevel,3,20,150,0\nlevel,4,30,300,0\nlevel,5,50,600,0\ndedicated,1,4,20,50\ndedicated,2,13,60,150\ndedicated,3,26,120,300\ndedicated,4,52,250,600\ndedicated,5,104,500,1200\n";
-
-// src/domain/races/categories.ts
-var RACE_CATEGORIES = ["open", "trail", "mountain", "elite"];
-function isRaceCategory(value) {
-  return RACE_CATEGORIES.includes(value);
-}
-var PRIZE_BANDS = [
-  { from: 1, to: 1, label: "1st" },
-  { from: 2, to: 2, label: "2nd" },
-  { from: 3, to: 3, label: "3rd" },
-  { from: 4, to: 10, label: "4th\u201310th" },
-  { from: 11, to: null, label: "11th or lower" }
-];
-var GROSS_PRIZES = {
-  open: [100, 70, 50, 25, 10],
-  trail: [300, 210, 150, 75, 30],
-  mountain: [700, 490, 350, 175, 70],
-  elite: [1500, 1050, 750, 375, 150]
-};
-var RACE_XP_BASE = { open: 300, trail: 600, mountain: 1e3, elite: 1800 };
-var RACE_MIN_XP = 18;
-var RACE_XP_BAND_PCT = [100, 70, 50, 25, 10];
-var REWARD_MULTIPLIERS = [
-  { levelDifference: 0, xp: 1, coins: 1 },
-  { levelDifference: 1, xp: 0.75, coins: 0.75 },
-  { levelDifference: 2, xp: 0.4, coins: 0.4 },
-  { levelDifference: 3, xp: 0, coins: 0 }
-];
 
 // src/game-engine/career.ts
 function medalFor(position) {
@@ -937,13 +937,48 @@ function applyAchievementRewards(state) {
   return { state: current, earned };
 }
 
+// src/domain/races/categories.ts
+var RACE_CATEGORIES = ["open", "trail", "mountain", "elite"];
+function isRaceCategory(value) {
+  return RACE_CATEGORIES.includes(value);
+}
+var PRIZE_BANDS = [
+  { from: 1, to: 1, label: "1st" },
+  { from: 2, to: 2, label: "2nd" },
+  { from: 3, to: 3, label: "3rd" },
+  { from: 4, to: 10, label: "4th\u201310th" },
+  { from: 11, to: null, label: "11th or lower" }
+];
+var GROSS_PRIZES = {
+  open: [100, 70, 50, 25, 10],
+  trail: [300, 210, 150, 75, 30],
+  mountain: [700, 490, 350, 175, 70],
+  elite: [1500, 1050, 750, 375, 150]
+};
+var RACE_XP_BASE = { open: 300, trail: 600, mountain: 1e3, elite: 1800 };
+var RACE_MIN_XP = 18;
+var RACE_XP_BAND_PCT = [100, 70, 50, 25, 10];
+var REWARD_MULTIPLIERS = [
+  { levelDifference: 0, xp: 1, coins: 1 },
+  { levelDifference: 1, xp: 0.75, coins: 0.75 },
+  { levelDifference: 2, xp: 0.4, coins: 0.4 },
+  { levelDifference: 3, xp: 0, coins: 0 }
+];
+
 // src/domain/races/access.ts
-var LEVELS_BELOW_RECOMMENDED = 2;
+var LEVELS_BELOW_RECOMMENDED = 5;
+var LEVELS_ABOVE_RECOMMENDED = 2;
 function getMinimumLevel(race) {
   return Math.max(1, race.recommendedLevel - LEVELS_BELOW_RECOMMENDED);
 }
+function getMaximumLevel(race) {
+  return race.recommendedLevel + LEVELS_ABOVE_RECOMMENDED;
+}
 function canEnterAtLevel(race, level) {
-  return level >= getMinimumLevel(race);
+  if (level < getMinimumLevel(race)) return false;
+  if (level <= getMaximumLevel(race)) return true;
+  const reachable = RACES.filter((other) => level >= getMinimumLevel(other));
+  return reachable.every((other) => other.recommendedLevel <= race.recommendedLevel);
 }
 function getRewardMultiplier(race, level) {
   const levelDifference = level - race.recommendedLevel;
@@ -1781,7 +1816,8 @@ function enterRace(state, raceId, now) {
   if (getPendingEntry(state, raceId)) return { ok: false, error: "already-entered" };
   if (getScheduledEntry(state)) return { ok: false, error: "race-scheduled" };
   const level = getLevel(state.athlete.xp);
-  if (!canEnterAtLevel(race, level)) return { ok: false, error: "level-too-low" };
+  if (level < getMinimumLevel(race)) return { ok: false, error: "level-too-low" };
+  if (!canEnterAtLevel(race, level)) return { ok: false, error: "level-too-high" };
   const entry = {
     id: `entry-${state.raceEntries.length + 1}`,
     raceId,
@@ -1830,7 +1866,7 @@ function startRace(state, ref, entryId, decisions, now) {
   if (getScheduledEntry(state)?.id !== entry.id) return { ok: false, error: "not-scheduled" };
   const race = getRace(entry.raceId);
   if (!race) return { ok: false, error: "unknown-race" };
-  if (entry.entryType === "free" && !canEnterAtLevel(race, getLevel(state.athlete.xp))) {
+  if (entry.entryType === "free" && getLevel(state.athlete.xp) < getMinimumLevel(race)) {
     return { ok: false, error: "level-too-low" };
   }
   if (!isIntensity(decisions.intensity)) return { ok: false, error: "unknown-intensity" };
@@ -1938,7 +1974,7 @@ function finishRace(state, active, race, field, now) {
     factors: explanation.factors.map((f) => ({ ...f, effectS: Math.round(f.effectS * field.timeScale) })),
     rivalTimesS: field.rivalFinishS,
     // Rankings (owner request, 5 November 2026): the month the race is finished in, and its points.
-    ...rankingFields(race.id, position, rewards.multiplierPct, now),
+    ...rankingFields(race.id, position, now),
     splits: active.splits,
     nutrition: active.nutrition
   };
@@ -1961,9 +1997,9 @@ function finishRace(state, active, race, field, now) {
     weekCompleted: advanced.weekCompleted
   };
 }
-function rankingFields(raceId, position, rewardPct, now) {
+function rankingFields(raceId, position, now) {
   const season = rankingSeason(now);
-  return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, rewardPct), rankingAt: now } : {};
+  return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, "standard"), rankingAt: now } : {};
 }
 
 // src/repositories/gameRepository.ts

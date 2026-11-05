@@ -48,11 +48,16 @@ describe('enterRace', () => {
     expect(getPendingEntry(result.state, 'RACE-001')).toEqual(result.entry)
   })
 
-  it('rejects a runner below the minimum level (2 below the recommended), changing nothing', () => {
-    expect(enterRace(newGame(), 'RACE-001', T0)).toEqual({ ok: false, error: 'level-too-low' })
-    // Wildwood Ascent is recommended at Level 18, so it opens at 16: a Level 11 runner cannot enter.
-    expect(enterRace(atLevel11(0), 'RACE-006', T0)).toEqual({ ok: false, error: 'level-too-low' })
+  it('rejects a runner outside the window (5 below to 2 above the recommended level), changing nothing', () => {
+    // Pine Loop Challenge is recommended at Level 8, so it opens at 3: a new runner cannot enter.
+    expect(enterRace(newGame(), 'RACE-003', T0)).toEqual({ ok: false, error: 'level-too-low' })
+    // Summit Quest is recommended at Level 21, so it opens at 16: a Level 11 runner cannot enter.
+    expect(enterRace(atLevel11(0), 'RACE-007', T0)).toEqual({ ok: false, error: 'level-too-low' })
     expect(enterRace(atLevel11(0), 'RACE-012', T0)).toEqual({ ok: false, error: 'level-too-low' })
+    // Riverside Trail is recommended at Level 6, so it closes after 8: a Level 11 runner cannot enter.
+    expect(enterRace(atLevel11(0), 'RACE-002', T0)).toEqual({ ok: false, error: 'level-too-high' })
+    // A new runner (level 1) may enter the first races.
+    expect(enterRace(newGame(), 'RACE-001', T0).ok).toBe(true)
   })
 
   it('enters once, free even with no coins, and allows one race per week', () => {
@@ -276,7 +281,7 @@ describe('raceCurrentDay', () => {
   })
 
   it('refuses to run a free entry below the race\'s minimum level; earlier paid entries still run', () => {
-    const made = withEntry(newGame(), 'RACE-001')
+    const made = withEntry(newGame(), 'RACE-003')
     const free = { ...made.entry, entryType: 'free' as const }
     const sunday = onSunday({ ...made.state, raceEntries: [free] })
     expect(race(sunday, free.id)).toEqual({ ok: false, error: 'level-too-low' })

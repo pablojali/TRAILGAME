@@ -11,7 +11,7 @@ function level11(coins: number): GameState {
   return { ...withAthlete(newGame(), { xp: 3_250 }), coins }
 }
 
-/** A level-2 career (100 XP): the lowest level that may enter Forest First Steps (recommended 4). */
+/** A level-2 career (100 XP), within Forest First Steps' levels (1–6, recommended 4). */
 function level2(): GameState {
   return withAthlete(newGame(), { xp: 100 })
 }
@@ -21,39 +21,40 @@ function card(name: string) {
 }
 
 describe('Race Hub', () => {
-  it('shows one category at a time in tabs, with level and coin balance', async () => {
+  it('shows one difficulty at a time in tabs (I–V), with level and coin balance', async () => {
     const user = userEvent.setup()
     seedCareer()
     const { router } = await renderApp('/races')
     expect(screen.getByRole('heading', { level: 1, name: 'Races' })).toBeInTheDocument()
     expect(within(screen.getAllByRole('banner')[0]!).getByText('Lvl 1')).toBeInTheDocument()
     expect(within(screen.getAllByRole('banner')[0]!).getByText('25').parentElement).toHaveTextContent('25 coins')
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Open', 'Trail', 'Mountain', 'Elite'])
-    // Level 1: the Open tab first, with its three races.
-    expect(screen.getByRole('tab', { name: 'Open' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['I', 'II', 'III', 'IV', 'V'])
+    // Level 1: Difficulty I first, with its three races.
+    expect(screen.getByRole('tab', { name: 'I' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getAllByRole('link', { name: /km/ })).toHaveLength(3)
-    await user.click(screen.getByRole('tab', { name: 'Trail' }))
-    expect(router.state.location.search).toBe('?category=trail')
+    await user.click(screen.getByRole('tab', { name: 'II' }))
+    expect(router.state.location.search).toBe('?difficulty=II')
     expect(screen.getAllByRole('link', { name: /km/ })).toHaveLength(3)
-    // Level 1: Ridge Runner opens at Level 9 (2 below its recommended level).
-    expect(card('Ridge Runner')).toHaveAccessibleName('Ridge Runner 12 km · 550 m D+ Lvl 9')
+    // Level 1: Ridge Runner opens at Level 6 (5 below its recommended level).
+    expect(card('Ridge Runner')).toHaveAccessibleName('Ridge Runner 12 km · 550 m D+ Lvl 6')
   })
 
-  it('shows Free for races the runner may enter and the opening level for the others', async () => {
+  it('shows Free for races the runner may enter, the opening level, and the last level of easy races', async () => {
     const user = userEvent.setup()
     seedCareer(level11(0))
     await renderApp('/races')
-    // Level 11: the Trail tab first (the first category with a race at or above the level).
-    expect(screen.getByRole('tab', { name: 'Trail' })).toHaveAttribute('aria-selected', 'true')
+    // Level 11: Difficulty II first (the first difficulty with a race at or above the level).
+    expect(screen.getByRole('tab', { name: 'II' })).toHaveAttribute('aria-selected', 'true')
     expect(within(card('Ridge Runner')).getByText('Free')).toBeInTheDocument()
-    // Stone Path Classic (recommended 14) opens at 12; Wildwood Ascent (18) at 16.
-    expect(within(card('Stone Path Classic')).getByText('Lvl 12')).toBeInTheDocument()
-    expect(within(card('Wildwood Ascent')).getByText('Lvl 16')).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: 'Open' }))
-    expect(within(card('Forest First Steps')).getByText('Free')).toBeInTheDocument()
-    expect(within(card('Pine Loop Challenge')).getByText('Free')).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: 'Elite' }))
-    expect(within(card('Beyond the Skyline')).getByText('Lvl 48')).toBeInTheDocument()
+    // Stone Path Classic (recommended 14) opens at 9; Wildwood Ascent (18) at 13.
+    expect(within(card('Stone Path Classic')).getByText('Free')).toBeInTheDocument()
+    expect(within(card('Wildwood Ascent')).getByText('Lvl 13')).toBeInTheDocument()
+    // Easy races close 2 levels above their recommended level.
+    await user.click(screen.getByRole('tab', { name: 'I' }))
+    expect(within(card('Forest First Steps')).getByText('Up to Lvl 6')).toBeInTheDocument()
+    expect(within(card('Pine Loop Challenge')).getByText('Up to Lvl 10')).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'V' }))
+    expect(within(card('Beyond the Skyline')).getByText('Lvl 45')).toBeInTheDocument()
     expect(card('Beyond the Skyline')).toHaveAttribute('href', '/races/RACE-012')
   })
 
@@ -61,10 +62,10 @@ describe('Race Hub', () => {
     const entered = withEntry(level11(500), 'RACE-007', 0)
     seedCareer(entered.state)
     const first = await renderApp('/races')
-    expect(screen.getByRole('tab', { name: 'Mountain' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'III' })).toHaveAttribute('aria-selected', 'true')
     first.unmount()
-    await renderApp('/races?category=elite')
-    expect(screen.getByRole('tab', { name: 'Elite' })).toHaveAttribute('aria-selected', 'true')
+    await renderApp('/races?difficulty=V')
+    expect(screen.getByRole('tab', { name: 'V' })).toHaveAttribute('aria-selected', 'true')
   })
 
   it('is reachable from the navigation', async () => {
@@ -81,13 +82,13 @@ describe('Race Detail', () => {
     seedCareer(level11(0))
     await renderApp('/races/RACE-007')
     expect(screen.getByRole('heading', { level: 1, name: 'Summit Quest' })).toBeInTheDocument()
-    expect(screen.getByText('Mountain race')).toBeInTheDocument()
+    expect(screen.getByText('Trail · Difficulty III')).toBeInTheDocument()
     expect(screen.getByText('22 km')).toBeInTheDocument()
     expect(screen.getByText('1,300 m')).toBeInTheDocument()
     expect(screen.getByText('Steep climbs, rocky descents')).toBeInTheDocument()
     // Tiles, no prize explanations (owner request, 1 November 2026).
-    // Summit Quest (recommended 21) opens at Level 19: the level-11 runner cannot enter yet.
-    expect(screen.getByText('Entry').nextElementSibling).toHaveTextContent('Free · from level 19')
+    // Summit Quest (recommended 21) takes levels 16 to 23: the level-11 runner cannot enter yet.
+    expect(screen.getByText('Entry').nextElementSibling).toHaveTextContent('Free · levels 16–23')
     expect(screen.getByText('Recommended level').nextElementSibling).toHaveTextContent('21 (you: 11)')
     const prizes = within(screen.getByRole('list', { name: 'Gross coin prizes by finishing position' })).getAllByRole('listitem')
     expect(prizes.map((r) => r.textContent)).toEqual(['1st700', '2nd490', '3rd350', '4th–10th175', '11th+70'])
@@ -103,13 +104,17 @@ describe('Race Detail', () => {
     expect(screen.getByText(/· 0% at your level/)).toBeInTheDocument()
   })
 
-  it('blocks entry below the race\'s minimum level and says when it opens', async () => {
+  it('blocks entry outside the race\'s levels and says why', async () => {
     const user = userEvent.setup()
+    seedCareer(level11(0))
+    const above = await renderApp('/races/RACE-001')
+    expect(screen.getByRole('button', { name: 'Enter race' })).toHaveAccessibleDescription('Open up to level 6 (you: 11): choose a harder race.')
+    above.unmount()
     seedCareer(newGame())
-    await renderApp('/races/RACE-001')
+    await renderApp('/races/RACE-003')
     const enter = screen.getByRole('button', { name: 'Enter race' })
     expect(enter).toHaveAttribute('aria-disabled', 'true')
-    expect(enter).toHaveAccessibleDescription('Opens at level 2 (you: 1).')
+    expect(enter).toHaveAccessibleDescription('Opens at level 3 (you: 1).')
     await user.click(enter)
     expect(screen.queryByRole('heading', { name: /Confirm entry/ })).not.toBeInTheDocument()
     expect(readSave()!.state).toMatchObject({ coins: 25, raceEntries: [] })

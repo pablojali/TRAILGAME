@@ -59,7 +59,8 @@ select pg_temp.expect((select string_agg(name || ':' || points, ',' order by ran
 select pg_temp.expect((select string_agg(name || ':' || points, ',' order by rank) from public.get_ranking('annual', null, null, null, 10, 50, 24)) = 'Ana:1159,Bo:120',
   'annual: a longer window counts the older season too');
 select pg_temp.expect((select string_agg(name, ',') from public.get_ranking('season', (select now_season from s), 'FR')) = 'Bo', 'filters by country');
-select pg_temp.expect((select string_agg(name, ',') from public.get_ranking('annual', null, null, 'female')) = 'Ana', 'filters by sex');
+select pg_temp.expect((select string_agg(name || ':' || points, ',' order by rank) from public.get_ranking('annual', null, null, 'female')) = 'Ana:160,Bo:120',
+  'one general classification: a sex argument filters nobody out');
 select pg_temp.expect((select is_me from public.get_ranking('annual') where name = 'Ana'), 'marks the caller');
 select pg_temp.expect_error('select * from public.ranking_results', 'players cannot read the results table');
 select pg_temp.expect_error($$insert into public.ranking_results values ('00000000-0000-0000-0000-0000000000a1', 'x', 'RACE-001', 202611, now(), 99999)$$,

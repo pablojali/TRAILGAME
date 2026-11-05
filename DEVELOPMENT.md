@@ -1592,12 +1592,21 @@ World and country rankings, asynchronous: every player races in their own career
   November 2026 is Season 11 · 2026, the first season with points (`first_season` in the table).
   A season id is `year × 100 + month` (`src/domain/ranking/ranking.ts`). The 52-week Career Year is
   unrelated and unchanged.
-- **Points**: when the server finishes a race (`finishRace`, server clock) the result gets
-  `rankingSeason`, `rankingPoints` = the race's base points × the percent of the finishing position ×
-  the race's reward percent at the runner's level, and `rankingAt` (epoch ms). Values:
-  `src/data/ranking_points.csv` (`best_results`, `first_season`, `annual_months`, base points by race,
-  percent by position). Results from before rankings carry no season and never count. Training and
-  challenges give no ranking points.
+- **Points** (points system v3, owner decisions 5 November 2026, Game Design Bible §11.2): when the
+  server finishes a race (`finishRace`, server clock) the result gets `rankingSeason`, `rankingPoints`
+  = difficulty base points × position percent × competition percent, rounded to whole points, and
+  `rankingAt` (epoch ms). The runner's level and sex never change the points. Values:
+  `src/data/ranking_points.csv` (`best_results`, `first_season`, `annual_months`, base points of the
+  difficulties I–V 100/125/160/200/250, each race's difficulty, percent by position 1st–30th, and the
+  competitions: standard 100, Major 150, World Cup 200; Majors and the World Cup are future events,
+  so every result is standard for now). Results from before rankings carry no season and never
+  count. Training and challenges give no ranking points.
+- **Race access** (`src/domain/races/access.ts`): from 5 levels below a race's recommended level to
+  2 above; the hardest race whose minimum a runner reaches stays open too, so no level is left
+  without a race (the catalog has gaps: level 34, 43–44, and nothing above 52 otherwise). The coin
+  and XP anti-farming multipliers are unchanged. Races are shown by format (Trail; Ultra Trail over
+  42 km) and difficulty (`src/domain/races/format.ts`); the Open / Trail / Mountain / Elite categories
+  stay internal (XP, coin prizes, the rivals' field, challenges).
 - **Storage**: the trigger `record_ranking_results()` on `careers` copies every finished, scored
   result into `public.ranking_results` (append-only, primary key user + finish time + entry). Players
   cannot read or write it: RLS on, no grants. Results survive a career restart (ready for a future
@@ -1618,11 +1627,14 @@ World and country rankings, asynchronous: every player races in their own career
   (name, country, sex, level, XP, strength 0–100, races per week) fill the rankings and look like any
   runner. Migration `20261105160000_ranking_npcs.sql` loads them into `ranking_npcs` (with copies of
   the race points and position percents) and adds `npc_ranking_results(from)`: on each UTC day an NPC
-  races with chance races_per_week / 7, picks the hardest race of its level (sometimes one above, at
-  the lower reward), and places about 1 + (100 − strength) / 4 (± 4). The draws come from the NPC id
+  races with chance races_per_week / 7, picks the race of its window closest to its level (one time
+  in four the hardest it may enter; same window as the players, migration
+  `20261105180000_ranking_points_v3.sql`), and places about 1 + (100 − strength) / 4 (± 4), scoring
+  like a player (no level factor). The draws come from the NPC id
   and the day, so the rankings move every day and are the same on every reload. Each real player with
   ranking points retires one NPC of the same country, the first of that country in the table. All of
   it is server-side: players cannot read the NPC tables or call the function.
   After editing `ranking_npcs.csv` or `ranking_points.csv`, write a new migration with the output of
-  `python3 scripts/ranking_tables_sql.py`; `src/data/rankingNpcs.test.ts` fails until the latest
-  migration matches the tables.
+  `python3 scripts/ranking_tables_sql.py` (`--points-only` for the points tables; rows are upserted,
+  nothing is deleted); `src/data/rankingNpcs.test.ts` fails until the latest migration matches the
+  tables.

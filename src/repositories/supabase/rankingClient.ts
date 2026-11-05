@@ -61,7 +61,6 @@ export function createRankingService(client: () => Promise<RankingClient>, ensur
           p_season: query.season ?? null,
           p_months: query.months,
           p_country: query.country ?? null,
-          p_sex: null,
           p_best: query.bestResults,
           p_limit: query.limit,
         })

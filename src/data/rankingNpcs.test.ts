@@ -44,9 +44,12 @@ describe('Ranking NPC runners table (owner request, 5 November 2026)', () => {
     )
   })
 
-  it('the race points and position percents in Supabase match ranking_points.csv and the races', () => {
+  it('the race points (by difficulty) and position percents in Supabase match ranking_points.csv and the races', () => {
     const level = new Map(RACES.map((race) => [race.id, String(race.recommendedLevel)]))
-    expect(loadedRows('ranking_race_points')).toEqual(points.filter((p) => p.kind === 'race').map((p) => [p.key, level.get(p.key!), p.value]))
+    const base = new Map(points.filter((p) => p.kind === 'difficulty').map((p) => [p.key, p.value]))
+    expect(loadedRows('ranking_race_points')).toEqual(
+      points.filter((p) => p.kind === 'race').map((p) => [p.key, level.get(p.key!), base.get(p.value)]),
+    )
     expect(loadedRows('ranking_position_percent')).toEqual(points.filter((p) => p.kind === 'position').map((p) => [p.key, p.value]))
   })
 })

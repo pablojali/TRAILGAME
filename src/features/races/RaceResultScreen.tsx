@@ -1,4 +1,5 @@
 import { seasonParts } from '../../domain/ranking/ranking'
+import { difficultyOf, raceFormat } from '../../domain/races/format'
 import { lookName } from '../../i18n/looks'
 import { useI18n } from '../../i18n/i18n'
 import { weekdayLongKey } from '../../i18n/labels'
@@ -80,7 +81,8 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
       eyebrow={t('result.eyebrow', { race: race.name })}
       title={t('result.title', { position: ordinal(result.position, locale), field: result.fieldSize })}
       description={t('result.description', {
-        category: t(`category.${race.category}`),
+        format: t(`format.${raceFormat(race)}`),
+        difficulty: difficultyOf(race),
         week: result.week,
         day: t(weekdayLongKey(result.day)),
       })}
@@ -173,7 +175,7 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
       </Tabs>
 
       <div className={styles.links}>
-        <Link to={`/races?category=${race.category}`} className={`${button.button} ${button.primary}`}>
+        <Link to={`/races?difficulty=${difficultyOf(race)}`} className={`${button.button} ${button.primary}`}>
           {t('result.backToRaces')}
         </Link>
         <Link to="/training" className={`${button.button} ${button.secondary}`}>

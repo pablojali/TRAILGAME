@@ -104,7 +104,6 @@ export function AppearanceEditor({
                 label: name(outfitLabel(sex, outfit)),
                 swatch: { ...appearance, outfit },
                 crop: 'kit',
-                caption: unlock === 1,
                 lockedUntil: unlock > level ? unlock : undefined,
               }
             })

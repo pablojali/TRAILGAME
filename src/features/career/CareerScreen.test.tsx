@@ -29,7 +29,7 @@ describe('Career', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Season 1' })).toBeInTheDocument()
     expect(screen.getByRole('meter', { name: 'Season 1 progress' })).toHaveAttribute('aria-valuetext', 'Week 1 of 52')
     expect(screen.getByText('Best finish').nextElementSibling).toHaveTextContent('—')
-    expect(screen.getByRole('tab', { name: 'Achievements' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'Challenges' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('meter', { name: 'Race Starter, level 1' })).toHaveAttribute('aria-valuetext', '0 of 1')
     await userEvent.setup().click(screen.getByRole('tab', { name: 'Trophies' }))
     expect(within(screen.getByRole('table')).getByRole('row', { name: 'Total 0 0 0 0' })).toBeInTheDocument()

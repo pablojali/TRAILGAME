@@ -13,14 +13,17 @@ import { SettingsScreen } from '../features/settings/SettingsScreen'
 import { TrainingScreen } from '../features/training/TrainingScreen'
 import { AppShell } from './AppShell'
 import { GameProvider } from './game/GameProvider'
+import { I18nProvider } from '../i18n/i18n'
 
 export const routes: RouteObject[] = [
   {
     path: '/',
     element: (
-      <GameProvider>
-        <AppShell />
-      </GameProvider>
+      <I18nProvider>
+        <GameProvider>
+          <AppShell />
+        </GameProvider>
+      </I18nProvider>
     ),
     children: [
       { index: true, element: <DashboardScreen /> },

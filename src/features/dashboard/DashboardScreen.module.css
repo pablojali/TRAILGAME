@@ -365,3 +365,8 @@
   font-size: var(--font-size-md);
   font-weight: 800;
 }
+
+/* The runner's country flag beside the name (owner request, 4 November 2026). */
+.flag {
+  font-size: 0.9em;
+}

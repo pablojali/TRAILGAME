@@ -16,10 +16,12 @@ import { useGame } from './game/gameContext'
 import { GameNotices } from './game/GameNotices'
 import { LevelUpDialog } from './game/LevelUpDialog'
 import { NAV_ITEMS } from './navigation'
+import { useI18n } from '../i18n/i18n'
 import styles from './AppShell.module.css'
 
 export function AppShell() {
   const { phase, retryLoad } = useGame()
+  const { t } = useI18n()
   const { pathname } = useLocation()
   const main = useRef<HTMLElement>(null)
   const previousPhase = useRef(phase.kind)
@@ -38,7 +40,7 @@ export function AppShell() {
     <div className={`${styles.shell} ${inSetup ? styles.setup : styles.scenic}`}>
       {!inSetup && <Backdrop scene={sceneForPath(pathname, phase.kind === 'playing' && phase.state.activeRace !== null)} />}
       <a href="#main-content" className={styles.skipLink}>
-        Skip to content
+        {t('shell.skip')}
       </a>
 
       <header className={styles.brandBar}>
@@ -47,7 +49,7 @@ export function AppShell() {
         {/* Level and coins side by side, small, then cloud and settings (owner request, 4 November 2026). */}
         {phase.kind === 'playing' && (
           <div className={styles.status}>
-            <p className={styles.level}>Lvl {getLevel(phase.state.athlete.xp)}</p>
+            <p className={styles.level}>{t('common.lvl', { level: getLevel(phase.state.athlete.xp) })}</p>
             <p className={styles.balance}>
               <Coins amount={phase.state.coins} />
             </p>
@@ -57,7 +59,7 @@ export function AppShell() {
         {!inSetup && (
           <NavLink
             to="/settings"
-            aria-label="Settings"
+            aria-label={t('shell.settings')}
             className={({ isActive }) => `${styles.settingsLink} ${isActive ? styles.settingsLinkActive : ''}`}
           >
             <Icon name="settings" size={20} />
@@ -66,7 +68,7 @@ export function AppShell() {
       </header>
 
       {!inSetup && (
-        <nav className={styles.nav} aria-label="Main">
+        <nav className={styles.nav} aria-label={t('nav.main')}>
           <ul className={styles.navList}>
             {NAV_ITEMS.map((item) => (
               <li key={item.id}>
@@ -78,7 +80,7 @@ export function AppShell() {
                   }
                 >
                   <Icon name={item.icon} />
-                  <span className={styles.navLabel}>{item.label}</span>
+                  <span className={styles.navLabel}>{t(`nav.${item.id}`)}</span>
                 </NavLink>
               </li>
             ))}
@@ -95,13 +97,13 @@ export function AppShell() {
           {phase.kind === 'new-career' && <CareerCreationScreen replacing={phase.replacing} />}
           {phase.kind === 'loading' && (
             <p role="status" className={styles.loading}>
-              Loading your career…
+              {t('shell.loading')}
             </p>
           )}
           {phase.kind === 'load-failed' && (
-            <Screen title="Could not load your career" description="Your saved career could not be read." showDescription>
+            <Screen title={t('shell.loadFailed')} description={t('shell.loadFailedDescription')} showDescription>
               <button type="button" className={`${button.button} ${button.primary}`} onClick={retryLoad}>
-                Try again
+                {t('shell.tryAgain')}
               </button>
             </Screen>
           )}

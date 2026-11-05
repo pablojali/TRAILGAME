@@ -1,8 +1,9 @@
+import { useI18n } from '../../i18n/i18n'
+import { weekdayLongKey } from '../../i18n/labels'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { getRace, type Race } from '../../domain/races/races'
-import { weekdayLong } from '../../domain/training/weekdays'
 import { getCurrentDay } from '../../game-engine/gameState'
 import { getRaceWeek, getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedule'
 import { previewRaceDay } from '../../game-engine/races'
@@ -18,11 +19,12 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
   const { week } = state
   const today = getCurrentDay(week)
   const preview = previewRaceDay(state, race)
+  const { t } = useI18n()
 
   const scheduled = getScheduledEntry(state)
   if (scheduled && scheduled.id !== entryId) {
     const first = getRace(scheduled.raceId)
-    return <p className={styles.muted}>Queued: {first?.name ?? 'another race'} is run first, on Sunday.</p>
+    return <p className={styles.muted}>{t('races.queued', { name: first?.name ?? t('races.anotherRace') })}</p>
   }
 
   if (!isRaceDayToday(state)) {
@@ -30,12 +32,11 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
     return (
       <>
         {raceWeek > week.number && (
-          <p className={styles.warning}>
-            Injured: Sunday is a forced rest day, so the race moves to Sunday of week {raceWeek}. Your entry is kept.
-          </p>
+          <p className={styles.warning}>{t('races.injuredMoved', { week: raceWeek })}</p>
         )}
         <p>
-          <strong>Race day: Sunday, week {raceWeek}.</strong> Today is {weekdayLong(today.day)}. Train until then.
+          <strong>{t('races.raceDay', { week: raceWeek })}</strong>
+          {t('races.todayIs', { day: t(weekdayLongKey(today.day)) })}
         </p>
       </>
     )
@@ -45,10 +46,11 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
     return (
       <>
         <p>
-          <strong>Race in progress.</strong> You are at aid station {state.activeRace.splits.length}.
+          <strong>{t('races.inProgress')}</strong>
+          {t('races.atStation', { station: state.activeRace.splits.length })}
         </p>
         <Link to={`/races/run/${entryId}`} className={`${button.button} ${button.primary} ${button.block}`}>
-          Continue race
+          {t('races.continue')}
         </Link>
       </>
     )
@@ -60,7 +62,7 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
       to={`/races/run/${entryId}`}
       className={`${button.button} ${preview.injured ? button.danger : button.primary} ${button.block}`}
     >
-      {preview.injured ? 'Prepare race — injury risk' : 'Prepare race'}
+      {preview.injured ? t('races.prepareInjury') : t('races.prepare')}
     </Link>
   )
 }

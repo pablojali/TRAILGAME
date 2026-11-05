@@ -1,3 +1,4 @@
+import { useI18n } from '../../i18n/i18n'
 import { useEffect, useId, useRef, useState } from 'react'
 import button from '../../components/Button.module.css'
 import { getAccountService, type AccountService } from '../../repositories/supabase/accountLinking'
@@ -12,6 +13,7 @@ export function SignInLink({ service = getAccountService() }: { service?: Accoun
   const [open, setOpen] = useState(false)
   const titleId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
+  const { t } = useI18n()
 
   useEffect(() => {
     if (open) heading.current?.focus()
@@ -21,17 +23,17 @@ export function SignInLink({ service = getAccountService() }: { service?: Accoun
   return (
     <>
       <button type="button" className={styles.signInLink} onClick={() => setOpen(true)}>
-        Already playing on another device? Sign in
+        {t('setup.signInPrompt')}
       </button>
       {open && (
         <div className={styles.signInBackdrop}>
           <section role="dialog" aria-modal="true" aria-labelledby={titleId} className={styles.signInDialog}>
             <h2 id={titleId} ref={heading} tabIndex={-1} className={styles.signInTitle}>
-              Sign in
+              {t('setup.signIn')}
             </h2>
             <SignInPanel service={service} initiallyOpen />
             <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => setOpen(false)}>
-              Close
+              {t('setup.close')}
             </button>
           </section>
         </div>

@@ -1,6 +1,7 @@
+import { useI18n, type MessageKey } from '../../i18n/i18n'
 import { useId, useState, type FormEvent } from 'react'
 import button from '../../components/Button.module.css'
-import { ACCOUNT_ERROR_TEXT, type AccountService, type LinkResult } from '../../repositories/supabase/accountLinking'
+import type { AccountService, LinkResult } from '../../repositories/supabase/accountLinking'
 import styles from './SettingsScreen.module.css'
 
 /**
@@ -16,6 +17,7 @@ export function SignInPanel({ service, initiallyOpen = false }: { service: Accou
   const [password, setPassword] = useState('')
   const [working, setWorking] = useState(false)
   const [error, setError] = useState('')
+  const { t } = useI18n()
 
   async function run(action: () => Promise<LinkResult>) {
     if (working) return
@@ -23,7 +25,7 @@ export function SignInPanel({ service, initiallyOpen = false }: { service: Accou
     setError('')
     const result = await action()
     setWorking(false)
-    if (!result.ok) setError(ACCOUNT_ERROR_TEXT[result.error])
+    if (!result.ok) setError(t(`account.error.${result.error}` as MessageKey))
   }
 
   function submit(event: FormEvent) {
@@ -38,18 +40,15 @@ export function SignInPanel({ service, initiallyOpen = false }: { service: Accou
     return (
       <div className={styles.actions}>
         <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => setOpen(true)}>
-          Sign in to an existing account
+          {t('account.signInExisting')}
         </button>
       </div>
     )
   }
 
   return (
-    <section className={styles.form} aria-label="Sign in to an existing account">
-      <p className={styles.hint}>
-        Use the account you linked on another device to play its career here. If this device has a career too, you will
-        choose which one to keep.
-      </p>
+    <section className={styles.form} aria-label={t('account.signInExisting')}>
+      <p className={styles.hint}>{t('account.signInHint')}</p>
       <div className={styles.actions}>
         <button
           type="button"
@@ -57,12 +56,12 @@ export function SignInPanel({ service, initiallyOpen = false }: { service: Accou
           aria-disabled={working || undefined}
           onClick={() => run(() => service.startOAuthSignIn('google'))}
         >
-          Sign in with Google
+          {t('account.signInGoogle')}
         </button>
       </div>
       <form className={styles.form} onSubmit={submit} noValidate>
         <label htmlFor={emailId} className={styles.label}>
-          Email
+          {t('account.email')}
         </label>
         <input
           id={emailId}
@@ -74,7 +73,7 @@ export function SignInPanel({ service, initiallyOpen = false }: { service: Accou
           onChange={(event) => setEmail(event.target.value)}
         />
         <label htmlFor={passwordId} className={styles.label}>
-          Password
+          {t('account.password')}
         </label>
         <div className={styles.row}>
           <input
@@ -86,7 +85,7 @@ export function SignInPanel({ service, initiallyOpen = false }: { service: Accou
             onChange={(event) => setPassword(event.target.value)}
           />
           <button type="submit" className={`${button.button} ${button.primary}`} aria-disabled={working || undefined}>
-            Sign in
+            {t('account.signIn')}
           </button>
         </div>
       </form>

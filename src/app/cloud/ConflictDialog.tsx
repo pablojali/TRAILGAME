@@ -1,3 +1,4 @@
+import { useI18n } from '../../i18n/i18n'
 import { useEffect, useId, useRef, useState } from 'react'
 import button from '../../components/Button.module.css'
 import { getLevel } from '../../domain/athlete/levels'
@@ -17,6 +18,7 @@ export function ConflictDialog() {
   const heading = useRef<HTMLHeadingElement>(null)
   const [working, setWorking] = useState(false)
   const [failed, setFailed] = useState(false)
+  const { t } = useI18n()
 
   useEffect(() => {
     if (syncConflict) heading.current?.focus()
@@ -26,7 +28,7 @@ export function ConflictDialog() {
   const local = summarize(syncConflict.local, getLevel)
   const remote = syncConflict.remote && summarize(syncConflict.remote, getLevel)
   // Progression is kept by the server: a device career that has progressed cannot replace it.
-  const keepLocal = canKeepDeviceCareer ? "Keep this device's career" : remote ? null : 'Start a new career with this runner'
+  const keepLocal = canKeepDeviceCareer ? t('conflict.keepLocal') : remote ? null : t('conflict.startNew')
 
   async function choose(choice: 'local' | 'cloud') {
     if (working) return
@@ -41,27 +43,22 @@ export function ConflictDialog() {
     <div className={styles.backdrop}>
       <section role="dialog" aria-modal="true" aria-labelledby={titleId} className={styles.dialog}>
         <h2 id={titleId} ref={heading} tabIndex={-1} className={styles.title}>
-          Choose your career
+          {t('conflict.title')}
         </h2>
-        <p className={styles.text}>
-          This device and your account's cloud save have different careers. Choose the one to keep: it becomes your
-          career on this device and in the cloud, and the other one is replaced. Careers are never mixed.
-        </p>
+        <p className={styles.text}>{t('conflict.text')}</p>
         {!canKeepDeviceCareer && (
           <p className={styles.text}>
-            {remote
-              ? "Training, races and progress are confirmed by the server, so this device's career cannot replace the cloud career. A copy of it is kept on this device."
-              : "Training, races and progress are confirmed by the server, so this device's progress cannot be uploaded. You can start a new career with this runner's name and look."}
+            {remote ? t('conflict.serverRemote') : t('conflict.serverNoRemote')}
           </p>
         )}
         <div className={styles.options}>
-          <Option title="This device" summary={local} />
+          <Option title={t('conflict.device')} summary={local} />
           {remote ? (
-            <Option title="Cloud save" summary={remote} />
+            <Option title={t('conflict.cloud')} summary={remote} />
           ) : (
             <div className={styles.option}>
-              <h3 className={styles.optionTitle}>Cloud save</h3>
-              <p className={styles.text}>The cloud copy is damaged or from another version of the game and cannot be played.</p>
+              <h3 className={styles.optionTitle}>{t('conflict.cloud')}</h3>
+              <p className={styles.text}>{t('conflict.damaged')}</p>
             </div>
           )}
         </div>
@@ -83,14 +80,18 @@ export function ConflictDialog() {
               aria-disabled={working || undefined}
               onClick={() => choose('cloud')}
             >
-              Keep the cloud career
+              {t('conflict.keepCloud')}
             </button>
           )}
         </div>
-        {working && <p role="status" className={styles.text}>Saving your choice…</p>}
+        {working && (
+          <p role="status" className={styles.text}>
+            {t('conflict.saving')}
+          </p>
+        )}
         {failed && (
           <p role="alert" className={styles.error}>
-            Your choice could not be saved (no connection, or the cloud changed). Both careers are unchanged; try again.
+            {t('conflict.failed')}
           </p>
         )}
       </section>
@@ -99,25 +100,26 @@ export function ConflictDialog() {
 }
 
 function Option({ title, summary }: { title: string; summary: CareerSummary }) {
+  const { t } = useI18n()
   return (
     <div className={styles.option}>
       <h3 className={styles.optionTitle}>{title}</h3>
       <p className={styles.runner}>{summary.name}</p>
       <dl className={styles.facts}>
         <div>
-          <dt>Level</dt>
+          <dt>{t('conflict.level')}</dt>
           <dd>{summary.level}</dd>
         </div>
         <div>
-          <dt>Week</dt>
+          <dt>{t('conflict.week')}</dt>
           <dd>{summary.week}</dd>
         </div>
         <div>
-          <dt>Coins</dt>
+          <dt>{t('conflict.coins')}</dt>
           <dd>{summary.coins}</dd>
         </div>
         <div>
-          <dt>Races</dt>
+          <dt>{t('conflict.races')}</dt>
           <dd>{summary.races}</dd>
         </div>
       </dl>

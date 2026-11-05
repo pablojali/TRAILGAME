@@ -1,7 +1,9 @@
+import { itemDisplayName } from '../../i18n/equipmentText'
+import { useI18n } from '../../i18n/i18n'
 import { Avatar } from '../../components/avatar/Avatar'
 import type { Appearance } from '../../domain/athlete/appearance'
-import { SEX_LABELS, type Sex } from '../../domain/athlete/athlete'
-import { getEquipmentItem, itemName } from '../../domain/equipment/items'
+import type { Sex } from '../../domain/athlete/athlete'
+import { getEquipmentItem } from '../../domain/equipment/items'
 import styles from './DashboardRunner.module.css'
 
 interface DashboardRunnerProps {
@@ -14,8 +16,13 @@ interface DashboardRunnerProps {
 
 /** Dashboard runner: the athlete's avatar with what is equipped. Never the creation illustrations. */
 export function DashboardRunner({ name, sex, appearance, equipment }: DashboardRunnerProps) {
-  const worn = equipment.map((id) => getEquipmentItem(id)).filter((item) => item !== undefined).map((item) => itemName(item).toLowerCase())
-  const description = `${name}, ${SEX_LABELS[sex].toLowerCase()} runner, ${worn.length ? `wearing ${worn.join(', ')}` : 'no equipment'}`
+  const { t, locale } = useI18n()
+  const worn = equipment.map((id) => getEquipmentItem(id)).filter((item) => item !== undefined).map((item) => itemDisplayName(item, locale, t).toLocaleLowerCase(locale === 'de' ? 'en' : locale))
+  const description = t('dashboard.runner', {
+    name,
+    sex: t(`sex.${sex}`).toLocaleLowerCase(locale),
+    gear: worn.length ? t('dashboard.wearing', { items: worn.join(', ') }) : t('dashboard.noEquipment'),
+  })
 
   return (
     <figure className={styles.runner} role="img" aria-label={description}>

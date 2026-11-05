@@ -1,3 +1,6 @@
+import { useI18n, type MessageKey } from '../../i18n/i18n'
+import { CountrySelect } from '../../components/CountrySelect'
+import { guessCountry, isCountryCode } from '../../domain/athlete/countries'
 import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import { useNavigate } from 'react-router'
 import { useGame, type StartCareerError } from '../../app/game/gameContext'
@@ -7,7 +10,6 @@ import { appearanceForSex, defaultAppearance, type Appearance } from '../../doma
 import {
   ATHLETE_NAME_MAX_LENGTH,
   cleanAthleteName,
-  SEX_LABELS,
   SEXES,
   type Sex,
 } from '../../domain/athlete/athlete'
@@ -86,10 +88,11 @@ interface SexToggleProps {
 /** Female / Male segmented control, on the appearance step. */
 function SexToggle({ sex, onChange }: SexToggleProps) {
   const legendId = useId()
+  const { t } = useI18n()
   return (
     <fieldset className={styles.sexToggle} aria-labelledby={legendId}>
       <legend id={legendId} className={styles.srOnly}>
-        Runner sex
+        {t('setup.runnerSex')}
       </legend>
       {SEXES.map((option) => (
         <label key={option} className={`${styles.segment} ${sex === option ? styles.segmentOn : ''}`}>
@@ -101,7 +104,7 @@ function SexToggle({ sex, onChange }: SexToggleProps) {
             onChange={() => onChange(option)}
             className={styles.srOnlyInput}
           />
-          {SEX_LABELS[option]}
+          {t(`sex.${option}`)}
         </label>
       ))}
     </fieldset>
@@ -118,18 +121,16 @@ interface AppearanceStepProps {
 }
 
 function AppearanceStep({ headingRef, sex, onSexChange, appearance, onAppearanceChange, onContinue }: AppearanceStepProps) {
+  const { t } = useI18n()
   return (
     <section className={styles.step} aria-labelledby="creation-title">
-      <title>Create your runner · Trail Manager</title>
+      <title>{`${t('setup.createTitle')} · Trail Manager`}</title>
       <header className={styles.header}>
-        <p className={styles.eyebrow}>New career · Step 1 of {STEP_COUNT}</p>
+        <p className={styles.eyebrow}>{t('setup.step', { step: 1, count: STEP_COUNT })}</p>
         <h1 id="creation-title" ref={headingRef} tabIndex={-1} className={styles.title}>
-          Create your runner
+          {t('setup.createTitle')}
         </h1>
-        <p className={styles.help}>
-          Every runner starts as an All-rounder, with every attribute at {PROFILES[STARTING_PROFILE].attributes.endurance}.
-          Appearance is cosmetic.
-        </p>
+        <p className={styles.help}>{t('setup.createHelp', { value: PROFILES[STARTING_PROFILE].attributes.endurance })}</p>
         <SignInLink />
       </header>
 
@@ -139,7 +140,7 @@ function AppearanceStep({ headingRef, sex, onSexChange, appearance, onAppearance
 
       <div className={styles.actions}>
         <button type="button" className={`${button.button} ${button.primary} ${styles.grow}`} onClick={onContinue}>
-          Continue
+          {t('common.continue')}
         </button>
       </div>
     </section>
@@ -154,32 +155,38 @@ interface NameStepProps {
   onBack(): void
 }
 
-const START_ERRORS: Record<StartCareerError, string> = {
-  offline: 'Could not reach the server to create your career. Check your connection and try again.',
-  'server-error': 'The server could not create your career. Try again.',
-  'cloud-career-exists': 'Your account already has a career. It is being loaded on this device.',
+const START_ERRORS: Record<StartCareerError, MessageKey> = {
+  offline: 'setup.error.offline',
+  'server-error': 'setup.error.server-error',
+  'cloud-career-exists': 'setup.error.cloud-career-exists',
 }
 
 function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepProps) {
   const { startCareer } = useGame()
   const navigate = useNavigate()
   const [name, setName] = useState('')
+  // A first guess from the browser's language (e.g. es-AR → Argentina); the player confirms it.
+  const [country, setCountry] = useState(() => guessCountry(typeof navigator === 'undefined' ? [] : navigator.languages ?? []) ?? '')
+  const [showCountryError, setShowCountryError] = useState(false)
   const [showError, setShowError] = useState(false)
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState('')
   const inputId = useId()
   const hintId = useId()
   const errorId = useId()
+  const countryId = useId()
+  const countryErrorId = useId()
+  const { t, locale } = useI18n()
 
   return (
     <section className={styles.step} aria-labelledby="creation-title">
-      <title>Name your runner · Trail Manager</title>
+      <title>{`${t('setup.nameTitle')} · Trail Manager`}</title>
       <header className={styles.header}>
-        <p className={styles.eyebrow}>New career · Step 2 of {STEP_COUNT}</p>
+        <p className={styles.eyebrow}>{t('setup.step', { step: 2, count: STEP_COUNT })}</p>
         <h1 id="creation-title" ref={headingRef} tabIndex={-1} className={styles.title}>
-          Name your runner
+          {t('setup.nameTitle')}
         </h1>
-        <p className={styles.help}>Your runner's name appears on the Dashboard.</p>
+        <p className={styles.help}>{t('setup.nameHelp')}</p>
       </header>
 
       <div className={styles.preview}>
@@ -187,11 +194,14 @@ function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepPr
           <Avatar
             sex={sex}
             appearance={appearance}
-            label={`Your runner: ${PROFILES[STARTING_PROFILE].label}, ${SEX_LABELS[sex].toLowerCase()}`}
+            label={t('setup.preview', {
+              profile: t(`profile.${STARTING_PROFILE}`),
+              sex: t(`sex.${sex}`).toLocaleLowerCase(locale),
+            })}
           />
         </div>
         <p className={styles.previewLabel}>
-          {PROFILES[STARTING_PROFILE].label} · {SEX_LABELS[sex]}
+          {t(`profile.${STARTING_PROFILE}`)} · {t(`sex.${sex}`)}
         </p>
       </div>
 
@@ -202,17 +212,18 @@ function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepPr
           event.preventDefault()
           if (starting) return
           const clean = cleanAthleteName(name)
-          if (!clean) {
-            setShowError(true)
+          if (!clean || !isCountryCode(country)) {
+            setShowError(!clean)
+            setShowCountryError(!isCountryCode(country))
             return
           }
           setStarting(true)
           setStartError('')
           // With cloud saves the server creates the career; nothing starts until it confirms.
-          const failure = await startCareer({ name: clean, sex, appearance })
+          const failure = await startCareer({ name: clean, sex, appearance, country })
           setStarting(false)
           if (failure) {
-            setStartError(START_ERRORS[failure])
+            setStartError(t(START_ERRORS[failure]))
             return
           }
           // A new career always opens on the Dashboard, whichever route showed this flow.
@@ -220,7 +231,7 @@ function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepPr
         }}
       >
         <label htmlFor={inputId} className={styles.fieldLabel}>
-          Runner name
+          {t('setup.runnerName')}
         </label>
         <input
           id={inputId}
@@ -238,15 +249,34 @@ function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepPr
           }}
         />
         <p id={hintId} className={styles.hint}>
-          1–{ATHLETE_NAME_MAX_LENGTH} characters.
+          {t('setup.nameHint', { max: ATHLETE_NAME_MAX_LENGTH })}
         </p>
         {showError && (
           <p id={errorId} role="alert" className={styles.error}>
-            Enter a name for your runner.
+            {t('setup.nameError')}
+          </p>
+        )}
+        <label htmlFor={countryId} className={styles.fieldLabel}>
+          {t('setup.country')}
+        </label>
+        <CountrySelect
+          id={countryId}
+          className={styles.input}
+          value={country}
+          invalid={showCountryError}
+          describedBy={showCountryError ? countryErrorId : undefined}
+          onChange={(code) => {
+            setCountry(code)
+            setShowCountryError(false)
+          }}
+        />
+        {showCountryError && (
+          <p id={countryErrorId} role="alert" className={styles.error}>
+            {t('setup.countryError')}
           </p>
         )}
         {replacing && (
-          <p className={styles.caution}>Starting a new career will replace your previous saved career.</p>
+          <p className={styles.caution}>{t('setup.replacing')}</p>
         )}
         {startError && (
           <p role="alert" className={styles.error}>
@@ -255,14 +285,14 @@ function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepPr
         )}
         <div className={styles.actions}>
           <button type="button" className={`${button.button} ${button.secondary}`} onClick={onBack}>
-            Back
+            {t('common.back')}
           </button>
           <button
             type="submit"
             className={`${button.button} ${button.primary} ${styles.grow}`}
             aria-disabled={starting || undefined}
           >
-            {starting ? 'Starting…' : 'Start career'}
+            {starting ? t('setup.starting') : t('setup.start')}
           </button>
         </div>
       </form>

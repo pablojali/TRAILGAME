@@ -1361,3 +1361,8 @@ Before implementing numerical changes, verify the existing source values, partic
 The development documentation must also be reconciled with this Bible. In particular, `DEVELOPMENT.md §11` was reported to contain an older M1 scope describing equipment purchases, race simulation, and rewards. That section must not contradict the actual delivered M1 or the milestone approved next.
 
 **Final rule:** Claude Code implements approved scope; it does not independently invent missing game mechanics. When a rule is provisional or undefined, it must be reported to the PM before implementation.
+
+
+## Runner country (owner request, 4 November 2026)
+
+Every runner represents a country (ISO 3166-1 alpha-2 code in `athlete.country`), chosen on the name step of career creation (first guess from the browser language) and changeable in Settings for careers started before it existed. Cosmetic for now: the flag shows beside the name on the Dashboard. Planned use: a future trail world championship with the best runners of each country.

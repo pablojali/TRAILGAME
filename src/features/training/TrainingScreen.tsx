@@ -1,3 +1,4 @@
+import { lookName } from '../../i18n/looks'
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
@@ -6,7 +7,6 @@ import { formatDelta, formatStat } from '../../components/format'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
 import { getRestFatigueDelta, RECOVERY_REST_FITNESS } from '../../domain/training/recovery'
-import { ATTRIBUTE_LABELS } from '../../domain/athlete/athlete'
 import {
   ATTRIBUTE_GAIN_PER_SESSION,
   isSessionType,
@@ -14,11 +14,11 @@ import {
   TRAINING_SESSIONS,
   type SessionType,
 } from '../../domain/training/sessions'
-import { weekdayLong, weekdayShort } from '../../domain/training/weekdays'
+import { useI18n, type MessageKey, type Translate } from '../../i18n/i18n'
+import { weekdayLongKey, weekdayShortKey } from '../../i18n/labels'
 import {
   getDayStatus,
   type DayOutcome,
-  type DayStatus,
   type FinishedRaceEntry,
   type GameState,
   type TrainingDay,
@@ -49,21 +49,15 @@ function dayRace(state: GameState, day: TrainingDay): { race: Race; entry: Finis
   return entry?.status === 'finished' && race ? { race, entry } : null
 }
 
-const STATUS_LABELS: Record<DayStatus, string> = {
-  completed: 'Completed',
-  current: 'Today',
-  upcoming: 'Planned',
-}
-
-const ERROR_MESSAGES: Record<TrainingError | ServerError, string> = {
-  offline: 'Could not reach the server, so this day was not counted yet. Check your connection and try again.',
-  'server-error': 'The server could not complete this day, so it was not counted yet. Try again.',
-  'day-completed': 'This day has already been completed.',
-  'day-not-current': 'Only today’s session can be completed.',
-  'wrong-week': 'The training week has changed. Review today’s session and try again.',
-  'unknown-session': 'That session is not available.',
-  'forced-rest': 'Your runner is injured: this is a forced rest day.',
-  'race-day': 'This is race day: the race replaces the session.',
+const ERROR_MESSAGES: Record<TrainingError | ServerError, MessageKey> = {
+  offline: 'training.error.offline',
+  'server-error': 'training.error.server-error',
+  'day-completed': 'training.error.day-completed',
+  'day-not-current': 'training.error.day-not-current',
+  'wrong-week': 'training.error.wrong-week',
+  'unknown-session': 'training.error.unknown-session',
+  'forced-rest': 'training.error.forced-rest',
+  'race-day': 'training.error.race-day',
 }
 
 /**
@@ -72,11 +66,13 @@ const ERROR_MESSAGES: Record<TrainingError | ServerError, string> = {
  */
 const COMPLETE_COOLDOWN_MS = 700
 
-function effectsText(outcome: DayOutcome) {
+function effectsText(outcome: DayOutcome, t: Translate) {
   const gain = outcome.attributeGain
-  const trained = gain ? ` · ${ATTRIBUTE_LABELS[gain.attribute]} ${formatDelta(gain.amount)}` : ''
-  const daily = outcome.consistencyGain ? ` · Consistency ${formatDelta(outcome.consistencyGain)} (week completed)` : ''
-  return `XP ${formatDelta(outcome.xpGained)} · Fitness ${formatDelta(outcome.fitnessChange)} · Fatigue ${formatDelta(outcome.fatigueChange)}${trained}${daily}`
+  const trained = gain ? ` · ${t(`attr.${gain.attribute}`)} ${formatDelta(gain.amount)}` : ''
+  const daily = outcome.consistencyGain
+    ? ` · ${t('training.consistencyWeek', { attribute: t('attr.consistency'), delta: formatDelta(outcome.consistencyGain) })}`
+    : ''
+  return `${t('stat.xp')} ${formatDelta(outcome.xpGained)} · ${t('stat.fitness')} ${formatDelta(outcome.fitnessChange)} · ${t('stat.fatigue')} ${formatDelta(outcome.fatigueChange)}${trained}${daily}`
 }
 
 /**
@@ -122,6 +118,7 @@ export function TrainingScreen() {
   // Waiting for the server to confirm the day (Phase 3B.1); also blocks a second tap meanwhile.
   const [busy, setBusy] = useState(false)
   const completing = useRef(false)
+  const { t } = useI18n()
 
   useEffect(() => {
     if (!cooldown) return
@@ -135,15 +132,15 @@ export function TrainingScreen() {
 
   return (
     <section className={styles.screen} aria-labelledby="training-title">
-      <title>Training · Trail Manager</title>
+      <title>{`${t('training.title')} · Trail Manager`}</title>
       <header className={styles.header}>
         <h1 id="training-title" className={styles.title}>
-          Training
+          {t('training.title')}
         </h1>
-        <p className={styles.eyebrow}>Week {week.number}</p>
+        <p className={styles.eyebrow}>{t('training.week', { week: week.number })}</p>
       </header>
 
-      <ol className={styles.strip} aria-label={`Week ${week.number} plan`}>
+      <ol className={styles.strip} aria-label={t('training.weekPlan', { week: week.number })}>
         {week.days.map((day, index) => {
           const dayStatus = getDayStatus(week, index)
           const forced = index >= week.currentDayIndex && index < week.currentDayIndex + state.forcedRestDays
@@ -158,15 +155,17 @@ export function TrainingScreen() {
                 aria-pressed={index === selectedIndex}
                 aria-current={dayStatus === 'current' ? 'date' : undefined}
                 aria-controls="day-detail"
-                aria-label={`${weekdayLong(day.day)}, ${raceName ? `Race: ${raceName}` : TRAINING_SESSIONS[day.session].label}, ${
-                  day.outcome?.injured ? 'injured' : STATUS_LABELS[dayStatus].toLowerCase()
-                }${forced ? ', forced rest' : ''}`}
+                aria-label={`${t('training.dayLabel', {
+                  day: t(weekdayLongKey(day.day)),
+                  what: raceName ? t('training.race', { name: raceName }) : t(`session.${day.session}`),
+                  status: day.outcome?.injured ? t('training.injured') : t(`training.statusLower.${dayStatus}`),
+                })}${forced ? t('training.forcedRestTag') : ''}`}
                 onClick={() => {
                   setError(null)
                   setSelected(index === week.currentDayIndex ? null : index)
                 }}
               >
-                <span className={styles.dayName}>{weekdayShort(day.day)}</span>
+                <span className={styles.dayName}>{t(weekdayShortKey(day.day))}</span>
                 <SessionIcon session={raceName ? 'race' : day.session} size={22} />
                 <span className={styles.dayMark} aria-hidden="true">
                   {day.outcome ? (day.outcome.injured ? '!' : '✓') : forced ? '+' : dayStatus === 'current' ? '•' : ''}
@@ -186,7 +185,7 @@ export function TrainingScreen() {
         onPlan={(session) => {
           // Any day from today on can be planned (owner decision, 1 November 2026).
           const failure = planSession({ week: week.number, dayIndex: selectedIndex }, session)
-          setError(failure && ERROR_MESSAGES[failure])
+          setError(failure && t(ERROR_MESSAGES[failure]))
         }}
         onComplete={async () => {
           if (cooldown || completing.current) return
@@ -195,7 +194,7 @@ export function TrainingScreen() {
           const failure = await executeDay(ref)
           completing.current = false
           setBusy(false)
-          setError(failure && ERROR_MESSAGES[failure])
+          setError(failure && t(ERROR_MESSAGES[failure]))
           if (!failure) {
             setSelected(null)
             setCooldown(true)
@@ -226,11 +225,13 @@ function DayDetail({ state, index, error, cooldown, busy, onPlan, onComplete }: 
   const { week } = state
   const day = week.days[index]!
   const status = getDayStatus(week, index)
-  const session = TRAINING_SESSIONS[day.session]
   const selectId = useId()
   const raced = dayRace(state, day)
   const upcomingRace = scheduledRace(state, index)
   const forcedDay = index >= week.currentDayIndex && index < week.currentDayIndex + state.forcedRestDays
+  const { t, locale } = useI18n()
+  const sessionLabel = t(`session.${day.session}`)
+  const sessionDescription = t(`session.desc.${day.session}`)
 
   return (
     <section id="day-detail" className={styles.detail} aria-labelledby="day-detail-title">
@@ -243,10 +244,16 @@ function DayDetail({ state, index, error, cooldown, busy, onPlan, onComplete }: 
           }
         >
           <SessionIcon session={raced || upcomingRace ? 'race' : day.session} size={26} />
-          <span>{raced ? `Race: ${raced.race.name}` : upcomingRace ? `Race: ${upcomingRace.race.name}` : session.label}</span>
+          <span>
+            {raced
+              ? t('training.race', { name: raced.race.name })
+              : upcomingRace
+                ? t('training.race', { name: upcomingRace.race.name })
+                : sessionLabel}
+          </span>
         </h2>
         <span className={styles.detailWhen}>
-          {weekdayLong(day.day)} · {STATUS_LABELS[status]}
+          {t(weekdayLongKey(day.day))} · {t(`training.status.${status}`)}
         </span>
       </div>
 
@@ -254,8 +261,8 @@ function DayDetail({ state, index, error, cooldown, busy, onPlan, onComplete }: 
         <RaceDayPanel race={upcomingRace.race} entryId={upcomingRace.entryId} />
       ) : status === 'upcoming' && upcomingRace ? (
         <p className={styles.description}>
-          Race day: {upcomingRace.race.name} replaces this day’s session.{' '}
-          <Link to={`/races/${upcomingRace.race.id}`}>Race details</Link>
+          {t('training.raceReplaces', { name: upcomingRace.race.name })}{' '}
+          <Link to={`/races/${upcomingRace.race.id}`}>{t('training.raceDetails')}</Link>
         </p>
       ) : status === 'current' ? (
         <TodayActions
@@ -271,31 +278,31 @@ function DayDetail({ state, index, error, cooldown, busy, onPlan, onComplete }: 
         <>
           {raced ? (
             <p className={styles.description}>
-              Raced instead of {session.label}: {ordinal(raced.entry.result.position)} of{' '}
-              {raced.entry.result.fieldSize} in {raceTimeText(raced.entry.result.timeS)}.{' '}
-              <Link to={`/races/results/${raced.entry.id}`}>View result</Link>
+              {t('training.racedInstead', {
+                session: sessionLabel,
+                position: ordinal(raced.entry.result.position, locale),
+                field: raced.entry.result.fieldSize,
+                time: raceTimeText(raced.entry.result.timeS),
+              })}{' '}
+              <Link to={`/races/results/${raced.entry.id}`}>{t('training.viewResult')}</Link>
             </p>
           ) : (
-            <p className={styles.description}>{session.description}</p>
+            <p className={styles.description}>{sessionDescription}</p>
           )}
           <p className={styles.summary}>
-            <strong>Result:</strong> {effectsText(day.outcome)}
+            <strong>{t('training.result')}</strong> {effectsText(day.outcome, t)}
           </p>
-          {day.outcome.injured && (
-            <p className={styles.warning}>
-              Injured on this day: no XP, Fitness lost and {INJURY_REST_DAYS} forced rest days.
-            </p>
-          )}
+          {day.outcome.injured && <p className={styles.warning}>{t('training.injuredDay', { days: INJURY_REST_DAYS })}</p>}
         </>
       ) : (
         <>
           {forcedDay ? (
-            <p className={styles.injuredHint}>Forced rest day: the session cannot be changed.</p>
+            <p className={styles.injuredHint}>{t('training.forcedRestDay')}</p>
           ) : (
             <div className={styles.selectRow}>
               <SessionIcon session={day.session} size={26} />
               <label htmlFor={selectId} className={styles.srOnly}>
-                Session for {weekdayLong(day.day)}
+                {t('training.sessionFor', { day: t(weekdayLongKey(day.day)) })}
               </label>
               <select
                 id={selectId}
@@ -308,22 +315,22 @@ function DayDetail({ state, index, error, cooldown, busy, onPlan, onComplete }: 
               >
                 {SESSION_TYPES.map((id) => (
                   <option key={id} value={id}>
-                    {TRAINING_SESSIONS[id].label}
+                    {t(`session.${id}`)}
                   </option>
                 ))}
               </select>
             </div>
           )}
-          <p className={styles.description}>{session.description}</p>
+          <p className={styles.description}>{sessionDescription}</p>
           <p className={styles.summary}>
-            <strong>Planned:</strong> {effectsText(plannedEffects(state, index))}
+            <strong>{t('training.planned')}</strong> {effectsText(plannedEffects(state, index), t)}
           </p>
           {error && (
             <p role="alert" className={styles.warning}>
               {error}
             </p>
           )}
-          <p className={styles.hint}>You can plan any day of this week; only today’s session can be completed.</p>
+          <p className={styles.hint}>{t('training.planHint')}</p>
         </>
       )}
     </section>
@@ -343,15 +350,16 @@ interface TodayActionsProps {
 function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComplete }: TodayActionsProps) {
   const { athlete, week } = state
   const today = week.days[week.currentDayIndex]!
-  const session = TRAINING_SESSIONS[today.session]
   const effects = previewSession(state, today.session)
   const forced = state.forcedRestDays > 0
+  const { t } = useI18n()
+  const sessionLabel = t(`session.${today.session}`)
 
   return (
     <>
       <div className={styles.field}>
         <label htmlFor={selectId} className={styles.srOnly}>
-          Session for {weekdayLong(today.day)}
+          {t('training.sessionFor', { day: t(weekdayLongKey(today.day)) })}
         </label>
         <div className={styles.selectRow}>
           <SessionIcon session={today.session} size={26} />
@@ -367,34 +375,31 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
           >
             {SESSION_TYPES.map((id) => (
               <option key={id} value={id}>
-                {TRAINING_SESSIONS[id].label}
+                {t(`session.${id}`)}
               </option>
             ))}
           </select>
         </div>
         {forced ? (
-          <p className={styles.injuredHint}>
-            Injured: {state.forcedRestDays} forced rest {state.forcedRestDays === 1 ? 'day' : 'days'} left.
-            Session locked.
-          </p>
+          <p className={styles.injuredHint}>{t('training.injuredLeft', { count: state.forcedRestDays })}</p>
         ) : (
           <p className={styles.hint}>
-            {session.description}
+            {t(`session.desc.${today.session}`)}
             {today.session === 'rest' &&
               (isRecoveryRest(state)
                 ? freeRestDays(state) === 2
-                  ? ' Race week: up to 2 rest days in a row keep Fitness.'
-                  : ' Recovery rest after a training day: Fitness kept.'
+                  ? t('training.rest.raceWeek')
+                  : t('training.rest.recovery')
                 : freeRestDays(state) === 2
-                  ? ' A third rest in a row: Fitness −2.'
-                  : ' A second rest in a row: Fitness −2.')}
+                  ? t('training.rest.third')
+                  : t('training.rest.second'))}
           </p>
         )}
       </div>
 
       <dl className={styles.effects}>
         <div>
-          <dt>XP</dt>
+          <dt>{t('stat.xp')}</dt>
           <dd>
             <span className={styles.delta}>{formatDelta(effects.xpGained)}</span>
             <span className={styles.result}>
@@ -403,7 +408,7 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
           </dd>
         </div>
         <div>
-          <dt>Fitness</dt>
+          <dt>{t('stat.fitness')}</dt>
           <dd>
             <span className={styles.delta}>{formatDelta(effects.fitnessChange)}</span>
             <span className={styles.result}>
@@ -412,7 +417,7 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
           </dd>
         </div>
         <div>
-          <dt>Fatigue</dt>
+          <dt>{t('stat.fatigue')}</dt>
           <dd>
             <span className={styles.delta}>{formatDelta(effects.fatigueChange)}</span>
             <span className={styles.result}>
@@ -423,17 +428,23 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
       </dl>
       {effects.attributeGain && (
         <p className={styles.hint}>
-          Trains {ATTRIBUTE_LABELS[effects.attributeGain.attribute]} {formatDelta(effects.attributeGain.amount)} (
-          {formatStat(athlete.attributes[effects.attributeGain.attribute])} →{' '}
-          {formatStat(athlete.attributes[effects.attributeGain.attribute] + effects.attributeGain.amount)})
+          {t('training.trains', {
+            attribute: t(`attr.${effects.attributeGain.attribute}`),
+            delta: formatDelta(effects.attributeGain.amount),
+            from: formatStat(athlete.attributes[effects.attributeGain.attribute]),
+            to: formatStat(athlete.attributes[effects.attributeGain.attribute] + effects.attributeGain.amount),
+          })}
         </p>
       )}
 
       {effects.injured && (
         <p className={styles.warning} role="alert">
-          Injury warning: Fatigue would reach {athlete.fatigue + effects.fatigueChange} (above{' '}
-          {INJURY_FATIGUE_THRESHOLD}). Training anyway: no XP, −{INJURY_FITNESS_LOSS} Fitness,{' '}
-          {INJURY_REST_DAYS} forced rest days.
+          {t('training.injuryWarning', {
+            fatigue: athlete.fatigue + effects.fatigueChange,
+            threshold: INJURY_FATIGUE_THRESHOLD,
+            loss: INJURY_FITNESS_LOSS,
+            days: INJURY_REST_DAYS,
+          })}
         </p>
       )}
 
@@ -444,14 +455,14 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
         onClick={onComplete}
       >
         {busy
-          ? 'Saving…'
+          ? t('training.saving')
           : cooldown
-          ? 'Saved ✓'
-          : effects.injured
-          ? 'Complete anyway — injury'
-          : today.session === 'rest'
-            ? `Take rest day (${weekdayShort(today.day)})`
-            : `Complete ${session.label}`}
+            ? t('training.saved')
+            : effects.injured
+              ? t('training.completeAnyway')
+              : today.session === 'rest'
+                ? t('training.takeRest', { day: t(weekdayShortKey(today.day)) })
+                : t('training.complete', { session: sessionLabel })}
       </button>
       {error && (
         <p role="alert" className={styles.error}>
@@ -464,33 +475,35 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
 
 function ExecutionFeedback({ result }: { result: ExecutionResult }) {
   const { state, executed, outcome, levelBefore, levelAfter, weekCompleted, injured } = result
-  const label = TRAINING_SESSIONS[executed.session].label
+  const { t } = useI18n()
+  const label = t(`session.${executed.session}`)
   const next = state.week.days[state.week.currentDayIndex]!
+  const dayName = t(weekdayLongKey(executed.dayIndex + 1))
 
   return (
     <div className={`${styles.feedback} ${injured ? styles.feedbackInjured : ''}`}>
       {injured ? (
         <>
           <p className={`${styles.feedbackTitle} ${styles.injuredText}`}>
-            Injured! {weekdayLong(executed.dayIndex + 1)}: {label}
+            {t('training.injuredTitle', { day: dayName, session: label })}
           </p>
           <p>
-            {effectsText(outcome)} · {INJURY_REST_DAYS} forced rest days
+            {effectsText(outcome, t)} · {t('training.forcedRestDays', { days: INJURY_REST_DAYS })}
           </p>
         </>
       ) : (
         <>
           <p className={styles.feedbackTitle}>
-            {weekdayLong(executed.dayIndex + 1)} complete: {label}
+            {t('training.dayComplete', { day: dayName, session: label })}
           </p>
-          <p>{effectsText(outcome)}</p>
+          <p>{effectsText(outcome, t)}</p>
         </>
       )}
       {levelAfter > levelBefore && (
         <p className={styles.levelUp}>
-          Level up! Now Level {levelAfter}. +{result.attributePointsAwarded} attribute points.{' '}
+          {t('training.levelUp', { level: levelAfter, points: result.attributePointsAwarded })}{' '}
           <Link to="/attributes" className={styles.inlineLink}>
-            Allocate points
+            {t('training.allocate')}
           </Link>
           <UnlockNotice from={levelBefore} to={levelAfter} />
         </p>
@@ -498,8 +511,12 @@ function ExecutionFeedback({ result }: { result: ExecutionResult }) {
       {/* The next day is highlighted in the week strip; the rollover is announced here. */}
       {weekCompleted && (
         <p className={styles.next}>
-          Week {executed.week} complete. Week {state.week.number} has started: {weekdayLong(next.day)},{' '}
-          {TRAINING_SESSIONS[next.session].label}.
+          {t('training.weekComplete', {
+            done: executed.week,
+            week: state.week.number,
+            day: t(weekdayLongKey(next.day)),
+            session: t(`session.${next.session}`),
+          })}
         </p>
       )}
     </div>
@@ -509,14 +526,15 @@ function ExecutionFeedback({ result }: { result: ExecutionResult }) {
 /** New appearance options reached by a level-up, with a link to try them on. */
 function UnlockNotice({ from, to }: { from: number; to: number }) {
   const { athlete } = useCareer().state
+  const { t, locale } = useI18n()
   const unlocks = appearanceUnlocks(from, to, athlete.sex, athlete.appearance.skin)
   if (unlocks.length === 0) return null
   return (
     <>
       {' '}
-      New look unlocked: {unlocks.join(', ')}.{' '}
+      {t('training.newLook', { looks: unlocks.map((look) => lookName(look, locale, t)).join(', ') })}{' '}
       <Link to="/appearance" className={styles.inlineLink}>
-        Change look
+        {t('common.changeLook')}
       </Link>
     </>
   )

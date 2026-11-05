@@ -1,0 +1,21 @@
+{
+  "look.hairstyle": "Frisur {number}",
+  "look.skinTone": "Hautton {number}",
+  "look.basic": "Standard",
+  "look.noShirt": "Ohne Shirt",
+  "look.tab.skin": "Haut",
+  "look.tab.hair": "Haare",
+  "look.tab.outfit": "Kleidung",
+  "look.tabs": "Aussehen",
+  "look.newShirts": " Neue Shirts werden mit steigendem Level freigeschaltet.",
+  "look.newHair": " Neue Frisuren werden mit steigendem Level freigeschaltet.",
+  "look.moreHair": " Weitere Frisuren für diesen Hautton kommen mit neuen Illustrationen.",
+  "look.preview": "Avatar-Vorschau: {items}",
+  "look.unlocksAt": "{name}: ab Level {level}",
+  "look.unlocksAtSr": "{name}, ab Level {level}",
+  "look.screenTitle": "Aussehen",
+  "look.screenDescription": "Ändere den Look deines Läufers. Neue Optionen werden mit steigendem Level freigeschaltet; das Aussehen ändert nie deine Werte.",
+  "look.level": "Level {level}",
+  "look.back": "← Ausrüstung",
+  "look.notAvailable": "Diese Option ist noch nicht verfügbar."
+}

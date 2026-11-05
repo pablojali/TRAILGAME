@@ -1,0 +1,21 @@
+{
+  "look.hairstyle": "Hairstyle {number}",
+  "look.skinTone": "Skin tone {number}",
+  "look.basic": "Basic",
+  "look.noShirt": "No shirt",
+  "look.tab.skin": "Skin",
+  "look.tab.hair": "Hair",
+  "look.tab.outfit": "Clothing",
+  "look.tabs": "Appearance",
+  "look.newShirts": " New shirts unlock as you level up.",
+  "look.newHair": " New hairstyles unlock as you level up.",
+  "look.moreHair": " More hairstyles for this skin tone come with new artwork.",
+  "look.preview": "Avatar preview: {items}",
+  "look.unlocksAt": "{name}: unlocks at Level {level}",
+  "look.unlocksAtSr": "{name}, unlocks at Level {level}",
+  "look.screenTitle": "Appearance",
+  "look.screenDescription": "Change your runner's look. New options unlock as you level up; appearance never changes your stats.",
+  "look.level": "Level {level}",
+  "look.back": "← Equipment",
+  "look.notAvailable": "That option is not available yet."
+}

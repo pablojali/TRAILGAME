@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { CountrySelect } from '../../components/CountrySelect'
+import { isLocale, LOCALES, useI18n } from '../../i18n/i18n'
 import { useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
@@ -13,9 +15,12 @@ import styles from './SettingsScreen.module.css'
  * demo reset. `accountService` is for tests; the app uses the configured one.
  */
 export function SettingsScreen({ accountService = getAccountService() }: { accountService?: AccountService | null }) {
+  const { t } = useI18n()
   return (
-    <Screen title="Settings" description="Game options.">
-      <ScrollPanel label="Settings">
+    <Screen title={t('settings.title')} description={t('settings.description')}>
+      <ScrollPanel label={t('settings.title')}>
+        <LanguageCard />
+        <RunnerCard />
         {accountService && <AccountCard service={accountService} />}
         <CloudSaveCard />
         <ResetDemo />
@@ -24,17 +29,56 @@ export function SettingsScreen({ accountService = getAccountService() }: { accou
   )
 }
 
+/** The game's language (owner request, 4 November 2026), kept on this device. */
+function LanguageCard() {
+  const { locale, setLocale, t } = useI18n()
+  const id = useId()
+  return (
+    <Card title={t('settings.languageCard')}>
+      <label htmlFor={id} className={styles.label}>
+        {t('settings.language')}
+      </label>
+      <select id={id} className={styles.select} value={locale} onChange={(event) => isLocale(event.target.value) && setLocale(event.target.value)}>
+        {LOCALES.map(({ id: value, label }) => (
+          <option key={value} value={value} lang={value}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </Card>
+  )
+}
+
+/** The runner's country (owner request, 4 November 2026), also for careers started before it existed. */
+function RunnerCard() {
+  const { phase, setCountry } = useGame()
+  const id = useId()
+  const { t } = useI18n()
+  if (phase.kind !== 'playing') return null
+  const country = phase.state.athlete.country ?? ''
+  return (
+    <Card title={t('settings.runner')}>
+      <label htmlFor={id} className={styles.label}>
+        {t('settings.country')}
+      </label>
+      <CountrySelect id={id} className={styles.select} value={country} onChange={(code) => setCountry(code)} />
+      {!country && <p className={styles.muted}>{t('settings.chooseCountry')}</p>}
+    </Card>
+  )
+}
+
 /** The cloud save's state, with a retry when it is pending. Hidden without Supabase. */
 function CloudSaveCard() {
   const { cloudStatus, retrySync } = useGame()
+  const { t } = useI18n()
   if (cloudStatus === 'off') return null
   return (
-    <Card title="Cloud save">
-      <p className={styles.muted}>{CLOUD_STATUS_TEXT[cloudStatus]}.</p>
+    <Card title={t('settings.cloud')}>
+      <p className={styles.muted}>{t(CLOUD_STATUS_TEXT[cloudStatus])}.</p>
       {cloudStatus === 'pending' && (
         <div className={styles.actions}>
           <button type="button" className={`${button.button} ${button.secondary}`} onClick={retrySync}>
-            Retry now
+            {t('settings.retry')}
           </button>
         </div>
       )}
@@ -49,6 +93,7 @@ function ResetDemo() {
   const confirmButton = useRef<HTMLButtonElement>(null)
   // Keeps keyboard focus on the visible control when the buttons swap.
   const focusTarget = useRef<'reset' | 'confirm' | null>(null)
+  const { t } = useI18n()
 
   useEffect(() => {
     if (focusTarget.current === 'reset') resetButton.current?.focus()
@@ -62,28 +107,25 @@ function ResetDemo() {
   }
 
   return (
-    <Card title="Demo">
+    <Card title={t('settings.demo')}>
       {confirming ? (
         <>
-          <p className={styles.muted}>
-            This erases all saved progress. You will then choose a new starting profile; with cloud save on, the new
-            career replaces the one in your cloud save.
-          </p>
+          <p className={styles.muted}>{t('settings.resetWarning')}</p>
           <div className={styles.actions}>
             <button ref={confirmButton} type="button" className={`${button.button} ${button.danger}`} onClick={resetCareer}>
-              Confirm reset
+              {t('settings.confirmReset')}
             </button>
             <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => toggle(false)}>
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </>
       ) : (
         <>
-          <p className={styles.muted}>Start over with a new career and starting profile.</p>
+          <p className={styles.muted}>{t('settings.startOver')}</p>
           <div className={styles.actions}>
             <button ref={resetButton} type="button" className={`${button.button} ${button.secondary}`} onClick={() => toggle(true)}>
-              Reset demo
+              {t('settings.reset')}
             </button>
           </div>
         </>

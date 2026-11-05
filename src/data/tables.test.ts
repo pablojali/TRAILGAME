@@ -40,5 +40,7 @@ describe("owner's tables", () => {
     expect(items.map((item) => item.id)).toContain('starter-shoes')
     const refills = items.flatMap((item) => consumableKinds(item))
     expect(refills).toEqual(expect.arrayContaining(['gel', 'bar']))
+    // Texts in other languages (owner request, 5 November 2026) are read from the _es, _fr… columns.
+    expect(items.find((item) => item.id === 'starter-shoes')?.translations?.es?.name).toBeTruthy()
   })
 })

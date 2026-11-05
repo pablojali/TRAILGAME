@@ -1,15 +1,11 @@
+import { useI18n, type MessageKey } from '../../i18n/i18n'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
 import { Screen } from '../../components/Screen'
-import {
-  ATTRIBUTE_IDS,
-  ATTRIBUTE_LABELS,
-  ATTRIBUTE_SCALE,
-  type AttributeId,
-} from '../../domain/athlete/athlete'
+import { ATTRIBUTE_IDS, ATTRIBUTE_SCALE, type AttributeId } from '../../domain/athlete/athlete'
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
 import { PROFILES } from '../../domain/athlete/profiles'
 import { getRestFatigueDelta, RECOVERY_BONUS_FATIGUE, RECOVERY_BONUS_STEP } from '../../domain/training/recovery'
@@ -18,16 +14,12 @@ import { getUnspentAttributePoints, type AllocationError } from '../../game-engi
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './AttributesScreen.module.css'
 
-const ERRORS: Record<AllocationError | ServerError, string> = {
-  offline: 'Could not reach the server, so the point was not spent. Check your connection and try again.',
-  'server-error': 'The server could not spend the point. Try again.',
-  'no-points': 'No attribute points left to spend.',
-  'unknown-attribute': 'That attribute does not exist.',
-  'stale-request': 'The attributes changed. Check the values and try again.',
-}
-
-function pointsText(points: number) {
-  return `${points} ${points === 1 ? 'point' : 'points'}`
+const ERRORS: Record<AllocationError | ServerError, MessageKey> = {
+  offline: 'attributes.error.offline',
+  'server-error': 'attributes.error.server-error',
+  'no-points': 'attributes.error.no-points',
+  'unknown-attribute': 'attributes.error.unknown-attribute',
+  'stale-request': 'attributes.error.stale-request',
 }
 
 export function AttributesScreen() {
@@ -36,36 +28,41 @@ export function AttributesScreen() {
   const unspent = getUnspentAttributePoints(athlete)
   const [message, setMessage] = useState('')
   const startRecovery = PROFILES[athlete.profile].attributes.recovery
+  const { t } = useI18n()
 
   async function add(attribute: AttributeId) {
-    const label = ATTRIBUTE_LABELS[attribute]
+    const label = t(`attr.${attribute}`)
     const error = await allocateAttributePoint(attribute, athlete.spentAttributePoints)
     if (error) {
-      setMessage(ERRORS[error])
+      setMessage(t(ERRORS[error]))
       return
     }
     const left = unspent - 1
     setMessage(
-      `${label} increased to ${formatStat(athlete.attributes[attribute] + 1)}. ${pointsText(left)} left.`,
+      t('attributes.increased', {
+        attribute: label,
+        value: formatStat(athlete.attributes[attribute] + 1),
+        points: t('common.points', { count: left }),
+      }),
     )
   }
 
   return (
     <Screen
-      eyebrow="Athlete"
-      title="Attributes"
-      description={`Spend attribute points one at a time. You earn ${ATTRIBUTE_POINTS_PER_LEVEL} points each time you level up. Spent points cannot be refunded.`}
+      eyebrow={t('attributes.eyebrow')}
+      title={t('attributes.title')}
+      description={t('attributes.description', { count: ATTRIBUTE_POINTS_PER_LEVEL })}
       aside={
         <p className={styles.summary}>
           <span className={styles.points}>{unspent}</span>
-          <span>{unspent === 1 ? 'point' : 'points'} to spend</span>
+          <span>{t('attributes.toSpend', { count: unspent })}</span>
         </p>
       }
     >
-      <section className={styles.panel} aria-label="Current attributes">
+      <section className={styles.panel} aria-label={t('attributes.current')}>
         <ul className={styles.list}>
           {ATTRIBUTE_IDS.map((id) => {
-            const label = ATTRIBUTE_LABELS[id]
+            const label = t(`attr.${id}`)
             const value = athlete.attributes[id]
             const disabled = unspent <= 0
             return (
@@ -85,10 +82,10 @@ export function AttributesScreen() {
                 <button
                   type="button"
                   className={`${button.button} ${button.secondary} ${styles.add}`}
-                  aria-label={`Add 1 point to ${label}`}
+                  aria-label={t('attributes.add', { attribute: label })}
                   aria-disabled={disabled}
                   onClick={() => {
-                    if (unspent <= 0) setMessage(ERRORS['no-points'])
+                    if (unspent <= 0) setMessage(t(ERRORS['no-points']))
                     else add(id)
                   }}
                 >
@@ -102,13 +99,17 @@ export function AttributesScreen() {
           {message}
         </p>
         <p className={styles.muted}>
-          Recovery: every {RECOVERY_BONUS_STEP} points above your starting {startRecovery} make Rest recover{' '}
-          {RECOVERY_BONUS_FATIGUE} more Fatigue. Rest now: Fatigue {formatDelta(getRestFatigueDelta(athlete))}.
+          {t('attributes.recovery', {
+            step: RECOVERY_BONUS_STEP,
+            start: startRecovery,
+            bonus: RECOVERY_BONUS_FATIGUE,
+            delta: formatDelta(getRestFatigueDelta(athlete)),
+          })}
         </p>
       </section>
 
       <Link to="/" className={`${button.button} ${button.secondary} ${styles.back}`}>
-        Back to Dashboard
+        {t('attributes.back')}
       </Link>
     </Screen>
   )

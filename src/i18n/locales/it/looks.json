@@ -1,0 +1,21 @@
+{
+  "look.hairstyle": "Acconciatura {number}",
+  "look.skinTone": "Carnagione {number}",
+  "look.basic": "Base",
+  "look.noShirt": "Senza maglia",
+  "look.tab.skin": "Pelle",
+  "look.tab.hair": "Capelli",
+  "look.tab.outfit": "Abbigliamento",
+  "look.tabs": "Aspetto",
+  "look.newShirts": " Nuove maglie si sbloccano salendo di livello.",
+  "look.newHair": " Nuove acconciature si sbloccano salendo di livello.",
+  "look.moreHair": " Altre acconciature per questa carnagione arriveranno con nuove illustrazioni.",
+  "look.preview": "Anteprima dell'avatar: {items}",
+  "look.unlocksAt": "{name}: si sblocca al livello {level}",
+  "look.unlocksAtSr": "{name}, si sblocca al livello {level}",
+  "look.screenTitle": "Aspetto",
+  "look.screenDescription": "Cambia il look del tuo corridore. Nuove opzioni si sbloccano salendo di livello; l'aspetto non cambia mai le tue statistiche.",
+  "look.level": "Livello {level}",
+  "look.back": "← Attrezzatura",
+  "look.notAvailable": "Questa opzione non è ancora disponibile."
+}

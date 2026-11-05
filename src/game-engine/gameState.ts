@@ -1,3 +1,4 @@
+import { isCountryCode } from '../domain/athlete/countries'
 import { defaultAppearance, type Appearance } from '../domain/athlete/appearance'
 import type { Athlete, AttributeId, Attributes, ProfileId, Sex } from '../domain/athlete/athlete'
 import { PROFILES } from '../domain/athlete/profiles'
@@ -204,6 +205,8 @@ export interface AthleteIdentity {
   sex: Sex
   /** Defaults to the default appearance for `sex`. */
   appearance?: Appearance
+  /** ISO 3166-1 alpha-2 code; an unknown code is left out. */
+  country?: string
 }
 
 /**
@@ -220,6 +223,7 @@ export function createInitialGameState(
       name: identity.name,
       sex: identity.sex,
       appearance: identity.appearance ?? defaultAppearance(),
+      ...(isCountryCode(identity.country) ? { country: identity.country } : {}),
       profile,
       xp: 0,
       fitness: 20,

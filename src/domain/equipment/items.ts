@@ -55,6 +55,22 @@ export interface EquipmentItem {
   thumbnail?: string
   /** Layer drawn on the runner: a file in assets/runner/avatar (e.g. `footwear/trail-shoes.webp`). */
   avatarLayer?: string
+  /** The table's own effect text (effect_text), rather than one written from the bonuses. */
+  customEffect?: boolean
+  /**
+   * The table's texts in other languages (owner request, 5 November 2026: columns name_es,
+   * effect_text_fr, description_de…). Missing ones fall back to English.
+   */
+  translations?: Partial<Record<ItemLanguage, ItemTexts>>
+}
+
+export type ItemLanguage = 'es' | 'fr' | 'it' | 'de'
+export const ITEM_LANGUAGES: readonly ItemLanguage[] = ['es', 'fr', 'it', 'de']
+
+export interface ItemTexts {
+  name?: string
+  effectText?: string
+  description?: string
 }
 
 /** The columns of src/data/equipment.csv for the attribute bonuses and the time multipliers. */
@@ -136,6 +152,16 @@ export function parseEquipment(text: string): EquipmentItem[] {
     if (hasEffect) item.raceEffect = effect
     const effectText = row.effect_text ? `Races: ${row.effect_text}` : hasEffect ? describeRaceEffect(effect) : undefined
     if (effectText) item.effectText = effectText
+    if (row.effect_text) item.customEffect = true
+    const translations: Partial<Record<ItemLanguage, ItemTexts>> = {}
+    for (const language of ITEM_LANGUAGES) {
+      const texts: ItemTexts = {}
+      if (row[`name_${language}`]) texts.name = row[`name_${language}`]
+      if (row[`effect_text_${language}`]) texts.effectText = row[`effect_text_${language}`]
+      if (row[`description_${language}`]) texts.description = row[`description_${language}`]
+      if (Object.keys(texts).length) translations[language] = texts
+    }
+    if (Object.keys(translations).length) item.translations = translations
     return item
   })
   const ids = items.map((item) => item.id)

@@ -1,3 +1,4 @@
+import { useI18n, type MessageKey } from '../../i18n/i18n'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useGame } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
@@ -5,12 +6,10 @@ import { Screen } from '../../components/Screen'
 import type { IncompatibleReason } from '../../repositories/gameRepository'
 import styles from './CareerSetup.module.css'
 
-const REASONS: Record<IncompatibleReason, string> = {
-  'legacy-v1':
-    'Your saved career was created with an earlier version of Trail Game. It cannot continue under the new athlete progression model, which uses starting profiles and a new set of attributes.',
-  'unsupported-version':
-    'Your saved career was created by a different version of Trail Game and cannot be opened by this version.',
-  malformed: 'Your saved career data is damaged or incomplete and cannot be loaded.',
+const REASONS: Record<IncompatibleReason, MessageKey> = {
+  'legacy-v1': 'incompatible.reason.legacy-v1',
+  'unsupported-version': 'incompatible.reason.unsupported-version',
+  malformed: 'incompatible.reason.malformed',
 }
 
 type Step = 'warning' | 'confirm' | 'exited'
@@ -27,6 +26,7 @@ export function IncompatibleSaveScreen({ reason }: { reason: IncompatibleReason 
   const stepHeading = useRef<HTMLHeadingElement>(null)
   const isFirstRender = useRef(true)
   const checkboxId = useId()
+  const { t } = useI18n()
 
   // Move focus to the new step's heading when the step changes (not on first render).
   useEffect(() => {
@@ -45,27 +45,24 @@ export function IncompatibleSaveScreen({ reason }: { reason: IncompatibleReason 
 
   return (
     <Screen
-      eyebrow="Saved career"
-      title="Your saved career can't continue"
-      description="Choose how to continue. Your saved data has not been changed."
+      eyebrow={t('incompatible.eyebrow')}
+      title={t('incompatible.title')}
+      description={t('incompatible.description')}
     >
       <div className={styles.panel}>
         {step === 'warning' && (
           <>
             <h2 ref={stepHeading} tabIndex={-1} className={styles.panelTitle}>
-              What happened
+              {t('incompatible.what')}
             </h2>
-            <p role="alert">{REASONS[reason]}</p>
-            <p className={styles.muted}>
-              You can start a new career, which will replace the old save, or exit and keep the old
-              save untouched.
-            </p>
+            <p role="alert">{t(REASONS[reason])}</p>
+            <p className={styles.muted}>{t('incompatible.options')}</p>
             <div className={styles.actions}>
               <button type="button" className={`${button.button} ${button.primary}`} onClick={() => go('confirm')}>
-                Restart Career
+                {t('incompatible.restart')}
               </button>
               <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => go('exited')}>
-                Exit
+                {t('incompatible.exit')}
               </button>
             </div>
           </>
@@ -81,12 +78,9 @@ export function IncompatibleSaveScreen({ reason }: { reason: IncompatibleReason 
             }}
           >
             <h2 ref={stepHeading} tabIndex={-1} className={styles.panelTitle}>
-              Confirm restart
+              {t('incompatible.confirmTitle')}
             </h2>
-            <p>
-              Your previous career cannot be recovered after a new one is started. Nothing is deleted
-              until you create a runner and start the new career.
-            </p>
+            <p>{t('incompatible.confirmText')}</p>
             <div className={styles.checkboxRow}>
               <input
                 id={checkboxId}
@@ -99,7 +93,7 @@ export function IncompatibleSaveScreen({ reason }: { reason: IncompatibleReason 
                 className={styles.checkbox}
               />
               <label htmlFor={checkboxId}>
-                I understand that my previous saved career will be permanently replaced.
+                {t('incompatible.understand')}
               </label>
             </div>
             <div className={styles.actions}>
@@ -108,15 +102,15 @@ export function IncompatibleSaveScreen({ reason }: { reason: IncompatibleReason 
                 className={`${button.button} ${button.danger}`}
                 aria-disabled={!acknowledged}
               >
-                Continue to create a runner
+                {t('incompatible.continue')}
               </button>
               <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => go('warning')}>
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
             {showError && (
               <p role="alert" className={styles.error}>
-                Tick the box to confirm that you understand.
+                {t('incompatible.tick')}
               </p>
             )}
           </form>
@@ -125,15 +119,12 @@ export function IncompatibleSaveScreen({ reason }: { reason: IncompatibleReason 
         {step === 'exited' && (
           <>
             <h2 ref={stepHeading} tabIndex={-1} className={styles.panelTitle}>
-              Save left untouched
+              {t('incompatible.untouched')}
             </h2>
-            <p>
-              Your previous saved career has not been changed. You can close this page. The next time
-              you open Trail Game, you will be asked again.
-            </p>
+            <p>{t('incompatible.untouchedText')}</p>
             <div className={styles.actions}>
               <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => go('warning')}>
-                Back to options
+                {t('incompatible.back')}
               </button>
             </div>
           </>

@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import { isCountryCode } from '../domain/athlete/countries'
-import { RACES } from '../domain/races/races'
+import { parseRaces } from '../domain/races/races'
 import { parseCsv } from './csv'
 
 // The owner's NPC table and the real ranking points (not the test copy, src/test/setup.ts).
 vi.unmock('./ranking_points.csv?raw')
+vi.unmock('./races.csv?raw')
 const { default: npcCsv } = await import('./ranking_npcs.csv?raw')
 const { default: pointsCsv } = await import('./ranking_points.csv?raw')
+const { default: racesCsv } = await import('./races.csv?raw')
 const MIGRATIONS = import.meta.glob<string>('/supabase/migrations/*.sql', { query: '?raw', import: 'default', eager: true })
 
 const npcs = parseCsv(npcCsv)
@@ -45,7 +47,7 @@ describe('Ranking NPC runners table (owner request, 5 November 2026)', () => {
   })
 
   it('the race points (by difficulty) and position percents in Supabase match ranking_points.csv and the races', () => {
-    const level = new Map(RACES.map((race) => [race.id, String(race.recommendedLevel)]))
+    const level = new Map(parseRaces(racesCsv).map((race) => [race.id, String(race.recommendedLevel)]))
     const base = new Map(points.filter((p) => p.kind === 'difficulty').map((p) => [p.key, p.value]))
     expect(loadedRows('ranking_race_points')).toEqual(
       points.filter((p) => p.kind === 'race').map((p) => [p.key, level.get(p.key!), base.get(p.value)]),

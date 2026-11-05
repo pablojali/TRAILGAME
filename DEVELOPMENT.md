@@ -1584,6 +1584,25 @@ English key with the same placeholders.
 - The server and the saved data never depend on the language.
 
 
+### Race catalog table (owner request, 5 November 2026)
+
+The races are the owner's table `src/data/races.csv`, read like the other tables (`parseRaces` in
+`src/domain/races/races.ts`; tests use the copy in `src/test/fixtures/`, the real table is checked
+in `src/data/tables.test.ts`). Columns: `id` (RACE-nnn, never renamed: saves use it), `name`,
+`category` (internal: XP, coin prizes, the rivals' field), `distance_km`, `elevation_gain_m`,
+`recommended_level` (entry from 5 below to 2 above), `technicality` 0–5, `terrain` and
+`terrain_es/fr/it/de` (empty: English). Races are listed by recommended level.
+
+To add a race: a row in `races.csv`, its difficulty in `ranking_points.csv`, optionally a photo
+(`assets/ui/races/RACE-nnn.webp`) and clips (`assets/race/clips/RACE-nnn/`), and a migration with
+`python3 scripts/ranking_tables_sql.py --points-only` so the NPC rankings know it (the checks fail
+until both tables and the migration agree).
+
+**Technicality 0–5** (owner decision, 5 November 2026): descents weigh the Technical attribute by
+technicality / 5 and cost `technicalPenaltyPerLevel` 0.072 per level (0.36 at 5, as 0.12 × 3 was at
+the old top). The old values became 0 → 0, 1 → 2, 2 → 3, 3 → 5; races that were 1 or 2 changed by
+under half a percent (e.g. the approved RACE-004 All-rounder time 1:55:17 → 1:55:46).
+
 ### Rankings (owner request, 5 November 2026; v2 the same day)
 
 World and country rankings, asynchronous: every player races in their own career.

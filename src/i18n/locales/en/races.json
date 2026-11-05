@@ -61,17 +61,5 @@
   "races.freeEntry": "Free entry.",
   "races.balanceStays": " Balance stays {coins}.",
   "races.entering": "Entering…",
-  "races.confirmFree": "Confirm free entry",
-  "raceTerrain.RACE-001": "Non-technical forest paths",
-  "raceTerrain.RACE-002": "Packed dirt, rolling hills",
-  "raceTerrain.RACE-003": "Forest trail, short climbs",
-  "raceTerrain.RACE-004": "Rolling ridges, mixed trail",
-  "raceTerrain.RACE-005": "Rocky sections, moderate technicality",
-  "raceTerrain.RACE-006": "Sustained climbs, forest terrain",
-  "raceTerrain.RACE-007": "Steep climbs, rocky descents",
-  "raceTerrain.RACE-008": "Alpine paths, technical descents",
-  "raceTerrain.RACE-009": "Exposed ridges, sustained elevation",
-  "raceTerrain.RACE-010": "Highly technical mountain terrain",
-  "raceTerrain.RACE-011": "Long mountain ultra, technical sections",
-  "raceTerrain.RACE-012": "Extreme ultra, long climbs and descents"
+  "races.confirmFree": "Confirm free entry"
 }

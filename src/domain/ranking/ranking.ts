@@ -39,7 +39,8 @@ export interface RankingTable {
 const isDifficulty = (value: unknown): value is Difficulty => DIFFICULTIES.includes(value as Difficulty)
 const isCompetition = (value: unknown): value is Competition => COMPETITIONS.includes(value as Competition)
 
-export function parseRankingTable(text: string): RankingTable {
+/** Reads the ranking table; `raceIds` are the races it may name (the catalog's by default). */
+export function parseRankingTable(text: string, raceIds: readonly string[] = RACES.map((race) => race.id)): RankingTable {
   const table: RankingTable = {
     bestResults: 0,
     firstSeason: { year: 0, month: 0 },
@@ -61,7 +62,7 @@ export function parseRankingTable(text: string): RankingTable {
       if (!isDifficulty(row.key)) throw new Error(`${where}: unknown difficulty "${row.key}" (I to V)`)
       table.difficultyPoints[row.key] = csvInt(row.value, where)
     } else if (row.kind === 'race') {
-      if (!RACES.some((race) => race.id === row.key)) throw new Error(`${where}: unknown race "${row.key}"`)
+      if (!raceIds.includes(row.key ?? '')) throw new Error(`${where}: unknown race "${row.key}"`)
       if (!isDifficulty(row.value)) throw new Error(`${where}: the difficulty must be I to V`)
       table.raceDifficulty[row.key!] = row.value
     } else if (row.kind === 'position') {

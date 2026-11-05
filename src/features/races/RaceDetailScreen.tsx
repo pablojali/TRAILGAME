@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { raceTerrain } from '../../i18n/raceText'
 import { difficultyOf, raceFormat } from '../../domain/races/format'
 import { Link, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
@@ -10,7 +11,6 @@ import { PRIZE_BANDS } from '../../domain/races/categories'
 import { getRace, type Race } from '../../domain/races/races'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 
-type RaceId = `RACE-${'001' | '002' | '003' | '004' | '005' | '006' | '007' | '008' | '009' | '010' | '011' | '012'}`
 import { weekdayShortKey } from '../../i18n/labels'
 import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
 import { getFinishedEntries, getPendingEntry, type RaceEntryError } from '../../game-engine/races'
@@ -76,7 +76,7 @@ function RaceDetail({ race }: { race: Race }) {
         </div>
         <div className={`${styles.tile} ${styles.tileWide}`}>
           <dt>{t('races.terrain')}</dt>
-          <dd>{t(`raceTerrain.${race.id as RaceId}`)}</dd>
+          <dd>{raceTerrain(race, locale)}</dd>
         </div>
         <div className={styles.tile}>
           <dt>{t('races.recommended')}</dt>

@@ -671,23 +671,101 @@ function getCurrentDay(week) {
 }
 
 // raw:src/data/ranking_points.csv
-var ranking_points_default = "# Ranking points (owner tables, 5 November 2026; points system v3 the same day). kind,key,value:\n# setting best_results: how many of a runner's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC).\n# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December. setting annual_months: the Annual ranking adds up each season's best results from the last that many months.\n# Points of a result = difficulty base points x position percent x competition percent, rounded to whole points.\n# The runner's level and sex never change the points (Game Design Bible 11.1); level only sets which races a runner may enter.\n# difficulty: base points of each difficulty (I Moderate ... V Extreme). race: the difficulty of each race (distance, climb, technicality and overall demands, not distance alone).\n# position: percent for each finishing position (positions not listed, 31st and later: 0). competition: percent of each competition format (standard races, weekly Majors, the annual World Cup).\n# Reference for choosing each race's difficulty (not read by the game): id, name, km, D+ m, D+ per km, effort km (km + D+/100), technicality 0-3, recommended level.\n#   RACE-001 Forest First Steps: 5 km, 120 m D+, 24 m/km, effort 6.2 km, technicality 0, level 4\n#   RACE-002 Riverside Trail: 8 km, 220 m D+, 28 m/km, effort 10.2 km, technicality 0, level 6\n#   RACE-003 Pine Loop Challenge: 10 km, 350 m D+, 35 m/km, effort 13.5 km, technicality 1, level 8\n#   RACE-004 Ridge Runner: 12 km, 550 m D+, 46 m/km, effort 17.5 km, technicality 1, level 11\n#   RACE-005 Stone Path Classic: 15 km, 750 m D+, 50 m/km, effort 22.5 km, technicality 2, level 14\n#   RACE-006 Wildwood Ascent: 18 km, 950 m D+, 53 m/km, effort 27.5 km, technicality 1, level 18\n#   RACE-007 Summit Quest: 22 km, 1300 m D+, 59 m/km, effort 35 km, technicality 2, level 21\n#   RACE-008 Alpine Traverse: 28 km, 1700 m D+, 61 m/km, effort 45 km, technicality 3, level 25\n#   RACE-009 Sky Ridge Ultra: 35 km, 2200 m D+, 63 m/km, effort 57 km, technicality 2, level 28\n#   RACE-010 High Peaks Challenge: 42 km, 2800 m D+, 67 m/km, effort 70 km, technicality 3, level 31\n#   RACE-011 Legends of the Crest: 55 km, 3600 m D+, 65 m/km, effort 91 km, technicality 3, level 40\n#   RACE-012 Beyond the Skyline: 70 km, 4800 m D+, 69 m/km, effort 118 km, technicality 3, level 50\nkind,key,value\nsetting,best_results,10\nsetting,first_season,2026-11\nsetting,annual_months,12\ndifficulty,I,100\ndifficulty,II,125\ndifficulty,III,160\ndifficulty,IV,200\ndifficulty,V,250\nrace,RACE-001,I\nrace,RACE-002,I\nrace,RACE-003,I\nrace,RACE-004,II\nrace,RACE-005,II\nrace,RACE-006,II\nrace,RACE-007,III\nrace,RACE-008,III\nrace,RACE-009,IV\nrace,RACE-010,IV\nrace,RACE-011,V\nrace,RACE-012,V\nposition,1,100\nposition,2,85\nposition,3,75\nposition,4,70\nposition,5,65\nposition,6,60\nposition,7,56\nposition,8,52\nposition,9,48\nposition,10,45\nposition,11,43\nposition,12,40\nposition,13,37\nposition,14,34\nposition,15,31\nposition,16,28\nposition,17,25\nposition,18,22\nposition,19,19\nposition,20,16\nposition,21,12\nposition,22,12\nposition,23,12\nposition,24,12\nposition,25,12\nposition,26,8\nposition,27,8\nposition,28,8\nposition,29,8\nposition,30,8\ncompetition,standard,100\ncompetition,major,150\ncompetition,world_cup,200\n";
+var ranking_points_default = "# Ranking points (owner tables, 5 November 2026; points system v3 the same day). kind,key,value:\n# setting best_results: how many of a runner's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC).\n# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December. setting annual_months: the Annual ranking adds up each season's best results from the last that many months.\n# Points of a result = difficulty base points x position percent x competition percent, rounded to whole points.\n# The runner's level and sex never change the points (Game Design Bible 11.1); level only sets which races a runner may enter.\n# difficulty: base points of each difficulty (I Moderate ... V Extreme). race: the difficulty of each race (distance, climb, technicality and overall demands, not distance alone).\n# position: percent for each finishing position (positions not listed, 31st and later: 0). competition: percent of each competition format (standard races, weekly Majors, the annual World Cup).\n# Reference for choosing each race's difficulty (not read by the game; the race values live in races.csv): id, name, km, D+ m, D+ per km, effort km (km + D+/100), technicality 0-5, recommended level.\n#   RACE-001 Forest First Steps: 5 km, 120 m D+, 24 m/km, effort 6.2 km, technicality 0, level 4\n#   RACE-002 Riverside Trail: 8 km, 220 m D+, 28 m/km, effort 10.2 km, technicality 0, level 6\n#   RACE-003 Pine Loop Challenge: 10 km, 350 m D+, 35 m/km, effort 13.5 km, technicality 2, level 8\n#   RACE-004 Ridge Runner: 12 km, 550 m D+, 46 m/km, effort 17.5 km, technicality 2, level 11\n#   RACE-005 Stone Path Classic: 15 km, 750 m D+, 50 m/km, effort 22.5 km, technicality 3, level 14\n#   RACE-006 Wildwood Ascent: 18 km, 950 m D+, 53 m/km, effort 27.5 km, technicality 2, level 18\n#   RACE-007 Summit Quest: 22 km, 1300 m D+, 59 m/km, effort 35 km, technicality 3, level 21\n#   RACE-008 Alpine Traverse: 28 km, 1700 m D+, 61 m/km, effort 45 km, technicality 5, level 25\n#   RACE-009 Sky Ridge Ultra: 35 km, 2200 m D+, 63 m/km, effort 57 km, technicality 3, level 28\n#   RACE-010 High Peaks Challenge: 42 km, 2800 m D+, 67 m/km, effort 70 km, technicality 5, level 31\n#   RACE-011 Legends of the Crest: 55 km, 3600 m D+, 65 m/km, effort 91 km, technicality 5, level 40\n#   RACE-012 Beyond the Skyline: 70 km, 4800 m D+, 69 m/km, effort 118 km, technicality 5, level 50\nkind,key,value\nsetting,best_results,10\nsetting,first_season,2026-11\nsetting,annual_months,12\ndifficulty,I,100\ndifficulty,II,125\ndifficulty,III,160\ndifficulty,IV,200\ndifficulty,V,250\nrace,RACE-001,I\nrace,RACE-002,I\nrace,RACE-003,I\nrace,RACE-004,II\nrace,RACE-005,II\nrace,RACE-006,II\nrace,RACE-007,III\nrace,RACE-008,III\nrace,RACE-009,IV\nrace,RACE-010,IV\nrace,RACE-011,V\nrace,RACE-012,V\nposition,1,100\nposition,2,85\nposition,3,75\nposition,4,70\nposition,5,65\nposition,6,60\nposition,7,56\nposition,8,52\nposition,9,48\nposition,10,45\nposition,11,43\nposition,12,40\nposition,13,37\nposition,14,34\nposition,15,31\nposition,16,28\nposition,17,25\nposition,18,22\nposition,19,19\nposition,20,16\nposition,21,12\nposition,22,12\nposition,23,12\nposition,24,12\nposition,25,12\nposition,26,8\nposition,27,8\nposition,28,8\nposition,29,8\nposition,30,8\ncompetition,standard,100\ncompetition,major,150\ncompetition,world_cup,200\n";
+
+// raw:src/data/races.csv
+var races_default = `# Race catalog (owner table, 5 November 2026). One row per race. Keep each id once and never rename it (saves use it).
+# category (internal: XP, coin prizes and the rivals' field; not shown): open, trail, mountain or elite.
+# distance_km and elevation_gain_m: whole numbers. recommended_level: the race's level (entry from 5 below to 2 above).
+# technicality: descent technicality 0 (none) to 5 (extreme). terrain: shown on the race (terrain_es, _fr, _it, _de: the same in each language; empty = English).
+# Each race also needs its difficulty (I-V) in ranking_points.csv. Photo (assets/ui/races/RACE-xxx.webp) and clips (assets/race/clips) are optional.
+# After adding a race or changing a recommended level, the NPC rankings need a migration: python3 scripts/ranking_tables_sql.py --points-only.
+id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,terrain_es,terrain_fr,terrain_it,terrain_de
+RACE-001,Forest First Steps,open,5,120,4,0,Non-technical forest paths,Caminos de bosque sin dificultad t\xE9cnica,Chemins forestiers sans difficult\xE9 technique,Sentieri nel bosco senza difficolt\xE0 tecniche,Einfache Waldwege
+RACE-002,Riverside Trail,open,8,220,6,0,"Packed dirt, rolling hills","Tierra compacta, colinas suaves","Terre battue, collines douces","Sterrato compatto, colline dolci","Fester Boden, sanfte H\xFCgel"
+RACE-003,Pine Loop Challenge,open,10,350,8,2,"Forest trail, short climbs","Sendero de bosque, subidas cortas","Sentier forestier, mont\xE9es courtes","Sentiero nel bosco, salite brevi","Waldpfad, kurze Anstiege"
+RACE-004,Ridge Runner,trail,12,550,11,2,"Rolling ridges, mixed trail","Crestas onduladas, sendero mixto","Cr\xEAtes vallonn\xE9es, sentier mixte","Creste ondulate, sentiero misto","Wellige Grate, gemischte Pfade"
+RACE-005,Stone Path Classic,trail,15,750,14,3,"Rocky sections, moderate technicality","Tramos rocosos, t\xE9cnica moderada","Passages rocheux, technicit\xE9 mod\xE9r\xE9e","Tratti rocciosi, tecnica moderata","Felsige Abschnitte, mittlere Technik"
+RACE-006,Wildwood Ascent,trail,18,950,18,2,"Sustained climbs, forest terrain","Subidas largas, terreno de bosque","Longues mont\xE9es, terrain forestier","Salite lunghe, terreno boschivo","Lange Anstiege, Waldgel\xE4nde"
+RACE-007,Summit Quest,mountain,22,1300,21,3,"Steep climbs, rocky descents","Subidas empinadas, bajadas rocosas","Mont\xE9es raides, descentes rocheuses","Salite ripide, discese rocciose","Steile Anstiege, felsige Abstiege"
+RACE-008,Alpine Traverse,mountain,28,1700,25,5,"Alpine paths, technical descents","Senderos alpinos, bajadas t\xE9cnicas","Sentiers alpins, descentes techniques","Sentieri alpini, discese tecniche","Alpine Pfade, technische Abstiege"
+RACE-009,Sky Ridge Ultra,mountain,35,2200,28,3,"Exposed ridges, sustained elevation","Crestas expuestas, altitud sostenida","Cr\xEAtes expos\xE9es, altitude soutenue","Creste esposte, quota costante","Ausgesetzte Grate, viel H\xF6he"
+RACE-010,High Peaks Challenge,elite,42,2800,31,5,Highly technical mountain terrain,Terreno de monta\xF1a muy t\xE9cnico,Terrain de montagne tr\xE8s technique,Terreno di montagna molto tecnico,Sehr technisches Berggel\xE4nde
+RACE-011,Legends of the Crest,elite,55,3600,40,5,"Long mountain ultra, technical sections","Ultra de monta\xF1a larga, tramos t\xE9cnicos","Long ultra de montagne, passages techniques","Lunga ultra di montagna, tratti tecnici","Langer Bergultra, technische Abschnitte"
+RACE-012,Beyond the Skyline,elite,70,4800,50,5,"Extreme ultra, long climbs and descents","Ultra extrema, subidas y bajadas largas","Ultra extr\xEAme, longues mont\xE9es et descentes","Ultra estrema, lunghe salite e discese","Extremer Ultra, lange Anstiege und Abstiege"
+`;
+
+// src/domain/races/categories.ts
+var RACE_CATEGORIES = ["open", "trail", "mountain", "elite"];
+function isRaceCategory(value) {
+  return RACE_CATEGORIES.includes(value);
+}
+var PRIZE_BANDS = [
+  { from: 1, to: 1, label: "1st" },
+  { from: 2, to: 2, label: "2nd" },
+  { from: 3, to: 3, label: "3rd" },
+  { from: 4, to: 10, label: "4th\u201310th" },
+  { from: 11, to: null, label: "11th or lower" }
+];
+var GROSS_PRIZES = {
+  open: [100, 70, 50, 25, 10],
+  trail: [300, 210, 150, 75, 30],
+  mountain: [700, 490, 350, 175, 70],
+  elite: [1500, 1050, 750, 375, 150]
+};
+var RACE_XP_BASE = { open: 300, trail: 600, mountain: 1e3, elite: 1800 };
+var RACE_MIN_XP = 18;
+var RACE_XP_BAND_PCT = [100, 70, 50, 25, 10];
+var REWARD_MULTIPLIERS = [
+  { levelDifference: 0, xp: 1, coins: 1 },
+  { levelDifference: 1, xp: 0.75, coins: 0.75 },
+  { levelDifference: 2, xp: 0.4, coins: 0.4 },
+  { levelDifference: 3, xp: 0, coins: 0 }
+];
 
 // src/domain/races/races.ts
-var RACES = [
-  { id: "RACE-001", name: "Forest First Steps", category: "open", distanceKm: 5, elevationGainM: 120, terrain: "Non-technical forest paths", recommendedLevel: 4, technicality: 0 },
-  { id: "RACE-002", name: "Riverside Trail", category: "open", distanceKm: 8, elevationGainM: 220, terrain: "Packed dirt, rolling hills", recommendedLevel: 6, technicality: 0 },
-  { id: "RACE-003", name: "Pine Loop Challenge", category: "open", distanceKm: 10, elevationGainM: 350, terrain: "Forest trail, short climbs", recommendedLevel: 8, technicality: 1 },
-  { id: "RACE-004", name: "Ridge Runner", category: "trail", distanceKm: 12, elevationGainM: 550, terrain: "Rolling ridges, mixed trail", recommendedLevel: 11, technicality: 1 },
-  { id: "RACE-005", name: "Stone Path Classic", category: "trail", distanceKm: 15, elevationGainM: 750, terrain: "Rocky sections, moderate technicality", recommendedLevel: 14, technicality: 2 },
-  { id: "RACE-006", name: "Wildwood Ascent", category: "trail", distanceKm: 18, elevationGainM: 950, terrain: "Sustained climbs, forest terrain", recommendedLevel: 18, technicality: 1 },
-  { id: "RACE-007", name: "Summit Quest", category: "mountain", distanceKm: 22, elevationGainM: 1300, terrain: "Steep climbs, rocky descents", recommendedLevel: 21, technicality: 2 },
-  { id: "RACE-008", name: "Alpine Traverse", category: "mountain", distanceKm: 28, elevationGainM: 1700, terrain: "Alpine paths, technical descents", recommendedLevel: 25, technicality: 3 },
-  { id: "RACE-009", name: "Sky Ridge Ultra", category: "mountain", distanceKm: 35, elevationGainM: 2200, terrain: "Exposed ridges, sustained elevation", recommendedLevel: 28, technicality: 2 },
-  { id: "RACE-010", name: "High Peaks Challenge", category: "elite", distanceKm: 42, elevationGainM: 2800, terrain: "Highly technical mountain terrain", recommendedLevel: 31, technicality: 3 },
-  { id: "RACE-011", name: "Legends of the Crest", category: "elite", distanceKm: 55, elevationGainM: 3600, terrain: "Long mountain ultra, technical sections", recommendedLevel: 40, technicality: 3 },
-  { id: "RACE-012", name: "Beyond the Skyline", category: "elite", distanceKm: 70, elevationGainM: 4800, terrain: "Extreme ultra, long climbs and descents", recommendedLevel: 50, technicality: 3 }
-];
+var RACE_LANGUAGES = ["es", "fr", "it", "de"];
+var MAX_TECHNICALITY = 5;
+function parseRaces(text) {
+  const races = [];
+  const seen = /* @__PURE__ */ new Set();
+  parseCsv(text).forEach((row, i) => {
+    const where = `races.csv row ${i + 1}`;
+    const id = row.id ?? "";
+    if (!/^RACE-\d{3}$/.test(id)) throw new Error(`${where}: id must look like RACE-013`);
+    if (seen.has(id)) throw new Error(`${where}: ${id} is listed twice`);
+    seen.add(id);
+    if (!row.name) throw new Error(`${where}: name is missing`);
+    if (!isRaceCategory(row.category)) throw new Error(`${where}: category must be open, trail, mountain or elite`);
+    if (!row.terrain) throw new Error(`${where}: terrain is missing`);
+    const race = {
+      id,
+      name: row.name,
+      category: row.category,
+      distanceKm: csvInt(row.distance_km, where),
+      elevationGainM: csvInt(row.elevation_gain_m, where),
+      terrain: row.terrain,
+      recommendedLevel: csvInt(row.recommended_level, where),
+      technicality: csvInt(row.technicality, where)
+    };
+    if (race.distanceKm < 1) throw new Error(`${where}: distance_km must be at least 1`);
+    if (race.elevationGainM < 0) throw new Error(`${where}: elevation_gain_m cannot be negative`);
+    if (race.recommendedLevel < 1) throw new Error(`${where}: recommended_level must be at least 1`);
+    if (race.technicality < 0 || race.technicality > MAX_TECHNICALITY) {
+      throw new Error(`${where}: technicality must be 0 to ${MAX_TECHNICALITY}`);
+    }
+    const terrains = {};
+    for (const language of RACE_LANGUAGES) {
+      const text2 = row[`terrain_${language}`];
+      if (text2) terrains[language] = text2;
+    }
+    if (Object.keys(terrains).length) race.terrains = terrains;
+    races.push(race);
+  });
+  if (races.length === 0) throw new Error("races.csv: no races");
+  return races.sort((x, y) => x.recommendedLevel - y.recommendedLevel || x.id.localeCompare(y.id));
+}
+var RACES = parseRaces(races_default);
 var BY_ID = new Map(RACES.map((race) => [race.id, race]));
 function getRace(id) {
   return BY_ID.get(id);
@@ -701,7 +779,7 @@ var DIFFICULTIES = ["I", "II", "III", "IV", "V"];
 var COMPETITIONS = ["standard", "major", "world_cup"];
 var isDifficulty = (value) => DIFFICULTIES.includes(value);
 var isCompetition = (value) => COMPETITIONS.includes(value);
-function parseRankingTable(text) {
+function parseRankingTable(text, raceIds = RACES.map((race) => race.id)) {
   const table = {
     bestResults: 0,
     firstSeason: { year: 0, month: 0 },
@@ -723,7 +801,7 @@ function parseRankingTable(text) {
       if (!isDifficulty(row.key)) throw new Error(`${where}: unknown difficulty "${row.key}" (I to V)`);
       table.difficultyPoints[row.key] = csvInt(row.value, where);
     } else if (row.kind === "race") {
-      if (!RACES.some((race) => race.id === row.key)) throw new Error(`${where}: unknown race "${row.key}"`);
+      if (!raceIds.includes(row.key ?? "")) throw new Error(`${where}: unknown race "${row.key}"`);
       if (!isDifficulty(row.value)) throw new Error(`${where}: the difficulty must be I to V`);
       table.raceDifficulty[row.key] = row.value;
     } else if (row.kind === "position") {
@@ -937,34 +1015,6 @@ function applyAchievementRewards(state) {
   return { state: current, earned };
 }
 
-// src/domain/races/categories.ts
-var RACE_CATEGORIES = ["open", "trail", "mountain", "elite"];
-function isRaceCategory(value) {
-  return RACE_CATEGORIES.includes(value);
-}
-var PRIZE_BANDS = [
-  { from: 1, to: 1, label: "1st" },
-  { from: 2, to: 2, label: "2nd" },
-  { from: 3, to: 3, label: "3rd" },
-  { from: 4, to: 10, label: "4th\u201310th" },
-  { from: 11, to: null, label: "11th or lower" }
-];
-var GROSS_PRIZES = {
-  open: [100, 70, 50, 25, 10],
-  trail: [300, 210, 150, 75, 30],
-  mountain: [700, 490, 350, 175, 70],
-  elite: [1500, 1050, 750, 375, 150]
-};
-var RACE_XP_BASE = { open: 300, trail: 600, mountain: 1e3, elite: 1800 };
-var RACE_MIN_XP = 18;
-var RACE_XP_BAND_PCT = [100, 70, 50, 25, 10];
-var REWARD_MULTIPLIERS = [
-  { levelDifference: 0, xp: 1, coins: 1 },
-  { levelDifference: 1, xp: 0.75, coins: 0.75 },
-  { levelDifference: 2, xp: 0.4, coins: 0.4 },
-  { levelDifference: 3, xp: 0, coins: 0 }
-];
-
 // src/domain/races/access.ts
 var LEVELS_BELOW_RECOMMENDED = 5;
 var LEVELS_ABOVE_RECOMMENDED = 2;
@@ -1001,8 +1051,12 @@ var RACE_SIMULATION = {
   abilityExponent: 0.35,
   /** Climbs at or above this gradient use the climb ability only. */
   climbWeightFullGradient: 0.2,
-  /** Extra descent time per technicality level, reduced by the Technical attribute. */
-  technicalPenaltyPerLevel: 0.12,
+  /**
+   * Extra descent time per technicality level (0–5), reduced by the Technical attribute. 0.072 on
+   * the 0–5 scale (owner decision, 5 November 2026) is the same 0.36 at the top as 0.12 × 3 was on
+   * the earlier 0–3 scale.
+   */
+  technicalPenaltyPerLevel: 0.072,
   /** Slowdown over distance, reduced by durability. */
   slowdownRate: 0.25,
   slowdownReferenceEffortKm: 50,
@@ -1246,7 +1300,7 @@ function segmentAbility(segment, a) {
     return w * climbAbility(a) + (1 - w) * runnableAbility(a);
   }
   if (segment.type === "descent") {
-    const t = segment.technicality / 3;
+    const t = segment.technicality / MAX_TECHNICALITY;
     return t * technicalDescentAbility(a) + (1 - t) * runnableAbility(a);
   }
   return runnableAbility(a);

@@ -19,8 +19,12 @@ export const RACE_SIMULATION = {
   abilityExponent: 0.35,
   /** Climbs at or above this gradient use the climb ability only. */
   climbWeightFullGradient: 0.2,
-  /** Extra descent time per technicality level, reduced by the Technical attribute. */
-  technicalPenaltyPerLevel: 0.12,
+  /**
+   * Extra descent time per technicality level (0–5), reduced by the Technical attribute. 0.072 on
+   * the 0–5 scale (owner decision, 5 November 2026) is the same 0.36 at the top as 0.12 × 3 was on
+   * the earlier 0–3 scale.
+   */
+  technicalPenaltyPerLevel: 0.072,
   /** Slowdown over distance, reduced by durability. */
   slowdownRate: 0.25,
   slowdownReferenceEffortKm: 50,

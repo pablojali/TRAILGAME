@@ -752,6 +752,8 @@ The game may support coin purchases through a future store. Real-money purchases
 
 M4 starts with the following 12 fictional events. They are game events, not representations of real-world races.
 
+**Owner decision (5 November 2026):** the catalog is now the owner's table `src/data/races.csv` (add a race with a row), and descent technicality runs from 0 to 5 (the earlier 0–3 values became 0 → 0, 1 → 2, 2 → 3, 3 → 5, with the same time cost at the top of the scale). The table below is the original list.
+
 | ID | Race name | Category | Distance | Elevation gain | Terrain composition | Recommended level |
 |---|---|---|---:|---:|---|---:|
 | RACE-001 | Forest First Steps | Open | 5 km | 120 m | Non-technical forest paths | 1 |

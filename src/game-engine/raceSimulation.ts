@@ -1,4 +1,5 @@
 import { ATTRIBUTE_IDS, type AttributeId, type Attributes } from '../domain/athlete/athlete'
+import { MAX_TECHNICALITY } from '../domain/races/races'
 import type { Race } from '../domain/races/races'
 import { getRaceEffect } from '../domain/equipment/items'
 import { RACE_SIMULATION as C } from '../domain/races/simulationConfig'
@@ -115,7 +116,7 @@ function segmentAbility(segment: CourseSegment, a: Attributes): number {
     return w * climbAbility(a) + (1 - w) * runnableAbility(a)
   }
   if (segment.type === 'descent') {
-    const t = segment.technicality / 3
+    const t = segment.technicality / MAX_TECHNICALITY
     return t * technicalDescentAbility(a) + (1 - t) * runnableAbility(a)
   }
   return runnableAbility(a)

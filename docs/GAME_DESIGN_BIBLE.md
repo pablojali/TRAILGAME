@@ -1,8 +1,10 @@
 # TRAIL GAME — GAME DESIGN BIBLE
 
-**Version:** 1.3
+**Version:** 1.4
 
 **Status:** Approved design baseline — partially implemented (M0, M1 and M2 accepted); remaining systems pending milestone assignment
+
+**Changes in 1.4 (owner decision, 5 November 2026):** one competition, one set of rules, one ranking: classification, scoring and rewards are independent of the runner's sex, for normal races and Majors alike (§11.1).
 
 **Changes in 1.3 (PM, 29 October 2026):** §10 Race System replaced by the M4 Race System specification (categories, access rules, 12-race catalog, prizes, anti-farming, stages and acceptance criteria), with developer open points in §10.17. Earlier, avatar appearance was added to §2.1.
 
@@ -1057,6 +1059,22 @@ Rivals must follow the same broad performance rules as the player's athlete. The
 Ranking rules, rival generation, tie-breaking, season points, and promotion or relegation mechanics remain to be specified.
 
 These systems depend on the race and season designs and should not be implemented as disconnected placeholder logic.
+
+### 11.1 One competition, one set of rules, one ranking (owner decision, 5 November 2026)
+
+Men and women compete under exactly the same rules and the same scoring system. The ranking measures
+sporting performance inside the game, not a sex category.
+
+- **One general classification:** every runner takes part in the same ranking, world and country.
+- **Same formula for everyone:** Points = race base points × position percent × level factor
+  (`src/data/ranking_points.csv`): 1st 100 %, 2nd 85 %, 3rd 75 %, 4th–30th by the table.
+- **No multipliers or bonuses by sex.** Coin and XP prizes are identical for the same position.
+- **Majors** (future multiplayer events) also have one general classification. The same rule holds for
+  normal races and Majors, with no exceptions.
+- **Ranking screen:** World / Country, the season or the annual ranking, current and past seasons. There
+  is no Men / Women filter.
+- The runner's sex stays as profile data and for the artwork (§2.1); it never affects performance,
+  points or rewards.
 
 ---
 

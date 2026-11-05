@@ -102,6 +102,7 @@ def save_thumbnail(image: Image.Image, source: Path) -> None:
     out = THUMBNAILS / f"{source.stem}.webp"
     out.parent.mkdir(parents=True, exist_ok=True)
     square.resize((THUMBNAIL_SIZE, THUMBNAIL_SIZE), Image.LANCZOS).save(out, "WEBP", quality=QUALITY, method=6)
+    WRITTEN.add(out)
     print(f"{source.relative_to(SOURCE)} -> {out.relative_to(ROOT)} ({out.stat().st_size // 1024} kB)")
 
 
@@ -216,7 +217,7 @@ def main() -> None:
             # Not drawn on the avatar canvas (e.g. a gels-and-bars picture): a shop picture only.
             print(f"  {path.name}: {image.size[0]}x{image.size[1]}, not the avatar canvas: shop picture only")
         save_thumbnail(image, path)
-    for stale in sorted(set(TARGET.rglob("*.webp")) - WRITTEN):
+    for stale in sorted((set(TARGET.rglob("*.webp")) | set(THUMBNAILS.glob("*.webp"))) - WRITTEN):
         stale.unlink()
         print(f"removed {stale.relative_to(ROOT)} (no source)")
 

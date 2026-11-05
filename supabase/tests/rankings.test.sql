@@ -3,6 +3,9 @@
 -- own row, and that players cannot touch the table or anon the function.
 \set ON_ERROR_STOP on
 
+-- Without the NPC runners (checked in ranking_npcs.test.sql), so the sums below are the players' own.
+delete from public.ranking_npcs;
+
 insert into auth.users (id) values
   ('00000000-0000-0000-0000-0000000000a1'),
   ('00000000-0000-0000-0000-0000000000a2'),

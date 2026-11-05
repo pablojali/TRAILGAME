@@ -1613,3 +1613,15 @@ World and country rankings, asynchronous: every player races in their own career
   slots like any race. Nothing else needs to change.
 - The client (`src/repositories/supabase/rankingClient.ts`) shows it in Career → Ranking
   (Season / Annual, World / Country, Overall / Men / Women, season arrows). Tests: `npm run db:test`.
+- **NPC runners** (owner request, 5 November 2026): 200 runners from `src/data/ranking_npcs.csv`
+  (name, country, sex, level, XP, strength 0–100, races per week) fill the rankings and look like any
+  runner. Migration `20261105160000_ranking_npcs.sql` loads them into `ranking_npcs` (with copies of
+  the race points and position percents) and adds `npc_ranking_results(from)`: on each UTC day an NPC
+  races with chance races_per_week / 7, picks the hardest race of its level (sometimes one above, at
+  the lower reward), and places about 1 + (100 − strength) / 4 (± 4). The draws come from the NPC id
+  and the day, so the rankings move every day and are the same on every reload. Each real player with
+  ranking points retires one NPC of the same country, the first of that country in the table. All of
+  it is server-side: players cannot read the NPC tables or call the function.
+  After editing `ranking_npcs.csv` or `ranking_points.csv`, write a new migration with the output of
+  `python3 scripts/ranking_tables_sql.py`; `src/data/rankingNpcs.test.ts` fails until the latest
+  migration matches the tables.

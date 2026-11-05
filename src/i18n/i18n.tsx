@@ -5,6 +5,10 @@ import enTraining from './locales/en/training.json'
 import enRaces from './locales/en/races.json'
 import enRaceRun from './locales/en/raceRun.json'
 import enRaceResult from './locales/en/raceResult.json'
+import enCareer from './locales/en/career.json'
+import enSetup from './locales/en/setup.json'
+import enLooks from './locales/en/looks.json'
+import enAccount from './locales/en/account.json'
 import enEquipment from './locales/en/equipment.json'
 import enSettings from './locales/en/settings.json'
 
@@ -29,7 +33,7 @@ type Message = string | Partial<Record<Intl.LDMLPluralRule, string>>
 export type Messages = Record<string, Message>
 
 /** English, the reference: its keys type `t()`. Add a new file here and in every language. */
-const EN = { ...enCommon, ...enSettings, ...enEquipment, ...enDashboard, ...enTraining, ...enRaces, ...enRaceRun, ...enRaceResult }
+const EN = { ...enCommon, ...enSettings, ...enEquipment, ...enDashboard, ...enTraining, ...enRaces, ...enRaceRun, ...enRaceResult, ...enCareer, ...enSetup, ...enLooks, ...enAccount }
 
 const FILES = import.meta.glob<Messages>('./locales/*/*.json', { eager: true, import: 'default' })
 

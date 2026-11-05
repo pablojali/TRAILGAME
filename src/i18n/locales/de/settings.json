@@ -1,5 +1,25 @@
 {
   "country.choose": "Land wählen",
   "settings.language": "Sprache",
-  "settings.languageCard": "Sprache"
+  "settings.languageCard": "Sprache",
+  "settings.title": "Einstellungen",
+  "settings.description": "Spieloptionen.",
+  "settings.runner": "Läufer",
+  "settings.country": "Land",
+  "settings.chooseCountry": "Wähle das Land, das dein Läufer vertritt.",
+  "settings.cloud": "Cloud-Speicher",
+  "settings.retry": "Jetzt erneut versuchen",
+  "settings.demo": "Demo",
+  "settings.resetWarning": "Das löscht deinen gesamten gespeicherten Fortschritt. Danach wählst du ein neues Startprofil; mit Cloud-Speicher ersetzt die neue Karriere die in der Cloud.",
+  "settings.confirmReset": "Zurücksetzen bestätigen",
+  "settings.startOver": "Fange mit einer neuen Karriere und einem neuen Startprofil von vorn an.",
+  "settings.reset": "Demo zurücksetzen",
+  "cloud.off": "Auf diesem Gerät gespeichert",
+  "cloud.connecting": "Verbindung zum Cloud-Speicher…",
+  "cloud.synced": "Auf diesem Gerät und in der Cloud gespeichert",
+  "cloud.syncing": "Speichern in der Cloud…",
+  "cloud.pending": "Auf diesem Gerät gespeichert; Cloud-Speicherung ausstehend (wird erneut versucht)",
+  "cloud.conflict": "Dein Gerät und die Cloud haben unterschiedliche Karrieren: Wähle eine",
+  "cloud.error": "Cloud-Speicher nicht verfügbar; auf diesem Gerät gespeichert",
+  "cloud.indicator": "Cloud-Speicher: {status}"
 }

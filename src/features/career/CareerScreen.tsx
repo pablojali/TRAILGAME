@@ -1,18 +1,18 @@
+import { useI18n } from '../../i18n/i18n'
+import { weekdayShortKey } from '../../i18n/labels'
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import { Card, Meter } from '../../components/Card'
 import { MedalIcon } from '../../components/Medal'
 import { Screen, ScrollPanel } from '../../components/Screen'
 import { Tabs } from '../../components/Tabs'
-import { RACE_CATEGORIES, RACE_CATEGORY_CONFIG } from '../../domain/races/categories'
+import { RACE_CATEGORIES } from '../../domain/races/categories'
 import { WEEKS_PER_YEAR } from '../../domain/training/calendar'
-import { weekdayShort } from '../../domain/training/weekdays'
 import { getAchievements, getSeason, type AchievementProgress } from '../../game-engine/achievements'
 import {
   getMedalTable,
   getPersonalBests,
   getRaceHistory,
-  MEDAL_LABELS,
   medalFor,
   type Medal,
   type MedalCount,
@@ -22,21 +22,19 @@ import styles from './CareerScreen.module.css'
 
 const MEDALS: readonly Medal[] = ['gold', 'silver', 'bronze']
 
-const CAREER_TABS = [
-  { id: 'achievements', label: 'Achievements' },
-  { id: 'medals', label: 'Trophies' },
-  { id: 'bests', label: 'Bests' },
-  { id: 'history', label: 'History' },
-] as const
+type AchievementId = 'first-steps' | 'trail-explorer' | 'first-summit' | 'elite' | 'podium' | 'champion' | 'rising-star' | 'level' | 'dedicated'
+
+const CAREER_TABS = ['achievements', 'medals', 'bests', 'history'] as const
 
 /** Position with its medal, e.g. "🥇 1st of 50". */
 function Position({ position, fieldSize }: { position: number; fieldSize?: number }) {
   const medal = medalFor(position)
+  const { t, locale } = useI18n()
   return (
     <span className={styles.position}>
       {medal && <MedalIcon medal={medal} />}
-      {ordinal(position)}
-      {fieldSize !== undefined && <span className={styles.muted}> of {fieldSize}</span>}
+      {ordinal(position, locale)}
+      {fieldSize !== undefined && <span className={styles.muted}>{t('career.of', { count: fieldSize })}</span>}
     </span>
   )
 }
@@ -54,28 +52,34 @@ export function CareerScreen() {
   const season = getSeason(state)
   const achievements = getAchievements(state)
   const [params, setParams] = useSearchParams()
-  const tab = CAREER_TABS.find((t) => t.id === params.get('tab'))?.id ?? 'achievements'
+  const { t, locale } = useI18n()
+  const tabs = CAREER_TABS.map((id) => ({ id, label: t(`career.tab.${id}`) }))
+  const tab = CAREER_TABS.find((id) => id === params.get('tab')) ?? 'achievements'
 
   return (
-    <Screen title="Career" description="Small steps. Big goals." showDescription>
+    <Screen title={t('career.title')} description={t('career.description')} showDescription>
       {/* The summit of the picture (runner and flag) shows above the season card, which sits right
           above the tabs (owner request, 4 November 2026). */}
       <div className={styles.hero} aria-hidden="true" />
       <section className={styles.season} aria-labelledby="season-title">
         <div className={styles.seasonMain}>
           <h2 id="season-title" className={styles.seasonTitle}>
-            Season {season.year}
+            {t('career.season', { year: season.year })}
           </h2>
           <Meter
-            label={`Season ${season.year} progress`}
+            label={t('career.seasonProgress', { year: season.year })}
             value={season.weekOfYear}
             max={WEEKS_PER_YEAR}
-            valueText={`Week ${season.weekOfYear} of ${WEEKS_PER_YEAR}`}
+            valueText={t('career.seasonValue', { week: season.weekOfYear, weeks: WEEKS_PER_YEAR })}
             className={styles.seasonMeter}
           />
           <p className={styles.seasonLine}>
-            Week {season.weekOfYear} / {WEEKS_PER_YEAR} · {season.races} {season.races === 1 ? 'race' : 'races'} ·{' '}
-            {season.medals} {season.medals === 1 ? 'medal' : 'medals'}
+            {t('career.seasonLine', {
+              week: season.weekOfYear,
+              weeks: WEEKS_PER_YEAR,
+              races: t('career.races', { count: season.races }),
+              medals: t('career.medals', { count: season.medals }),
+            })}
           </p>
         </div>
         <div className={styles.rank}>
@@ -85,7 +89,7 @@ export function CareerScreen() {
             </svg>
           </span>
           <span className={styles.rankText}>
-            <span className={styles.rankLabel}>Best finish</span>
+            <span className={styles.rankLabel}>{t('career.bestFinish')}</span>
             <span className={styles.rankValue}>{season.bestFinish === null ? '—' : `#${season.bestFinish}`}</span>
           </span>
         </div>
@@ -93,18 +97,17 @@ export function CareerScreen() {
 
       {history.length === 0 && (
         <p className={styles.muted}>
-          No races yet. Your medals and results appear here after your first race.{' '}
-          <Link to="/races">Go to races</Link>
+          {t('career.noRaces')} <Link to="/races">{t('career.goToRaces')}</Link>
         </p>
       )}
 
       <Tabs
-        label="Career"
-        tabs={CAREER_TABS}
+        label={t('career.tabs')}
+        tabs={tabs}
         value={tab}
         onChange={(next) => setParams(next === 'achievements' ? {} : { tab: next }, { replace: true })}
       >
-        <ScrollPanel label={CAREER_TABS.find((t) => t.id === tab)!.label}>
+        <ScrollPanel label={t(`career.tab.${tab}`)}>
           {tab === 'achievements' && (
             <ul className={styles.achievements}>
               {achievements.map((achievement) => (
@@ -113,36 +116,36 @@ export function CareerScreen() {
             </ul>
           )}
           {tab === 'medals' && (
-            <Card title="Medal table">
+            <Card title={t('career.medalTable')}>
               <table className={styles.medalTable}>
                 <thead>
                   <tr>
-                    <th scope="col">Category</th>
+                    <th scope="col">{t('career.category')}</th>
                     {MEDALS.map((medal) => (
                       <th scope="col" key={medal} className={styles.num}>
-                        <MedalIcon medal={medal} label={MEDAL_LABELS[medal]} />
+                        <MedalIcon medal={medal} label={t(`medal.${medal}`)} />
                       </th>
                     ))}
                     <th scope="col" className={styles.num}>
-                      Races
+                      {t('career.racesCol')}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {RACE_CATEGORIES.map((category) => (
-                    <MedalRow key={category} label={RACE_CATEGORY_CONFIG[category].label} count={table.byCategory[category]} />
+                    <MedalRow key={category} label={t(`category.${category}`)} count={table.byCategory[category]} />
                   ))}
                 </tbody>
                 <tfoot>
-                  <MedalRow label="Total" count={table.total} />
+                  <MedalRow label={t('career.total')} count={table.total} />
                 </tfoot>
               </table>
             </Card>
           )}
           {tab === 'bests' && (
-            <Card title="Personal bests">
+            <Card title={t('career.bests')}>
               {bests.length === 0 ? (
-                <p className={styles.muted}>Your best position and best time on each race appear here.</p>
+                <p className={styles.muted}>{t('career.bestsEmpty')}</p>
               ) : (
                 <ul className={styles.list}>
                   {bests.map((best) => (
@@ -151,14 +154,14 @@ export function CareerScreen() {
                         {best.race.name}
                         <span className={styles.muted}>
                           {' '}
-                          · {RACE_CATEGORY_CONFIG[best.race.category].label} · {best.runs} {best.runs === 1 ? 'run' : 'runs'}
+                          · {t(`category.${best.race.category}`)} · {t('career.runs', { count: best.runs })}
                         </span>
                       </span>
                       <span className={styles.bestValues}>
-                        <Link to={`/races/results/${best.bestPositionEntry.id}`} aria-label={`Best position in ${best.race.name}: ${ordinal(best.bestPosition)}`}>
+                        <Link to={`/races/results/${best.bestPositionEntry.id}`} aria-label={t('career.bestPosition', { race: best.race.name, position: ordinal(best.bestPosition, locale) })}>
                           <Position position={best.bestPosition} />
                         </Link>
-                        <Link to={`/races/results/${best.bestTimeEntry.id}`} aria-label={`Best time in ${best.race.name}: ${raceTimeText(best.bestTimeS)}`}>
+                        <Link to={`/races/results/${best.bestTimeEntry.id}`} aria-label={t('career.bestTime', { race: best.race.name, time: raceTimeText(best.bestTimeS) })}>
                           {raceTimeText(best.bestTimeS)}
                         </Link>
                       </span>
@@ -169,16 +172,16 @@ export function CareerScreen() {
           </Card>
           )}
           {tab === 'history' && (
-            <Card title="Race history">
+            <Card title={t('career.history')}>
               {history.length === 0 ? (
-                <p className={styles.muted}>Every race you run appears here, newest first.</p>
+                <p className={styles.muted}>{t('career.historyEmpty')}</p>
               ) : (
                 <ul className={styles.list}>
                   {history.map(({ entry, race }) => (
                     <li key={entry.id}>
                       <Link to={`/races/results/${entry.id}`} className={styles.historyRow}>
                         <span className={styles.when}>
-                          Week {entry.result.week} · {weekdayShort(entry.result.day)}
+                          {t('career.when', { week: entry.result.week, day: t(weekdayShortKey(entry.result.day)) })}
                         </span>
                         <span className={styles.raceName}>{race.name}</span>
                         <Position position={entry.result.position} fieldSize={entry.result.fieldSize} />
@@ -211,6 +214,9 @@ const ACHIEVEMENT_ICONS: Record<string, string> = {
 
 function Achievement({ progress }: { progress: AchievementProgress }) {
   const { definition, level, target, value, complete, reached } = progress
+  const { t, locale } = useI18n()
+  const title = t(`achievement.${definition.id as AchievementId}`)
+  const number = (n: number) => n.toLocaleString(locale)
   return (
     <li className={`${styles.achievement} ${reached > 0 ? styles.achievementEarned : ''}`}>
       <span className={styles.badge} aria-hidden="true">
@@ -219,28 +225,28 @@ function Achievement({ progress }: { progress: AchievementProgress }) {
         </svg>
       </span>
       <span className={styles.achievementText}>
-        <span className={styles.achievementTitle}>{definition.title}</span>
+        <span className={styles.achievementTitle}>{title}</span>
         <span className={styles.achievementLevel}>
-          Level {level}
-          {complete && ' · Complete'}
+          {t('career.level', { level })}
+          {complete && t('career.complete')}
         </span>
-        <span className={styles.muted}>{definition.describe(target)}</span>
+        <span className={styles.muted}>{t(`achievement.desc.${definition.id as AchievementId}`, { count: target })}</span>
         <Meter
-          label={`${definition.title}, level ${level}`}
+          label={t('career.meter', { title, level })}
           value={value}
           max={target}
-          valueText={`${value.toLocaleString('en-US')} of ${target.toLocaleString('en-US')}`}
+          valueText={t('career.meterValue', { value: number(value), target: number(target) })}
           className={styles.achievementMeter}
         />
       </span>
       <span className={styles.achievementCount}>
         {complete && (
-          <span className={styles.check} aria-label="Complete">
+          <span className={styles.check} aria-label={t('career.completeLabel')}>
             ✓
           </span>
         )}
         <span aria-hidden="true">
-          {value.toLocaleString('en-US')}/{target.toLocaleString('en-US')}
+          {number(value)}/{number(target)}
         </span>
       </span>
     </li>

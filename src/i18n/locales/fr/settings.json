@@ -1,5 +1,25 @@
 {
   "country.choose": "Choisis un pays",
   "settings.language": "Langue",
-  "settings.languageCard": "Langue"
+  "settings.languageCard": "Langue",
+  "settings.title": "Réglages",
+  "settings.description": "Options du jeu.",
+  "settings.runner": "Coureur",
+  "settings.country": "Pays",
+  "settings.chooseCountry": "Choisis le pays que représente ton coureur.",
+  "settings.cloud": "Sauvegarde en ligne",
+  "settings.retry": "Réessayer",
+  "settings.demo": "Démo",
+  "settings.resetWarning": "Cela efface toute la progression enregistrée. Tu choisiras ensuite un nouveau profil de départ ; avec la sauvegarde en ligne, la nouvelle carrière remplace celle en ligne.",
+  "settings.confirmReset": "Confirmer la réinitialisation",
+  "settings.startOver": "Repars de zéro avec une nouvelle carrière et un nouveau profil de départ.",
+  "settings.reset": "Réinitialiser la démo",
+  "cloud.off": "Enregistré sur cet appareil",
+  "cloud.connecting": "Connexion à la sauvegarde en ligne…",
+  "cloud.synced": "Enregistré sur cet appareil et en ligne",
+  "cloud.syncing": "Enregistrement en ligne…",
+  "cloud.pending": "Enregistré sur cet appareil ; sauvegarde en ligne en attente (nouvel essai automatique)",
+  "cloud.conflict": "Ton appareil et la sauvegarde en ligne ont des carrières différentes : choisis-en une",
+  "cloud.error": "Sauvegarde en ligne indisponible ; enregistré sur cet appareil",
+  "cloud.indicator": "Sauvegarde en ligne : {status}"
 }

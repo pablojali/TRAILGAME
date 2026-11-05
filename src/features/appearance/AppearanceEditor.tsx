@@ -12,16 +12,14 @@ import {
   SKIN_TONES,
   type Appearance,
 } from '../../domain/athlete/appearance'
-import { SEX_LABELS, type Sex } from '../../domain/athlete/athlete'
+import type { Sex } from '../../domain/athlete/athlete'
+import { useI18n } from '../../i18n/i18n'
+import { lookName } from '../../i18n/looks'
 import styles from './AppearanceEditor.module.css'
 
 type AppearanceTab = 'skin' | 'hair' | 'outfit'
 
-const APPEARANCE_TABS: readonly { id: AppearanceTab; label: string }[] = [
-  { id: 'skin', label: 'Skin' },
-  { id: 'hair', label: 'Hair' },
-  { id: 'outfit', label: 'Clothing' },
-]
+const APPEARANCE_TABS: readonly { id: AppearanceTab }[] = [{ id: 'skin' }, { id: 'hair' }, { id: 'outfit' }]
 
 interface Option {
   value: string
@@ -62,6 +60,8 @@ export function AppearanceEditor({
   const [tab, setTab] = useState<AppearanceTab>('skin')
   const tabRefs = useRef<Partial<Record<AppearanceTab, HTMLButtonElement | null>>>({})
   const baseId = useId()
+  const { t: tr, locale } = useI18n()
+  const name = (label: string) => lookName(label, locale, tr)
 
   function onTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
@@ -82,7 +82,7 @@ export function AppearanceEditor({
             const unlock = hairUnlockLevel(sex, hair)
             return {
               value: hair,
-              label: hairStyleLabel(sex, hair),
+              label: name(hairStyleLabel(sex, hair)),
               swatch: { ...appearance, hair },
               crop: 'head',
               lockedUntil: unlock > level ? unlock : undefined,
@@ -91,7 +91,7 @@ export function AppearanceEditor({
       : tab === 'skin'
         ? SKIN_TONES[sex].map((skin) => ({
             value: skin,
-            label: SKIN_TONE_LABELS[skin],
+            label: name(SKIN_TONE_LABELS[skin]),
             swatch: { ...appearance, skin },
             crop: 'head',
           }))
@@ -101,7 +101,7 @@ export function AppearanceEditor({
               const unlock = outfitUnlockLevel(sex, outfit)
               return {
                 value: outfit,
-                label: outfitLabel(sex, outfit),
+                label: name(outfitLabel(sex, outfit)),
                 swatch: { ...appearance, outfit },
                 crop: 'kit',
                 caption: unlock === 1,
@@ -113,21 +113,23 @@ export function AppearanceEditor({
   const hasLockedHair = hairs.some((hair) => hairUnlockLevel(sex, hair) > level)
   const note =
     tab === 'outfit'
-      ? `${outfitLabel(sex, appearance.outfit)}.${hasLocked ? ' New shirts unlock as you level up.' : ''}`
+      ? `${name(outfitLabel(sex, appearance.outfit))}.${hasLocked ? tr('look.newShirts') : ''}`
       : tab === 'hair'
-        ? `${hairStyleLabel(sex, appearance.hair)}.${hasLockedHair ? ' New hairstyles unlock as you level up.' : ''}${
-            hairs.length === 1 ? ' More hairstyles for this skin tone come with new artwork.' : ''
+        ? `${name(hairStyleLabel(sex, appearance.hair))}.${hasLockedHair ? tr('look.newHair') : ''}${
+            hairs.length === 1 ? tr('look.moreHair') : ''
           }`
         : undefined
 
-  const previewLabel = `Avatar preview: ${[
-    SEX_LABELS[sex],
-    hairStyleLabel(sex, appearance.hair),
-    SKIN_TONE_LABELS[appearance.skin],
-    outfitLabel(sex, appearance.outfit),
-  ]
-    .join(', ')
-    .toLowerCase()}`
+  const previewLabel = tr('look.preview', {
+    items: [
+      tr(`sex.${sex}`),
+      name(hairStyleLabel(sex, appearance.hair)),
+      name(SKIN_TONE_LABELS[appearance.skin]),
+      name(outfitLabel(sex, appearance.outfit)),
+    ]
+      .join(', ')
+      .toLocaleLowerCase(locale === 'de' ? 'en' : locale),
+  })
 
   return (
     <div className={`${styles.editor} ${className ?? ''}`}>
@@ -143,7 +145,7 @@ export function AppearanceEditor({
         </div>
       </div>
 
-      <div className={styles.tabs} role="tablist" aria-label="Appearance" onKeyDown={onTabKeyDown}>
+      <div className={styles.tabs} role="tablist" aria-label={tr('look.tabs')} onKeyDown={onTabKeyDown}>
         {APPEARANCE_TABS.map((t) => (
           <button
             key={t.id}
@@ -159,14 +161,14 @@ export function AppearanceEditor({
             className={styles.tab}
             onClick={() => setTab(t.id)}
           >
-            {t.label}
+            {tr(`look.tab.${t.id}`)}
           </button>
         ))}
       </div>
 
       <div role="tabpanel" id={`${baseId}-panel`} aria-labelledby={`${baseId}-tab-${tab}`}>
         <fieldset className={styles.swatches}>
-          <legend className={styles.srOnly}>{APPEARANCE_TABS.find((t) => t.id === tab)!.label}</legend>
+          <legend className={styles.srOnly}>{tr(`look.tab.${tab}`)}</legend>
           {options.map((option) => {
             const checked = appearance[tab] === option.value
             const locked = option.lockedUntil !== undefined
@@ -174,7 +176,7 @@ export function AppearanceEditor({
               <label
                 key={option.value}
                 className={`${styles.swatch} ${locked ? styles.locked : ''}`}
-                title={locked ? `${option.label}: unlocks at Level ${option.lockedUntil}` : option.label}
+                title={locked ? tr('look.unlocksAt', { name: option.label, level: option.lockedUntil! }) : option.label}
               >
                 <input
                   type="radio"
@@ -191,9 +193,9 @@ export function AppearanceEditor({
                 </span>
                 {locked ? (
                   <>
-                    <span className={styles.srOnly}>{option.label}, unlocks at Level {option.lockedUntil}</span>
+                    <span className={styles.srOnly}>{tr('look.unlocksAtSr', { name: option.label, level: option.lockedUntil! })}</span>
                     <span className={styles.lockCaption} aria-hidden="true">
-                      Lvl {option.lockedUntil}
+                      {tr('common.lvl', { level: option.lockedUntil! })}
                     </span>
                   </>
                 ) : (

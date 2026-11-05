@@ -1,0 +1,21 @@
+{
+  "look.hairstyle": "Coiffure {number}",
+  "look.skinTone": "Teint {number}",
+  "look.basic": "Basique",
+  "look.noShirt": "Sans haut",
+  "look.tab.skin": "Peau",
+  "look.tab.hair": "Cheveux",
+  "look.tab.outfit": "Tenue",
+  "look.tabs": "Apparence",
+  "look.newShirts": " De nouveaux hauts se débloquent en montant de niveau.",
+  "look.newHair": " De nouvelles coiffures se débloquent en montant de niveau.",
+  "look.moreHair": " D'autres coiffures pour ce teint arriveront avec de nouvelles illustrations.",
+  "look.preview": "Aperçu de l'avatar : {items}",
+  "look.unlocksAt": "{name} : débloqué au niveau {level}",
+  "look.unlocksAtSr": "{name}, débloqué au niveau {level}",
+  "look.screenTitle": "Apparence",
+  "look.screenDescription": "Change le look de ton coureur. De nouvelles options se débloquent en montant de niveau ; l'apparence ne change jamais tes statistiques.",
+  "look.level": "Niveau {level}",
+  "look.back": "← Équipement",
+  "look.notAvailable": "Cette option n'est pas encore disponible."
+}

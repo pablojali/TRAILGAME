@@ -1,8 +1,8 @@
+import { useI18n, type MessageKey } from '../../i18n/i18n'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import button from '../../components/Button.module.css'
 import { Card } from '../../components/Card'
 import {
-  ACCOUNT_ERROR_TEXT,
   MIN_PASSWORD_LENGTH,
   type AccountError,
   type AccountService,
@@ -26,15 +26,16 @@ export function AccountCard({ service }: { service: AccountService }) {
   const [working, setWorking] = useState(false)
   const [message, setMessage] = useState<Message>(null)
   const [signInOpen, setSignInOpen] = useState(false)
+  const { t } = useI18n()
 
   const show = useCallback((result: LinkResult, success: string) => {
     setStatus(result.status)
     setMessage(
       result.ok
         ? { kind: 'success', text: success }
-        : { kind: 'error', text: ACCOUNT_ERROR_TEXT[result.error], error: result.error },
+        : { kind: 'error', text: t(`account.error.${result.error}` as MessageKey), error: result.error },
     )
-  }, [])
+  }, [t])
 
   // On opening: finish a Google link the player is coming back from, else read the account.
   useEffect(() => {
@@ -46,8 +47,8 @@ export function AccountCard({ service }: { service: AccountService }) {
         show(
           returned,
           returned.ok && returned.signedIn
-            ? 'Signed in. Your cloud career is loaded on this device.'
-            : 'Google account linked. Your career and progress are unchanged.',
+            ? t('account.signedIn')
+            : t('account.googleLinked'),
         )
       }
       else setStatus(await service.status())
@@ -55,7 +56,7 @@ export function AccountCard({ service }: { service: AccountService }) {
     return () => {
       cancelled = true
     }
-  }, [service, show])
+  }, [service, show, t])
 
   // The email may be confirmed in another tab or app: read the account again when coming back.
   useEffect(() => {
@@ -78,20 +79,18 @@ export function AccountCard({ service }: { service: AccountService }) {
   }
 
   return (
-    <Card title="Account">
-      {status === null && <p className={styles.muted}>Checking your account…</p>}
+    <Card title={t('account.title')}>
+      {status === null && <p className={styles.muted}>{t('account.checking')}</p>}
       {status?.kind === 'unavailable' && (
         <>
-          <p className={styles.muted}>
-            The account service is not reachable right now. You can keep playing; your career is saved on this device.
-          </p>
+          <p className={styles.muted}>{t('account.unavailable')}</p>
           <div className={styles.actions}>
             <button
               type="button"
               className={`${button.button} ${button.secondary}`}
               onClick={() => void service.status().then(setStatus)}
             >
-              Try again
+              {t('account.tryAgain')}
             </button>
           </div>
         </>
@@ -99,36 +98,33 @@ export function AccountCard({ service }: { service: AccountService }) {
       {(status?.kind === 'anonymous' || status?.kind === 'email-pending') && (
         <>
           <p>
-            <strong>Guest account.</strong>{' '}
-            <span className={styles.muted}>
-              Your career is saved on this device. Link an email or a Google account to keep access to your account
-              if you change or lose your phone. It is optional: you can keep playing as a guest.
-            </span>
+            <strong>{t('account.guest')}</strong> <span className={styles.muted}>{t('account.guestText')}</span>
           </p>
           {status.kind === 'email-pending' && (
             <p className={styles.notice}>
-              Check your inbox: we sent a confirmation link to <strong>{status.email}</strong>. Open it to finish
-              linking.
+              {t('account.checkInboxBefore')}
+              <strong>{status.email}</strong>
+              {t('account.checkInboxAfter')}
             </p>
           )}
           <EmailForm
             key={status.kind === 'email-pending' ? status.email : 'new'}
-            label={status.kind === 'email-pending' ? 'Use another email, or send the link again' : 'Email'}
+            label={status.kind === 'email-pending' ? t('account.anotherEmail') : t('account.email')}
             initial={status.kind === 'email-pending' ? status.email : ''}
             working={working}
             onSubmit={(email) =>
-              run(() => service.linkEmail(email), 'Confirmation email sent.')
+              run(() => service.linkEmail(email), t('account.emailSent'))
             }
           />
-          <p className={styles.or}>or</p>
+          <p className={styles.or}>{t('account.or')}</p>
           <div className={styles.actions}>
             <button
               type="button"
               className={`${button.button} ${button.secondary}`}
               aria-disabled={working || undefined}
-              onClick={() => run(() => service.startOAuthLink('google'), 'Opening Google…')}
+              onClick={() => run(() => service.startOAuthLink('google'), t('account.openingGoogle'))}
             >
-              Link Google account
+              {t('account.linkGoogle')}
             </button>
           </div>
           <SignInPanel key={signInOpen ? 'open' : 'closed'} service={service} initiallyOpen={signInOpen} />
@@ -137,17 +133,18 @@ export function AccountCard({ service }: { service: AccountService }) {
       {status?.kind === 'linked' && (
         <>
           <p>
-            <strong>Linked account.</strong>{' '}
+            <strong>{t('account.linked')}</strong>{' '}
             <span className={styles.muted}>
               {[status.email, status.providers.map((p) => PROVIDER_NAMES[p] ?? p).join(', ')].filter(Boolean).join(' · ')}.
-              Your account and career are protected.
+              {' '}
+              {t('account.protected')}
             </span>
           </p>
           {status.email && status.providers.includes('email') && (
             <PasswordForm
               working={working}
               onSubmit={(password) =>
-                run(() => service.setPassword(password), 'Password saved. You can sign in with your email and password.')
+                run(() => service.setPassword(password), t('account.passwordSaved'))
               }
             />
           )}
@@ -165,16 +162,16 @@ export function AccountCard({ service }: { service: AccountService }) {
             type="button"
             className={`${button.button} ${button.primary}`}
             aria-disabled={working || undefined}
-            onClick={() => run(() => service.startOAuthSignIn('google'), 'Opening Google…')}
+            onClick={() => run(() => service.startOAuthSignIn('google'), t('account.openingGoogle'))}
           >
-            Sign in to that account instead
+            {t('account.signInInstead')}
           </button>
         </div>
       )}
       {message?.error === 'email-in-use' && !signInOpen && (
         <div className={styles.actions}>
           <button type="button" className={`${button.button} ${button.primary}`} onClick={() => setSignInOpen(true)}>
-            Sign in to that account instead
+            {t('account.signInInstead')}
           </button>
         </div>
       )}
@@ -194,6 +191,7 @@ function EmailForm({
   onSubmit(email: string): void
 }) {
   const id = useId()
+  const { t } = useI18n()
   const [email, setEmail] = useState(initial)
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -215,7 +213,7 @@ function EmailForm({
           onChange={(event) => setEmail(event.target.value)}
         />
         <button type="submit" className={`${button.button} ${button.primary}`} aria-disabled={working || undefined}>
-          Link email
+          {t('account.linkEmail')}
         </button>
       </div>
     </form>
@@ -225,6 +223,7 @@ function EmailForm({
 function PasswordForm({ working, onSubmit }: { working: boolean; onSubmit(password: string): void }) {
   const id = useId()
   const hintId = useId()
+  const { t } = useI18n()
   const [password, setPassword] = useState('')
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -236,7 +235,7 @@ function PasswordForm({ working, onSubmit }: { working: boolean; onSubmit(passwo
   return (
     <form className={styles.form} onSubmit={submit} noValidate>
       <label htmlFor={id} className={styles.label}>
-        Password (optional)
+        {t('account.passwordOptional')}
       </label>
       <div className={styles.row}>
         <input
@@ -249,11 +248,11 @@ function PasswordForm({ working, onSubmit }: { working: boolean; onSubmit(passwo
           onChange={(event) => setPassword(event.target.value)}
         />
         <button type="submit" className={`${button.button} ${button.primary}`} aria-disabled={working || undefined}>
-          Set password
+          {t('account.setPassword')}
         </button>
       </div>
       <p id={hintId} className={styles.hint}>
-        At least {MIN_PASSWORD_LENGTH} characters. Lets you sign in with your email and password.
+        {t('account.passwordHint', { count: MIN_PASSWORD_LENGTH })}
       </p>
     </form>
   )

@@ -1,3 +1,4 @@
+import { useI18n } from '../../i18n/i18n'
 import { NavLink } from 'react-router'
 import { Icon } from '../../components/Icon'
 import { useGame } from '../game/gameContext'
@@ -11,10 +12,11 @@ import styles from './Cloud.module.css'
  */
 export function SyncIndicator() {
   const { cloudStatus } = useGame()
+  const { t } = useI18n()
   if (cloudStatus === 'off') return null
-  const text = CLOUD_STATUS_TEXT[cloudStatus]
+  const text = t(CLOUD_STATUS_TEXT[cloudStatus])
   return (
-    <NavLink to="/settings" className={styles.indicator} data-status={cloudStatus} aria-label={`Cloud save: ${text}`} title={text}>
+    <NavLink to="/settings" className={styles.indicator} data-status={cloudStatus} aria-label={t('cloud.indicator', { status: text })} title={text}>
       <Icon name="cloud" size={20} />
       <span className={styles.dot} aria-hidden="true" />
     </NavLink>

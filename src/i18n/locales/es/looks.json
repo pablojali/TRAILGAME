@@ -1,0 +1,21 @@
+{
+  "look.hairstyle": "Peinado {number}",
+  "look.skinTone": "Tono de piel {number}",
+  "look.basic": "Básico",
+  "look.noShirt": "Sin camiseta",
+  "look.tab.skin": "Piel",
+  "look.tab.hair": "Pelo",
+  "look.tab.outfit": "Ropa",
+  "look.tabs": "Apariencia",
+  "look.newShirts": " Desbloqueas camisetas nuevas al subir de nivel.",
+  "look.newHair": " Desbloqueas peinados nuevos al subir de nivel.",
+  "look.moreHair": " Habrá más peinados para este tono de piel con nuevas ilustraciones.",
+  "look.preview": "Vista previa del avatar: {items}",
+  "look.unlocksAt": "{name}: se desbloquea en el nivel {level}",
+  "look.unlocksAtSr": "{name}, se desbloquea en el nivel {level}",
+  "look.screenTitle": "Apariencia",
+  "look.screenDescription": "Cambia el look de tu corredor. Desbloqueas opciones nuevas al subir de nivel; la apariencia nunca cambia tus estadísticas.",
+  "look.level": "Nivel {level}",
+  "look.back": "← Equipo",
+  "look.notAvailable": "Esa opción aún no está disponible."
+}

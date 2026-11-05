@@ -1,3 +1,4 @@
+import { lookName } from '../../i18n/looks'
 import { useI18n } from '../../i18n/i18n'
 import { useEffect, useId, useRef } from 'react'
 import { useNavigate } from 'react-router'
@@ -15,7 +16,7 @@ export function LevelUpDialog() {
   const { phase, levelUp, dismissLevelUp } = useGame()
   const navigate = useNavigate()
   const titleId = useId()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const heading = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
@@ -75,7 +76,7 @@ export function LevelUpDialog() {
                 ★
               </span>
               <span>
-                <strong>{t('levelUp.newLook')}</strong> {rewards.looks.join(', ')}
+                <strong>{t('levelUp.newLook')}</strong> {rewards.looks.map((look) => lookName(look, locale, t)).join(', ')}
               </span>
             </li>
           )}

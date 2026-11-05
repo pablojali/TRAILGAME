@@ -1,0 +1,87 @@
+{
+  "career.title": "Trayectoria",
+  "career.description": "Pasos pequeños. Grandes metas.",
+  "career.tab.achievements": "Logros",
+  "career.tab.medals": "Trofeos",
+  "career.tab.bests": "Récords",
+  "career.tab.history": "Historial",
+  "career.of": " de {count}",
+  "career.season": "Temporada {year}",
+  "career.seasonProgress": "Progreso de la temporada {year}",
+  "career.seasonValue": "Semana {week} de {weeks}",
+  "career.seasonLine": "Semana {week} / {weeks} · {races} · {medals}",
+  "career.races": {
+    "one": "{count} carrera",
+    "other": "{count} carreras"
+  },
+  "career.medals": {
+    "one": "{count} medalla",
+    "other": "{count} medallas"
+  },
+  "career.bestFinish": "Mejor puesto",
+  "career.noRaces": "Aún no hay carreras. Tus medallas y resultados aparecerán aquí después de tu primera carrera.",
+  "career.goToRaces": "Ir a carreras",
+  "career.tabs": "Trayectoria",
+  "career.medalTable": "Medallero",
+  "career.category": "Categoría",
+  "career.racesCol": "Carreras",
+  "career.total": "Total",
+  "medal.gold": "Oro",
+  "medal.silver": "Plata",
+  "medal.bronze": "Bronce",
+  "career.bests": "Récords personales",
+  "career.bestsEmpty": "Aquí aparecen tu mejor puesto y tu mejor tiempo en cada carrera.",
+  "career.runs": {
+    "one": "{count} vez",
+    "other": "{count} veces"
+  },
+  "career.bestPosition": "Mejor puesto en {race}: {position}",
+  "career.bestTime": "Mejor tiempo en {race}: {time}",
+  "career.history": "Historial de carreras",
+  "career.historyEmpty": "Aquí aparece cada carrera que corras, la más reciente primero.",
+  "career.when": "Semana {week} · {day}",
+  "career.level": "Nivel {level}",
+  "career.complete": " · Completado",
+  "career.completeLabel": "Completado",
+  "career.meter": "{title}, nivel {level}",
+  "career.meterValue": "{value} de {target}",
+  "achievement.first-steps": "Primeros pasos",
+  "achievement.trail-explorer": "Explorador de trail",
+  "achievement.first-summit": "Primera cumbre",
+  "achievement.elite": "Entre la élite",
+  "achievement.podium": "Cazador de podios",
+  "achievement.champion": "Campeón",
+  "achievement.rising-star": "Estrella en ascenso",
+  "achievement.level": "Subiendo de rango",
+  "achievement.dedicated": "Constante",
+  "achievement.desc.first-steps": {
+    "one": "Termina {count} carrera.",
+    "other": "Termina {count} carreras."
+  },
+  "achievement.desc.trail-explorer": {
+    "one": "Termina {count} carrera trail.",
+    "other": "Termina {count} carreras trail."
+  },
+  "achievement.desc.first-summit": {
+    "one": "Termina {count} carrera de montaña.",
+    "other": "Termina {count} carreras de montaña."
+  },
+  "achievement.desc.elite": {
+    "one": "Termina {count} carrera élite.",
+    "other": "Termina {count} carreras élite."
+  },
+  "achievement.desc.podium": {
+    "one": "Termina entre los 3 primeros {count} vez.",
+    "other": "Termina entre los 3 primeros {count} veces."
+  },
+  "achievement.desc.champion": {
+    "one": "Gana {count} carrera.",
+    "other": "Gana {count} carreras."
+  },
+  "achievement.desc.rising-star": "Llega a {count} XP.",
+  "achievement.desc.level": "Llega al nivel {count}.",
+  "achievement.desc.dedicated": {
+    "one": "Completa {count} semana de entrenamiento.",
+    "other": "Completa {count} semanas de entrenamiento."
+  }
+}

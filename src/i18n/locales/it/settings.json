@@ -1,5 +1,25 @@
 {
   "country.choose": "Scegli un paese",
   "settings.language": "Lingua",
-  "settings.languageCard": "Lingua"
+  "settings.languageCard": "Lingua",
+  "settings.title": "Impostazioni",
+  "settings.description": "Opzioni del gioco.",
+  "settings.runner": "Corridore",
+  "settings.country": "Paese",
+  "settings.chooseCountry": "Scegli il paese che rappresenta il tuo corridore.",
+  "settings.cloud": "Salvataggio online",
+  "settings.retry": "Riprova ora",
+  "settings.demo": "Demo",
+  "settings.resetWarning": "Questo cancella tutti i progressi salvati. Poi sceglierai un nuovo profilo iniziale; con il salvataggio online attivo, la nuova carriera sostituisce quella online.",
+  "settings.confirmReset": "Conferma il reset",
+  "settings.startOver": "Ricomincia da zero con una nuova carriera e un nuovo profilo iniziale.",
+  "settings.reset": "Resetta la demo",
+  "cloud.off": "Salvato su questo dispositivo",
+  "cloud.connecting": "Connessione al salvataggio online…",
+  "cloud.synced": "Salvato su questo dispositivo e online",
+  "cloud.syncing": "Salvataggio online…",
+  "cloud.pending": "Salvato su questo dispositivo; salvataggio online in sospeso (verrà ritentato)",
+  "cloud.conflict": "Il dispositivo e il salvataggio online hanno carriere diverse: scegline una",
+  "cloud.error": "Salvataggio online non disponibile; salvato su questo dispositivo",
+  "cloud.indicator": "Salvataggio online: {status}"
 }

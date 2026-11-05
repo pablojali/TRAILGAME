@@ -1,3 +1,4 @@
+import { lookName } from '../../i18n/looks'
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
@@ -525,13 +526,13 @@ function ExecutionFeedback({ result }: { result: ExecutionResult }) {
 /** New appearance options reached by a level-up, with a link to try them on. */
 function UnlockNotice({ from, to }: { from: number; to: number }) {
   const { athlete } = useCareer().state
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const unlocks = appearanceUnlocks(from, to, athlete.sex, athlete.appearance.skin)
   if (unlocks.length === 0) return null
   return (
     <>
       {' '}
-      {t('training.newLook', { looks: unlocks.join(', ') })}{' '}
+      {t('training.newLook', { looks: unlocks.map((look) => lookName(look, locale, t)).join(', ') })}{' '}
       <Link to="/appearance" className={styles.inlineLink}>
         {t('common.changeLook')}
       </Link>

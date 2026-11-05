@@ -1,12 +1,13 @@
+import type { MessageKey } from '../../i18n/i18n'
 import type { SyncStatus } from '../../repositories/cloudSync'
 
-/** How the cloud save is described to the player (indicator label and Settings). */
-export const CLOUD_STATUS_TEXT: Record<SyncStatus, string> = {
-  off: 'Saved on this device',
-  connecting: 'Connecting to cloud save…',
-  synced: 'Saved on this device and in the cloud',
-  syncing: 'Saving to the cloud…',
-  pending: 'Saved on this device; cloud save pending (it will retry)',
-  conflict: 'Your device and the cloud have different careers: choose one',
-  error: 'Cloud save unavailable; saved on this device',
+/** How the cloud save is described to the player (indicator label and Settings): text keys. */
+export const CLOUD_STATUS_TEXT: Record<SyncStatus, MessageKey> = {
+  off: 'cloud.off',
+  connecting: 'cloud.connecting',
+  synced: 'cloud.synced',
+  syncing: 'cloud.syncing',
+  pending: 'cloud.pending',
+  conflict: 'cloud.conflict',
+  error: 'cloud.error',
 }

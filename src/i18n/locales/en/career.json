@@ -1,0 +1,87 @@
+{
+  "career.title": "Career",
+  "career.description": "Small steps. Big goals.",
+  "career.tab.achievements": "Achievements",
+  "career.tab.medals": "Trophies",
+  "career.tab.bests": "Bests",
+  "career.tab.history": "History",
+  "career.of": " of {count}",
+  "career.season": "Season {year}",
+  "career.seasonProgress": "Season {year} progress",
+  "career.seasonValue": "Week {week} of {weeks}",
+  "career.seasonLine": "Week {week} / {weeks} · {races} · {medals}",
+  "career.races": {
+    "one": "{count} race",
+    "other": "{count} races"
+  },
+  "career.medals": {
+    "one": "{count} medal",
+    "other": "{count} medals"
+  },
+  "career.bestFinish": "Best finish",
+  "career.noRaces": "No races yet. Your medals and results appear here after your first race.",
+  "career.goToRaces": "Go to races",
+  "career.tabs": "Career",
+  "career.medalTable": "Medal table",
+  "career.category": "Category",
+  "career.racesCol": "Races",
+  "career.total": "Total",
+  "medal.gold": "Gold",
+  "medal.silver": "Silver",
+  "medal.bronze": "Bronze",
+  "career.bests": "Personal bests",
+  "career.bestsEmpty": "Your best position and best time on each race appear here.",
+  "career.runs": {
+    "one": "{count} run",
+    "other": "{count} runs"
+  },
+  "career.bestPosition": "Best position in {race}: {position}",
+  "career.bestTime": "Best time in {race}: {time}",
+  "career.history": "Race history",
+  "career.historyEmpty": "Every race you run appears here, newest first.",
+  "career.when": "Week {week} · {day}",
+  "career.level": "Level {level}",
+  "career.complete": " · Complete",
+  "career.completeLabel": "Complete",
+  "career.meter": "{title}, level {level}",
+  "career.meterValue": "{value} of {target}",
+  "achievement.first-steps": "Race Starter",
+  "achievement.trail-explorer": "Trail Explorer",
+  "achievement.first-summit": "First Summit",
+  "achievement.elite": "Among the Elite",
+  "achievement.podium": "Podium Hunter",
+  "achievement.champion": "Champion",
+  "achievement.rising-star": "Rising Star",
+  "achievement.level": "Climbing the Ranks",
+  "achievement.dedicated": "Dedicated",
+  "achievement.desc.first-steps": {
+    "one": "Finish {count} race.",
+    "other": "Finish {count} races."
+  },
+  "achievement.desc.trail-explorer": {
+    "one": "Finish {count} trail race.",
+    "other": "Finish {count} trail races."
+  },
+  "achievement.desc.first-summit": {
+    "one": "Finish {count} mountain race.",
+    "other": "Finish {count} mountain races."
+  },
+  "achievement.desc.elite": {
+    "one": "Finish {count} elite race.",
+    "other": "Finish {count} elite races."
+  },
+  "achievement.desc.podium": {
+    "one": "Finish in the top 3 {count} time.",
+    "other": "Finish in the top 3 {count} times."
+  },
+  "achievement.desc.champion": {
+    "one": "Win {count} race.",
+    "other": "Win {count} races."
+  },
+  "achievement.desc.rising-star": "Reach {count} XP.",
+  "achievement.desc.level": "Reach Level {count}.",
+  "achievement.desc.dedicated": {
+    "one": "Complete {count} training week.",
+    "other": "Complete {count} training weeks."
+  }
+}

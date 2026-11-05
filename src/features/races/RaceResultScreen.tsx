@@ -1,3 +1,4 @@
+import { lookName } from '../../i18n/looks'
 import { useI18n } from '../../i18n/i18n'
 import { weekdayLongKey } from '../../i18n/labels'
 import { useEffect, useRef } from 'react'
@@ -141,7 +142,7 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
                   <Link to="/attributes">{t('result.allocate')}</Link>
                   {unlocks.length > 0 && (
                     <>
-                      {t('result.newLook', { looks: unlocks.join(', ') })}
+                      {t('result.newLook', { looks: unlocks.map((look) => lookName(look, locale, t)).join(', ') })}
                       <Link to="/appearance">{t('common.changeLook')}</Link>
                     </>
                   )}

@@ -1,0 +1,87 @@
+{
+  "career.title": "Karriere",
+  "career.description": "Kleine Schritte. Große Ziele.",
+  "career.tab.achievements": "Erfolge",
+  "career.tab.medals": "Trophäen",
+  "career.tab.bests": "Bestzeiten",
+  "career.tab.history": "Verlauf",
+  "career.of": " von {count}",
+  "career.season": "Saison {year}",
+  "career.seasonProgress": "Fortschritt Saison {year}",
+  "career.seasonValue": "Woche {week} von {weeks}",
+  "career.seasonLine": "Woche {week} / {weeks} · {races} · {medals}",
+  "career.races": {
+    "one": "{count} Rennen",
+    "other": "{count} Rennen"
+  },
+  "career.medals": {
+    "one": "{count} Medaille",
+    "other": "{count} Medaillen"
+  },
+  "career.bestFinish": "Bester Platz",
+  "career.noRaces": "Noch keine Rennen. Deine Medaillen und Ergebnisse erscheinen hier nach deinem ersten Rennen.",
+  "career.goToRaces": "Zu den Rennen",
+  "career.tabs": "Karriere",
+  "career.medalTable": "Medaillenspiegel",
+  "career.category": "Kategorie",
+  "career.racesCol": "Rennen",
+  "career.total": "Gesamt",
+  "medal.gold": "Gold",
+  "medal.silver": "Silber",
+  "medal.bronze": "Bronze",
+  "career.bests": "Persönliche Bestleistungen",
+  "career.bestsEmpty": "Hier erscheinen dein bester Platz und deine beste Zeit in jedem Rennen.",
+  "career.runs": {
+    "one": "{count}-mal",
+    "other": "{count}-mal"
+  },
+  "career.bestPosition": "Bester Platz bei {race}: {position}",
+  "career.bestTime": "Beste Zeit bei {race}: {time}",
+  "career.history": "Rennverlauf",
+  "career.historyEmpty": "Hier erscheint jedes Rennen, das du läufst, das neueste zuerst.",
+  "career.when": "Woche {week} · {day}",
+  "career.level": "Stufe {level}",
+  "career.complete": " · Abgeschlossen",
+  "career.completeLabel": "Abgeschlossen",
+  "career.meter": "{title}, Stufe {level}",
+  "career.meterValue": "{value} von {target}",
+  "achievement.first-steps": "Erste Schritte",
+  "achievement.trail-explorer": "Trail-Entdecker",
+  "achievement.first-summit": "Erster Gipfel",
+  "achievement.elite": "Unter der Elite",
+  "achievement.podium": "Podiumsjäger",
+  "achievement.champion": "Champion",
+  "achievement.rising-star": "Aufsteigender Stern",
+  "achievement.level": "Auf dem Weg nach oben",
+  "achievement.dedicated": "Fleißig",
+  "achievement.desc.first-steps": {
+    "one": "Beende {count} Rennen.",
+    "other": "Beende {count} Rennen."
+  },
+  "achievement.desc.trail-explorer": {
+    "one": "Beende {count} Trail-Rennen.",
+    "other": "Beende {count} Trail-Rennen."
+  },
+  "achievement.desc.first-summit": {
+    "one": "Beende {count} Bergrennen.",
+    "other": "Beende {count} Bergrennen."
+  },
+  "achievement.desc.elite": {
+    "one": "Beende {count} Elite-Rennen.",
+    "other": "Beende {count} Elite-Rennen."
+  },
+  "achievement.desc.podium": {
+    "one": "Komme {count}-mal unter die ersten 3.",
+    "other": "Komme {count}-mal unter die ersten 3."
+  },
+  "achievement.desc.champion": {
+    "one": "Gewinne {count} Rennen.",
+    "other": "Gewinne {count} Rennen."
+  },
+  "achievement.desc.rising-star": "Erreiche {count} XP.",
+  "achievement.desc.level": "Erreiche Level {count}.",
+  "achievement.desc.dedicated": {
+    "one": "Schließe {count} Trainingswoche ab.",
+    "other": "Schließe {count} Trainingswochen ab."
+  }
+}

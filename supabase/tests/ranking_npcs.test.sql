@@ -44,8 +44,8 @@ select pg_temp.expect((select string_agg(name, ',' order by rank) from public.ge
   'NPCs rank by their points; a player without points retires nobody');
 select pg_temp.expect((select bool_and(not is_me) and min(xp) = 300 from public.get_ranking('season', (select now_season from s))),
   'NPC rows show their XP and are never the caller');
-select pg_temp.expect((select string_agg(name, ',' order by rank) from public.get_ranking('annual', null, 'UY', 'female')) = 'UyTwo',
-  'NPCs follow the country and sex filters');
+select pg_temp.expect((select string_agg(name, ',' order by rank) from public.get_ranking('annual', null, 'UY', 'female')) = 'UyOne,UyTwo,UyThree',
+  'NPCs follow the country filter, and men and women share one classification');
 reset role;
 
 -- The player gets ranking points: the first Uruguayan NPC of the list retires.

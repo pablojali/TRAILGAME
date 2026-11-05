@@ -1,3 +1,4 @@
+import type { AchievementEarned } from '../../game-engine/achievements'
 import { isCountryCode } from '../../domain/athlete/countries'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { AttributeId } from '../../domain/athlete/athlete'
@@ -104,6 +105,11 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   const [levelUp, setLevelUp] = useState<LevelUp | null>(null)
   const noteLevels = useCallback((before: number, after: number) => {
     if (after > before) setLevelUp((current) => ({ from: current?.from ?? before, to: after }))
+  }, [])
+  // Challenges completed, celebrated one at a time (owner request, 5 November 2026).
+  const [challenges, setChallenges] = useState<AchievementEarned[]>([])
+  const noteChallenges = useCallback((earned: AchievementEarned[] | undefined) => {
+    if (earned?.length) setChallenges((current) => [...current, ...earned])
   }, [])
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [player] = useState(() => (identity === undefined ? getPlayerIdentity() : identity))
@@ -367,6 +373,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
         const executed = { ...(response.result as Omit<ExecutionResult, 'state'>), state: response.state }
         setLastExecution(executed)
         noteLevels(executed.levelBefore, executed.levelAfter)
+        noteChallenges(executed.achievementsEarned)
         return null
       }
       const result = engine.executeCurrentDay(state, ref, clockRef.current())
@@ -374,9 +381,10 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       commit({ kind: 'playing', state: result.value.state })
       setLastExecution(result.value)
       noteLevels(result.value.levelBefore, result.value.levelAfter)
+      noteChallenges(result.value.achievementsEarned)
       return null
     },
-    [commit, currentState, ops, runServerOp, sync, noteLevels],
+    [commit, currentState, ops, runServerOp, sync, noteLevels, noteChallenges],
   )
 
   const allocate = useCallback(
@@ -456,6 +464,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
         // The last training feedback no longer describes the latest day.
         setLastExecution(null)
         noteLevels(raced.levelBefore, raced.levelAfter)
+        noteChallenges(raced.achievementsEarned)
         return { ok: true as const, finished: raced }
       }
       if (ops) {
@@ -481,7 +490,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       commit({ kind: 'playing', state: result.value.value.state })
       return finish(result.value.value)
     },
-    [commit, currentState, ops, runServerOp, sync, noteLevels],
+    [commit, currentState, ops, runServerOp, sync, noteLevels, noteChallenges],
   )
 
   const equip = useCallback(
@@ -569,6 +578,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       lastExecution,
       levelUp,
       dismissLevelUp: () => setLevelUp(null),
+      challengeDone: challenges[0] ?? null,
+      dismissChallenge: () => setChallenges((current) => current.slice(1)),
       startCareer,
       beginRestart,
       resetCareer,
@@ -594,6 +605,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       cloudNotice,
       decayNotice,
       lastExecution,
+      challenges,
       levelUp,
       startCareer,
       beginRestart,

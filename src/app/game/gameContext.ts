@@ -1,3 +1,4 @@
+import type { AchievementEarned } from '../../game-engine/achievements'
 import { createContext, useContext } from 'react'
 import type { Appearance } from '../../domain/athlete/appearance'
 import type { AttributeId } from '../../domain/athlete/athlete'
@@ -70,6 +71,9 @@ export interface GameContextValue {
   /** Levels just gained (training or race), to celebrate until dismissed. */
   levelUp: LevelUp | null
   dismissLevelUp(): void
+  /** The next challenge (achievement level) completed to celebrate, oldest first. */
+  challengeDone: AchievementEarned | null
+  dismissChallenge(): void
   /** Creates and saves a new career (All-rounder, STARTING_PROFILE). Overwrites any existing save. */
   startCareer(identity: AthleteIdentity): Promise<StartCareerError | null>
   /** From an incompatible save, goes to runner creation. Writes nothing. */

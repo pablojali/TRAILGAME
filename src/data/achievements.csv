@@ -1,0 +1,42 @@
+# Achievements (owner table, 5 November 2026). One row per achievement level, levels 1, 2, 3… in order.
+# achievement: first-steps (races finished), trail-explorer, first-summit, elite (races of that category), podium (top 3 finishes),
+# champion (wins), rising-star (total XP), level (runner level), dedicated (training weeks completed).
+# target: what the level asks for (rising in each achievement). coins and xp: the reward when the level is reached, given once.
+achievement,level,target,coins,xp
+first-steps,1,1,20,50
+first-steps,2,5,40,100
+first-steps,3,10,80,200
+first-steps,4,25,150,400
+first-steps,5,50,300,800
+trail-explorer,1,1,50,100
+trail-explorer,2,5,100,200
+trail-explorer,3,10,200,400
+trail-explorer,4,25,400,800
+first-summit,1,1,100,200
+first-summit,2,5,200,400
+first-summit,3,10,400,800
+first-summit,4,25,800,1600
+elite,1,1,200,400
+elite,2,5,400,800
+elite,3,10,800,1600
+podium,1,1,30,50
+podium,2,5,80,150
+podium,3,10,150,300
+podium,4,25,300,600
+champion,1,1,50,100
+champion,2,3,120,250
+champion,3,10,300,600
+rising-star,1,1000,30,0
+rising-star,2,5000,80,0
+rising-star,3,20000,200,0
+rising-star,4,50000,400,0
+level,1,5,30,0
+level,2,10,60,0
+level,3,20,150,0
+level,4,30,300,0
+level,5,50,600,0
+dedicated,1,4,20,50
+dedicated,2,13,60,150
+dedicated,3,26,120,300
+dedicated,4,52,250,600
+dedicated,5,104,500,1200

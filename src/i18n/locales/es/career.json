@@ -83,5 +83,40 @@
   "achievement.desc.dedicated": {
     "one": "Completa {count} semana de entrenamiento.",
     "other": "Completa {count} semanas de entrenamiento."
+  },
+  "career.reward": "Recompensa",
+  "challenge.title": "¡Desafío completado!",
+  "challenge.milestone": "¡Un nuevo hito en tu carrera!",
+  "challenge.coins": "Monedas",
+  "challenge.claimed": "Premio cobrado",
+  "achievement.done.first-steps": {
+    "one": "Terminaste {count} carrera.",
+    "other": "Terminaste {count} carreras."
+  },
+  "achievement.done.trail-explorer": {
+    "one": "Terminaste {count} carrera trail.",
+    "other": "Terminaste {count} carreras trail."
+  },
+  "achievement.done.first-summit": {
+    "one": "Terminaste {count} carrera de montaña.",
+    "other": "Terminaste {count} carreras de montaña."
+  },
+  "achievement.done.elite": {
+    "one": "Terminaste {count} carrera élite.",
+    "other": "Terminaste {count} carreras élite."
+  },
+  "achievement.done.podium": {
+    "one": "Terminaste entre los 3 primeros {count} vez.",
+    "other": "Terminaste entre los 3 primeros {count} veces."
+  },
+  "achievement.done.champion": {
+    "one": "Ganaste {count} carrera.",
+    "other": "Ganaste {count} carreras."
+  },
+  "achievement.done.rising-star": "Llegaste a {number} XP.",
+  "achievement.done.level": "Llegaste al nivel {count}.",
+  "achievement.done.dedicated": {
+    "one": "Completaste {count} semana de entrenamiento.",
+    "other": "Completaste {count} semanas de entrenamiento."
   }
 }

@@ -969,6 +969,11 @@ Fitness 0 by week 6:
   and `fitness_bonus`, and how the first `front_ranks` rivals race (`front_intensity`, `front_stop`;
   `best` = the fastest plan on that course, resolved per race into `RaceField.frontPlan`). Read by
   `src/domain/races/raceField.ts`; used by `typicalRunner` and `getRaceField` (raceEngine.ts).
+- **Achievements table** `src/data/achievements.csv` (owner request, 5 November 2026): one row per
+  achievement level (`achievement,level,target,coins,xp`). The engine pays a level's coins and XP
+  once when it is reached, after a training day or a race (`applyAchievementRewards`); the levels
+  paid are kept in `state.achievementLevelsRewarded` (a career saved before it existed is credited
+  with the levels it had reached, without paying them). Tests use a copy with no rewards.
 - The tables are also in the Edge Function bundle (`scripts/functionsBuild.mjs` loads `?raw`
   imports). **Automatic deploy:** on every push to main, CI (`.github/workflows/ci.yml`) rebuilds the
   bundle, runs every check, and only then deploys `career-ops` with the Supabase CLI

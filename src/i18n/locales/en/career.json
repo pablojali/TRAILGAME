@@ -83,5 +83,40 @@
   "achievement.desc.dedicated": {
     "one": "Complete {count} training week.",
     "other": "Complete {count} training weeks."
+  },
+  "career.reward": "Reward",
+  "challenge.title": "Challenge completed!",
+  "challenge.milestone": "A new milestone in your career!",
+  "challenge.coins": "Coins",
+  "challenge.claimed": "Reward claimed",
+  "achievement.done.first-steps": {
+    "one": "You finished {count} race.",
+    "other": "You finished {count} races."
+  },
+  "achievement.done.trail-explorer": {
+    "one": "You finished {count} trail race.",
+    "other": "You finished {count} trail races."
+  },
+  "achievement.done.first-summit": {
+    "one": "You finished {count} mountain race.",
+    "other": "You finished {count} mountain races."
+  },
+  "achievement.done.elite": {
+    "one": "You finished {count} elite race.",
+    "other": "You finished {count} elite races."
+  },
+  "achievement.done.podium": {
+    "one": "You finished in the top 3 {count} time.",
+    "other": "You finished in the top 3 {count} times."
+  },
+  "achievement.done.champion": {
+    "one": "You won {count} race.",
+    "other": "You won {count} races."
+  },
+  "achievement.done.rising-star": "You reached {number} XP.",
+  "achievement.done.level": "You reached Level {count}.",
+  "achievement.done.dedicated": {
+    "one": "You completed {count} training week.",
+    "other": "You completed {count} training weeks."
   }
 }

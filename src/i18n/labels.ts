@@ -8,3 +8,17 @@ export function weekdayLongKey(day: number): MessageKey {
 export function weekdayShortKey(day: number): MessageKey {
   return `weekday.short.${Math.min(7, Math.max(1, day)) as 1 | 2 | 3 | 4 | 5 | 6 | 7}`
 }
+
+export type AchievementKeyId =
+  | 'first-steps'
+  | 'trail-explorer'
+  | 'first-summit'
+  | 'elite'
+  | 'podium'
+  | 'champion'
+  | 'rising-star'
+  | 'level'
+  | 'dedicated'
+
+export const achievementTitleKey = (id: AchievementKeyId): MessageKey => `achievement.${id}`
+export const achievementDescKey = (id: AchievementKeyId): MessageKey => `achievement.desc.${id}`

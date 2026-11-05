@@ -344,3 +344,30 @@ describe('TrainingScreen — injury', () => {
     expect(readSave()!.state.athlete.fitness).toBe(23)
   })
 })
+
+describe('TrainingScreen — challenge completed', () => {
+  it('celebrates an achievement level reached by the day, then closes with Continue', async () => {
+    const user = userEvent.setup()
+    // Week 4, Sunday: completing it finishes 4 training weeks (Dedicated, level 1).
+    const base = newGame()
+    seedCareer({
+      ...base,
+      week: {
+        ...base.week,
+        number: 4,
+        currentDayIndex: 6,
+        days: base.week.days.map((day, index) =>
+          index < 6 ? { ...day, outcome: { xpGained: 0, fitnessChange: 0, fatigueChange: 0 } } : day,
+        ),
+      },
+    })
+    await renderApp('/training')
+    await user.click(screen.getByRole('button', { name: /^(Complete|Take rest day)/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Challenge completed!' })
+    expect(dialog).toHaveTextContent('Dedicated · Level 1')
+    expect(dialog).toHaveTextContent('You completed 4 training weeks.')
+    expect(dialog).toHaveTextContent('Reward claimed')
+    await user.click(within(dialog).getByRole('button', { name: 'Continue' }))
+    expect(screen.queryByRole('dialog', { name: 'Challenge completed!' })).not.toBeInTheDocument()
+  })
+})

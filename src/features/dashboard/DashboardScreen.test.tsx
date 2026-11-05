@@ -120,7 +120,8 @@ describe('DashboardScreen — first screen', () => {
     expect(screen.getByRole('link', { name: '3 attribute points to spend ›' })).toHaveAttribute('href', '/attributes')
     const today = screen.getByRole('region', { name: 'Today' })
     expect(today).toHaveTextContent('Today · Hills')
-    expect(today).toHaveTextContent('XP +14 · Fitness +0.5 · Fatigue +12 · Climbing +0.1')
+    // Short (owner request, 5 November 2026): the session's effects are in Training.
+    expect(today).not.toHaveTextContent('XP +')
   })
 
   it('shows level 50 as the maximum level', async () => {
@@ -143,12 +144,13 @@ describe('DashboardScreen — first screen', () => {
 })
 
 describe('DashboardScreen — Today strip (one screen, no cards)', () => {
-  it('shows today’s session and its effects, with no attribute-point link when none are unspent', async () => {
+  it('shows today’s session, with no attribute-point link when none are unspent, and the active challenge', async () => {
     seedCareer(newGame('climber'))
     await renderApp('/')
     const today = screen.getByRole('region', { name: 'Today' })
     expect(today).toHaveTextContent('Today · Easy run')
-    expect(today).toHaveTextContent('XP +9 · Fitness +0.5 · Fatigue +5 · Endurance +0.1')
+    const challenge = screen.getByRole('region', { name: 'Active challenge' })
+    expect(within(challenge).getByRole('link', { name: 'View all challenges ›' })).toHaveAttribute('href', '/career')
     expect(within(today).queryByRole('link', { name: /attribute point/ })).not.toBeInTheDocument()
     // The demo reset lives in Settings now.
     expect(screen.queryByRole('button', { name: 'Reset demo' })).not.toBeInTheDocument()

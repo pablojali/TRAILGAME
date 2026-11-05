@@ -1,3 +1,4 @@
+import { Coins } from '../../components/Coins'
 import { useI18n } from '../../i18n/i18n'
 import { weekdayShortKey } from '../../i18n/labels'
 import { Link, useSearchParams } from 'react-router'
@@ -57,11 +58,15 @@ export function CareerScreen() {
   const tab = CAREER_TABS.find((id) => id === params.get('tab')) ?? 'achievements'
 
   return (
-    <Screen title={t('career.title')} description={t('career.description')} showDescription>
-      {/* The summit of the picture (runner and flag) shows above the season card, which sits right
-          above the tabs (owner request, 4 November 2026). */}
+    <Screen
+      title={t('career.title')}
+      description={t('career.description')}
+      showDescription
+    >
+      {/* The season in one compact row under the title, then the summit of the picture and the tabs
+          (owner requests, 5 November 2026). */}
       <div className={styles.hero} aria-hidden="true" />
-      <section className={styles.season} aria-labelledby="season-title">
+      <section className={`${styles.season} ${styles.seasonCompact}`} aria-labelledby="season-title">
         <div className={styles.seasonMain}>
           <h2 id="season-title" className={styles.seasonTitle}>
             {t('career.season', { year: season.year })}
@@ -229,6 +234,14 @@ function Achievement({ progress }: { progress: AchievementProgress }) {
         <span className={styles.achievementLevel}>
           {t('career.level', { level })}
           {complete && t('career.complete')}
+          {/* What the level pays (owner request, 5 November 2026). */}
+          {(progress.reward.coins > 0 || progress.reward.xp > 0) && (
+            <span className={styles.achievementReward}>
+              <span className={styles.srOnly}>{t('career.reward')}: </span>
+              {progress.reward.coins > 0 && <Coins amount={progress.reward.coins} />}
+              {progress.reward.xp > 0 && <span className={styles.rewardXp}>+{number(progress.reward.xp)} XP</span>}
+            </span>
+          )}
         </span>
         <span className={styles.muted}>{t(`achievement.desc.${definition.id as AchievementId}`, { count: target })}</span>
         <Meter

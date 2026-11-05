@@ -15,6 +15,7 @@ import { SyncIndicator } from './cloud/SyncIndicator'
 import { useGame } from './game/gameContext'
 import { GameNotices } from './game/GameNotices'
 import { LevelUpDialog } from './game/LevelUpDialog'
+import { ChallengeDialog } from './game/ChallengeDialog'
 import { NAV_ITEMS } from './navigation'
 import { useI18n } from '../i18n/i18n'
 import styles from './AppShell.module.css'
@@ -112,6 +113,7 @@ export function AppShell() {
 
       <ConflictDialog />
       <LevelUpDialog />
+      <ChallengeDialog />
       <ScrollRestoration />
     </div>
   )

@@ -1,10 +1,13 @@
+import { getActiveChallenge } from '../../game-engine/achievements'
+import { achievementDescKey, achievementTitleKey } from '../../i18n/labels'
+import { Coins } from '../../components/Coins'
 import { useI18n } from '../../i18n/i18n'
 import { countryFlag, countryName } from '../../domain/athlete/countries'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
-import { formatDelta, formatStat } from '../../components/format'
+import { formatStat } from '../../components/format'
 import { ATTRIBUTE_IDS, ATTRIBUTE_SCALE, STAT_MAX } from '../../domain/athlete/athlete'
 import { getLevelProgress } from '../../domain/athlete/levels'
 import { getCareerProgress, WEEKS_PER_YEAR } from '../../domain/training/calendar'
@@ -12,7 +15,6 @@ import { TRAINING_SESSIONS } from '../../domain/training/sessions'
 import { weekdayLongKey, weekdayShortKey } from '../../i18n/labels'
 import { getUnspentAttributePoints } from '../../game-engine/attributes'
 import { getCurrentDay } from '../../game-engine/gameState'
-import { previewSession } from '../../game-engine/training'
 import { getRace } from '../../domain/races/races'
 import { getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedule'
 import { DashboardRunner } from './DashboardRunner'
@@ -29,7 +31,6 @@ export function DashboardScreen() {
   const unspent = getUnspentAttributePoints(athlete)
   const today = getCurrentDay(week)
   const todaySession = TRAINING_SESSIONS[today.session]
-  const effects = previewSession(state, today.session)
   const fatigueHigh = athlete.fatigue >= HIGH_FATIGUE
   const scheduled = getScheduledEntry(state)
   const scheduledRace = scheduled ? getRace(scheduled.raceId) : undefined
@@ -67,11 +68,8 @@ export function DashboardScreen() {
             <span className={styles.dayLong}>{t(weekdayLongKey(today.day))}</span>
             <span className={styles.dayShort}>{t(weekdayShortKey(today.day))}</span>
           </p>
-        </div>
-
-        <div className={styles.stage}>
-          <div className={styles.intro}>
-            <h2 className={styles.nameplate}>
+          {/* The runner's name and flag at the top right (owner request, 5 November 2026). */}
+          <h2 className={styles.nameplate}>
               <span className={styles.nameplateName}>
                 {athlete.name}
                 {athlete.country && (
@@ -81,12 +79,11 @@ export function DashboardScreen() {
                   </span>
                 )}
               </span>
-              <span className={styles.srOnly}> - </span>
-              <span className={styles.nameplateRole}>
-                {t(`profile.${athlete.profile}`)}
-              </span>
-            </h2>
-          </div>
+            <span className={styles.srOnly}> - {t(`profile.${athlete.profile}`)}</span>
+          </h2>
+        </div>
+
+        <div className={styles.stage}>
 
           <section className={`${styles.side} ${styles.left}`} aria-label={t('dashboard.attributes')}>
             <ul className={styles.sideList}>
@@ -187,16 +184,8 @@ export function DashboardScreen() {
                 what: todayRace ? t('dashboard.todayRace', { name: todayRace.name }) : t(`session.${todaySession.id}`),
               })}
             </p>
-            {todayRace ? (
-              <p className={styles.todayLine}>{t('dashboard.raceDayLine')}</p>
-            ) : (
-              <p className={styles.todayLine}>
-                {t('stat.xp')} {formatDelta(effects.xpGained)} · {t('stat.fitness')} {formatDelta(effects.fitnessChange)} ·{' '}
-                {t('stat.fatigue')} {formatDelta(effects.fatigueChange)}
-                {effects.attributeGain &&
-                  ` · ${t(`attr.${effects.attributeGain.attribute}`)} ${formatDelta(effects.attributeGain.amount)}`}
-              </p>
-            )}
+            {/* Short (owner request, 5 November 2026): the session's details are in Training. */}
+            {todayRace && <p className={styles.todayLine}>{t('dashboard.raceDayLine')}</p>}
             {!todayRace && scheduledRace && (
               <p className={styles.todayLine}>{t('dashboard.sunday', { name: scheduledRace.name })}</p>
             )}
@@ -213,6 +202,53 @@ export function DashboardScreen() {
             {todayRace ? t('dashboard.goToRace') : t('dashboard.train')}
           </Link>
         </section>
+
+        <ActiveChallenge />
+      </div>
+    </section>
+  )
+}
+
+/**
+ * The challenge closest to its next level, with what it pays (owner request, 5 November 2026).
+ * Rewards are paid by the game when the level is reached.
+ */
+function ActiveChallenge() {
+  const { state } = useCareer()
+  const { t, locale } = useI18n()
+  const challenge = getActiveChallenge(state)
+  if (!challenge) return null
+  const { definition, value, target, reward } = challenge
+  const id = definition.id as Parameters<typeof achievementTitleKey>[0]
+  const percent = Math.round((value / target) * 100)
+  const number = (n: number) => n.toLocaleString(locale)
+  return (
+    <section className={styles.challenge} aria-label={t('dashboard.challenge')}>
+      <div className={styles.challengeTop}>
+        <span className={styles.challengeLabel}>{t('dashboard.challenge')}</span>
+        <span className={styles.challengeTag}>{t('dashboard.inProgress')}</span>
+      </div>
+      <p className={styles.challengeTitle}>{t(achievementTitleKey(id))}</p>
+      <p className={styles.challengeText}>{t(achievementDescKey(id), { count: target })}</p>
+      <div className={styles.challengeRow}>
+        <Meter
+          label={t(achievementTitleKey(id))}
+          value={value}
+          max={target}
+          valueText={t('dashboard.challengeProgress', { value: number(value), target: number(target) })}
+          className={styles.challengeMeter}
+        />
+        <span className={styles.challengePercent}>{percent}%</span>
+      </div>
+      <div className={styles.challengeBottom}>
+        <span className={styles.challengeCount}>{t('dashboard.challengeProgress', { value: number(value), target: number(target) })}</span>
+        <span className={styles.challengeRewards}>
+          {reward.coins > 0 && <Coins amount={reward.coins} />}
+          {reward.xp > 0 && <span className={styles.challengeXp}>{t('dashboard.rewardXp', { xp: number(reward.xp) })}</span>}
+        </span>
+        <Link to="/career" className={styles.challengeLink}>
+          {t('dashboard.viewChallenges')}
+        </Link>
       </div>
     </section>
   )

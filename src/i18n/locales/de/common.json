@@ -72,5 +72,27 @@
   "shell.loading": "Deine Karriere wird geladen…",
   "shell.loadFailed": "Deine Karriere konnte nicht geladen werden",
   "shell.loadFailedDescription": "Deine gespeicherte Karriere konnte nicht gelesen werden.",
-  "shell.tryAgain": "Erneut versuchen"
+  "shell.tryAgain": "Erneut versuchen",
+  "inbox.open": "Benachrichtigungen",
+  "inbox.openNew": {
+    "one": "Benachrichtigungen, {count} neu",
+    "other": "Benachrichtigungen, {count} neu"
+  },
+  "inbox.title": "Posteingang",
+  "inbox.close": "Schließen",
+  "inbox.empty": "Noch keine Benachrichtigungen.",
+  "inbox.new": "Neu",
+  "inbox.race.title": "Rennen beendet: {race}",
+  "inbox.race.body": "{position} von {field} · {points} Ranglistenpunkte",
+  "inbox.challenge.title": "Herausforderung geschafft",
+  "inbox.challenge.body": "{title} · Stufe {level}",
+  "inbox.level.title": "Level {level}!",
+  "inbox.level.body": "Neue Attributpunkte zum Verteilen.",
+  "inbox.season.title": "Saison {season} · {year} hat begonnen",
+  "inbox.season.body": "Deine 10 besten Ergebnisse des Monats zählen für die Rangliste.",
+  "inbox.raceDay.title": "Renntag: {race}",
+  "inbox.raceDay.body": "Dein Rennen ist heute: mach dich bereit und starte es.",
+  "inbox.decay.title": "Form verloren",
+  "inbox.cloud.title": "Cloud-Speicherung",
+  "inbox.cloud.error": "Dein Fortschritt konnte noch nicht in der Cloud gespeichert werden. Es wird erneut versucht."
 }

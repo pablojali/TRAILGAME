@@ -11,7 +11,7 @@ import { IncompatibleSaveScreen } from '../features/career-setup/IncompatibleSav
 import button from '../components/Button.module.css'
 import { Screen } from '../components/Screen'
 import { ConflictDialog } from './cloud/ConflictDialog'
-import { SyncIndicator } from './cloud/SyncIndicator'
+import { InboxButton } from './inbox/Inbox'
 import { useGame } from './game/gameContext'
 import { GameNotices } from './game/GameNotices'
 import { LevelUpDialog } from './game/LevelUpDialog'
@@ -47,7 +47,7 @@ export function AppShell() {
       <header className={styles.brandBar}>
         <img className={styles.brandMark} src={logoUrl} alt="" width="40" height="40" />
         <span className={styles.brandName}>Trail Manager</span>
-        {/* Level and coins side by side, small, then cloud and settings (owner request, 4 November 2026). */}
+        {/* Level and coins side by side, small, then the Inbox bell and settings (owner requests, 4 and 6 November 2026). */}
         {phase.kind === 'playing' && (
           <div className={styles.status}>
             <p className={styles.level}>{t('common.lvl', { level: getLevel(phase.state.athlete.xp) })}</p>
@@ -56,7 +56,7 @@ export function AppShell() {
             </p>
           </div>
         )}
-        {!inSetup && <SyncIndicator />}
+        {phase.kind === 'playing' && <InboxButton />}
         {!inSetup && (
           <NavLink
             to="/settings"

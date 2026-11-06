@@ -20,6 +20,5 @@
   "cloud.syncing": "Enregistrement en ligne…",
   "cloud.pending": "Enregistré sur cet appareil ; sauvegarde en ligne en attente (nouvel essai automatique)",
   "cloud.conflict": "Ton appareil et la sauvegarde en ligne ont des carrières différentes : choisis-en une",
-  "cloud.error": "Sauvegarde en ligne indisponible ; enregistré sur cet appareil",
-  "cloud.indicator": "Sauvegarde en ligne : {status}"
+  "cloud.error": "Sauvegarde en ligne indisponible ; enregistré sur cet appareil"
 }

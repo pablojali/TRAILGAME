@@ -204,7 +204,9 @@ describe('DashboardScreen — Fitness decay', () => {
     vi.setSystemTime(T0 + 4 * DAY + 5000)
     const first = await renderApp('/')
     expect(stat('Fitness')).toBe('17.0')
-    expect(screen.getByText('Fitness −3: 3 days without playing, after the first free day.')).toBeInTheDocument()
+    // Announced in the Inbox (owner request, 6 November 2026): the bell shows it as new.
+    await userEvent.setup().click(screen.getByRole('button', { name: /^Notifications, \d+ new$/ }))
+    expect(within(screen.getByRole('dialog', { name: 'Inbox' })).getByText('Fitness −3: 3 days without playing, after the first free day.')).toBeInTheDocument()
     expect(readSave()!.state).toMatchObject({ athlete: { fitness: 17 }, fitnessDecayReference: T0 + 3 * DAY })
     first.unmount()
 
@@ -233,7 +235,11 @@ describe('DashboardScreen — Fitness decay', () => {
     expect(stat('Fitness')).toBe('18.0')
     await waitFor(() => expect(readSave()!.state.athlete.fitness).toBe(18))
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Dismiss' }))
+    await user.click(screen.getByRole('button', { name: /^Notifications/ }))
+    expect(within(screen.getByRole('dialog', { name: 'Inbox' })).getByText(/Fitness −2/)).toBeInTheDocument()
+    // Closing the Inbox clears the one-visit message.
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    await user.click(screen.getByRole('button', { name: /^Notifications/ }))
     expect(screen.queryByText(/Fitness −2/)).not.toBeInTheDocument()
   })
 })

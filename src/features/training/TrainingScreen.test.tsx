@@ -286,7 +286,8 @@ describe('TrainingScreen — completing sessions', () => {
     await completeToday(user)
     // 20 − 2 (three full days, the first one free) + 0.5 (Easy run).
     expect(readSave()!.state.athlete.fitness).toBe(18.5)
-    expect(screen.getByText('Fitness −2: 2 days without playing, after the first free day.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Notifications/ }))
+    expect(within(screen.getByRole('dialog', { name: 'Inbox' })).getByText('Fitness −2: 2 days without playing, after the first free day.')).toBeInTheDocument()
   })
 })
 

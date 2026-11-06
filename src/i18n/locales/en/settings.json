@@ -20,6 +20,5 @@
   "cloud.syncing": "Saving to the cloud…",
   "cloud.pending": "Saved on this device; cloud save pending (it will retry)",
   "cloud.conflict": "Your device and the cloud have different careers: choose one",
-  "cloud.error": "Cloud save unavailable; saved on this device",
-  "cloud.indicator": "Cloud save: {status}"
+  "cloud.error": "Cloud save unavailable; saved on this device"
 }

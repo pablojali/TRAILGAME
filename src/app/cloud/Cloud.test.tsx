@@ -2,13 +2,12 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
-import type { SyncConflict, SyncStatus } from '../../repositories/cloudSync'
+import type { SyncConflict } from '../../repositories/cloudSync'
 import type { AccountService, LinkResult } from '../../repositories/supabase/accountLinking'
 import { SignInPanel } from '../../features/settings/SignInPanel'
 import { newGame, withAthlete } from '../../test/gameFixtures'
 import { GameContext, type GameContextValue } from '../game/gameContext'
 import { ConflictDialog } from './ConflictDialog'
-import { SyncIndicator } from './SyncIndicator'
 
 /** Renders a component with a game context holding only what the cloud UI reads. */
 function renderWith(ui: React.ReactNode, value: Partial<GameContextValue>) {
@@ -69,23 +68,6 @@ describe('conflict dialog', () => {
   it('is not shown without a conflict', () => {
     renderWith(<ConflictDialog />, { syncConflict: null, resolveSyncConflict: vi.fn() })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-})
-
-describe('cloud indicator', () => {
-  it.each<[SyncStatus, RegExp]>([
-    ['synced', /on this device and in the cloud/],
-    ['pending', /cloud save pending/],
-    ['conflict', /choose one/],
-  ])('describes the %s state and opens Settings', (status, text) => {
-    renderWith(<SyncIndicator />, { cloudStatus: status })
-    const link = screen.getByRole('link', { name: text })
-    expect(link).toHaveAttribute('href', '/settings')
-  })
-
-  it('is hidden without cloud saves', () => {
-    renderWith(<SyncIndicator />, { cloudStatus: 'off' })
-    expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 })
 

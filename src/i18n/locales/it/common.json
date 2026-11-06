@@ -72,5 +72,27 @@
   "shell.loading": "Caricamento della carriera…",
   "shell.loadFailed": "Impossibile caricare la carriera",
   "shell.loadFailedDescription": "Non è stato possibile leggere la carriera salvata.",
-  "shell.tryAgain": "Riprova"
+  "shell.tryAgain": "Riprova",
+  "inbox.open": "Notifiche",
+  "inbox.openNew": {
+    "one": "Notifiche, {count} nuova",
+    "other": "Notifiche, {count} nuove"
+  },
+  "inbox.title": "Posta in arrivo",
+  "inbox.close": "Chiudi",
+  "inbox.empty": "Ancora nessuna notifica.",
+  "inbox.new": "Nuova",
+  "inbox.race.title": "Gara finita: {race}",
+  "inbox.race.body": "{position} su {field} · {points} punti in classifica",
+  "inbox.challenge.title": "Sfida completata",
+  "inbox.challenge.body": "{title} · livello {level}",
+  "inbox.level.title": "Livello {level}!",
+  "inbox.level.body": "Nuovi punti attributo da assegnare.",
+  "inbox.season.title": "È iniziata la Stagione {season} · {year}",
+  "inbox.season.body": "I tuoi 10 migliori risultati del mese contano per la classifica.",
+  "inbox.raceDay.title": "Giorno di gara: {race}",
+  "inbox.raceDay.body": "La tua gara è oggi: preparati e parti.",
+  "inbox.decay.title": "Forma persa",
+  "inbox.cloud.title": "Salvataggio nel cloud",
+  "inbox.cloud.error": "I tuoi progressi non sono ancora stati salvati nel cloud. Verrà ritentato."
 }

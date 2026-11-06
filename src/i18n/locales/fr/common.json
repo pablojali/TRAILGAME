@@ -72,5 +72,27 @@
   "shell.loading": "Chargement de ta carrière…",
   "shell.loadFailed": "Impossible de charger ta carrière",
   "shell.loadFailedDescription": "Ta carrière enregistrée n'a pas pu être lue.",
-  "shell.tryAgain": "Réessayer"
+  "shell.tryAgain": "Réessayer",
+  "inbox.open": "Notifications",
+  "inbox.openNew": {
+    "one": "Notifications, {count} nouvelle",
+    "other": "Notifications, {count} nouvelles"
+  },
+  "inbox.title": "Boîte de réception",
+  "inbox.close": "Fermer",
+  "inbox.empty": "Aucune notification pour l'instant.",
+  "inbox.new": "Nouveau",
+  "inbox.race.title": "Course terminée : {race}",
+  "inbox.race.body": "{position} sur {field} · {points} points de classement",
+  "inbox.challenge.title": "Défi réussi",
+  "inbox.challenge.body": "{title} · niveau {level}",
+  "inbox.level.title": "Niveau {level} !",
+  "inbox.level.body": "De nouveaux points d'attribut à répartir.",
+  "inbox.season.title": "La saison {season} · {year} a commencé",
+  "inbox.season.body": "Tes 10 meilleurs résultats du mois comptent pour le classement.",
+  "inbox.raceDay.title": "Jour de course : {race}",
+  "inbox.raceDay.body": "Ta course est aujourd'hui : prépare-toi et lance-la.",
+  "inbox.decay.title": "Forme perdue",
+  "inbox.cloud.title": "Sauvegarde dans le cloud",
+  "inbox.cloud.error": "Ta progression n'a pas encore pu être sauvegardée dans le cloud. Nouvelle tentative bientôt."
 }

@@ -47,7 +47,7 @@
   flex-direction: column;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: rgb(14 17 20 / 0.97);
+  background: #0e1114;
   box-shadow: 0 18px 40px rgb(0 0 0 / 0.55);
   outline: none;
 }

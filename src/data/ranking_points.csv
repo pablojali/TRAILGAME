@@ -18,6 +18,11 @@
 #   RACE-010 High Peaks Challenge: 42 km, 2800 m D+, 67 m/km, effort 70 km, technicality 5, level 31
 #   RACE-011 Legends of the Crest: 55 km, 3600 m D+, 65 m/km, effort 91 km, technicality 5, level 40
 #   RACE-012 Beyond the Skyline: 70 km, 4800 m D+, 69 m/km, effort 118 km, technicality 5, level 50
+#   RACE-013 Granite Spine: 44 km, 3000 m D+, 68 m/km, effort 74 km, technicality 4, level 34
+#   RACE-014 Northern Lakes Ultra: 50 km, 3200 m D+, 64 m/km, effort 82 km, technicality 2, level 37
+#   RACE-015 Glacier Line: 57 km, 3800 m D+, 67 m/km, effort 95 km, technicality 5, level 43
+#   RACE-016 Midnight Traverse: 62 km, 4100 m D+, 66 m/km, effort 103 km, technicality 3, level 45
+#   RACE-017 Crown of the Range: 66 km, 4500 m D+, 68 m/km, effort 111 km, technicality 4, level 47
 kind,key,value
 setting,best_results,10
 setting,first_season,2026-11
@@ -39,6 +44,11 @@ race,RACE-009,IV
 race,RACE-010,IV
 race,RACE-011,V
 race,RACE-012,V
+race,RACE-013,IV
+race,RACE-014,IV
+race,RACE-015,V
+race,RACE-016,V
+race,RACE-017,V
 position,1,100
 position,2,85
 position,3,75

@@ -8,7 +8,10 @@ ends at the finish line. A missing clip is skipped (the game goes straight to th
     assets/race/clips/RACE-001/segment-2.mp4   aid station 1 → finish (Forest First Steps has 2 segments)
 
 Segments per race: RACE-001…004: 2 · RACE-005, 006: 3 · RACE-007: 4 · RACE-008: 5 · RACE-009: 6 ·
-RACE-010: 7 · RACE-011, 012: 8.
+RACE-010: 7 · RACE-013: 7 · RACE-011, 012, 014…017: 8 (a race's segments follow its distance and climb).
+
+Clips so far: RACE-002 segment 1 (the start, owner video of 6 November 2026, converted to 720 × 1280,
+no sound, 2.8 MB).
 
 - **Format:** MP4 (H.264). A `.webm` with the same name is used first when present.
 - **Picture:** vertical 9:16, 720 × 1280 (at most 1080 × 1920).

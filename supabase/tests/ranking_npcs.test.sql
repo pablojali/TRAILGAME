@@ -4,7 +4,7 @@
 \set ON_ERROR_STOP on
 
 select pg_temp.expect((select count(*) from public.ranking_npcs) = 200, 'the migration loads the 200 NPC runners');
-select pg_temp.expect((select count(*) from public.ranking_race_points) = 12 and (select count(*) from public.ranking_position_percent) = 30,
+select pg_temp.expect((select count(*) from public.ranking_race_points) = 17 and (select count(*) from public.ranking_position_percent) = 30,
   'the migration loads the race points and the position percents');
 
 create temp table a as select * from public.npc_ranking_results(date '2026-11-01');

@@ -20,6 +20,5 @@
   "cloud.syncing": "Salvataggio online…",
   "cloud.pending": "Salvato su questo dispositivo; salvataggio online in sospeso (verrà ritentato)",
   "cloud.conflict": "Il dispositivo e il salvataggio online hanno carriere diverse: scegline una",
-  "cloud.error": "Salvataggio online non disponibile; salvato su questo dispositivo",
-  "cloud.indicator": "Salvataggio online: {status}"
+  "cloud.error": "Salvataggio online non disponibile; salvato su questo dispositivo"
 }

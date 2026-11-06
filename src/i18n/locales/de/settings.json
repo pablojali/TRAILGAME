@@ -20,6 +20,5 @@
   "cloud.syncing": "Speichern in der Cloud…",
   "cloud.pending": "Auf diesem Gerät gespeichert; Cloud-Speicherung ausstehend (wird erneut versucht)",
   "cloud.conflict": "Dein Gerät und die Cloud haben unterschiedliche Karrieren: Wähle eine",
-  "cloud.error": "Cloud-Speicher nicht verfügbar; auf diesem Gerät gespeichert",
-  "cloud.indicator": "Cloud-Speicher: {status}"
+  "cloud.error": "Cloud-Speicher nicht verfügbar; auf diesem Gerät gespeichert"
 }

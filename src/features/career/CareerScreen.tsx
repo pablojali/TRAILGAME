@@ -64,9 +64,8 @@ export function CareerScreen({ rankingService = getRankingService() }: { ranking
       description={t('career.description')}
       showDescription
     >
-      {/* The season in one compact row under the title, then the summit of the picture and the tabs
-          (owner requests, 5 November 2026). */}
-      <div className={styles.hero} aria-hidden="true" />
+      {/* The season in one compact row right under the title, then the tabs (owner requests, 5 and
+          6 November 2026: higher, for more room below). */}
       <section className={`${styles.season} ${styles.seasonCompact}`} aria-labelledby="season-title">
         <div className={styles.seasonMain}>
           <h2 id="season-title" className={styles.seasonTitle}>

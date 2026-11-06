@@ -1584,6 +1584,16 @@ English key with the same placeholders.
 - The server and the saved data never depend on the language.
 
 
+### Inbox (owner request, 6 November 2026)
+
+The bell in the top bar replaces the cloud indicator (cloud status stays in Settings; a conflict still
+opens its dialog). A red dot means new notifications; tapping it opens the Inbox, which marks them
+read. Notifications are built from the career on the device (`src/app/inbox/inbox.ts`), so the
+server needs nothing new: race results (position, ranking points), challenge levels, the level
+reached, the ranking season under way, race day, and this visit's Fitness loss and cloud-save
+messages (which used to be banners). Read ids and first-seen times are kept in localStorage
+(`trailgame.inbox.v1`); at most 30 notifications, newest first. Each opens its screen.
+
 ### Race catalog table (owner request, 5 November 2026)
 
 The races are the owner's table `src/data/races.csv`, read like the other tables (`parseRaces` in

@@ -312,11 +312,6 @@
 
 
 /* Room for the summit of the background picture, between the season card and the tabs. */
-.hero {
-  flex: none;
-  height: clamp(0px, 5dvh, 44px);
-}
-
 /* The season in one compact row under the title (owner requests, 5 November 2026). */
 .seasonCompact {
   /* Right on the tabs (owner request, 5 November 2026): no gap below. */

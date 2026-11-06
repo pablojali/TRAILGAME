@@ -20,6 +20,5 @@
   "cloud.syncing": "Guardando en la nube…",
   "cloud.pending": "Guardado en este dispositivo; guardado en la nube pendiente (se reintentará)",
   "cloud.conflict": "Tu dispositivo y la nube tienen carreras distintas: elige una",
-  "cloud.error": "Guardado en la nube no disponible; guardado en este dispositivo",
-  "cloud.indicator": "Guardado en la nube: {status}"
+  "cloud.error": "Guardado en la nube no disponible; guardado en este dispositivo"
 }

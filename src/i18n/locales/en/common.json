@@ -72,5 +72,27 @@
   "shell.loading": "Loading your career…",
   "shell.loadFailed": "Could not load your career",
   "shell.loadFailedDescription": "Your saved career could not be read.",
-  "shell.tryAgain": "Try again"
+  "shell.tryAgain": "Try again",
+  "inbox.open": "Notifications",
+  "inbox.openNew": {
+    "one": "Notifications, {count} new",
+    "other": "Notifications, {count} new"
+  },
+  "inbox.title": "Inbox",
+  "inbox.close": "Close",
+  "inbox.empty": "No notifications yet.",
+  "inbox.new": "New",
+  "inbox.race.title": "Race finished: {race}",
+  "inbox.race.body": "{position} of {field} · {points} ranking points",
+  "inbox.challenge.title": "Challenge completed",
+  "inbox.challenge.body": "{title} · level {level}",
+  "inbox.level.title": "Level {level}!",
+  "inbox.level.body": "New attribute points to spend.",
+  "inbox.season.title": "Season {season} · {year} is on",
+  "inbox.season.body": "Your 10 best race results of the month count for the ranking.",
+  "inbox.raceDay.title": "Race day: {race}",
+  "inbox.raceDay.body": "Your race is today: get ready and start it.",
+  "inbox.decay.title": "Fitness lost",
+  "inbox.cloud.title": "Cloud save",
+  "inbox.cloud.error": "Your progress could not be saved to the cloud yet. It will try again."
 }

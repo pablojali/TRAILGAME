@@ -72,5 +72,27 @@
   "shell.loading": "Cargando tu carrera…",
   "shell.loadFailed": "No se pudo cargar tu carrera",
   "shell.loadFailedDescription": "No se pudo leer tu carrera guardada.",
-  "shell.tryAgain": "Volver a intentar"
+  "shell.tryAgain": "Volver a intentar",
+  "inbox.open": "Notificaciones",
+  "inbox.openNew": {
+    "one": "Notificaciones, {count} nueva",
+    "other": "Notificaciones, {count} nuevas"
+  },
+  "inbox.title": "Bandeja de entrada",
+  "inbox.close": "Cerrar",
+  "inbox.empty": "Todavía no hay notificaciones.",
+  "inbox.new": "Nueva",
+  "inbox.race.title": "Carrera terminada: {race}",
+  "inbox.race.body": "{position} de {field} · {points} puntos de ranking",
+  "inbox.challenge.title": "Desafío completado",
+  "inbox.challenge.body": "{title} · nivel {level}",
+  "inbox.level.title": "¡Nivel {level}!",
+  "inbox.level.body": "Tienes puntos de atributo nuevos para repartir.",
+  "inbox.season.title": "Comenzó la Temporada {season} · {year}",
+  "inbox.season.body": "Tus 10 mejores resultados del mes cuentan para el ranking.",
+  "inbox.raceDay.title": "Día de carrera: {race}",
+  "inbox.raceDay.body": "Tu carrera es hoy: prepárate y lárgala.",
+  "inbox.decay.title": "Forma perdida",
+  "inbox.cloud.title": "Guardado en la nube",
+  "inbox.cloud.error": "Tu progreso todavía no se pudo guardar en la nube. Se volverá a intentar."
 }

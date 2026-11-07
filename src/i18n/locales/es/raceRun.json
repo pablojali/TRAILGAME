@@ -93,5 +93,7 @@
   "raceRun.running": "Corriendo…",
   "raceRun.stopFinish": "Parada {stop}, correr hasta meta",
   "raceRun.stopContinue": "Parada {stop}, seguir",
-  "raceRun.skip": "Saltar"
+  "raceRun.skip": "Saltar",
+  "raceRun.soundOn": "Activar sonido",
+  "raceRun.soundOff": "Silenciar"
 }

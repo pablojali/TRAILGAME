@@ -93,5 +93,7 @@
   "raceRun.running": "Läuft…",
   "raceRun.stopFinish": "Stopp {stop}, bis ins Ziel laufen",
   "raceRun.stopContinue": "Stopp {stop}, weiter",
-  "raceRun.skip": "Überspringen"
+  "raceRun.skip": "Überspringen",
+  "raceRun.soundOn": "Ton einschalten",
+  "raceRun.soundOff": "Ton ausschalten"
 }

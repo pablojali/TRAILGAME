@@ -93,5 +93,7 @@
   "raceRun.running": "In corsa…",
   "raceRun.stopFinish": "Sosta {stop}, corri fino al traguardo",
   "raceRun.stopContinue": "Sosta {stop}, continua",
-  "raceRun.skip": "Salta"
+  "raceRun.skip": "Salta",
+  "raceRun.soundOn": "Attiva l'audio",
+  "raceRun.soundOff": "Disattiva l'audio"
 }

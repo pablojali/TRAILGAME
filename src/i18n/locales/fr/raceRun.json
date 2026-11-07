@@ -93,5 +93,7 @@
   "raceRun.running": "En course…",
   "raceRun.stopFinish": "Arrêt {stop}, courir jusqu'à l'arrivée",
   "raceRun.stopContinue": "Arrêt {stop}, continuer",
-  "raceRun.skip": "Passer"
+  "raceRun.skip": "Passer",
+  "raceRun.soundOn": "Activer le son",
+  "raceRun.soundOff": "Couper le son"
 }

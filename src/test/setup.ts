@@ -6,6 +6,11 @@ import { T0 } from './gameFixtures'
 // jsdom does not implement scrolling; react-router's ScrollRestoration calls it.
 // (Node-environment tests, such as the Edge Function bundle check, have no window.)
 if (typeof window !== 'undefined') window.scrollTo = () => {}
+// jsdom cannot play media: play() resolves at once, as a browser that allows playback.
+if (typeof HTMLMediaElement !== 'undefined') {
+  HTMLMediaElement.prototype.play = () => Promise.resolve()
+  HTMLMediaElement.prototype.pause = () => {}
+}
 
 // Only Date is faked, so timers used by user-event keep working; tests move time with
 // vi.setSystemTime for deterministic Fitness decay.

@@ -233,7 +233,11 @@ function Standings({ race, entry, name }: { race: Race; entry: FinishedRaceEntry
   const you = useRef<HTMLTableRowElement>(null)
   const { t } = useI18n()
   // Open the table at the player's row.
-  useEffect(() => you.current?.scrollIntoView?.({ block: 'center' }), [])
+  // In a block: newer browsers return a promise from scrollIntoView, and an effect may only return a
+  // clean-up function (returning the promise crashed the screen when leaving the tab).
+  useEffect(() => {
+    void you.current?.scrollIntoView?.({ block: 'center' })
+  }, [])
   return (
     <>
       <ScrollPanel label={t('result.standings', { count: rows.length })}>

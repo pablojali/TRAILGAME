@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { GameState } from '../../game-engine/gameState'
 import { ordinal } from './raceText'
 import { newGame, onSunday, withAthlete, withEntry } from '../../test/gameFixtures'
@@ -210,6 +210,8 @@ describe('Race day and results', () => {
   })
 
   it('runs a race once on Sunday, shows the result with rewards and explanation, and keeps it after a reload', async () => {
+    const scrollIntoView = vi.fn(() => Promise.resolve())
+    Element.prototype.scrollIntoView = scrollIntoView as unknown as Element['scrollIntoView']
     const user = userEvent.setup()
     seedCareer(onSunday(level2()))
     const first = await renderApp('/races/RACE-001')
@@ -238,6 +240,14 @@ describe('Race day and results', () => {
     const you = table.getByRole('rowheader', { name: 'Demo Runner (you)' }).closest('tr')!
     expect(you).toHaveAttribute('aria-current', 'true')
     expect(within(you).getAllByRole('cell')[0]).toHaveTextContent(String(result.position))
+    // Leaving Full results works even where scrollIntoView returns a promise (newer Chrome): the
+    // effect that scrolls to the runner's row once crashed the screen (owner report, 6 November 2026).
+    expect(scrollIntoView).toHaveBeenCalled()
+    await user.click(screen.getByRole('tab', { name: 'Splits' }))
+    await user.click(screen.getByRole('tab', { name: 'Full results' }))
+    await user.click(screen.getByRole('tab', { name: 'Result' }))
+    expect(screen.getByText('Coins awarded')).toBeInTheDocument()
+    delete (Element.prototype as Partial<Element>).scrollIntoView
     expect(save).toMatchObject({ coins: 25 + result.coinsAwarded, athlete: { xp: 100 + result.xpAwarded, fatigue: 10.95 } })
     expect(save.activeRace).toBeNull()
     expect(save.week).toMatchObject({ number: 2, currentDayIndex: 0 })

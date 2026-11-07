@@ -330,7 +330,9 @@ function EquippedTab({ onOpen }: { onOpen(slot: EquipmentSlot): void }) {
 function SlotCards({ slot, onBack, onOpen }: { slot: EquipmentSlot; onBack(): void; onOpen(itemId: string): void }) {
   const { t } = useI18n()
   const heading = useRef<HTMLHeadingElement>(null)
-  useEffect(() => heading.current?.focus(), [])
+  useEffect(() => {
+    heading.current?.focus()
+  }, [])
   return (
     <>
       <div className={styles.sheetHeader}>
@@ -474,7 +476,9 @@ function ItemDetail({
   const shortfall = price === null ? 0 : Math.max(0, price - state.coins)
   const shortfallId = `${item.id}-shortfall`
 
-  useEffect(() => heading.current?.focus(), [])
+  useEffect(() => {
+    heading.current?.focus()
+  }, [])
 
   async function run(kind: 'paying' | 'equipping', action: () => Promise<string | null>) {
     if (pending.current) return

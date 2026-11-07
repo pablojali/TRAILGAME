@@ -34,7 +34,7 @@ function prefersReducedMotion(): boolean {
  * Plays a race clip over the whole screen (owner request, 3 November 2026), inline and with its
  * ambient sound (owner request, 7 November 2026). When the browser does not allow sound without a
  * tap, it plays muted and the sound button turns it on; the player's choice is remembered. It closes when the clip has ended (or was skipped, failed, did not start in
- * time, or the player prefers reduced motion) and the race step it shows is confirmed (`ready`).
+ * time) and the race step it shows is confirmed (`ready`).
  */
 export function RaceClipPlayer({
   clip,
@@ -50,7 +50,11 @@ export function RaceClipPlayer({
   onDone(): void
 }) {
   const { t } = useI18n()
-  const [ended, setEnded] = useState(prefersReducedMotion)
+  // With "reduce motion" on, the clip waits on its poster for a tap instead of playing by itself
+  // (owner report, 7 November 2026: skipping it outright showed only a black flash).
+  const [reduced] = useState(prefersReducedMotion)
+  const [waitingTap, setWaitingTap] = useState(reduced)
+  const [ended, setEnded] = useState(false)
   const started = useRef(false)
   const done = useRef(false)
   const video = useRef<HTMLVideoElement>(null)
@@ -59,7 +63,7 @@ export function RaceClipPlayer({
   // Start with sound when the player wants it; if the browser refuses, play muted instead.
   useEffect(() => {
     const element = video.current
-    if (!element) return
+    if (!element || waitingTap) return
     element.muted = !soundWanted()
     const playing = element.play?.()
     if (playing && typeof playing.catch === 'function') {
@@ -71,7 +75,7 @@ export function RaceClipPlayer({
         }
       })
     }
-  }, [])
+  }, [waitingTap])
 
   function toggleSound() {
     const element = video.current
@@ -85,12 +89,14 @@ export function RaceClipPlayer({
     }
   }
 
+  // A clip that does not start in time is skipped (not while it waits for a tap).
   useEffect(() => {
+    if (waitingTap) return
     const timer = window.setTimeout(() => {
       if (!started.current) setEnded(true)
     }, START_TIMEOUT_MS)
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [waitingTap])
 
   useEffect(() => {
     if (ended && ready && !done.current) {
@@ -102,37 +108,39 @@ export function RaceClipPlayer({
   // Over the whole app, top bar and tab bar included (rendered at the end of the page).
   return createPortal(
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={title}>
-      {!prefersReducedMotion() && (
-        <video
-          ref={video}
-          className={styles.video}
-          autoPlay
-          muted={muted}
-          playsInline
-          preload="auto"
-          poster={clip.poster}
-          onPlaying={() => {
-            started.current = true
-          }}
-          onEnded={() => setEnded(true)}
-          onError={() => setEnded(true)}
-        >
-          {clip.webm && <source src={clip.webm} type="video/webm" />}
-          {clip.mp4 && <source src={clip.mp4} type="video/mp4" />}
-        </video>
-      )}
+      <video
+        ref={video}
+        className={styles.video}
+        autoPlay={!reduced}
+        muted={muted}
+        playsInline
+        preload="auto"
+        poster={clip.poster}
+        onPlaying={() => {
+          started.current = true
+        }}
+        onEnded={() => setEnded(true)}
+        onError={() => setEnded(true)}
+      >
+        {clip.webm && <source src={clip.webm} type="video/webm" />}
+        {clip.mp4 && <source src={clip.mp4} type="video/mp4" />}
+      </video>
       <p className={styles.title}>{title}</p>
-      {!prefersReducedMotion() && (
-        <button
-          type="button"
-          className={styles.sound}
-          aria-pressed={!muted}
-          aria-label={muted ? t('raceRun.soundOn') : t('raceRun.soundOff')}
-          onClick={toggleSound}
-        >
-          <span aria-hidden="true">{muted ? '🔇' : '🔊'}</span>
+      {waitingTap && !ended && (
+        <button type="button" className={styles.play} onClick={() => setWaitingTap(false)}>
+          <span aria-hidden="true">▶ </span>
+          {t('raceRun.playClip')}
         </button>
       )}
+      <button
+        type="button"
+        className={styles.sound}
+        aria-pressed={!muted}
+        aria-label={muted ? t('raceRun.soundOn') : t('raceRun.soundOff')}
+        onClick={toggleSound}
+      >
+        <span aria-hidden="true">{muted ? '🔇' : '🔊'}</span>
+      </button>
       {ended && !ready ? (
         <p className={styles.waiting} role="status">
           Running…

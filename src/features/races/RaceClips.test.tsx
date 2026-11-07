@@ -79,4 +79,30 @@ describe('race clips (owner request, 3 November 2026)', () => {
       HTMLMediaElement.prototype.play = play
     }
   })
+
+  it('with reduce motion on, waits on the poster for a tap instead of skipping the clip', async () => {
+    const matchMedia = window.matchMedia
+    window.matchMedia = ((query: string) => ({ matches: query.includes('reduce'), media: query })) as typeof window.matchMedia
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play')
+    try {
+      const user = userEvent.setup()
+      const entered = withEntry({ ...newGame(), consumables: { gel: 0, bar: 0 } }, 'RACE-001', 0)
+      seedCareer(onSunday(entered.state))
+      await renderApp('/races/run/entry-1')
+      await user.click(screen.getByRole('button', { name: 'Start race' }))
+      const clip = await screen.findByRole('dialog', { name: /Segment 1 of 2/ })
+      const video = clip.querySelector('video')!
+      expect(video.autoplay).toBe(false)
+      expect(play).not.toHaveBeenCalled()
+      // It does not close by itself: the player chooses to watch it or skip it.
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(screen.getByRole('dialog', { name: /Segment 1 of 2/ })).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Play clip' }))
+      expect(play).toHaveBeenCalled()
+      expect(screen.queryByRole('button', { name: 'Play clip' })).not.toBeInTheDocument()
+    } finally {
+      window.matchMedia = matchMedia
+      play.mockRestore()
+    }
+  })
 })

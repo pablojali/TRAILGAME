@@ -56,10 +56,5 @@
   "races.levelRange": "· Level {min}–{max}",
   "races.closedAbove": "Offen bis Level {level} (du: {you}): wähle ein härteres Rennen.",
   "races.enter": "Anmelden",
-  "races.confirmEntry": "Anmeldung bestätigen",
-  "races.confirmEntryTo": "Anmeldung für {name} bestätigen",
-  "races.freeEntry": "Anmeldung gratis.",
-  "races.balanceStays": " Dein Guthaben bleibt bei {coins}.",
-  "races.entering": "Anmeldung…",
-  "races.confirmFree": "Gratis anmelden"
+  "races.entering": "Anmeldung…"
 }

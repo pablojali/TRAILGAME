@@ -146,7 +146,10 @@ function PastResults({ race }: { race: Race }) {
   )
 }
 
-/** Entry with an explicit confirmation. Free; open from the race's minimum level. */
+/**
+ * Entry in one tap (owner request, 7 November 2026: no confirmation step). Free; open within the
+ * race's levels.
+ */
 function EntryPanel({ race }: { race: Race }) {
   const { state, enterRace } = useCareer()
   const level = getLevel(state.athlete.xp)
@@ -156,7 +159,6 @@ function EntryPanel({ race }: { race: Race }) {
   const tooHigh = !tooLow && !canEnterAtLevel(race, level)
   const blocked = tooLow || tooHigh
   const entry = getPendingEntry(state, race.id)
-  const [confirming, setConfirming] = useState(false)
   const [message, setMessage] = useState('')
   // The entry waits for the server; a second tap meanwhile does nothing.
   const [entering, setEntering] = useState(false)
@@ -165,10 +167,10 @@ function EntryPanel({ race }: { race: Race }) {
   const panel = useRef<HTMLHeadingElement>(null)
   const { t } = useI18n()
 
-  // Move focus to the confirmation, and to the result of confirming.
+  // Move focus to the result of entering.
   useEffect(() => {
-    if (confirming || justEntered) panel.current?.focus()
-  }, [confirming, justEntered])
+    if (justEntered) panel.current?.focus()
+  }, [justEntered])
 
   if (entry) {
     return (
@@ -199,84 +201,50 @@ function EntryPanel({ race }: { race: Race }) {
     )
   }
 
-  // A compact bar under the race details (owner request: the entry must not cover them).
-  if (!confirming) {
-    return (
-      <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label={t('races.enterThis')}>
-        <div className={styles.entryText}>
-          <p className={styles.entryTitle}>{t('races.sundayWeek', { week: getRaceWeek(state) })}</p>
-          <p>{t('races.free')}</p>
-          {blocked && (
-            <p className={styles.warning} id="race-level">
-              {tooLow
-                ? t('races.opensAt', { level: minimum, you: level })
-                : t('races.closedAbove', { level: getMaximumLevel(race), you: level })}
-            </p>
-          )}
-        </div>
-        <button
-          type="button"
-          className={`${button.button} ${button.primary}`}
-          aria-disabled={blocked || undefined}
-          aria-describedby={blocked ? 'race-level' : undefined}
-          onClick={() => {
-            if (blocked) return
-            setMessage('')
-            setConfirming(true)
-          }}
-        >
-          {t('races.enter')}
-        </button>
-      </section>
-    )
+  async function enter() {
+    if (blocked || pending.current) return
+    pending.current = true
+    setEntering(true)
+    setMessage('')
+    const error = await enterRace(race.id)
+    pending.current = false
+    setEntering(false)
+    if (error) {
+      setMessage(t(ERRORS[error]))
+      return
+    }
+    setJustEntered(true)
   }
 
+  // A compact bar under the race details (owner request: the entry must not cover them).
   return (
-    <section className={styles.entryBar} aria-label={t('races.confirmEntry')}>
-      <h2 ref={panel} tabIndex={-1} className={styles.srOnly}>
-        {t('races.confirmEntryTo', { name: race.name })}
-      </h2>
-      <p>
-        <strong>{t('races.freeEntry')}</strong>
-        {t('races.balanceStays', { coins: t('common.coins', { count: state.coins }) })}
-      </p>
-      {message && (
-        <p role="alert" className={styles.warning}>
-          {message}
-        </p>
-      )}
-      <div className={styles.actions}>
-        <button
-          type="button"
-          className={`${button.button} ${button.secondary}`}
-          aria-disabled={entering || undefined}
-          onClick={() => !entering && setConfirming(false)}
-        >
-          {t('common.cancel')}
-        </button>
-        <button
-          type="button"
-          className={`${button.button} ${button.primary} ${styles.grow}`}
-          aria-disabled={entering || undefined}
-          onClick={async () => {
-            if (pending.current) return
-            pending.current = true
-            setEntering(true)
-            setMessage('')
-            const error = await enterRace(race.id)
-            pending.current = false
-            setEntering(false)
-            if (error) {
-              setMessage(t(ERRORS[error]))
-              return
-            }
-            setJustEntered(true)
-            setConfirming(false)
-          }}
-        >
-          {entering ? t('races.entering') : t('races.confirmFree')}
-        </button>
+    <section className={`${styles.entryBar} ${styles.entryRow}`} aria-label={t('races.enterThis')}>
+      <div className={styles.entryText}>
+        <p className={styles.entryTitle}>{t('races.sundayWeek', { week: getRaceWeek(state) })}</p>
+        <p>{t('races.free')}</p>
+        {message && (
+          <p role="alert" className={styles.warning}>
+            {message}
+          </p>
+        )}
+        {blocked && (
+          <p className={styles.warning} id="race-level">
+            {tooLow
+              ? t('races.opensAt', { level: minimum, you: level })
+              : t('races.closedAbove', { level: getMaximumLevel(race), you: level })}
+          </p>
+        )}
       </div>
+      <button
+        type="button"
+        className={`${button.button} ${button.primary}`}
+        aria-disabled={blocked || entering || undefined}
+        aria-describedby={blocked ? 'race-level' : undefined}
+        onClick={() => void enter()}
+      >
+        {entering ? t('races.entering') : t('races.enter')}
+      </button>
     </section>
   )
 }
+

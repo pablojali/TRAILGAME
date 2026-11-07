@@ -21,7 +21,7 @@ describe('languages (owner request, 4 November 2026)', () => {
     expect(translate('en', 'common.coins', { count: 1240 })).toBe('1,240 coins')
     expect(translate('es', 'common.coins', { count: 1240 })).toBe('1240 monedas')
     expect(translate('de', 'common.coins', { count: 12400 })).toBe('12.400 Münzen')
-    expect(translate('fr', 'equipment.pay', { coins: translate('fr', 'common.coins', { count: 5 }) })).toBe('Payer 5 pièces')
+    expect(translate('fr', 'equipment.youNeed', { coins: translate('fr', 'common.coins', { count: 5 }) })).toContain('5 pièces')
   })
 
   it('takes the first browser language the game has, else English', () => {

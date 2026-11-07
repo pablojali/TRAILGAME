@@ -380,3 +380,18 @@
   white-space: nowrap;
   border: 0;
 }
+
+/*
+ * Text 10 % smaller on Career (owner request, 7 November 2026): the type scale is redefined for
+ * this screen only; the wrapper takes no space in the layout.
+ */
+.compactText {
+  display: contents;
+  font-size: 0.9em;
+  --font-size-xs: 0.675rem;
+  --font-size-sm: 0.7875rem;
+  --font-size-md: 0.9rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.4625rem;
+  --font-size-2xl: 1.8rem;
+}

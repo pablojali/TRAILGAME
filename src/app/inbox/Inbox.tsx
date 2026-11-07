@@ -1,11 +1,14 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Icon } from '../../components/Icon'
 import { ordinal } from '../../features/races/raceText'
 import { useI18n, type MessageKey, type Translate } from '../../i18n/i18n'
 import { achievementTitleKey } from '../../i18n/labels'
 import { useGame } from '../game/gameContext'
-import { arrange, buildInbox, loadMemory, markRead, saveMemory, type InboxItem } from './inbox'
+import { countryName } from '../../domain/athlete/countries'
+import { RANKING, rankingSeason } from '../../domain/ranking/ranking'
+import { getRankingService, type RankingService } from '../../repositories/supabase/rankingClient'
+import { arrange, buildInbox, loadMemory, markRead, rememberRank, saveMemory, type InboxItem, type RankingScope } from './inbox'
 import styles from './Inbox.module.css'
 
 const ICON: Record<InboxItem['kind'], string> = {
@@ -16,6 +19,7 @@ const ICON: Record<InboxItem['kind'], string> = {
   'race-day': '⏱',
   decay: '↘',
   cloud: '☁',
+  ranking: '🏆',
 }
 
 function texts(item: InboxItem, t: Translate, locale: string): { title: string; body: string } {
@@ -39,6 +43,17 @@ function texts(item: InboxItem, t: Translate, locale: string): { title: string; 
       return { title: t('inbox.raceDay.title', { race: String(v.race) }), body: t('inbox.raceDay.body') }
     case 'decay':
       return { title: t('inbox.decay.title'), body: t('notice.decay', { lost: Number(v.lost), count: Number(v.count) }) }
+    case 'ranking': {
+      const where = v.scope === 'country' && v.country ? countryName(String(v.country), locale) : t('inbox.ranking.world')
+      const title = t(`inbox.ranking.${String(v.change) as 'entered' | 'up' | 'down' | 'left'}`, { where })
+      const body =
+        v.change === 'left'
+          ? t('inbox.ranking.leftBody', { previous: Number(v.previous) })
+          : v.change === 'entered'
+            ? t('inbox.ranking.enteredBody', { rank: Number(v.rank) })
+            : t('inbox.ranking.movedBody', { rank: Number(v.rank), previous: Number(v.previous) })
+      return { title, body }
+    }
     case 'cloud': {
       const body: MessageKey = v.notice === 'restored' ? 'notice.restored' : v.notice === 'updated' ? 'notice.updated' : 'inbox.cloud.error'
       return { title: t('inbox.cloud.title'), body: t(body) }
@@ -51,7 +66,51 @@ function texts(item: InboxItem, t: Translate, locale: string): { title: string; 
  * dot while there is something new, and the Inbox when tapped. Opening it marks everything read;
  * closing it also clears the one-visit messages (Fitness lost, cloud save).
  */
-export function InboxButton() {
+/** How often the player's ranking positions are checked while the app is open. */
+const RANK_CHECK_MS = 10 * 60 * 1000
+
+/**
+ * Watches the player's position in the world and country rankings of the current season (owner
+ * request, 7 November 2026): when the app opens, after each race and every few minutes. Positions
+ * are compared with the last ones known on this device; entering the top 10, moving within it and
+ * leaving it make notifications.
+ */
+function useRankingWatch(
+  service: RankingService | null,
+  country: string | undefined,
+  racesRun: number,
+  remember: (scope: RankingScope, season: number, rank: number | null) => void,
+) {
+  useEffect(() => {
+    if (!service) return
+    let cancelled = false
+    async function check() {
+      const season = rankingSeason(Date.now())
+      if (!season || !service) return
+      const scopes: RankingScope[] = country ? ['world', 'country'] : ['world']
+      for (const scope of scopes) {
+        const rows = await service.fetch({
+          mode: 'season',
+          season,
+          months: RANKING.annualMonths,
+          country: scope === 'country' ? country : undefined,
+          bestResults: RANKING.bestResults,
+          limit: 10,
+        })
+        if (cancelled || rows === 'offline') continue
+        remember(scope, season, rows.find((row) => row.isMe)?.rank ?? null)
+      }
+    }
+    void check()
+    const timer = window.setInterval(() => void check(), RANK_CHECK_MS)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [service, country, racesRun, remember])
+}
+
+export function InboxButton({ rankingService = getRankingService() }: { rankingService?: RankingService | null }) {
   const { phase, decayNotice, dismissDecayNotice, cloudNotice, dismissCloudNotice, cloudStatus } = useGame()
   const { t, locale } = useI18n()
   const navigate = useNavigate()
@@ -62,6 +121,22 @@ export function InboxButton() {
   const titleId = useId()
   const now = Date.now()
   const state = phase.kind === 'playing' ? phase.state : null
+
+  // The latest memory, for updates made outside a render (the ranking watch).
+  const memoryRef = useRef(memory)
+  memoryRef.current = memory
+  const remember = useCallback(
+    (scope: RankingScope, season: number, rank: number | null) => {
+      const updated = rememberRank(memoryRef.current, scope, season, rank, Date.now(), state?.athlete.country)
+      if (updated === memoryRef.current) return
+      memoryRef.current = updated
+      setMemory(updated)
+      saveMemory(updated)
+    },
+    [state?.athlete.country],
+  )
+  const racesRun = state ? state.raceEntries.filter((entry) => entry.status === 'finished').length : 0
+  useRankingWatch(rankingService, state?.athlete.country, racesRun, remember)
 
   const { list, memory: next } = useMemo(() => {
     const items = state ? buildInbox(state, now, { decay: decayNotice, cloudNotice, cloudError: cloudStatus === 'error' }) : []

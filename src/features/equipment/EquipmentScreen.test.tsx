@@ -71,7 +71,7 @@ describe('Equipment', () => {
     expect(screen.getByRole('img', { name: /wearing starter shoes/ })).toBeInTheDocument()
   })
 
-  it('shows the shop as cards, opens a large card and buys with a confirmation, then equips', async () => {
+  it('shows the shop as cards, opens a large card and buys in one tap, then equips', async () => {
     const user = userEvent.setup()
     seedCareer({ ...newGame(), coins: 60 })
     await renderApp('/equipment')
@@ -103,14 +103,14 @@ describe('Equipment', () => {
     expect(within(grid()).getByRole('button', { name: 'Energy gel, 10 coins, 0 in stock, Buy pack of 3' })).toBeInTheDocument()
     expect(within(grid()).getByRole('button', { name: 'Hydration backpack · Lvl 2, 90 coins, Need 30 coins more' })).toBeInTheDocument()
 
-    // Cereal bars: a pack of 3 for 10 coins, bought with a confirmation, never equipped.
+    // Cereal bars: a pack of 3 for 10 coins, bought in one tap (owner request, 7 November 2026), never equipped.
     await user.click(within(grid()).getByRole('button', { name: /^Cereal bar,/ }))
     expect(screen.getByRole('heading', { level: 2, name: 'Cereal bar' })).toHaveFocus()
     expect(screen.getByText('Pack').nextElementSibling).toHaveTextContent('3 units')
     expect(screen.getByText('In stock').nextElementSibling).toHaveTextContent('0')
     expect(screen.getByText('Race effect').nextElementSibling).toHaveTextContent('1.5% less fatigue for the whole race.')
-    await user.click(screen.getByRole('button', { name: 'Buy pack of 3 cereal bar' }))
-    await user.dblClick(screen.getByRole('button', { name: 'Pay 10 coins' }))
+    // A double tap still buys once.
+    await user.dblClick(screen.getByRole('button', { name: 'Buy pack of 3 cereal bar' }))
     await settled()
     expect(readSave()!.state).toMatchObject({ coins: 50, consumables: { gel: 0, bar: 3 }, ownedEquipment: ['starter-shoes'] })
     expect(screen.getByText('Cereal bar pack of 3 bought for 10 coins.')).toBeInTheDocument()
@@ -119,15 +119,13 @@ describe('Equipment', () => {
     await user.click(screen.getByRole('button', { name: '← Back to shop' }))
     await user.click(screen.getByRole('button', { name: 'Poles' }))
 
-    // Poles lvl 2: large card with its details, then buy with a confirmation, charged once.
+    // Poles lvl 2: large card with its details, then Buy charges at once.
     await user.click(within(grid()).getByRole('button', { name: /^Poles · Lvl 2/ }))
     expect(screen.getByRole('heading', { level: 2, name: 'Poles' })).toBeInTheDocument()
     expect(screen.getByText('Level').nextElementSibling).toHaveTextContent('2')
     expect(screen.getByText('Race effect').nextElementSibling).toHaveTextContent('Climbing +3, Endurance +1, but flats 1% slower.')
-    await user.click(screen.getByRole('button', { name: 'Buy poles · lvl 2' }))
-    expect(screen.getByText('Balance 50 coins → 0 coins.')).toBeInTheDocument()
     expect(readSave()!.state.coins).toBe(50)
-    await user.dblClick(screen.getByRole('button', { name: 'Pay 50 coins' }))
+    await user.click(screen.getByRole('button', { name: 'Buy poles · lvl 2' }))
     await settled()
     expect(readSave()!.state).toMatchObject({ coins: 0, ownedEquipment: ['starter-shoes', 'poles-2'], equipment: [] })
     expect(screen.getByText('Poles · Lvl 2 bought for 50 coins.')).toBeInTheDocument()
@@ -148,6 +146,6 @@ describe('Equipment', () => {
     expect(buy).toHaveAttribute('aria-disabled', 'true')
     expect(buy).toHaveAccessibleDescription('You need 30 coins more.')
     await user.click(buy)
-    expect(screen.queryByRole('button', { name: /^Pay/ })).not.toBeInTheDocument()
+    expect(readSave()?.state.coins ?? 60).toBe(60)
   })
 })

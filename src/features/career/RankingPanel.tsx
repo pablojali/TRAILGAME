@@ -193,9 +193,6 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
             ) : (
               <span className={styles.meta}>{t('ranking.notRanked')}</span>
             )}
-            <span className={styles.how}>
-              {t(mode === 'season' ? 'ranking.how' : 'ranking.howAnnual', { count: RANKING.bestResults, months: RANKING.annualMonths })}
-            </span>
           </section>
         </>
       )}

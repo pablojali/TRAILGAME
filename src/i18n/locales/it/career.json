@@ -140,13 +140,11 @@
   "ranking.unavailable": "La classifica è online: serve il salvataggio online.",
   "ranking.noCountry": "Scegli il paese del tuo corridore nelle Impostazioni per vedere la classifica del tuo paese.",
   "ranking.settings": "Vai alle Impostazioni",
-  "ranking.how": "I punti arrivano solo dalle gare: difficoltà della gara × la tua posizione, contando i tuoi {count} migliori risultati della stagione.",
   "ranking.modes": "Classifica",
   "ranking.mode.season": "Stagione",
   "ranking.mode.annual": "Annuale",
   "ranking.annualPeriod": "Ultimi {months} mesi",
   "ranking.seasonTitle": "{scope} · classifica di stagione",
   "ranking.annualTitle": "{scope} · classifica annuale",
-  "ranking.howAnnual": "I tuoi {count} migliori risultati di ogni stagione degli ultimi {months} mesi: i più vecchi scadono giorno per giorno.",
   "ranking.showMore": "Mostra altri"
 }

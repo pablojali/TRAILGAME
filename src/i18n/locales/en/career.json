@@ -140,13 +140,11 @@
   "ranking.unavailable": "Rankings are online: they need the cloud save.",
   "ranking.noCountry": "Choose your runner's country in Settings to see your country's ranking.",
   "ranking.settings": "Go to Settings",
-  "ranking.how": "Points come from races only: the race's difficulty × your finishing position, counting your {count} best results of the season.",
   "ranking.modes": "Ranking",
   "ranking.mode.season": "Season",
   "ranking.mode.annual": "Annual",
   "ranking.annualPeriod": "Last {months} months",
   "ranking.seasonTitle": "{scope} · season ranking",
   "ranking.annualTitle": "{scope} · annual ranking",
-  "ranking.howAnnual": "Your {count} best results of each season, from the last {months} months: older results expire day by day.",
   "ranking.showMore": "Show more"
 }

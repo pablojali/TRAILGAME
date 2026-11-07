@@ -53,4 +53,22 @@ describe('Career ranking (owner design, 5 November 2026)', () => {
     await renderApp('/career?tab=ranking')
     expect(await screen.findByRole('alert')).toHaveTextContent('The ranking could not be loaded.')
   })
+
+  it('shows the top 10 first and the rest on request, with Your position always below the list', async () => {
+    const user = userEvent.setup()
+    seedCareer()
+    fetch.mockResolvedValue([
+      ...Array.from({ length: 14 }, (_, i) => ({ rank: i + 1, name: `Runner${i + 1}`, country: 'FR', sex: null, xp: 1000, points: 1000 - i, isMe: false })),
+      { rank: 30, name: 'Demo Runner', country: null, sex: null, xp: 0, points: 5, isMe: true },
+    ])
+    await renderApp('/career')
+    const list = await screen.findByRole('region', { name: 'Ranked runners' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(10)
+    await user.click(within(list).getByRole('button', { name: 'Show more' }))
+    // The rest of the top 50, the player's own row (30th) included.
+    expect(within(list).getAllByRole('listitem')).toHaveLength(15)
+    expect(within(list).getByText('Demo Runner')).toBeInTheDocument()
+    expect(within(list).queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Your position' })).toHaveTextContent('#30')
+  })
 })

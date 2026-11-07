@@ -395,3 +395,59 @@
   --font-size-xl: 1.4625rem;
   --font-size-2xl: 1.8rem;
 }
+
+/*
+ * Compact Career (owner design, 7 November 2026): a header about a third lower, a one-line year
+ * card and lower tabs, so the content below gets the room.
+ */
+.compactText section[aria-labelledby='screen-title'] {
+  gap: var(--space-2);
+}
+
+.compactText header h1 {
+  font-size: 1.3rem;
+  line-height: 1.1;
+}
+
+.compactText header p {
+  font-size: var(--font-size-xs);
+}
+
+.compactText [role='tab'] {
+  min-height: 32px;
+  font-size: var(--font-size-sm);
+}
+
+.compactText .seasonCompact {
+  margin-bottom: 0;
+  padding: 4px var(--space-3);
+}
+
+.compactText .seasonCompact .seasonMain {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: var(--space-2);
+  row-gap: 3px;
+}
+
+.compactText .seasonCompact .seasonLine {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compactText .season.seasonCompact [role='meter'].seasonMeter {
+  grid-column: 1 / -1;
+  order: 3;
+  height: 4px;
+}
+
+.compactText .seasonCompact .rankBadge {
+  width: 28px;
+  height: 28px;
+}
+
+.compactText .seasonCompact .rankValue {
+  font-size: var(--font-size-md);
+}

@@ -147,5 +147,6 @@
   "ranking.annualPeriod": "Últimos {months} meses",
   "ranking.seasonTitle": "{scope} · ranking de temporada",
   "ranking.annualTitle": "{scope} · ranking anual",
-  "ranking.howAnnual": "Tus {count} mejores resultados de cada temporada de los últimos {months} meses: los más antiguos caducan día a día."
+  "ranking.howAnnual": "Tus {count} mejores resultados de cada temporada de los últimos {months} meses: los más antiguos caducan día a día.",
+  "ranking.showMore": "Ver más"
 }

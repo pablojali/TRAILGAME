@@ -3,7 +3,6 @@ import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { ScrollPanel } from '../../components/Screen'
-import { Chips } from '../../components/Tabs'
 import { countryFlag, countryName } from '../../domain/athlete/countries'
 import { getLevel } from '../../domain/athlete/levels'
 import { firstSeason, RANKING, rankingSeason, seasonBounds, seasonParts, shiftSeason } from '../../domain/ranking/ranking'
@@ -16,6 +15,8 @@ type Scope = 'world' | 'country'
 
 /** How many runners each ranking shows (plus the player's own row). */
 const LIMIT = 50
+/** The top 10 first; the rest on request (owner design, 7 November 2026). */
+const FIRST_ROWS = 10
 
 /**
  * World and country rankings (owner design, 5 November 2026): asynchronous, one calendar month per
@@ -26,6 +27,7 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
   const { t, locale } = useI18n()
   const current = Math.max(firstSeason(), rankingSeason(Date.now()))
   const [mode, setMode] = useState<Mode>('season')
+  const [showAll, setShowAll] = useState(false)
   const [scope, setScope] = useState<Scope>('world')
   const [season, setSeason] = useState(current)
   const [rows, setRows] = useState<RankingRow[] | 'offline' | null>(null)
@@ -64,7 +66,14 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
     <div className={styles.panel}>
       {/* Season (one calendar month) or Annual (each season's best results of the last 12 months). */}
       <div className={styles.bar}>
-        <Chips<Mode> label={t('ranking.modes')} options={modes} value={mode} onChange={setMode} />
+        {/* A small Season / Annual selector (owner design, 7 November 2026). */}
+        <span className={styles.segment} role="group" aria-label={t('ranking.modes')}>
+          {modes.map(({ id, label }) => (
+            <button key={id} type="button" className={styles.segmentButton} aria-pressed={mode === id} onClick={() => setMode(id)}>
+              {label}
+            </button>
+          ))}
+        </span>
         {mode === 'season' ? (
           <span className={styles.season}>
             <button
@@ -145,7 +154,7 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
               ) : (
                 <ol className={styles.list}>
                   {rows
-                    .filter((row) => row.rank <= LIMIT)
+                    .filter((row) => row.rank <= (showAll ? LIMIT : FIRST_ROWS))
                     .map((row) => (
                       <li key={`${row.rank}-${row.name}`} className={`${styles.row} ${row.isMe ? styles.rowMe : ''}`}>
                         <span className={`${styles.rank} ${row.rank <= 3 ? styles.rankTop : ''}`}>{row.rank}</span>
@@ -160,6 +169,11 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
                       </li>
                     ))}
                 </ol>
+              )}
+              {!showAll && rows.some((row) => row.rank > FIRST_ROWS && row.rank <= LIMIT) && (
+                <button type="button" className={styles.more} onClick={() => setShowAll(true)}>
+                  {t('ranking.showMore')}
+                </button>
               )}
             </ScrollPanel>
           </div>

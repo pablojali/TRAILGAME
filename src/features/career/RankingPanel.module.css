@@ -19,12 +19,14 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: var(--touch-target);
+  /* Two compact buttons in one row (owner design, 7 November 2026). */
+  min-height: 34px;
+  font-size: var(--font-size-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: rgb(10 12 14 / 0.55);
   color: var(--text);
-  font: inherit;
+  font-family: inherit;
   font-weight: 800;
   text-transform: uppercase;
   cursor: pointer;
@@ -75,13 +77,61 @@
   font-weight: 800;
 }
 
-/* Room for four rows (about 55 px each); the list scrolls for the rest. */
+/*
+ * The list takes the room left and scrolls behind nothing: Your position stays visible below it,
+ * never over it (owner design, 7 November 2026).
+ */
 .listBox {
-  flex: 0 1 auto;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  max-height: 224px;
+}
+
+.listBox > [role='region'] {
+  min-height: 0;
+}
+
+.more {
+  align-self: center;
+  min-height: 32px;
+  margin: var(--space-1) 0;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgb(10 12 14 / 0.55);
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* A small Season / Annual selector. */
+.segment {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgb(10 12 14 / 0.55);
+}
+
+.segmentButton {
+  min-height: 28px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.segmentButton[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--color-charcoal-950);
 }
 
 .list {

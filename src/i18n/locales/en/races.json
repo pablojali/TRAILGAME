@@ -56,10 +56,5 @@
   "races.levelRange": "· levels {min}–{max}",
   "races.closedAbove": "Open up to level {level} (you: {you}): choose a harder race.",
   "races.enter": "Enter race",
-  "races.confirmEntry": "Confirm entry",
-  "races.confirmEntryTo": "Confirm entry to {name}",
-  "races.freeEntry": "Free entry.",
-  "races.balanceStays": " Balance stays {coins}.",
-  "races.entering": "Entering…",
-  "races.confirmFree": "Confirm free entry"
+  "races.entering": "Entering…"
 }

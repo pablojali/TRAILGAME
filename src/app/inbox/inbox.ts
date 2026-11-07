@@ -9,7 +9,7 @@ import { getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedul
  * The Inbox (owner request, 6 November 2026): notifications built from the career itself, so the
  * server needs nothing new. Each has a stable id; the ids already read are kept in the browser.
  */
-export type InboxKind = 'race' | 'challenge' | 'level' | 'season' | 'race-day' | 'decay' | 'cloud'
+export type InboxKind = 'race' | 'challenge' | 'level' | 'season' | 'race-day' | 'decay' | 'cloud' | 'ranking'
 
 export interface InboxItem {
   id: string
@@ -49,7 +49,7 @@ export function buildInbox(state: GameState, now: number, transient: Transient =
   // Challenge levels reached.
   for (const progress of getAchievements(state)) {
     for (let level = 1; level <= progress.reached; level++) {
-      items.push({ id: `challenge:${progress.definition.id}:${level}`, kind: 'challenge', link: '/career', values: { id: progress.definition.id, level } })
+      items.push({ id: `challenge:${progress.definition.id}:${level}`, kind: 'challenge', link: '/career?tab=achievements', values: { id: progress.definition.id, level } })
     }
   }
   // The level reached.
@@ -62,7 +62,7 @@ export function buildInbox(state: GameState, now: number, transient: Transient =
       id: `season:${season}`,
       kind: 'season',
       at: seasonBounds(season).start,
-      link: '/career?tab=ranking',
+      link: '/career',
       values: { season: season % 100, year: Math.floor(season / 100) },
     })
   }
@@ -81,10 +81,66 @@ export function buildInbox(state: GameState, now: number, transient: Transient =
   return items
 }
 
-/** What the browser remembers: when each notification was first seen and whether it was read. */
+/**
+ * What the browser remembers: when each notification was first seen and whether it was read, the
+ * player's last known ranking positions (by `scope:season`) and the ranking notifications made
+ * from them, which cannot be rebuilt from the career.
+ */
 export interface InboxMemory {
   seen: Record<string, number>
   read: string[]
+  ranks?: Record<string, number | null>
+  events?: InboxItem[]
+}
+
+export type RankingScope = 'world' | 'country'
+
+/** Positions that count as the top of a ranking (owner request, 7 November 2026). */
+export const TOP_POSITIONS = 10
+
+/**
+ * The notification for a new ranking position, if any: entering the top 10, moving within it, or
+ * leaving it. `previous` undefined means no position is known yet for this season and scope.
+ */
+export function rankingEvent(
+  scope: RankingScope,
+  season: number,
+  previous: number | null | undefined,
+  current: number | null,
+  now: number,
+  country?: string,
+): InboxItem | null {
+  const inTop = (rank: number | null | undefined) => rank !== null && rank !== undefined && rank <= TOP_POSITIONS
+  let change: 'entered' | 'up' | 'down' | 'left' | null = null
+  if (inTop(current) && !inTop(previous)) change = 'entered'
+  else if (inTop(current) && inTop(previous) && current !== previous) change = current! < previous! ? 'up' : 'down'
+  else if (!inTop(current) && inTop(previous)) change = 'left'
+  if (!change) return null
+  return {
+    id: `ranking:${scope}:${season}:${now}`,
+    kind: 'ranking',
+    at: now,
+    link: '/career',
+    values: { scope, change, rank: current ?? 0, previous: previous ?? 0, ...(country ? { country } : {}) },
+  }
+}
+
+/** The memory after learning the player's position in a ranking, with its notification if any. */
+export function rememberRank(
+  memory: InboxMemory,
+  scope: RankingScope,
+  season: number,
+  current: number | null,
+  now: number,
+  country?: string,
+): InboxMemory {
+  const key = `${scope}:${season}`
+  const event = rankingEvent(scope, season, memory.ranks?.[key], current, now, country)
+  return {
+    ...memory,
+    ranks: { ...memory.ranks, [key]: current },
+    events: event ? [event, ...(memory.events ?? [])].slice(0, INBOX_SIZE) : memory.events,
+  }
 }
 
 const KEY = 'trailgame.inbox.v1'
@@ -92,7 +148,14 @@ const KEY = 'trailgame.inbox.v1'
 export function loadMemory(storage: Pick<Storage, 'getItem'> | undefined = globalThis.localStorage): InboxMemory {
   try {
     const value = JSON.parse(storage?.getItem(KEY) ?? 'null') as Partial<InboxMemory> | null
-    if (value && typeof value.seen === 'object' && Array.isArray(value.read)) return { seen: value.seen ?? {}, read: value.read }
+    if (value && typeof value.seen === 'object' && Array.isArray(value.read)) {
+      return {
+        seen: value.seen ?? {},
+        read: value.read,
+        ranks: value.ranks && typeof value.ranks === 'object' ? value.ranks : {},
+        events: Array.isArray(value.events) ? value.events : [],
+      }
+    }
   } catch {
     // Unreadable or blocked storage: start empty.
   }
@@ -111,7 +174,9 @@ export function saveMemory(memory: InboxMemory, storage: Pick<Storage, 'setItem'
  * The notifications to show, newest first (at most INBOX_SIZE), each with its `unread` flag, and
  * the memory updated with the first-seen time of new ones (transient ones are never remembered).
  */
-export function arrange(items: readonly InboxItem[], memory: InboxMemory, now: number): { list: (InboxItem & { unread: boolean })[]; memory: InboxMemory } {
+export function arrange(built: readonly InboxItem[], memory: InboxMemory, now: number): { list: (InboxItem & { unread: boolean })[]; memory: InboxMemory } {
+  // Ranking notifications are remembered events; the rest is rebuilt from the career.
+  const items = [...built, ...(memory.events ?? [])]
   const seen = { ...memory.seen }
   for (const item of items) if (!(item.id in seen) && !isTransient(item)) seen[item.id] = now
   const read = new Set(memory.read)
@@ -122,7 +187,7 @@ export function arrange(items: readonly InboxItem[], memory: InboxMemory, now: n
   // Keep the memory small: only what the inbox can still show.
   const keep = new Set(items.map((item) => item.id))
   const trimmed = Object.fromEntries(Object.entries(seen).filter(([id]) => keep.has(id)))
-  return { list, memory: { seen: trimmed, read: memory.read.filter((id) => keep.has(id)) } }
+  return { list, memory: { ...memory, seen: trimmed, read: memory.read.filter((id) => keep.has(id)) } }
 }
 
 export function markRead(memory: InboxMemory, ids: readonly string[]): InboxMemory {
@@ -130,5 +195,5 @@ export function markRead(memory: InboxMemory, ids: readonly string[]): InboxMemo
 }
 
 function isTransient(item: InboxItem): boolean {
-  return item.kind === 'decay' || item.kind === 'cloud'
+  return item.kind === 'decay' || item.kind === 'cloud' || item.kind === 'ranking'
 }

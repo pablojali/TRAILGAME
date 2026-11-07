@@ -150,7 +150,7 @@ describe('DashboardScreen — Today strip (one screen, no cards)', () => {
     const today = screen.getByRole('region', { name: 'Today' })
     expect(today).toHaveTextContent('Today · Easy run')
     const challenge = screen.getByRole('region', { name: 'Active challenge' })
-    expect(within(challenge).getByRole('link', { name: 'View all challenges ›' })).toHaveAttribute('href', '/career')
+    expect(within(challenge).getByRole('link', { name: 'View all challenges ›' })).toHaveAttribute('href', '/career?tab=achievements')
     expect(within(today).queryByRole('link', { name: /attribute point/ })).not.toBeInTheDocument()
     // The demo reset lives in Settings now.
     expect(screen.queryByRole('button', { name: 'Reset demo' })).not.toBeInTheDocument()

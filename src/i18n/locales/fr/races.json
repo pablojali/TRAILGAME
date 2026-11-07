@@ -56,10 +56,5 @@
   "races.levelRange": "· niveaux {min}–{max}",
   "races.closedAbove": "Ouverte jusqu'au niveau {level} (toi : {you}) : choisis une course plus dure.",
   "races.enter": "S'inscrire",
-  "races.confirmEntry": "Confirmer l'inscription",
-  "races.confirmEntryTo": "Confirmer l'inscription à {name}",
-  "races.freeEntry": "Inscription gratuite.",
-  "races.balanceStays": " Ton solde reste à {coins}.",
-  "races.entering": "Inscription…",
-  "races.confirmFree": "Confirmer l'inscription gratuite"
+  "races.entering": "Inscription…"
 }

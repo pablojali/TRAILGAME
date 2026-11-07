@@ -22,7 +22,8 @@ describe('Inbox bell (owner request, 6 November 2026)', () => {
     expect(screen.getByRole('button', { name: 'Notifications' })).toHaveAttribute('aria-expanded', 'true')
     // A notification opens its screen and closes the Inbox.
     await user.click(within(inbox).getByText(/Season 11 · 2026 is on/))
-    expect(router.state.location.search).toBe('?tab=ranking')
+    expect(router.state.location.pathname).toBe('/career')
+    expect(router.state.location.search).toBe('')
     expect(screen.queryByRole('dialog', { name: 'Inbox' })).not.toBeInTheDocument()
     // Escape closes it too.
     await user.click(screen.getByRole('button', { name: 'Notifications' }))

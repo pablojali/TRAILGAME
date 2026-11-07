@@ -1593,6 +1593,11 @@ server needs nothing new: race results (position, ranking points), challenge lev
 reached, the ranking season under way, race day, and this visit's Fitness loss and cloud-save
 messages (which used to be banners). Read ids and first-seen times are kept in localStorage
 (`trailgame.inbox.v1`); at most 30 notifications, newest first. Each opens its screen.
+**Top 10** (owner request, 7 November 2026): while the app is open the Inbox checks the player's
+position in the world and country rankings of the current season (on opening, after each race and
+every 10 minutes, `get_ranking` with limit 10; the player's row always comes back). Positions are
+kept per scope and season on the device; entering the top 10, moving within it and leaving it make
+notifications (`rankingEvent` / `rememberRank`), stored with the Inbox memory.
 
 ### Race catalog table (owner request, 5 November 2026)
 

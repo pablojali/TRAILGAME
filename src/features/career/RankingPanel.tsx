@@ -136,29 +136,33 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
         </div>
       ) : (
         <>
-          <ScrollPanel label={t('ranking.list')}>
-            {rows.filter((row) => row.rank <= LIMIT).length === 0 ? (
-              <p className={styles.muted}>{t('ranking.empty')}</p>
-            ) : (
-              <ol className={styles.list}>
-                {rows
-                  .filter((row) => row.rank <= LIMIT)
-                  .map((row) => (
-                    <li key={`${row.rank}-${row.name}`} className={`${styles.row} ${row.isMe ? styles.rowMe : ''}`}>
-                      <span className={`${styles.rank} ${row.rank <= 3 ? styles.rankTop : ''}`}>{row.rank}</span>
-                      <span className={styles.who}>
-                        <span className={styles.name}>{row.name}</span>
-                        <span className={styles.meta}>
-                          {row.country && `${countryFlag(row.country)} ${countryName(row.country, locale)} · `}
-                          {t('ranking.level', { level: getLevel(row.xp) })}
+          {/* Four runners in view, the rest by scrolling, and the player's own position right under
+              them (owner request, 7 November 2026). */}
+          <div className={styles.listBox}>
+            <ScrollPanel label={t('ranking.list')}>
+              {rows.filter((row) => row.rank <= LIMIT).length === 0 ? (
+                <p className={styles.muted}>{t('ranking.empty')}</p>
+              ) : (
+                <ol className={styles.list}>
+                  {rows
+                    .filter((row) => row.rank <= LIMIT)
+                    .map((row) => (
+                      <li key={`${row.rank}-${row.name}`} className={`${styles.row} ${row.isMe ? styles.rowMe : ''}`}>
+                        <span className={`${styles.rank} ${row.rank <= 3 ? styles.rankTop : ''}`}>{row.rank}</span>
+                        <span className={styles.who}>
+                          <span className={styles.name}>{row.name}</span>
+                          <span className={styles.meta}>
+                            {row.country && `${countryFlag(row.country)} ${countryName(row.country, locale)} · `}
+                            {t('ranking.level', { level: getLevel(row.xp) })}
+                          </span>
                         </span>
-                      </span>
-                      <span className={styles.points}>{t('ranking.points', { points: number(row.points) })}</span>
-                    </li>
-                  ))}
-              </ol>
-            )}
-          </ScrollPanel>
+                        <span className={styles.points}>{t('ranking.points', { points: number(row.points) })}</span>
+                      </li>
+                    ))}
+                </ol>
+              )}
+            </ScrollPanel>
+          </div>
           <section className={styles.you} aria-label={t('ranking.you')}>
             <span className={styles.youLabel}>{t('ranking.you')}</span>
             {me ? (

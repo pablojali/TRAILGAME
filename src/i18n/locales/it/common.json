@@ -94,5 +94,13 @@
   "inbox.raceDay.body": "La tua gara è oggi: preparati e parti.",
   "inbox.decay.title": "Forma persa",
   "inbox.cloud.title": "Salvataggio nel cloud",
-  "inbox.cloud.error": "I tuoi progressi non sono ancora stati salvati nel cloud. Verrà ritentato."
+  "inbox.cloud.error": "I tuoi progressi non sono ancora stati salvati nel cloud. Verrà ritentato.",
+  "inbox.ranking.world": "Mondo",
+  "inbox.ranking.entered": "Sei nella top 10: {where}",
+  "inbox.ranking.up": "Sali nella top 10: {where}",
+  "inbox.ranking.down": "Scendi nella top 10: {where}",
+  "inbox.ranking.left": "Fuori dalla top 10: {where}",
+  "inbox.ranking.enteredBody": "Sei #{rank} in questa stagione.",
+  "inbox.ranking.movedBody": "Ora #{rank} (prima #{previous}).",
+  "inbox.ranking.leftBody": "Eri #{previous}. Corri per rientrare."
 }

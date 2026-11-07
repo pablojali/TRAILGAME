@@ -67,3 +67,20 @@
   font-size: 1.1rem;
   cursor: pointer;
 }
+
+/* With "reduce motion" on, the clip waits for this tap (owner report, 7 November 2026). */
+.play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-height: var(--touch-target);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}

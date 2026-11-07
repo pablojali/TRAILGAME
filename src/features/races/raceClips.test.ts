@@ -1,19 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
+// Every clip the owner uploads, read as text: enough to check its size and its header.
+const CLIPS = import.meta.glob<string>('/assets/race/clips/*/*.{mp4,webm}', { query: '?raw', import: 'default', eager: true })
+
 describe('clip files (owner uploads)', () => {
-  it('are real videos: a rename on GitHub once left a 2-byte file instead of the video', async () => {
-    const { readdirSync, statSync, readFileSync } = await import('node:fs')
-    const root = 'assets/race/clips'
-    for (const race of readdirSync(root, { withFileTypes: true }).filter((d) => d.isDirectory())) {
-      for (const file of readdirSync(`${root}/${race.name}`).filter((f) => /\.(mp4|webm)$/.test(f))) {
-        const path = `${root}/${race.name}/${file}`
-        expect(statSync(path).size, path).toBeGreaterThan(20_000)
-        // An MP4 has an "ftyp" box near the start; a WebM starts with the EBML header.
-        const head = readFileSync(path).subarray(0, 16)
-        const ok = file.endsWith('.mp4') ? head.subarray(4, 8).toString('latin1') === 'ftyp' : head.readUInt32BE(0) === 0x1a45dfa3
-        expect(ok, `${path} is not a playable ${file.split('.').pop()}`).toBe(true)
-        expect(file, path).toMatch(/^segment-\d+\.(mp4|webm)$/)
-      }
+  it('are real videos named segment-N: a rename on GitHub once left a 2-byte file instead of the video', () => {
+    expect(Object.keys(CLIPS).length).toBeGreaterThan(0)
+    for (const [path, content] of Object.entries(CLIPS)) {
+      expect(path, path).toMatch(/\/RACE-\d{3}\/segment-\d+\.(mp4|webm)$/)
+      expect(content.length, path).toBeGreaterThan(20_000)
+      // An MP4 has its "ftyp" box at byte 4; a WebM starts with the EBML header.
+      const ok = path.endsWith('.mp4') ? content.slice(4, 8) === 'ftyp' : content.charCodeAt(0) === 0x1a
+      expect(ok, `${path} is not a playable video`).toBe(true)
     }
   })
 })

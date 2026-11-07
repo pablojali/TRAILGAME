@@ -10,8 +10,12 @@ ends at the finish line. A missing clip is skipped (the game goes straight to th
 Segments per race: RACE-001…004: 2 · RACE-005, 006: 3 · RACE-007: 4 · RACE-008: 5 · RACE-009: 6 ·
 RACE-010: 7 · RACE-013: 7 · RACE-011, 012, 014…017: 8 (a race's segments follow its distance and climb).
 
-Clips so far: RACE-002 segment 1 (the start, owner video of 6 November 2026, converted to 720 × 1280,
-no sound, 2.8 MB).
+Clips so far: RACE-001 segments 1 and 2 (owner videos of 7 November 2026, 480 × 854, no sound,
+2.8 and 2.2 MB) and RACE-002 segment 1 (6 November 2026, 720 × 1280, 2.8 MB).
+
+**Upload tip:** upload the file already named `segment-1.mp4` (rename it on your computer first).
+Renaming a video on the GitHub website can leave an empty file (it happened with RACE-001: two
+bytes instead of the video). The checks now fail when a clip is not a real video.
 
 - **Format:** MP4 (H.264). A `.webm` with the same name is used first when present.
 - **Picture:** vertical 9:16, 720 × 1280 (at most 1080 × 1920).

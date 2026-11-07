@@ -7,13 +7,33 @@ import styles from './RaceClipPlayer.module.css'
 /** Longest wait for a clip to start playing before it is skipped (slow network, no autoplay). */
 const START_TIMEOUT_MS = 5000
 
+/** The player's sound choice, kept on the device (owner request, 7 November 2026: clips have sound). */
+const SOUND_KEY = 'trailgame.clipSound'
+
+function soundWanted(): boolean {
+  try {
+    return localStorage.getItem(SOUND_KEY) !== 'off'
+  } catch {
+    return true
+  }
+}
+
+function saveSound(on: boolean): void {
+  try {
+    localStorage.setItem(SOUND_KEY, on ? 'on' : 'off')
+  } catch {
+    // The choice only lasts this visit.
+  }
+}
+
 function prefersReducedMotion(): boolean {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 }
 
 /**
- * Plays a race clip over the whole screen (owner request, 3 November 2026). Muted and inline so
- * phones autoplay it. It closes when the clip has ended (or was skipped, failed, did not start in
+ * Plays a race clip over the whole screen (owner request, 3 November 2026), inline and with its
+ * ambient sound (owner request, 7 November 2026). When the browser does not allow sound without a
+ * tap, it plays muted and the sound button turns it on; the player's choice is remembered. It closes when the clip has ended (or was skipped, failed, did not start in
  * time, or the player prefers reduced motion) and the race step it shows is confirmed (`ready`).
  */
 export function RaceClipPlayer({
@@ -33,6 +53,37 @@ export function RaceClipPlayer({
   const [ended, setEnded] = useState(prefersReducedMotion)
   const started = useRef(false)
   const done = useRef(false)
+  const video = useRef<HTMLVideoElement>(null)
+  const [muted, setMuted] = useState(() => !soundWanted())
+
+  // Start with sound when the player wants it; if the browser refuses, play muted instead.
+  useEffect(() => {
+    const element = video.current
+    if (!element) return
+    element.muted = !soundWanted()
+    const playing = element.play?.()
+    if (playing && typeof playing.catch === 'function') {
+      playing.catch(() => {
+        if (!element.muted) {
+          element.muted = true
+          setMuted(true)
+          void element.play?.()?.catch?.(() => {})
+        }
+      })
+    }
+  }, [])
+
+  function toggleSound() {
+    const element = video.current
+    const next = !muted
+    setMuted(next)
+    saveSound(!next)
+    if (element) {
+      element.muted = next
+      // A tap allows sound: resume if the browser had held the video back.
+      if (element.paused) void element.play?.()?.catch?.(() => {})
+    }
+  }
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -53,9 +104,10 @@ export function RaceClipPlayer({
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={title}>
       {!prefersReducedMotion() && (
         <video
+          ref={video}
           className={styles.video}
           autoPlay
-          muted
+          muted={muted}
           playsInline
           preload="auto"
           poster={clip.poster}
@@ -70,6 +122,17 @@ export function RaceClipPlayer({
         </video>
       )}
       <p className={styles.title}>{title}</p>
+      {!prefersReducedMotion() && (
+        <button
+          type="button"
+          className={styles.sound}
+          aria-pressed={!muted}
+          aria-label={muted ? t('raceRun.soundOn') : t('raceRun.soundOff')}
+          onClick={toggleSound}
+        >
+          <span aria-hidden="true">{muted ? '🔇' : '🔊'}</span>
+        </button>
+      )}
       {ended && !ready ? (
         <p className={styles.waiting} role="status">
           Running…

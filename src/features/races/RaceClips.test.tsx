@@ -37,6 +37,15 @@ describe('race clips (owner request, 3 November 2026)', () => {
     // Segment 1's clip: the race already started on the server; Skip closes it.
     const first = await screen.findByRole('dialog', { name: /^Forest First Steps · Segment 1 of 2/ })
     expect(first.querySelector('video source')).toHaveAttribute('src', 'clip-1.mp4')
+    // Ambient sound on by default (owner request, 7 November 2026); the choice is remembered.
+    const video = first.querySelector('video')!
+    expect(video.muted).toBe(false)
+    await user.click(screen.getByRole('button', { name: 'Turn sound off' }))
+    expect(video.muted).toBe(true)
+    expect(localStorage.getItem('trailgame.clipSound')).toBe('off')
+    await user.click(screen.getByRole('button', { name: 'Turn sound on' }))
+    expect(video.muted).toBe(false)
+    expect(localStorage.getItem('trailgame.clipSound')).toBe('on')
     expect(readSave()!.state.activeRace).not.toBeNull()
     await user.click(screen.getByRole('button', { name: 'Skip' }))
     expect(await screen.findByText(/Aid station 1 of 1/)).toBeInTheDocument()
@@ -49,5 +58,25 @@ describe('race clips (owner request, 3 November 2026)', () => {
     await user.click(screen.getByRole('button', { name: 'Skip' }))
     await screen.findByRole('tab', { name: 'Result' })
     expect(view.router.state.location.pathname).toBe('/races/results/entry-1')
+  })
+
+  it('plays muted when the browser refuses sound without a tap, and the sound button turns it on', async () => {
+    const play = HTMLMediaElement.prototype.play
+    HTMLMediaElement.prototype.play = vi.fn().mockRejectedValueOnce(new Error('NotAllowedError')).mockResolvedValue(undefined)
+    try {
+      const user = userEvent.setup()
+      const entered = withEntry({ ...newGame(), consumables: { gel: 0, bar: 0 } }, 'RACE-001', 0)
+      seedCareer(onSunday(entered.state))
+      await renderApp('/races/run/entry-1')
+      await user.click(screen.getByRole('button', { name: 'Start race' }))
+      const clip = await screen.findByRole('dialog', { name: /Segment 1 of 2/ })
+      const video = clip.querySelector('video')!
+      await screen.findByRole('button', { name: 'Turn sound on' })
+      expect(video.muted).toBe(true)
+      await user.click(screen.getByRole('button', { name: 'Turn sound on' }))
+      expect(video.muted).toBe(false)
+    } finally {
+      HTMLMediaElement.prototype.play = play
+    }
   })
 })

@@ -52,3 +52,31 @@ describe('Inbox (owner request, 6 November 2026)', () => {
     expect(buildInbox(newGame(), Date.UTC(2026, 9, 1)).length).toBe(0)
   })
 })
+
+describe('ranking notifications (owner request, 7 November 2026)', () => {
+  const S = 202611
+  it('notifies entering the top 10, each move inside it and leaving it, and nothing else', async () => {
+    const { rankingEvent, rememberRank } = await import('./inbox')
+    expect(rankingEvent('world', S, undefined, 12, NOV)).toBeNull()
+    expect(rankingEvent('world', S, undefined, 7, NOV)).toMatchObject({ kind: 'ranking', values: { scope: 'world', change: 'entered', rank: 7 } })
+    expect(rankingEvent('world', S, 12, 10, NOV)?.values.change).toBe('entered')
+    expect(rankingEvent('world', S, 7, 4, NOV)?.values).toMatchObject({ change: 'up', rank: 4, previous: 7 })
+    expect(rankingEvent('world', S, 4, 6, NOV)?.values).toMatchObject({ change: 'down', rank: 6, previous: 4 })
+    expect(rankingEvent('world', S, 6, 6, NOV)).toBeNull()
+    expect(rankingEvent('world', S, 9, 15, NOV)?.values).toMatchObject({ change: 'left', previous: 9 })
+    expect(rankingEvent('world', S, 9, null, NOV)?.values.change).toBe('left')
+    expect(rankingEvent('world', S, 30, 40, NOV)).toBeNull()
+
+    // Remembered per scope and season; each event shows in the Inbox, unread.
+    let memory = rememberRank({ seen: {}, read: [] }, 'country', S, 3, NOV, 'AR')
+    memory = rememberRank(memory, 'country', S, 3, NOV + 1, 'AR')
+    memory = rememberRank(memory, 'country', S, 2, NOV + 2, 'AR')
+    expect(memory.ranks).toEqual({ 'country:202611': 2 })
+    expect(memory.events!.map((e) => e.values.change)).toEqual(['up', 'entered'])
+    const { list } = arrange([], memory, NOV + 3)
+    expect(list.map((i) => [i.kind, i.values.change, i.unread])).toEqual([
+      ['ranking', 'up', true],
+      ['ranking', 'entered', true],
+    ])
+  })
+})

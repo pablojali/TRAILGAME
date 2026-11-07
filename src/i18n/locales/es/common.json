@@ -94,5 +94,13 @@
   "inbox.raceDay.body": "Tu carrera es hoy: prepárate y lárgala.",
   "inbox.decay.title": "Forma perdida",
   "inbox.cloud.title": "Guardado en la nube",
-  "inbox.cloud.error": "Tu progreso todavía no se pudo guardar en la nube. Se volverá a intentar."
+  "inbox.cloud.error": "Tu progreso todavía no se pudo guardar en la nube. Se volverá a intentar.",
+  "inbox.ranking.world": "Mundial",
+  "inbox.ranking.entered": "Entraste al top 10: {where}",
+  "inbox.ranking.up": "Subiste en el top 10: {where}",
+  "inbox.ranking.down": "Bajaste en el top 10: {where}",
+  "inbox.ranking.left": "Saliste del top 10: {where}",
+  "inbox.ranking.enteredBody": "Estás #{rank} en esta temporada.",
+  "inbox.ranking.movedBody": "Ahora #{rank} (antes #{previous}).",
+  "inbox.ranking.leftBody": "Estabas #{previous}. Corre para volver a entrar."
 }

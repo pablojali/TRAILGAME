@@ -94,5 +94,13 @@
   "inbox.raceDay.body": "Your race is today: get ready and start it.",
   "inbox.decay.title": "Fitness lost",
   "inbox.cloud.title": "Cloud save",
-  "inbox.cloud.error": "Your progress could not be saved to the cloud yet. It will try again."
+  "inbox.cloud.error": "Your progress could not be saved to the cloud yet. It will try again.",
+  "inbox.ranking.world": "World",
+  "inbox.ranking.entered": "You're in the top 10: {where}",
+  "inbox.ranking.up": "Up in the top 10: {where}",
+  "inbox.ranking.down": "Down in the top 10: {where}",
+  "inbox.ranking.left": "Out of the top 10: {where}",
+  "inbox.ranking.enteredBody": "You're #{rank} this season.",
+  "inbox.ranking.movedBody": "Now #{rank} (was #{previous}).",
+  "inbox.ranking.leftBody": "You were #{previous}. Race to get back in."
 }

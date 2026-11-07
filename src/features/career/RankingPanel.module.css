@@ -75,6 +75,15 @@
   font-weight: 800;
 }
 
+/* Room for four rows (about 55 px each); the list scrolls for the rest. */
+.listBox {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 224px;
+}
+
 .list {
   margin: 0;
   padding: 0;

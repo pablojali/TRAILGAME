@@ -212,11 +212,6 @@
   gap: var(--space-2);
 }
 
-.how {
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 10px;
-}
 
 .muted {
   color: var(--text-muted);

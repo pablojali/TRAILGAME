@@ -140,13 +140,11 @@
   "ranking.unavailable": "Die Rangliste ist online: Sie braucht den Cloud-Speicher.",
   "ranking.noCountry": "Wähle in den Einstellungen das Land deines Läufers, um die Rangliste deines Landes zu sehen.",
   "ranking.settings": "Zu den Einstellungen",
-  "ranking.how": "Punkte gibt es nur für Rennen: Schwierigkeit des Rennens × dein Platz, gezählt werden deine {count} besten Ergebnisse der Saison.",
   "ranking.modes": "Rangliste",
   "ranking.mode.season": "Saison",
   "ranking.mode.annual": "Jährlich",
   "ranking.annualPeriod": "Letzte {months} Monate",
   "ranking.seasonTitle": "{scope} · Saisonrangliste",
   "ranking.annualTitle": "{scope} · Jahresrangliste",
-  "ranking.howAnnual": "Deine {count} besten Ergebnisse jeder Saison aus den letzten {months} Monaten: ältere Ergebnisse verfallen Tag für Tag.",
   "ranking.showMore": "Mehr anzeigen"
 }

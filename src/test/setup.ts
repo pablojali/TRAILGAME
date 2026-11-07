@@ -29,3 +29,9 @@ vi.mock('../data/ranking_points.csv?raw', async () => ({ default: (await import(
 vi.mock('../data/races.csv?raw', async () => ({ default: (await import('./fixtures/races.csv?raw')).default }))
 vi.mock('../data/levels.csv?raw', async () => ({ default: (await import('./fixtures/levels.csv?raw')).default }))
 vi.mock('../domain/athlete/shirtFiles', () => import('./fixtures/shirtFiles'))
+// The owner uploads race clips (assets/race/clips): game tests run without them, so an upload never
+// changes a race flow under test; the player itself is tested with files it is given.
+vi.mock('../features/races/raceClips', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../features/races/raceClips')>()
+  return { ...actual, raceClip: (raceId: string, segment: number, files: Record<string, string> = {}) => actual.raceClip(raceId, segment, files) }
+})

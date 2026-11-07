@@ -27,7 +27,8 @@ const MEDALS: readonly Medal[] = ['gold', 'silver', 'bronze']
 type AchievementId = 'first-steps' | 'trail-explorer' | 'first-summit' | 'elite' | 'podium' | 'champion' | 'rising-star' | 'level' | 'dedicated'
 
 // Bests made way for the ranking (owner request, 5 November 2026).
-const CAREER_TABS = ['achievements', 'medals', 'history', 'ranking'] as const
+// Ranking first and opened by default (owner request, 7 November 2026).
+const CAREER_TABS = ['ranking', 'achievements', 'medals', 'history'] as const
 
 /** Position with its medal, e.g. "🥇 1st of 50". */
 function Position({ position, fieldSize }: { position: number; fieldSize?: number }) {
@@ -56,126 +57,129 @@ export function CareerScreen({ rankingService = getRankingService() }: { ranking
   const [params, setParams] = useSearchParams()
   const { t } = useI18n()
   const tabs = CAREER_TABS.map((id) => ({ id, label: t(`career.tab.${id}`) }))
-  const tab = CAREER_TABS.find((id) => id === params.get('tab')) ?? 'achievements'
+  const tab = CAREER_TABS.find((id) => id === params.get('tab')) ?? 'ranking'
 
   return (
-    <Screen
-      title={t('career.title')}
-      description={t('career.description')}
-      showDescription
-    >
-      {/* The season in one compact row right under the title, then the tabs (owner requests, 5 and
-          6 November 2026: higher, for more room below). */}
-      <section className={`${styles.season} ${styles.seasonCompact}`} aria-labelledby="season-title">
-        <div className={styles.seasonMain}>
-          <h2 id="season-title" className={styles.seasonTitle}>
-            {t('career.season', { year: season.year })}
-          </h2>
-          <Meter
-            label={t('career.seasonProgress', { year: season.year })}
-            value={season.weekOfYear}
-            max={WEEKS_PER_YEAR}
-            valueText={t('career.seasonValue', { week: season.weekOfYear, weeks: WEEKS_PER_YEAR })}
-            className={styles.seasonMeter}
-          />
-          <p className={styles.seasonLine}>
-            {t('career.seasonLine', {
-              week: season.weekOfYear,
-              weeks: WEEKS_PER_YEAR,
-              races: t('career.races', { count: season.races }),
-              medals: t('career.medals', { count: season.medals }),
-            })}
-          </p>
-        </div>
-        <div className={styles.rank}>
-          <span className={styles.rankBadge} aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8l-1-3H9z" />
-            </svg>
-          </span>
-          <span className={styles.rankText}>
-            <span className={styles.rankLabel}>{t('career.bestFinish')}</span>
-            <span className={styles.rankValue}>{season.bestFinish === null ? '—' : `#${season.bestFinish}`}</span>
-          </span>
-        </div>
-      </section>
-
-      {history.length === 0 && (
-        <p className={styles.muted}>
-          {t('career.noRaces')} <Link to="/races">{t('career.goToRaces')}</Link>
-        </p>
-      )}
-
-      <Tabs
-        label={t('career.tabs')}
-        tabs={tabs}
-        value={tab}
-        onChange={(next) => setParams(next === 'achievements' ? {} : { tab: next }, { replace: true })}
+    // Text 10 % smaller on this screen (owner request, 7 November 2026), so more fits.
+    <div className={styles.compactText}>
+      <Screen
+        title={t('career.title')}
+        description={t('career.description')}
+        showDescription
       >
-        {tab === 'ranking' ? (
-          <RankingPanel service={rankingService} />
-        ) : (
-          <ScrollPanel label={t(`career.tab.${tab}`)}>
-            {tab === 'achievements' && (
-              <ul className={styles.achievements}>
-                {achievements.map((achievement) => (
-                  <Achievement key={achievement.definition.id} progress={achievement} />
-                ))}
-              </ul>
-            )}
-            {tab === 'medals' && (
-              <Card title={t('career.medalTable')}>
-                <table className={styles.medalTable}>
-                  <thead>
-                    <tr>
-                      <th scope="col">{t('career.difficulty')}</th>
-                      {MEDALS.map((medal) => (
-                        <th scope="col" key={medal} className={styles.num}>
-                          <MedalIcon medal={medal} label={t(`medal.${medal}`)} />
-                        </th>
-                      ))}
-                      <th scope="col" className={styles.num}>
-                        {t('career.racesCol')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {DIFFICULTIES.map((difficulty) => (
-                      <MedalRow key={difficulty} label={t('race.difficulty', { difficulty })} count={table.byDifficulty[difficulty]} />
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <MedalRow label={t('career.total')} count={table.total} />
-                  </tfoot>
-                </table>
-              </Card>
-            )}
-            {tab === 'history' && (
-              <Card title={t('career.history')}>
-                {history.length === 0 ? (
-                  <p className={styles.muted}>{t('career.historyEmpty')}</p>
-                ) : (
-                  <ul className={styles.list}>
-                    {history.map(({ entry, race }) => (
-                      <li key={entry.id}>
-                        <Link to={`/races/results/${entry.id}`} className={styles.historyRow}>
-                          <span className={styles.when}>
-                            {t('career.when', { week: entry.result.week, day: t(weekdayShortKey(entry.result.day)) })}
-                          </span>
-                          <span className={styles.raceName}>{race.name}</span>
-                          <Position position={entry.result.position} fieldSize={entry.result.fieldSize} />
-                          <span className={styles.time}>{raceTimeText(entry.result.timeS)}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-              )}
-            </Card>
-            )}
-          </ScrollPanel>
+        {/* The season in one compact row right under the title, then the tabs (owner requests, 5 and
+            6 November 2026: higher, for more room below). */}
+        <section className={`${styles.season} ${styles.seasonCompact}`} aria-labelledby="season-title">
+          <div className={styles.seasonMain}>
+            <h2 id="season-title" className={styles.seasonTitle}>
+              {t('career.season', { year: season.year })}
+            </h2>
+            <Meter
+              label={t('career.seasonProgress', { year: season.year })}
+              value={season.weekOfYear}
+              max={WEEKS_PER_YEAR}
+              valueText={t('career.seasonValue', { week: season.weekOfYear, weeks: WEEKS_PER_YEAR })}
+              className={styles.seasonMeter}
+            />
+            <p className={styles.seasonLine}>
+              {t('career.seasonLine', {
+                week: season.weekOfYear,
+                weeks: WEEKS_PER_YEAR,
+                races: t('career.races', { count: season.races }),
+                medals: t('career.medals', { count: season.medals }),
+              })}
+            </p>
+          </div>
+          <div className={styles.rank}>
+            <span className={styles.rankBadge} aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8l-1-3H9z" />
+              </svg>
+            </span>
+            <span className={styles.rankText}>
+              <span className={styles.rankLabel}>{t('career.bestFinish')}</span>
+              <span className={styles.rankValue}>{season.bestFinish === null ? '—' : `#${season.bestFinish}`}</span>
+            </span>
+          </div>
+        </section>
+
+        {history.length === 0 && (
+          <p className={styles.muted}>
+            {t('career.noRaces')} <Link to="/races">{t('career.goToRaces')}</Link>
+          </p>
         )}
-      </Tabs>
-    </Screen>
+
+        <Tabs
+          label={t('career.tabs')}
+          tabs={tabs}
+          value={tab}
+          onChange={(next) => setParams(next === 'ranking' ? {} : { tab: next }, { replace: true })}
+        >
+          {tab === 'ranking' ? (
+            <RankingPanel service={rankingService} />
+          ) : (
+            <ScrollPanel label={t(`career.tab.${tab}`)}>
+              {tab === 'achievements' && (
+                <ul className={styles.achievements}>
+                  {achievements.map((achievement) => (
+                    <Achievement key={achievement.definition.id} progress={achievement} />
+                  ))}
+                </ul>
+              )}
+              {tab === 'medals' && (
+                <Card title={t('career.medalTable')}>
+                  <table className={styles.medalTable}>
+                    <thead>
+                      <tr>
+                        <th scope="col">{t('career.difficulty')}</th>
+                        {MEDALS.map((medal) => (
+                          <th scope="col" key={medal} className={styles.num}>
+                            <MedalIcon medal={medal} label={t(`medal.${medal}`)} />
+                          </th>
+                        ))}
+                        <th scope="col" className={styles.num}>
+                          {t('career.racesCol')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {DIFFICULTIES.map((difficulty) => (
+                        <MedalRow key={difficulty} label={t('race.difficulty', { difficulty })} count={table.byDifficulty[difficulty]} />
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <MedalRow label={t('career.total')} count={table.total} />
+                    </tfoot>
+                  </table>
+                </Card>
+              )}
+              {tab === 'history' && (
+                <Card title={t('career.history')}>
+                  {history.length === 0 ? (
+                    <p className={styles.muted}>{t('career.historyEmpty')}</p>
+                  ) : (
+                    <ul className={styles.list}>
+                      {history.map(({ entry, race }) => (
+                        <li key={entry.id}>
+                          <Link to={`/races/results/${entry.id}`} className={styles.historyRow}>
+                            <span className={styles.when}>
+                              {t('career.when', { week: entry.result.week, day: t(weekdayShortKey(entry.result.day)) })}
+                            </span>
+                            <span className={styles.raceName}>{race.name}</span>
+                            <Position position={entry.result.position} fieldSize={entry.result.fieldSize} />
+                            <span className={styles.time}>{raceTimeText(entry.result.timeS)}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                )}
+              </Card>
+              )}
+            </ScrollPanel>
+          )}
+        </Tabs>
+      </Screen>
+    </div>
   )
 }
 

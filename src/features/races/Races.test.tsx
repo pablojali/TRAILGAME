@@ -120,15 +120,14 @@ describe('Race Detail', () => {
     expect(readSave()!.state).toMatchObject({ coins: 25, raceEntries: [] })
   })
 
-  it('confirms a free entry, records it once and keeps it after a reload', async () => {
+  it('enters in one tap (no confirmation), records it once and keeps it after a reload', async () => {
     const user = userEvent.setup()
     seedCareer(level2())
     const first = await renderApp('/races/RACE-001')
+    // One tap enters (owner request, 7 November 2026).
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
-    expect(screen.getByRole('heading', { name: 'Confirm entry to Forest First Steps' })).toHaveFocus()
-    expect(screen.getByText(/Balance stays 25 coins/)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     await settled()
+    expect(screen.queryByRole('button', { name: /Confirm/ })).not.toBeInTheDocument()
     expect(screen.getByText('Entry confirmed. Entry fee paid: free entry.')).toHaveAttribute('role', 'status')
     expect(screen.getByText(/Race day: Sunday, week 1\./)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Start race/ })).not.toBeInTheDocument()
@@ -145,22 +144,10 @@ describe('Race Detail', () => {
     const user = userEvent.setup()
     seedCareer(level11(0))
     await renderApp('/races/RACE-004')
-    await user.click(screen.getByRole('button', { name: 'Enter race' }))
-    expect(screen.getByText('Free entry.').parentElement).toHaveTextContent('Free entry. Balance stays 0 coins.')
-    await user.dblClick(screen.getByRole('button', { name: 'Confirm free entry' }))
+    await user.dblClick(screen.getByRole('button', { name: 'Enter race' }))
     await settled()
     expect(readSave()!.state).toMatchObject({ coins: 0, raceEntries: [{ raceId: 'RACE-004', feePaid: 0, entryType: 'free' }] })
     expect(readSave()!.state.raceEntries).toHaveLength(1)
-  })
-
-  it('Cancel enters nothing', async () => {
-    const user = userEvent.setup()
-    seedCareer(level11(300))
-    await renderApp('/races/RACE-004')
-    await user.click(screen.getByRole('button', { name: 'Enter race' }))
-    await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.getByRole('button', { name: 'Enter race' })).toBeInTheDocument()
-    expect(readSave()!.state).toMatchObject({ coins: 300, raceEntries: [] })
   })
 
   it('shows a not-found screen for an unknown race', async () => {
@@ -174,7 +161,6 @@ describe('Race Detail', () => {
 describe('Race day and results', () => {
   async function enterAndStart(user: ReturnType<typeof userEvent.setup>) {
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
-    await user.click(screen.getByRole('button', { name: /^Confirm free entry|^Pay / }))
     await settled()
     await user.click(screen.getByRole('link', { name: /^Prepare race/ }))
     await runToFinish(user)
@@ -199,7 +185,6 @@ describe('Race day and results', () => {
     await renderApp('/races/RACE-001')
     expect(screen.getByText('Sunday, week 1')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
-    await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     await settled()
     expect(screen.getByText('Race day: Sunday, week 1.')).toBeInTheDocument()
     expect(screen.getByText(/Today is Monday\. Train until then/)).toBeInTheDocument()
@@ -357,7 +342,6 @@ describe('Race day and results', () => {
     seedCareer(onSunday(withAthlete(newGame(), { xp: 1000, fatigue: 90 })))
     await renderApp('/races/RACE-001')
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
-    await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     await settled()
     await user.click(screen.getByRole('link', { name: 'Prepare race — injury risk' }))
     await runToFinish(user)
@@ -378,7 +362,6 @@ describe('Race day and results', () => {
     await renderApp('/races/RACE-001')
     expect(screen.getByText('Sunday, week 2')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Enter race' }))
-    await user.click(screen.getByRole('button', { name: 'Confirm free entry' }))
     await settled()
     expect(screen.getByText(/Sunday is a forced rest day, so the race moves to Sunday of week 2/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Start race/ })).not.toBeInTheDocument()

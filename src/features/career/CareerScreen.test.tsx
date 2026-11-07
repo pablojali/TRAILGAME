@@ -25,11 +25,13 @@ describe('Career', () => {
     await renderApp('/career')
     expect(screen.getByRole('heading', { level: 1, name: 'Career' })).toBeInTheDocument()
     expect(screen.getByText(/No races yet/)).toBeInTheDocument()
-    // Year 1, no results yet; achievements first, none reached.
+    // Year 1, no results yet. Ranking is the first tab (owner request, 7 November 2026); no challenge reached.
     expect(screen.getByRole('heading', { level: 2, name: 'Year 1' })).toBeInTheDocument()
     expect(screen.getByRole('meter', { name: 'Year 1 progress' })).toHaveAttribute('aria-valuetext', 'Week 1 of 52')
     expect(screen.getByText('Best finish').nextElementSibling).toHaveTextContent('—')
-    expect(screen.getByRole('tab', { name: 'Challenges' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getAllByRole('tab').slice(0, 4).map((tab) => tab.textContent)).toEqual(['Ranking', 'Challenges', 'Trophies', 'History'])
+    expect(screen.getByRole('tab', { name: 'Ranking' })).toHaveAttribute('aria-selected', 'true')
+    await userEvent.setup().click(screen.getByRole('tab', { name: 'Challenges' }))
     expect(screen.getByRole('meter', { name: 'Race Starter, level 1' })).toHaveAttribute('aria-valuetext', '0 of 1')
     await userEvent.setup().click(screen.getByRole('tab', { name: 'Trophies' }))
     expect(within(screen.getByRole('table')).getByRole('row', { name: 'Total 0 0 0 0' })).toBeInTheDocument()
@@ -50,6 +52,7 @@ describe('Career', () => {
     // Season: two races, one medal, best finish 1st. Achievements: Race Starter level 1 reached.
     expect(screen.getByText(/2 races · 1 medal/)).toBeInTheDocument()
     expect(screen.getByText('Best finish').nextElementSibling).toHaveTextContent('#1')
+    await user.click(screen.getByRole('tab', { name: 'Challenges' }))
     expect(screen.getByRole('meter', { name: 'Race Starter, level 2' })).toHaveAttribute('aria-valuetext', '2 of 5')
     expect(screen.getByRole('meter', { name: 'Champion, level 2' })).toHaveAttribute('aria-valuetext', '1 of 3')
 

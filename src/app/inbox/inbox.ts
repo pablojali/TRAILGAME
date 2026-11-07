@@ -49,7 +49,7 @@ export function buildInbox(state: GameState, now: number, transient: Transient =
   // Challenge levels reached.
   for (const progress of getAchievements(state)) {
     for (let level = 1; level <= progress.reached; level++) {
-      items.push({ id: `challenge:${progress.definition.id}:${level}`, kind: 'challenge', link: '/career', values: { id: progress.definition.id, level } })
+      items.push({ id: `challenge:${progress.definition.id}:${level}`, kind: 'challenge', link: '/career?tab=achievements', values: { id: progress.definition.id, level } })
     }
   }
   // The level reached.
@@ -62,7 +62,7 @@ export function buildInbox(state: GameState, now: number, transient: Transient =
       id: `season:${season}`,
       kind: 'season',
       at: seasonBounds(season).start,
-      link: '/career?tab=ranking',
+      link: '/career',
       values: { season: season % 100, year: Math.floor(season / 100) },
     })
   }

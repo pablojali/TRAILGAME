@@ -246,7 +246,7 @@ function ActiveChallenge() {
           {reward.coins > 0 && <Coins amount={reward.coins} />}
           {reward.xp > 0 && <span className={styles.challengeXp}>{t('dashboard.rewardXp', { xp: number(reward.xp) })}</span>}
         </span>
-        <Link to="/career" className={styles.challengeLink}>
+        <Link to="/career?tab=achievements" className={styles.challengeLink}>
           {t('dashboard.viewChallenges')}
         </Link>
       </div>

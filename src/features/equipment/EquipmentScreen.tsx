@@ -445,6 +445,12 @@ function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string
   )
 }
 
+/**
+ * Buying takes one tap (owner request, 7 November 2026), so the second click of a double tap
+ * (`detail` 2 or more) is ignored: it must not buy twice or equip what was just bought.
+ */
+const isRepeatClick = (event: { detail: number }) => event.detail > 1
+
 /** The large card of an item: picture, name, type, level, bonuses, price and its actions. */
 function ItemDetail({
   item,
@@ -462,7 +468,6 @@ function ItemDetail({
   const { t, locale } = useI18n()
   const coins = (count: number) => t('common.coins', { count })
   const heading = useRef<HTMLHeadingElement>(null)
-  const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState('')
   // Purchases and equipment changes wait for the server; a second tap meanwhile does nothing.
   const [busy, setBusy] = useState<'paying' | 'equipping' | null>(null)
@@ -549,11 +554,6 @@ function ItemDetail({
           {t('equipment.youNeed', { coins: coins(shortfall) })}
         </p>
       )}
-      {confirming && price !== null && (
-        <p className={styles.muted}>
-          {t('equipment.balanceChange', { from: coins(state.coins), to: coins(state.coins - price) })}
-        </p>
-      )}
       {error && (
         <p role="alert" className={styles.warning}>
           {error}
@@ -566,7 +566,8 @@ function ItemDetail({
             type="button"
             className={`${button.button} ${button.primary}`}
             aria-disabled={busy !== null || undefined}
-            onClick={() =>
+            onClick={(event) =>
+              !isRepeatClick(event) &&
               run('equipping', async () => {
                 const failure = await setItemEquipped(item.id, !worn)
                 if (failure) return t(EQUIP_ERRORS[failure])
@@ -580,46 +581,28 @@ function ItemDetail({
           </button>
         ) : price === null ? (
           <p className={styles.muted}>{t('equipment.notForSale')}</p>
-        ) : confirming ? (
-          <>
-            <button
-              type="button"
-              className={`${button.button} ${button.secondary}`}
-              aria-disabled={busy !== null || undefined}
-              onClick={() => busy === null && setConfirming(false)}
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="button"
-              className={`${button.button} ${button.primary}`}
-              aria-disabled={busy !== null || undefined}
-              onClick={() =>
-                run('paying', async () => {
-                  const failure = await buyItem(item.id, price)
-                  if (failure) return t(BUY_ERRORS[failure])
-                  setConfirming(false)
-                  onMessage(t('equipment.boughtMessage', { what, coins: coins(price) }))
-                  return null
-                })
-              }
-            >
-              {busy === 'paying' ? t('equipment.paying') : t('equipment.pay', { coins: coins(price) })}
-            </button>
-          </>
         ) : (
           <button
             type="button"
             className={`${button.button} ${button.primary}`}
-            aria-disabled={shortfall > 0 || undefined}
+            aria-disabled={shortfall > 0 || busy !== null || undefined}
             aria-describedby={shortfall > 0 ? shortfallId : undefined}
-            onClick={() => {
-              if (shortfall > 0) return
-              setError('')
-              setConfirming(true)
+            // One tap buys (owner request, 7 November 2026: no confirmation step).
+            onClick={(event) => {
+              if (shortfall > 0 || isRepeatClick(event)) return
+              void run('paying', async () => {
+                const failure = await buyItem(item.id, price)
+                if (failure) return t(BUY_ERRORS[failure])
+                onMessage(t('equipment.boughtMessage', { what, coins: coins(price) }))
+                return null
+              })
             }}
           >
-            {consumable ? t('equipment.buyPack', { count: item.packSize! }) : t('equipment.buy')}
+            {busy === 'paying'
+              ? t('equipment.paying')
+              : consumable
+                ? t('equipment.buyPack', { count: item.packSize! })
+                : t('equipment.buy')}
             <span className={styles.srOnly}> {(consumable ? itemLabel(item, locale) : itemDisplayName(item, locale, t)).toLowerCase()}</span>
           </button>
         )}

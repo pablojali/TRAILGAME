@@ -95,6 +95,13 @@ export interface CoachProgress {
   welcomeStep: number
   /** True once the player finished or skipped the welcome: it is never shown again. */
   welcomeDone: boolean
+  /**
+   * Coach moments already shown, by id (src/features/coach/moments.ts): each appears once. Missing:
+   * none shown yet.
+   */
+  seen?: string[]
+  /** The step of the moment on screen, so a reload resumes there (0 when none is in progress). */
+  step?: number
 }
 
 /** A race between its start and its finish: the inputs fixed at the start and the segments run. */

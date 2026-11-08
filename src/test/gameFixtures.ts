@@ -2,6 +2,7 @@ import type { ProfileId } from '../domain/athlete/athlete'
 import { getLevel } from '../domain/athlete/levels'
 import type { SessionType } from '../domain/training/sessions'
 import { createInitialGameState, type AthleteIdentity, type GameState, type PendingRaceEntry } from '../game-engine/gameState'
+import { MOMENT_IDS } from '../features/coach/moments'
 import { executeCurrentDay, planSession, type DayRef } from '../game-engine/training'
 
 /** Fixed creation time used by engine tests. */
@@ -15,9 +16,9 @@ export function newGame(
   now = T0,
   identity: AthleteIdentity = TEST_IDENTITY,
 ): GameState {
-  // A career past the coach's welcome (Trail Coach M1), so screens open directly; welcome tests
-  // use createInitialGameState.
-  return { ...createInitialGameState(profile, now, identity), coach: { welcomeStep: 2, welcomeDone: true } }
+  // A career past the coach's welcome and moments (Trail Coach), so screens open directly; coach
+  // tests use createInitialGameState.
+  return { ...createInitialGameState(profile, now, identity), coach: { welcomeStep: 1, welcomeDone: true, seen: [...MOMENT_IDS] } }
 }
 
 export function currentRef(state: GameState): DayRef {

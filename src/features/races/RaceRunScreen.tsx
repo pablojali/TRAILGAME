@@ -246,7 +246,7 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
                 </ol>
               </section>
 
-              <div className={styles.choiceTiles} role="group" aria-label={t('raceRun.nutrition')}>
+              <div className={styles.choiceTiles} role="group" aria-label={t('raceRun.nutrition')} data-coach="nutrition">
                 <NutritionToggle label={t('raceRun.gel')} effect={t('raceRun.gelEffect')} stock={consumables.gel} taken={gel} onChange={setGel} />
                 <NutritionToggle label={t('raceRun.bar')} effect={t('raceRun.barEffect')} stock={consumables.bar} taken={bar} onChange={setBar} />
               </div>
@@ -256,7 +256,7 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
                 </Link>
               )}
 
-              <section className={styles.tile} aria-label={t('raceRun.segmentIntensity', { segment: 1 })}>
+              <section className={styles.tile} aria-label={t('raceRun.segmentIntensity', { segment: 1 })} data-coach="intensity">
                 <span className={styles.tileLabel}>{t('raceRun.segmentIntensity', { segment: 1 })}</span>
                 <div className={styles.chipsTight}>
                   <Chips<Intensity>
@@ -280,7 +280,7 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
             {error}
           </p>
         )}
-        <button type="button" className={`${button.button} ${button.primary}`} aria-disabled={busy || undefined} onClick={start}>
+        <button type="button" className={`${button.button} ${button.primary}`} aria-disabled={busy || undefined} onClick={start} data-coach="start-race">
           {busy ? t('raceRun.starting') : t('raceRun.start')}
         </button>
       </div>

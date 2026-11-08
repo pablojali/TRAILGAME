@@ -85,7 +85,7 @@ export function DashboardScreen() {
 
         <div className={styles.stage}>
 
-          <section className={`${styles.side} ${styles.left}`} aria-label={t('dashboard.attributes')}>
+          <section className={`${styles.side} ${styles.left}`} aria-label={t('dashboard.attributes')} data-coach="attributes">
             <ul className={styles.sideList}>
               {ATTRIBUTE_IDS.map((id) => (
                 <li key={id} className={styles.attribute}>
@@ -149,7 +149,7 @@ export function DashboardScreen() {
                   </>
                 )}
               </div>
-              <div className={styles.stat}>
+              <div className={styles.stat} data-coach="condition">
                 <dt>{t('stat.fitness')}</dt>
                 <dd className={styles.value}>{formatStat(athlete.fitness)}</dd>
                 <dd>
@@ -162,7 +162,7 @@ export function DashboardScreen() {
                   />
                 </dd>
               </div>
-              <div className={`${styles.stat} ${fatigueHigh ? styles.fatigueHigh : ''}`}>
+              <div className={`${styles.stat} ${fatigueHigh ? styles.fatigueHigh : ''}`} data-coach="condition">
                 <dt>{t('stat.fatigue')}</dt>
                 <dd className={styles.value}>
                   {athlete.fatigue}
@@ -198,6 +198,7 @@ export function DashboardScreen() {
           <Link
             to={todayRace ? `/races/${todayRace.id}` : '/training'}
             className={`${button.button} ${button.primary} ${styles.todayButton}`}
+            data-coach={todayRace ? undefined : 'go-training'}
           >
             {todayRace ? t('dashboard.goToRace') : t('dashboard.train')}
           </Link>

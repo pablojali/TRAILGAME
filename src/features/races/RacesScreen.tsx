@@ -47,7 +47,7 @@ export function RacesScreen() {
         value={difficulty}
         onChange={(next) => setParams({ difficulty: next }, { replace: true })}
       >
-        <ul className={styles.raceList}>
+        <ul className={styles.raceList} data-coach="race-list">
           {races.map((race) => {
             const open = canEnterAtLevel(race, level)
             const entered = getPendingEntry(state, race.id)

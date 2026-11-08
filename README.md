@@ -110,8 +110,11 @@ The coach that welcomes a new career (Trail Coach M1) matches the player's runne
 `assets/coach/coach_{dark|asian|light}.jpg` holds two round portraits, the men's coach on top and the
 women's coach below. `python3 scripts/prepare_coach_art.py` (needs Pillow; CI runs it) cuts them out
 to `assets/coach/portraits/{men|women}_{tone}.webp`. Skin tone 1 → dark, 2 and 4 → asian, 3 → light
-(`src/features/coach/coach.ts`). The welcome's progress is saved in the career (`coach`, client-owned);
-careers from before the coach have none and never see it.
+(`src/features/coach/coach.ts`). After the two welcome screens the coach comes back once at key
+points (`src/features/coach/moments.ts`): a Dashboard tour, Training, the end of the first week, the
+race list, the race preparation and Career after the first race. It points at elements marked
+`data-coach="…"`. Progress (welcome step, moments seen) is saved in the career (`coach`,
+client-owned); careers from before the coach have none and never see it.
 
 ## Adding runner creation artwork
 

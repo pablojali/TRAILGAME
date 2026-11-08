@@ -3,20 +3,12 @@ import { useNavigate } from 'react-router'
 import { useGame } from '../../app/game/gameContext'
 import { backgroundImage } from '../../components/backdrop/backdrops'
 import button from '../../components/Button.module.css'
-import { useI18n, type MessageKey } from '../../i18n/i18n'
+import { useI18n } from '../../i18n/i18n'
 import { coachPortrait, WELCOME_STEPS } from './coach'
 import styles from './WelcomeScreen.module.css'
 
-const JOURNEY: readonly MessageKey[] = [
-  'coach.journey.train',
-  'coach.journey.develop',
-  'coach.journey.equipment',
-  'coach.journey.compete',
-  'coach.journey.progress',
-]
-
 /**
- * Trail Coach M1, the first welcome (owner request, 8 November 2026): three screens with the coach
+ * Trail Coach M1, the first welcome (owner request, 8 November 2026): two screens with the coach
  * before a new career's first Dashboard. The step is saved, so a reload resumes where the player
  * left; finishing or skipping marks it done for good and opens the Dashboard.
  */
@@ -73,13 +65,6 @@ export function WelcomeScreen() {
         <h1 id="coach-welcome-title" ref={heading} tabIndex={-1} className={styles.title}>
           {t(`coach.${id}.title`)}
         </h1>
-        {id === 'journey' && (
-          <ul className={styles.journey}>
-            {JOURNEY.map((key) => (
-              <li key={key}>{t(key)}</li>
-            ))}
-          </ul>
-        )}
         <p className={styles.text}>{t(`coach.${id}.text`)}</p>
         <button type="button" className={`${button.button} ${button.primary} ${button.block} ${styles.action}`} onClick={next}>
           {t(`coach.${id}.action`)}

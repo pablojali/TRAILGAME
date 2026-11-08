@@ -140,7 +140,7 @@ export function TrainingScreen() {
         <p className={styles.eyebrow}>{t('training.week', { week: week.number })}</p>
       </header>
 
-      <ol className={styles.strip} aria-label={t('training.weekPlan', { week: week.number })}>
+      <ol className={styles.strip} aria-label={t('training.weekPlan', { week: week.number })} data-coach="week">
         {week.days.map((day, index) => {
           const dayStatus = getDayStatus(week, index)
           const forced = index >= week.currentDayIndex && index < week.currentDayIndex + state.forcedRestDays
@@ -357,7 +357,7 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
 
   return (
     <>
-      <div className={styles.field}>
+      <div className={styles.field} data-coach="session">
         <label htmlFor={selectId} className={styles.srOnly}>
           {t('training.sessionFor', { day: t(weekdayLongKey(today.day)) })}
         </label>
@@ -397,7 +397,7 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
         )}
       </div>
 
-      <dl className={styles.effects}>
+      <dl className={styles.effects} data-coach="session">
         <div>
           <dt>{t('stat.xp')}</dt>
           <dd>
@@ -453,6 +453,7 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
         className={`${button.button} ${effects.injured ? button.danger : button.primary} ${button.block}`}
         aria-disabled={cooldown || busy || undefined}
         onClick={onComplete}
+        data-coach="complete-day"
       >
         {busy
           ? t('training.saving')

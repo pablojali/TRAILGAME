@@ -6,7 +6,7 @@ import { STARTING_PROFILE } from '../../domain/athlete/profiles'
 import type { SessionType } from '../../domain/training/sessions'
 import { allocateAttributePoint, type AllocationError } from '../../game-engine/attributes'
 import { applyFitnessDecay } from '../../game-engine/fitnessDecay'
-import { createInitialGameState, type AthleteIdentity, type GameState } from '../../game-engine/gameState'
+import { createInitialGameState, type AthleteIdentity, type CoachProgress, type GameState } from '../../game-engine/gameState'
 import type { Appearance } from '../../domain/athlete/appearance'
 import { setAppearance } from '../../game-engine/appearance'
 import { buyItem, setItemEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
@@ -561,6 +561,16 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
     [commit, currentState],
   )
 
+  const changeCoachProgress = useCallback(
+    (progress: CoachProgress) => {
+      const state = currentState()
+      if (!state || !Number.isInteger(progress.welcomeStep) || progress.welcomeStep < 0) return 'invalid' as const
+      commit({ kind: 'playing', state: { ...state, coach: { ...progress } } })
+      return null
+    },
+    [commit, currentState],
+  )
+
   const value = useMemo<GameContextValue>(
     () => ({
       phase,
@@ -593,6 +603,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       buyItem: buy,
       setAppearance: changeAppearance,
       setCountry: changeCountry,
+      setCoachProgress: changeCoachProgress,
     }),
     [
       phase,
@@ -620,6 +631,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       buy,
       changeAppearance,
       changeCountry,
+      changeCoachProgress,
     ],
   )
 

@@ -15,7 +15,9 @@ export function newGame(
   now = T0,
   identity: AthleteIdentity = TEST_IDENTITY,
 ): GameState {
-  return createInitialGameState(profile, now, identity)
+  // A career past the coach's welcome (Trail Coach M1), so screens open directly; welcome tests
+  // use createInitialGameState.
+  return { ...createInitialGameState(profile, now, identity), coach: { welcomeStep: 2, welcomeDone: true } }
 }
 
 export function currentRef(state: GameState): DayRef {

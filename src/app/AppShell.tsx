@@ -7,6 +7,7 @@ import { Backdrop } from '../components/backdrop/Backdrop'
 import { sceneForPath } from '../components/backdrop/backdrops'
 import { Icon } from '../components/Icon'
 import { CareerCreationScreen } from '../features/career-setup/CareerCreationScreen'
+import { WelcomeScreen } from '../features/coach/WelcomeScreen'
 import { IncompatibleSaveScreen } from '../features/career-setup/IncompatibleSaveScreen'
 import button from '../components/Button.module.css'
 import { Screen } from '../components/Screen'
@@ -36,6 +37,16 @@ export function AppShell() {
 
   // Until a career exists the player is in a setup flow: no navigation, fixed-height layout.
   const inSetup = phase.kind !== 'playing'
+
+  // A new career meets its coach first (Trail Coach M1): full screen, no bars, until done or skipped.
+  if (phase.kind === 'playing' && phase.state.coach?.welcomeDone === false) {
+    return (
+      <>
+        <WelcomeScreen />
+        <ConflictDialog />
+      </>
+    )
+  }
 
   return (
     <div className={`${styles.shell} ${inSetup ? styles.setup : styles.scenic}`}>

@@ -1,0 +1,19 @@
+{
+  "coach.label": "Il tuo allenatore",
+  "coach.skip": "Salta",
+  "coach.progress": "Passo {step} di {count}",
+  "coach.welcome.title": "Benvenuto in Trail Manager!",
+  "coach.welcome.text": "Sono il tuo allenatore. Sarò qui per aiutarti a costruire la tua carriera nel trail running.",
+  "coach.welcome.action": "Andiamo",
+  "coach.journey.title": "Il tuo percorso",
+  "coach.journey.train": "Allena e migliora il tuo corridore",
+  "coach.journey.develop": "Sviluppa i tuoi attributi e la tua forma",
+  "coach.journey.equipment": "Prepara la tua attrezzatura",
+  "coach.journey.compete": "Gareggia nelle corse trail",
+  "coach.journey.progress": "Fai crescere la tua carriera",
+  "coach.journey.text": "Ci alleneremo, miglioreremo le tue capacità, prepareremo l'attrezzatura e gareggeremo in montagna. Ogni decisione conta.",
+  "coach.journey.action": "Continua",
+  "coach.start.title": "Un passo alla volta",
+  "coach.start.text": "Non devi imparare tutto oggi. Ti spiegherò le cose quando ti serviranno. Prepariamo la tua prima settimana!",
+  "coach.start.action": "Inizia la mia carriera"
+}

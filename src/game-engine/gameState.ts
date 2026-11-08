@@ -82,6 +82,19 @@ export interface GameState {
    * level gives its coins and XP once. Server-decided like the rest of the progression.
    */
   achievementLevelsRewarded: Record<string, number>
+  /**
+   * Trail Coach progress (owner request, 8 November 2026). Client-owned, like the name and the look.
+   * Missing: a career from before the coach existed, so its welcome counts as already seen.
+   */
+  coach?: CoachProgress
+}
+
+/** What the Trail Coach has already shown the player. Later coach features add fields here. */
+export interface CoachProgress {
+  /** The welcome screen the player is on (0-based), so a reload resumes there. */
+  welcomeStep: number
+  /** True once the player finished or skipped the welcome: it is never shown again. */
+  welcomeDone: boolean
 }
 
 /** A race between its start and its finish: the inputs fixed at the start and the segments run. */
@@ -256,6 +269,8 @@ export function createInitialGameState(
     consumables: { gel: 0, bar: 0 },
     activeRace: null,
     achievementLevelsRewarded: {},
+    // A new career starts with the coach's welcome still to see.
+    coach: { welcomeStep: 0, welcomeDone: false },
   }
 }
 

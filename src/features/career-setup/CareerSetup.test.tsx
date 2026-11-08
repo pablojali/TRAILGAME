@@ -24,6 +24,13 @@ async function createCareer(user: User, sex: Sex, name: string) {
   await user.selectOptions(screen.getByLabelText('Country'), 'AR')
   await user.click(screen.getByRole('button', { name: 'Start career' }))
   await started()
+  await skipWelcome(user)
+}
+
+/** A new career meets the coach first (Trail Coach M1); skipping opens the Dashboard. */
+async function skipWelcome(user: User) {
+  expect(screen.getByRole('heading', { level: 1, name: 'Welcome to Trail Manager!' })).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Skip' }))
 }
 
 /** The career is started asynchronously (by the server when one is configured). */
@@ -230,6 +237,8 @@ describe('career creation — name step', () => {
       spentAttributePoints: 0,
     })
     expect(save.state.fitnessDecayReference).toBe(T0)
+    // The welcome was skipped: saved as done, never shown again.
+    expect(save.state.coach).toEqual({ welcomeStep: 0, welcomeDone: true })
   })
 
   it('asks for the country, guessed from the browser language, and requires one', async () => {
@@ -324,6 +333,7 @@ describe('incompatible save', () => {
     await user.type(screen.getByLabelText('Runner name'), 'Marta')
     await user.click(screen.getByRole('button', { name: 'Start career' }))
     await started()
+    await skipWelcome(user)
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
     expect(readSave()).toMatchObject({
       schemaVersion: 2,

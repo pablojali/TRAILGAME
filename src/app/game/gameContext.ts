@@ -6,7 +6,7 @@ import type { SessionType } from '../../domain/training/sessions'
 import type { AppearanceError } from '../../game-engine/appearance'
 import type { AllocationError } from '../../game-engine/attributes'
 import type { BuyError, EquipError } from '../../game-engine/equipment'
-import type { AthleteIdentity, GameState } from '../../game-engine/gameState'
+import type { AthleteIdentity, CoachProgress, GameState } from '../../game-engine/gameState'
 import type {
   RaceDayResult,
   RaceEntryError,
@@ -94,6 +94,8 @@ export interface GameContextValue {
   setAppearance(appearance: Appearance): AppearanceError | null
   /** Changes the runner's country (ISO 3166-1 alpha-2). Unknown codes are refused. */
   setCountry(country: string): 'invalid' | null
+  /** Saves the Trail Coach progress (client-owned, like the look). Refused without a career. */
+  setCoachProgress(progress: CoachProgress): 'invalid' | null
   /**
    * Starts the scheduled race (Race Engine V1): the server runs the first segment with the chosen
    * intensity and takes the gel and bar asked for. The race in progress is then `state.activeRace`.

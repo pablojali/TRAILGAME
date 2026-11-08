@@ -25,6 +25,7 @@ import { INJURY_REST_DAYS } from '../domain/training/injury'
 import { isSessionType } from '../domain/training/sessions'
 import {
   DAYS_PER_WEEK,
+  type CoachProgress,
   type DayOutcome,
   type GameState,
   type RaceEntry,
@@ -464,7 +465,15 @@ export function parseGameState(value: unknown, now: number): GameState | null {
   // rewarded, so nothing is given for them afterwards.
   parsed.achievementLevelsRewarded =
     rewarded === undefined ? getReachedLevels(parsed) : { ...(rewarded as Record<string, number>) }
+  // Missing or invalid coach progress: no welcome (cosmetic; never rejects a save).
+  const coach = parseCoachProgress(value.coach)
+  if (coach) parsed.coach = coach
   return parsed
+}
+
+function parseCoachProgress(value: unknown): CoachProgress | null {
+  if (!isRecord(value) || !isInt(value.welcomeStep, 0) || typeof value.welcomeDone !== 'boolean') return null
+  return { welcomeStep: value.welcomeStep, welcomeDone: value.welcomeDone }
 }
 
 /** Classifies a raw saved string. Never throws. */

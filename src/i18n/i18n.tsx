@@ -11,6 +11,7 @@ import enLooks from './locales/en/looks.json'
 import enAccount from './locales/en/account.json'
 import enEquipment from './locales/en/equipment.json'
 import enSettings from './locales/en/settings.json'
+import enCoach from './locales/en/coach.json'
 
 /**
  * The game's languages (owner request, 4 November 2026): English, Spanish, French, Italian and
@@ -33,7 +34,7 @@ type Message = string | Partial<Record<Intl.LDMLPluralRule, string>>
 export type Messages = Record<string, Message>
 
 /** English, the reference: its keys type `t()`. Add a new file here and in every language. */
-const EN = { ...enCommon, ...enSettings, ...enEquipment, ...enDashboard, ...enTraining, ...enRaces, ...enRaceRun, ...enRaceResult, ...enCareer, ...enSetup, ...enLooks, ...enAccount }
+const EN = { ...enCommon, ...enSettings, ...enEquipment, ...enDashboard, ...enTraining, ...enRaces, ...enRaceRun, ...enRaceResult, ...enCareer, ...enSetup, ...enLooks, ...enAccount, ...enCoach }
 
 const FILES = import.meta.glob<Messages>('./locales/*/*.json', { eager: true, import: 'default' })
 

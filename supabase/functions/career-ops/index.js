@@ -661,7 +661,9 @@ function createInitialGameState(profile, now, identity) {
     ownedEquipment: [...OWNED_FROM_START],
     consumables: { gel: 0, bar: 0 },
     activeRace: null,
-    achievementLevelsRewarded: {}
+    achievementLevelsRewarded: {},
+    // A new career starts with the coach's welcome still to see.
+    coach: { welcomeStep: 0, welcomeDone: false }
   };
 }
 function getCurrentDay(week) {
@@ -2251,7 +2253,13 @@ function parseGameState(value, now) {
     achievementLevelsRewarded: {}
   };
   parsed.achievementLevelsRewarded = rewarded === void 0 ? getReachedLevels(parsed) : { ...rewarded };
+  const coach = parseCoachProgress(value.coach);
+  if (coach) parsed.coach = coach;
   return parsed;
+}
+function parseCoachProgress(value) {
+  if (!isRecord(value) || !isInt(value.welcomeStep, 0) || typeof value.welcomeDone !== "boolean") return null;
+  return { welcomeStep: value.welcomeStep, welcomeDone: value.welcomeDone };
 }
 
 // src/server/careerOps.ts
@@ -2271,6 +2279,7 @@ function mergeClientFields(server, client, now) {
       ...client.athlete.country === void 0 ? {} : { country: client.athlete.country }
     }
   };
+  if (client.coach && server.coach) merged.coach = server.coach?.welcomeDone ? { ...client.coach, welcomeDone: true } : client.coach;
   const look = setAppearance(merged, client.athlete.appearance);
   if (look.ok) merged = look.state;
   if (client.week.number === server.week.number) {

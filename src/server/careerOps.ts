@@ -116,7 +116,7 @@ function readRecord(record: CareerRecord, now: number): GameState | null {
 
 /**
  * The server's career with the fields the client owns taken from the client's snapshot: name,
- * sex, country and look (validated by the engine) and the planned sessions of today and the rest of the
+ * sex, country and look (validated by the engine), the Trail Coach progress and the planned sessions of today and the rest of the
  * week (validated by the engine).
  * Progression, coins, owned and worn items and race entries always stay the server's (Phase
  * 3B.2). An invalid result falls back to the server's career.
@@ -131,6 +131,9 @@ export function mergeClientFields(server: GameState, client: GameState, now: num
       ...(client.athlete.country === undefined ? {} : { country: client.athlete.country }),
     },
   }
+  // The coach's progress is the player's; a welcome already done (or a career from before the
+  // coach, which has none) stays done.
+  if (client.coach && server.coach) merged.coach = server.coach?.welcomeDone ? { ...client.coach, welcomeDone: true } : client.coach
   const look = setAppearance(merged, client.athlete.appearance)
   if (look.ok) merged = look.state
   // The plan for today and the rest of the week (validated by the engine, day by day).

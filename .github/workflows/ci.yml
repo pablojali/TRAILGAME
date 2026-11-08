@@ -25,6 +25,7 @@ jobs:
           python-version: '3.13'
       - run: pip install pillow==12.3.0
       - run: python3 scripts/prepare_avatar_art.py
+      - run: python3 scripts/prepare_coach_art.py
       # The Edge Function bundle is rebuilt from the code and the owner's tables (src/data/*.csv),
       # so a table edited on GitHub is checked and deployed without a manual rebuild.
       - run: npm run build:functions
@@ -60,12 +61,13 @@ jobs:
           python-version: '3.13'
       - run: pip install pillow==12.3.0
       - run: python3 scripts/prepare_avatar_art.py
+      - run: python3 scripts/prepare_coach_art.py
       - run: npm run build:functions
       - name: Deploy career-ops
         run: npx --yes supabase@2.121.0 functions deploy career-ops --project-ref zalyfrjfmsirvsrkdroy --use-api
       - name: Commit the rebuilt bundle and prepared art if they changed
         run: |
-          git add supabase/functions/career-ops/index.js assets/runner/avatar assets/ui/equipment
+          git add supabase/functions/career-ops/index.js assets/runner/avatar assets/ui/equipment assets/coach/portraits
           if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

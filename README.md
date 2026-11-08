@@ -104,6 +104,15 @@ canvas). After changing or adding one, update the mapping in `scripts/prepare_av
 it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game layers to
 `assets/runner/avatar/`.
 
+## Trail Coach artwork
+
+The coach that welcomes a new career (Trail Coach M1) matches the player's runner. Each original
+`assets/coach/coach_{dark|asian|light}.jpg` holds two round portraits, the men's coach on top and the
+women's coach below. `python3 scripts/prepare_coach_art.py` (needs Pillow; CI runs it) cuts them out
+to `assets/coach/portraits/{men|women}_{tone}.webp`. Skin tone 1 → dark, 2 and 4 → asian, 3 → light
+(`src/features/coach/coach.ts`). The welcome's progress is saved in the career (`coach`, client-owned);
+careers from before the coach have none and never see it.
+
 ## Adding runner creation artwork
 
 1. Put the original illustration in `assets/runner/` (white or light plain background, runner facing

@@ -17,7 +17,7 @@ import {
 } from './races'
 import { getRaceWeek, getScheduledEntry, isRaceDayToday } from './raceSchedule'
 import { rivalTimes, simulateRace } from './raceSimulation'
-import { getRaceField, positionAmong } from './raceEngine'
+import { getEditionField, getRaceField, positionAmong } from './raceEngine'
 import { executeCurrentDay, planSession } from './training'
 
 /** Level 11 (Ridge Runner's recommended level) needs 3,250 XP. */
@@ -173,7 +173,7 @@ describe('raceCurrentDay', () => {
     // Default plan: Target pace (the time before strategies) plus one Normal stop (2 min) at the
     // aid station; the rivals stop too, by rank.
     const timeS = Math.round(sim.timeS * getRaceField(getRace('RACE-001')!).timeScale) + 20
-    const position = positionAmong(timeS, getRaceField(getRace('RACE-001')!).rivalFinishS)
+    const position = positionAmong(timeS, getEditionField(getRace('RACE-001')!, `RACE-001|${entry.id}|${finished.result.startedAt}`).rivalFinishS)
 
     expect(finished.status).toBe('finished')
     expect(finished.result).toMatchObject({
@@ -337,12 +337,12 @@ describe('full results', () => {
     const result = raceCurrentDay(onSunday(entered.state), { week: 1, dayIndex: 6 }, entered.entry.id, T0)
     if (!result.ok) throw new Error(result.error)
     const stored = result.value.entry.result
-    // The rivals' times with their aid-station stops (one stop: 30 s, 2 min or 5 min by rank).
-    expect(stored.rivalTimesS).toEqual(getRaceField(getRace('RACE-001')!).rivalFinishS)
-    const field = getRaceField(getRace('RACE-001')!)
-    expect(stored.rivalTimesS!.map((t, i) => t - field.rivalBaseS[i]!)).toEqual(
-      Array.from({ length: 29 }, (_, i) => (i < 10 ? 10 : i < 20 ? 20 : 45)),
-    )
+    // This edition's rivals (their form of the day fixed by the entry and the start) with their
+    // aid-station stops (one stop: quick, normal or slow by rank: ten of each but the last nine).
+    const field = getEditionField(getRace('RACE-001')!, `RACE-001|${entered.entry.id}|${stored.startedAt}`)
+    expect(stored.rivalTimesS).toEqual(field.rivalFinishS)
+    const stops = stored.rivalTimesS!.map((t, i) => t - field.rivalBaseS[i]!)
+    expect([10, 20, 45].map((s) => stops.filter((x) => x === s).length)).toEqual([10, 10, 9])
     const rows = getStandings(getRace('RACE-001')!, stored)
     expect(rows).toHaveLength(30)
     expect(rows.map((r) => r.position)).toEqual(Array.from({ length: 30 }, (_, i) => i + 1))

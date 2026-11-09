@@ -6,6 +6,7 @@ import { parseGameState } from '../repositories/gameRepository'
 import { newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
 import type { GameState } from './gameState'
 import {
+  getEditionField,
   getRaceField,
   getRaceSegments,
   getRivalStop,
@@ -240,6 +241,29 @@ describe('rivals', () => {
       })
     })
     expect([...field.rivalFinishS].sort((a, b) => a - b)).toEqual(field.rivalFinishS)
+  })
+
+  it('vary from one edition to the next, each rival within its form of the day (owner request, 9 November 2026)', () => {
+    const race = getRace('RACE-001')!
+    const base = getRaceField(race)
+    const one = getEditionField(race, 'RACE-001|entry-1|1000')
+    const two = getEditionField(race, 'RACE-001|entry-2|2000')
+    // Fixed for an edition (a race in progress and its result see the same rivals), new for another.
+    expect(getEditionField(race, 'RACE-001|entry-1|1000')).toEqual(one)
+    expect(one.rivalFinishS).not.toEqual(base.rivalFinishS)
+    expect(one.rivalFinishS).not.toEqual(two.rivalFinishS)
+    // Still fastest first, every rival running within ±3 % of a runner of the base field.
+    expect([...one.rivalFinishS].sort((a, b) => a - b)).toEqual(one.rivalFinishS)
+    const runs = [...one.rivalBaseS].sort((a, b) => a - b)
+    const baseRuns = [...base.rivalBaseS].sort((a, b) => a - b)
+    expect(Math.min(...runs)).toBeGreaterThanOrEqual(Math.floor(baseRuns[0]! * (1 - RACE_STRATEGY.rivalFormMax)))
+    expect(Math.max(...runs)).toBeLessThanOrEqual(Math.ceil(baseRuns.at(-1)! * (1 + RACE_STRATEGY.rivalFormMax)))
+    // Same stops by kind, splits consistent with the finish.
+    expect([...one.rivalStopsS].sort((a, b) => a - b)).toEqual([...base.rivalStopsS].sort((a, b) => a - b))
+    one.rivalFinishS.forEach((t, i) => {
+      expect(t).toBe(one.rivalBaseS[i]! + (one.segments.length - 1) * one.rivalStopsS[i]!)
+      expect(one.rivalArrivalsS[0]![i]!).toBeLessThan(t)
+    })
   })
 })
 

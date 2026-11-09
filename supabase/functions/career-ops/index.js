@@ -1154,6 +1154,12 @@ var RACE_STRATEGY = {
   /** The runner plus 29 NPC rivals (owner decision, 2 November 2026; was 50). */
   fieldSize: 30,
   /**
+   * Each rival's form on the day (owner request, 9 November 2026: the same race gave the same field
+   * every time): running time × (1 ± up to this), drawn per rival and per edition (the runner's
+   * entry), fixed for the whole race.
+   */
+  rivalFormMax: 0.03,
+  /**
    * Running pace (no stops) of the winner and of the last finisher, in minutes per effort-km, by
    * the race's effort-km (owner table, 2 November 2026). Linear between rows, flat outside them.
    */
@@ -1507,6 +1513,24 @@ function getFatigueScale(race, segments = getRaceSegments(race)) {
   const before = Math.round(RACE_SIMULATION.raceFatigueBase + RACE_SIMULATION.raceFatiguePerEffortKm * courseEffortKm(generateCourse(race)));
   return before / plannedGains(segments, RACE_SIMULATION.abilityReference, 1).final;
 }
+function getEditionField(race, seed) {
+  const field = getRaceField(race);
+  const stations = field.segments.length - 1;
+  const rivals = field.rivalBaseS.map((base, i) => {
+    const form = (2 * mulberry32(fnv1a(`${seed}|rival|${i}`)) - 1) * RACE_STRATEGY.rivalFormMax;
+    const run = Math.round(base * (1 + form));
+    const stop = field.rivalStopsS[i];
+    return { run, stop, finish: run + stations * stop };
+  });
+  rivals.sort((a, b) => a.finish - b.finish);
+  return {
+    ...field,
+    rivalBaseS: rivals.map((r) => r.run),
+    rivalStopsS: rivals.map((r) => r.stop),
+    rivalFinishS: rivals.map((r) => r.finish),
+    rivalArrivalsS: field.cumulativeShares.slice(0, stations).map((share, k) => rivals.map((r) => Math.round(r.run * share) + k * r.stop))
+  };
+}
 function getRivalStop(rivalIndex, rivals, front) {
   if (front && rivalIndex < front.frontRanks) return front.frontStop;
   return RACE_STRATEGY.rivalStops[Math.min(2, Math.floor(rivalIndex * 3 / rivals))];
@@ -1596,7 +1620,9 @@ function buildRaceField(race, front) {
     fatigueWeight: fatiguePaceWeight(effort),
     rivalBaseS,
     rivalArrivalsS,
-    rivalFinishS: finish
+    rivalFinishS: finish,
+    rivalStopsS: stopsS,
+    cumulativeShares
   };
 }
 function positionAmong(timeS, rivals) {
@@ -1684,6 +1710,8 @@ function typicalModelSeconds(race, segments, level, plan) {
     stopS: { quick: 0, normal: 0, slow: 0 },
     fatigueWeight: fatiguePaceWeight(courseEffortKm(generateCourse(race))),
     rivalBaseS: [],
+    rivalStopsS: [],
+    cumulativeShares: [],
     rivalArrivalsS: segments.map(() => []),
     rivalFinishS: []
   };
@@ -1906,7 +1934,10 @@ function getRaceRewards(race, position, levelAtStart) {
     xp: Math.max(RACE_MIN_XP, Math.floor(RACE_XP_BASE[race.category] * RACE_XP_BAND_PCT[band] * multiplierPct / 1e4))
   };
 }
-function contextOf(active, race, field = getRaceField(race)) {
+function fieldOf(active, race) {
+  return getEditionField(race, `${active.raceId}|${active.entryId}|${active.startedAt}`);
+}
+function contextOf(active, race, field = fieldOf(active, race)) {
   return {
     race,
     field,
@@ -1977,7 +2008,7 @@ function stepRace(state, decisions, now) {
   if (decisions.segment !== active.splits.length) return { ok: false, error: "wrong-segment" };
   if (!isAidStop(decisions.stop)) return { ok: false, error: "unknown-stop" };
   if (!isIntensity(decisions.intensity)) return { ok: false, error: "unknown-intensity" };
-  const field = getRaceField(race);
+  const field = fieldOf(active, race);
   const ctx = contextOf(active, race, field);
   const progress = runSegment(ctx, makeStop(ctx, toProgress(active), decisions.stop), decisions.intensity);
   const next = withProgress(active, progress);

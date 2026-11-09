@@ -5,7 +5,7 @@ import { applyFitnessDecay } from '../game-engine/fitnessDecay'
 import { execute, newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
 import { getRace } from '../domain/races/races'
 import { getRaceRewards, raceCurrentDay } from '../game-engine/races'
-import { getRaceField } from '../game-engine/raceEngine'
+import { getEditionField } from '../game-engine/raceEngine'
 import { handleCareerOp, type CareerOpsDeps, type CareerOpsStore, type CareerRecord, type OperationKind } from './careerOps'
 
 const NOW = T0 + 60 * 60 * 1000
@@ -570,7 +570,8 @@ describe('career-ops: races step by step on the server (Race Engine V1)', () => 
     const finished = response.body.state.raceEntries[0]!
     if (finished.status !== 'finished') throw new Error('not finished')
     const { result } = finished
-    expect(result.rivalTimesS).toEqual(getRaceField(getRace('RACE-001')!).rivalFinishS)
+    // This edition's rivals: the race's field on their form of the day, fixed by the entry and the start.
+    expect(result.rivalTimesS).toEqual(getEditionField(getRace('RACE-001')!, `RACE-001|${entry.id}|${result.startedAt}`).rivalFinishS)
     expect(result.position).toBe(1 + result.rivalTimesS!.filter((t) => t < result.timeS).length)
     expect(result.fieldSize).toBe(30)
   })

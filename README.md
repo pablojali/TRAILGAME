@@ -104,6 +104,11 @@ canvas). After changing or adding one, update the mapping in `scripts/prepare_av
 it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game layers to
 `assets/runner/avatar/`.
 
+## Trail Studio
+
+The designer edits races and equipment in **Trail Studio** (`trailgame-studio.pages.dev`). It is a
+separate site that proposes changes as pull requests; see `docs/STUDIO.md`.
+
 ## Trail Coach artwork
 
 The coach that welcomes a new career (Trail Coach M1) matches the player's runner. Each original

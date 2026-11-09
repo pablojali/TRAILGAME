@@ -9,9 +9,11 @@
   "scripts": {
     "dev": "vite",
     "dev:lan": "vite --host",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && vite build --config vite.studio.config.ts",
     "preview": "vite preview",
     "preview:lan": "vite preview --host",
+    "dev:studio": "vite --config vite.studio.config.ts",
+    "build:studio": "vite build --config vite.studio.config.ts",
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "test": "vitest run",

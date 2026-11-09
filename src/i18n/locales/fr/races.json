@@ -56,5 +56,7 @@
   "races.levelRange": "· niveaux {min}–{max}",
   "races.closedAbove": "Ouverte jusqu'au niveau {level} (toi : {you}) : choisis une course plus dure.",
   "races.enter": "S'inscrire",
-  "races.entering": "Inscription…"
+  "races.entering": "Inscription…",
+  "races.technical": "Technique",
+  "races.technicalityLabel": "Difficulté technique {value} sur {max}"
 }

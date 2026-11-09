@@ -36,7 +36,7 @@ describe('Race Hub', () => {
     expect(router.state.location.search).toBe('?difficulty=II')
     expect(screen.getAllByRole('link', { name: /km/ })).toHaveLength(3)
     // Level 1: Ridge Runner opens at Level 6 (5 below its recommended level).
-    expect(card('Ridge Runner')).toHaveAccessibleName('Ridge Runner 12 km · 550 m D+ Lvl 6')
+    expect(card('Ridge Runner')).toHaveAccessibleName('Ridge Runner 12 km · 550 m D+ Lvl 6 Technical difficulty 2 of 5')
   })
 
   it('shows Free for races the runner may enter, the opening level, and the last level of easy races', async () => {

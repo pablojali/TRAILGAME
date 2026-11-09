@@ -56,5 +56,7 @@
   "races.levelRange": "· Level {min}–{max}",
   "races.closedAbove": "Offen bis Level {level} (du: {you}): wähle ein härteres Rennen.",
   "races.enter": "Anmelden",
-  "races.entering": "Anmeldung…"
+  "races.entering": "Anmeldung…",
+  "races.technical": "Technik",
+  "races.technicalityLabel": "Technische Schwierigkeit {value} von {max}"
 }

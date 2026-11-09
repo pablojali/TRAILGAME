@@ -2,38 +2,42 @@ import { lookName } from '../../i18n/looks'
 import { difficultyOf } from '../../domain/races/format'
 import { useI18n } from '../../i18n/i18n'
 import { useEffect, useId, useRef } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import button from '../../components/Button.module.css'
 import { getLevelRewards } from '../../game-engine/levelRewards'
 import { useGame } from './gameContext'
+import { inRace } from './inRace'
 import styles from './LevelUpDialog.module.css'
 
 /**
  * Celebration when the runner levels up (owner request, 1 November 2026), shown over any screen as
  * soon as the server (or the device, without one) confirms the day or race: the new level and what
- * it brings (attribute points, looks unlocked, races that open).
+ * it brings (attribute points, looks unlocked, races that open). Never during a race (its last
+ * segment's clip is still playing): it waits for the result screen (owner report, 9 November 2026).
  */
+
 export function LevelUpDialog() {
   const { phase, levelUp, dismissLevelUp } = useGame()
   const navigate = useNavigate()
   const titleId = useId()
   const { t, locale } = useI18n()
   const heading = useRef<HTMLHeadingElement>(null)
+  const racing = inRace(useLocation().pathname)
 
   useEffect(() => {
-    if (levelUp) heading.current?.focus()
-  }, [levelUp])
+    if (levelUp && !racing) heading.current?.focus()
+  }, [levelUp, racing])
 
   useEffect(() => {
-    if (!levelUp) return
+    if (!levelUp || racing) return
     function onKey(event: KeyboardEvent) {
       if (event.key === 'Escape') dismissLevelUp()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [levelUp, dismissLevelUp])
+  }, [levelUp, racing, dismissLevelUp])
 
-  if (!levelUp || phase.kind !== 'playing') return null
+  if (!levelUp || racing || phase.kind !== 'playing') return null
   const { athlete } = phase.state
   const rewards = getLevelRewards(levelUp.from, levelUp.to, athlete.sex, athlete.appearance.skin)
 

@@ -114,9 +114,10 @@ function SlotIcon({ slot, className }: { slot: EquipmentSlot; className?: string
 /**
  * Pictures named in the equipment table's thumbnail column: the owner's shop pictures in
  * assets/ui/thumbnails (`thumb_*.png`, 512 × 512; owner request, 4 November 2026), else the ones
- * cut from the avatar art in assets/ui/equipment.
+ * cut from the avatar art in assets/ui/equipment. Each is shown from its copy in assets/ui/shop, cropped
+ * to the item (scripts/prepare_shop_art.py), so it fills the card (owner request, 9 November 2026).
  */
-const THUMBNAILS = import.meta.glob<string>('/assets/ui/{thumbnails,equipment}/*.{webp,png,jpg,jpeg}', {
+const THUMBNAILS = import.meta.glob<string>('/assets/ui/{shop,thumbnails,equipment}/*.{webp,png,jpg,jpeg}', {
   eager: true,
   query: '?url',
   import: 'default',
@@ -124,7 +125,8 @@ const THUMBNAILS = import.meta.glob<string>('/assets/ui/{thumbnails,equipment}/*
 
 function thumbnailUrl(file: string, sex: Sex): string | undefined {
   for (const candidate of filesForSex(file, sex)) {
-    const url = THUMBNAILS[`/assets/ui/thumbnails/${candidate}`] ?? THUMBNAILS[`/assets/ui/equipment/${candidate}`]
+    const cropped = THUMBNAILS[`/assets/ui/shop/${candidate.replace(/\.\w+$/, '')}.webp`]
+    const url = cropped ?? THUMBNAILS[`/assets/ui/thumbnails/${candidate}`] ?? THUMBNAILS[`/assets/ui/equipment/${candidate}`]
     if (url) return url
   }
   return undefined
@@ -513,17 +515,20 @@ function ItemDetail({
           <ItemArt item={item} />
         </span>
         <dl className={styles.facts}>
-          <div>
-            <dt>{t('equipment.fact.type')}</dt>
-            <dd>{t(SLOT_LABELS[item.slot])}</dd>
-          </div>
-          <div>
-            <dt>{t('equipment.fact.level')}</dt>
-            <dd>{item.level ?? (item.price === null ? t('equipment.toBeDefined') : '—')}</dd>
-          </div>
+          {/*
+           * The type and the level are on the card's top line (owner request, 9 November 2026: the
+           * card fits without scrolling); only an item whose level is still open says so here.
+           */}
+          {item.level === undefined && !consumable && (
+            <div>
+              <dt>{t('equipment.fact.level')}</dt>
+              <dd>{item.price === null ? t('equipment.toBeDefined') : '—'}</dd>
+            </div>
+          )}
           {consumable && (
             <>
-              <div>
+              {/* The pack is in the description too: left out on short screens. */}
+              <div className={styles.factPack}>
                 <dt>{t('equipment.fact.pack')}</dt>
                 <dd>
                   {item.slot === 'nutrition'

@@ -33,6 +33,8 @@ import { RaceClipPlayer } from './RaceClipPlayer'
 import { raceClip } from './raceClips'
 import { durationText, ordinal, raceTimeText } from './raceText'
 import styles from './Races.module.css'
+import gelPicture from '../../../assets/ui/nutrition/gel.webp'
+import barPicture from '../../../assets/ui/nutrition/bar.webp'
 
 const START_ERRORS: Record<RaceStartError | ServerError, MessageKey> = {
   offline: 'raceRun.startError.offline',
@@ -247,8 +249,8 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
               </section>
 
               <div className={styles.choiceTiles} role="group" aria-label={t('raceRun.nutrition')} data-coach="nutrition">
-                <NutritionToggle label={t('raceRun.gel')} effect={t('raceRun.gelEffect')} stock={consumables.gel} taken={gel} onChange={setGel} />
-                <NutritionToggle label={t('raceRun.bar')} effect={t('raceRun.barEffect')} stock={consumables.bar} taken={bar} onChange={setBar} />
+                <NutritionToggle picture={gelPicture} label={t('raceRun.gel')} effect={t('raceRun.gelEffect')} stock={consumables.gel} taken={gel} onChange={setGel} />
+                <NutritionToggle picture={barPicture} label={t('raceRun.bar')} effect={t('raceRun.barEffect')} stock={consumables.bar} taken={bar} onChange={setBar} />
               </div>
               {(consumables.gel === 0 || consumables.bar === 0) && (
                 <Link to="/equipment?tab=shop" className={styles.tileNote}>
@@ -318,12 +320,14 @@ function WornEquipment() {
 }
 
 function NutritionToggle({
+  picture,
   label,
   effect,
   stock,
   taken,
   onChange,
 }: {
+  picture: string
   label: string
   effect: string
   stock: number
@@ -336,7 +340,7 @@ function NutritionToggle({
   return (
     <button
       type="button"
-      className={styles.choice}
+      className={`${styles.choice} ${styles.nutrition}`}
       aria-label={t(none ? 'raceRun.toggleNone' : taken ? 'raceRun.toggleTake' : 'raceRun.toggleLeave', {
         item: locale === 'de' ? label : item,
         effect,
@@ -346,9 +350,19 @@ function NutritionToggle({
       aria-disabled={none || undefined}
       onClick={() => !none && onChange(!taken)}
     >
-      <span className={styles.tileLabel}>{label}</span>
-      <strong>{none ? t('raceRun.noneInStock') : taken ? t('raceRun.takeIt') : t('raceRun.leaveIt')}</strong>
-      <span className={styles.tileNote}>{t('raceRun.inStock', { effect, stock })}</span>
+      {/*
+       * The gel or bar itself, lit with a check when it goes in the race, faded when it stays
+       * (owner request, 9 November 2026: "Leave it" read as a choice and left them at home).
+       */}
+      <span className={styles.nutritionArt}>
+        <img src={picture} alt="" />
+        {!none && taken && <span className={styles.nutritionCheck} aria-hidden="true">✓</span>}
+      </span>
+      <span className={styles.nutritionText}>
+        <span className={styles.tileLabel}>{label}</span>
+        {(none || !taken) && <strong>{none ? t('raceRun.noneInStock') : t('raceRun.leaveIt')}</strong>}
+        <span className={styles.tileNote}>{t('raceRun.inStock', { effect, stock })}</span>
+      </span>
     </button>
   )
 }

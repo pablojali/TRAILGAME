@@ -9,6 +9,7 @@ import { DIFFICULTIES, difficultyOf, isDifficulty, type Difficulty } from '../..
 import { getRace, RACES } from '../../domain/races/races'
 import { getPendingEntry } from '../../game-engine/races'
 import { RacePhoto } from './RacePhoto'
+import { Technicality } from './Technicality'
 import { courseText } from './raceText'
 import styles from './Races.module.css'
 
@@ -68,6 +69,7 @@ export function RacesScreen() {
                             : t('races.upToLevel', { level: getMaximumLevel(race) })}
                       </span>
                       {entered && <span className={`${styles.tag} ${styles.tagEntered}`}>{t('races.entered')}</span>}
+                      <Technicality value={race.technicality} />
                     </span>
                   </span>
                   <span className={styles.chevron} aria-hidden="true">

@@ -122,7 +122,8 @@ describe('Equipment', () => {
     // Poles lvl 2: large card with its details, then Buy charges at once.
     await user.click(within(grid()).getByRole('button', { name: /^Poles · Lvl 2/ }))
     expect(screen.getByRole('heading', { level: 2, name: 'Poles' })).toBeInTheDocument()
-    expect(screen.getByText('Level').nextElementSibling).toHaveTextContent('2')
+    // The level is on the card's top line (not repeated in the facts).
+    expect(screen.getByRole('heading', { level: 2, name: 'Poles' }).parentElement).toHaveTextContent('Lvl 2')
     expect(screen.getByText('Race effect').nextElementSibling).toHaveTextContent('Climbing +3, Endurance +1, but flats 1% slower.')
     expect(readSave()!.state.coins).toBe(50)
     await user.click(screen.getByRole('button', { name: 'Buy poles · lvl 2' }))

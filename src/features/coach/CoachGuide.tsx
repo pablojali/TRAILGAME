@@ -5,7 +5,7 @@ import button from '../../components/Button.module.css'
 import type { CoachProgress } from '../../game-engine/gameState'
 import { useI18n } from '../../i18n/i18n'
 import { coachPortrait } from './coach'
-import { currentMoment, MOMENT_IDS, tipText, tipTitle, type CoachMoment } from './moments'
+import { currentMoment, MOMENT_IDS, type CoachMoment } from './moments'
 import styles from './CoachGuide.module.css'
 
 interface Box {
@@ -21,10 +21,14 @@ const PAD = 6
 /** Height the speech panel needs beside a highlight (px); with less, it goes to the bottom. */
 const PANEL_ROOM = 230
 
-/** Where the marked elements are on screen (visible ones only), re-measured as the layout moves. */
-function useTargets(targets: readonly string[], requires: string | undefined, active: boolean) {
+/**
+ * Where the marked elements are on screen (visible ones only), re-measured as the layout moves.
+ * `ready`: every step of the moment can point at something here (one of its targets is on screen).
+ */
+function useTargets(targets: readonly string[], requires: readonly (readonly string[])[], active: boolean) {
   const [found, setFound] = useState<{ boxes: Box[]; ready: boolean; key: string }>({ boxes: [], ready: false, key: '' })
   const signature = targets.join(' ')
+  const required = requires.map((group) => group.join(' ')).join('|')
   useLayoutEffect(() => {
     if (!active) return
     const measure = () => {
@@ -37,7 +41,9 @@ function useTargets(targets: readonly string[], requires: string | undefined, ac
           }
         }
       }
-      const ready = !requires || document.querySelector(`[data-coach="${requires}"]`) !== null
+      const ready = (required ? required.split('|') : []).every((group) =>
+        group.split(' ').some((target) => document.querySelector(`[data-coach="${target}"]`) !== null),
+      )
       const key = `${ready}|${boxes.map((b) => [b.x, b.y, b.w, b.h].map(Math.round).join(',')).join(';')}`
       setFound((current) => (current.key === key ? current : { boxes, ready, key }))
     }
@@ -48,7 +54,7 @@ function useTargets(targets: readonly string[], requires: string | undefined, ac
       window.clearInterval(timer)
       window.removeEventListener('resize', measure)
     }
-  }, [signature, requires, active])
+  }, [signature, required, active])
   return found
 }
 
@@ -84,10 +90,14 @@ function Guide({
   sex: Parameters<typeof coachPortrait>[0]
   skin: Parameters<typeof coachPortrait>[1]
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const index = Math.min(progress.step ?? 0, moment.steps.length - 1)
   const step = moment.steps[index]!
-  const { boxes, ready } = useTargets(step.targets, moment.requires, true)
+  const { boxes, ready } = useTargets(
+    step.targets,
+    moment.steps.map((s) => s.targets).filter((targets) => targets.length > 0),
+    true,
+  )
   const action = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
   const seen = progress.seen ?? []
@@ -167,10 +177,10 @@ function Guide({
             )}
           </p>
           <h2 id="coach-tip-title" className={styles.title}>
-            {t(tipTitle(step.tip))}
+            {step.title[locale]}
           </h2>
           <p id="coach-tip-text" className={styles.text}>
-            {t(tipText(step.tip))}
+            {step.text[locale]}
           </p>
           <div className={styles.actions}>
             <button type="button" className={styles.skip} onClick={skipAll}>

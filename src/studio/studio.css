@@ -866,3 +866,273 @@ button:disabled {
   display: flex;
   gap: 8px;
 }
+
+/* Coach */
+.momentList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.momentList button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+  text-align: left;
+}
+
+.momentList button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: rgb(240 124 42 / 0.14);
+}
+
+.pendingTag {
+  color: var(--gold);
+}
+
+.coachPreview {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid rgb(212 162 60 / 0.4);
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgb(31 74 51 / 0.92), rgb(13 16 15 / 0.95));
+}
+
+.coachPreview img {
+  flex: none;
+  width: 60px;
+  height: 60px;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 0%;
+}
+
+.coachPreview strong {
+  display: block;
+  margin: 2px 0 4px;
+  font-size: 17px;
+}
+
+.coachPreview p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.chip {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  font-size: 12px;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: rgb(240 124 42 / 0.25);
+}
+
+.stepCard {
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 10px;
+  font-size: 13px;
+}
+
+.check input {
+  width: auto;
+}
+
+.langGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.langGrid .langBlock {
+  grid-template-columns: 1fr;
+}
+
+/* Texts */
+.textsLayout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.screens ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.screens li button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+}
+
+.screens li button[aria-pressed='true'] {
+  background: rgb(240 124 42 / 0.16);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.textsTable {
+  overflow-x: auto;
+}
+
+.textsTable table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+.textsTable th {
+  padding: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: left;
+}
+
+.textsTable td {
+  padding: 4px;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.keyCell {
+  width: 150px;
+  color: var(--muted);
+  font-size: 11px;
+  word-break: break-word;
+}
+
+.keyCell .rowId {
+  display: block;
+  color: var(--gold);
+}
+
+.textsTable td textarea {
+  min-height: 52px;
+  font-size: 13px;
+}
+
+.textsTable td.changed textarea {
+  border-color: var(--gold);
+}
+
+.textsTable td.wrong textarea {
+  border-color: var(--red);
+}
+
+.form1 {
+  display: block;
+}
+
+.form1 span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.form1 textarea {
+  min-height: 34px !important;
+}
+
+/* Balance */
+.balance .chips {
+  margin-bottom: 12px;
+}
+
+.help {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.help summary {
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.help p {
+  margin: 4px 0;
+}
+
+.filter {
+  margin-bottom: 10px;
+  max-width: 320px;
+}
+
+.gridWrap {
+  max-height: calc(100dvh - 300px);
+  overflow: auto;
+}
+
+.editGrid th {
+  top: 0;
+}
+
+.editGrid td {
+  padding: 2px 3px;
+}
+
+.editGrid input {
+  min-width: 70px;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+.editGrid tr.changedRow td {
+  background: rgb(212 162 60 / 0.1);
+}
+
+.rowActions {
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .textsLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,128 +1,98 @@
+import { parseCsv } from '../../data/csv'
+import coachCsv from '../../data/coach_moments.csv?raw'
 import type { GameState } from '../../game-engine/gameState'
-import { isRaceDayToday } from '../../game-engine/raceSchedule'
-import type { MessageKey } from '../../i18n/i18n'
+import type { Locale } from '../../i18n/i18n'
+import { COACH_TARGETS, COACH_TRIGGERS } from './triggers'
 
 /**
- * Trail Coach moments (owner request, 8 November 2026): after the welcome, the coach comes back at
- * key points of the first days of a career, each once: the Dashboard tour, the Training screen, the
- * end of the first week (to Races), the race list, the race preparation and, after the first race,
- * Career. Each step shows a text and may point at elements marked `data-coach="…"` on screen.
- * A `click` step waits for the player to tap one of its targets (nothing else can be tapped); any
- * other step has a Next button and the screen behind cannot be tapped.
+ * Trail Coach moments (owner requests, 8 and 9 November 2026): after the welcome, the coach comes
+ * back at key points of a career, each moment once. They live in the owner's table
+ * src/data/coach_moments.csv (edited in Trail Studio): when each appears (a trigger the game knows,
+ * after or unless other moments), its steps, what each step points at and its texts. A step that
+ * waits for a tap ends the moment when one of its targets is tapped (nothing else can be tapped); any
+ * other step has a Next button.
  */
-export type MomentId = 'dashboard' | 'training' | 'first-week' | 'race-list' | 'race-prep' | 'first-race' | 'career'
+export type CoachLanguage = Exclude<Locale, 'en'>
+const LANGUAGES: readonly CoachLanguage[] = ['es', 'fr', 'it', 'de']
 
 export interface CoachStep {
-  tip: TipId
   /** `data-coach` values of the elements to point at (all those on screen are highlighted). */
   targets: string[]
   /** Ends the moment when the player taps a target (it navigates by itself). */
-  click?: boolean
+  click: boolean
+  title: Record<Locale, string>
+  text: Record<Locale, string>
 }
-
-type TipId =
-  | 'attributes'
-  | 'condition'
-  | 'plan'
-  | 'week'
-  | 'session'
-  | 'complete'
-  | 'firstWeek'
-  | 'raceList'
-  | 'intensity'
-  | 'nutrition'
-  | 'startRace'
-  | 'firstRace'
-  | 'career'
 
 export interface CoachMoment {
-  id: MomentId
+  id: string
+  trigger: string
+  /** Moments that must have been seen first. */
+  after: string[]
+  /** Moments that, once seen, cancel this one. */
+  unless: string[]
   steps: CoachStep[]
-  /** Whether the moment belongs on this screen and at this point of the career. */
-  applies(state: GameState, pathname: string, seen: ReadonlySet<string>): boolean
-  /** A target that must be on screen for the moment to start (e.g. the race's Start button). */
-  requires?: string
 }
 
-const hasFinishedRace = (state: GameState) => state.raceEntries.some((entry) => entry.status === 'finished')
-const inRaceFlow = (pathname: string) => pathname.startsWith('/races/run/') || pathname.startsWith('/races/results/')
+const list = (value: string | undefined) => (value ?? '').split(/\s+/).filter(Boolean)
 
-/** In order: the first one not seen that applies is shown. */
-export const MOMENTS: readonly CoachMoment[] = [
-  {
-    id: 'dashboard',
-    steps: [
-      { tip: 'attributes', targets: ['attributes'] },
-      { tip: 'condition', targets: ['condition'] },
-      { tip: 'plan', targets: ['nav-training', 'go-training'], click: true },
-    ],
-    applies: (_state, pathname) => pathname === '/',
-  },
-  {
-    id: 'training',
-    steps: [
-      { tip: 'week', targets: ['week'] },
-      { tip: 'session', targets: ['session'] },
-      { tip: 'complete', targets: ['complete-day'] },
-    ],
-    applies: (_state, pathname, seen) => pathname === '/training' && seen.has('dashboard'),
-    requires: 'complete-day',
-  },
-  {
-    // The first week is over and no race entered yet: to Races.
-    id: 'first-week',
-    steps: [{ tip: 'firstWeek', targets: ['nav-races'], click: true }],
-    applies: (state, pathname, seen) =>
-      (pathname === '/' || pathname === '/training') &&
-      seen.has('training') &&
-      !seen.has('race-list') &&
-      state.week.number >= 2 &&
-      state.raceEntries.length === 0,
-  },
-  {
-    id: 'race-list',
-    steps: [{ tip: 'raceList', targets: ['race-list'] }],
-    applies: (_state, pathname, seen) => pathname === '/races' && seen.has('dashboard'),
-  },
-  {
-    id: 'race-prep',
-    steps: [
-      { tip: 'intensity', targets: ['intensity'] },
-      { tip: 'nutrition', targets: ['nutrition'] },
-      { tip: 'startRace', targets: ['start-race'] },
-    ],
-    applies: (state, pathname, seen) =>
-      pathname.startsWith('/races/run/') && seen.has('dashboard') && state.activeRace === null && isRaceDayToday(state),
-    requires: 'start-race',
-  },
-  {
-    // After the first race (once its result has been left): to Career.
-    id: 'first-race',
-    steps: [{ tip: 'firstRace', targets: ['nav-career'], click: true }],
-    applies: (state, pathname, seen) =>
-      !inRaceFlow(pathname) && !pathname.startsWith('/career') && seen.has('dashboard') && !seen.has('career') && hasFinishedRace(state),
-  },
-  {
-    id: 'career',
-    steps: [{ tip: 'career', targets: [] }],
-    applies: (state, pathname, seen) => pathname.startsWith('/career') && seen.has('dashboard') && hasFinishedRace(state),
-  },
-]
+/** Reads the coach table; throws with the row on any mistake. */
+export function parseCoachMoments(text: string): CoachMoment[] {
+  const moments: CoachMoment[] = []
+  parseCsv(text).forEach((row, i) => {
+    const where = `coach_moments.csv row ${i + 1}`
+    const id = row.moment ?? ''
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) throw new Error(`${where}: moment must be lowercase words joined by hyphens`)
+    const step = Number(row.step)
+    let moment = moments.at(-1)
+    if (moment?.id !== id) {
+      if (moments.some((m) => m.id === id)) throw new Error(`${where}: the steps of ${id} must be together`)
+      if (step !== 1) throw new Error(`${where}: ${id} must start at step 1`)
+      if (!row.trigger || !COACH_TRIGGERS[row.trigger]) throw new Error(`${where}: unknown trigger "${row.trigger}"`)
+      moment = { id, trigger: row.trigger, after: list(row.after), unless: list(row.unless), steps: [] }
+      moments.push(moment)
+    } else {
+      if (step !== moment.steps.length + 1) throw new Error(`${where}: step ${row.step} of ${id} out of order`)
+      if (row.trigger || row.after || row.unless) throw new Error(`${where}: trigger, after and unless go on step 1 only`)
+    }
+    const targets = list(row.targets)
+    const unknown = targets.find((t) => !(t in COACH_TARGETS))
+    if (unknown) throw new Error(`${where}: unknown target "${unknown}"`)
+    if (row.tap !== '' && row.tap !== 'yes') throw new Error(`${where}: tap must be yes or empty`)
+    if (row.tap === 'yes' && targets.length === 0) throw new Error(`${where}: a step that waits for a tap needs a target`)
+    if (!row.title || !row.text) throw new Error(`${where}: the English title and text are required`)
+    const title = { en: row.title } as Record<Locale, string>
+    const body = { en: row.text } as Record<Locale, string>
+    for (const language of LANGUAGES) {
+      title[language] = row[`title_${language}`] || row.title
+      body[language] = row[`text_${language}`] || row.text
+    }
+    moment.steps.push({ targets, click: row.tap === 'yes', title, text: body })
+  })
+  const ids = new Set(moments.map((m) => m.id))
+  for (const m of moments) {
+    const missing = [...m.after, ...m.unless].find((other) => !ids.has(other))
+    if (missing) throw new Error(`coach_moments.csv: ${m.id} names an unknown moment "${missing}"`)
+  }
+  return moments
+}
 
-export const MOMENT_IDS: readonly MomentId[] = MOMENTS.map((moment) => moment.id)
+export const MOMENTS: readonly CoachMoment[] = parseCoachMoments(coachCsv)
+
+export const MOMENT_IDS: readonly string[] = MOMENTS.map((moment) => moment.id)
 
 /** The moment to show now, if any. Careers from before the coach (no progress) get none. */
-export function currentMoment(state: GameState, pathname: string): CoachMoment | null {
+export function currentMoment(state: GameState, pathname: string, moments: readonly CoachMoment[] = MOMENTS): CoachMoment | null {
   const coach = state.coach
   if (!coach?.welcomeDone) return null
   const seen = new Set(coach.seen ?? [])
-  return MOMENTS.find((moment) => !seen.has(moment.id) && moment.applies(state, pathname, seen)) ?? null
-}
-
-export function tipTitle(tip: TipId): MessageKey {
-  return `coach.tip.${tip}.title`
-}
-
-export function tipText(tip: TipId): MessageKey {
-  return `coach.tip.${tip}.text`
+  return (
+    moments.find(
+      (m) =>
+        !seen.has(m.id) &&
+        m.after.every((id) => seen.has(id)) &&
+        !m.unless.some((id) => seen.has(id)) &&
+        COACH_TRIGGERS[m.trigger]!.applies(state, pathname),
+    ) ?? null
+  )
 }

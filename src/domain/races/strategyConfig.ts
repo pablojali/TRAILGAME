@@ -69,6 +69,12 @@ export const RACE_STRATEGY = {
   /** The runner plus 29 NPC rivals (owner decision, 2 November 2026; was 50). */
   fieldSize: 30,
   /**
+   * Each rival's form on the day (owner request, 9 November 2026: the same race gave the same field
+   * every time): running time × (1 ± up to this), drawn per rival and per edition (the runner's
+   * entry), fixed for the whole race.
+   */
+  rivalFormMax: 0.03,
+  /**
    * Running pace (no stops) of the winner and of the last finisher, in minutes per effort-km, by
    * the race's effort-km (owner table, 2 November 2026). Linear between rows, flat outside them.
    */

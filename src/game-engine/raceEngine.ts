@@ -24,6 +24,8 @@ import {
   InvalidCourseError,
   prepareRunner,
   splitEvenly,
+  fnv1a,
+  mulberry32,
   type CourseSegment,
   type RaceAthleteInput,
 } from './raceSimulation'
@@ -204,6 +206,37 @@ export interface RaceField {
   rivalArrivalsS: number[][]
   /** Rivals' finishing times with their stops, fastest first. */
   rivalFinishS: number[]
+  /** Each rival's stop at every aid station, seconds (same order as the times). */
+  rivalStopsS: number[]
+  /** Share of the running time done at each aid station (the typical runner's), for the splits. */
+  cumulativeShares: number[]
+}
+
+/**
+ * The field of one edition of a race (owner request, 9 November 2026): the race's field with each
+ * rival on their own form of the day, ±`rivalFormMax` of their running time, drawn from the edition
+ * (`seed`, e.g. the runner's entry) so the same race is never the same twice while a race in
+ * progress and its result always see the same rivals. Times stay fastest first.
+ */
+export function getEditionField(race: Race, seed: string): RaceField {
+  const field = getRaceField(race)
+  const stations = field.segments.length - 1
+  const rivals = field.rivalBaseS.map((base, i) => {
+    const form = (2 * mulberry32(fnv1a(`${seed}|rival|${i}`)) - 1) * C.rivalFormMax
+    const run = Math.round(base * (1 + form))
+    const stop = field.rivalStopsS[i]!
+    return { run, stop, finish: run + stations * stop }
+  })
+  rivals.sort((a, b) => a.finish - b.finish)
+  return {
+    ...field,
+    rivalBaseS: rivals.map((r) => r.run),
+    rivalStopsS: rivals.map((r) => r.stop),
+    rivalFinishS: rivals.map((r) => r.finish),
+    rivalArrivalsS: field.cumulativeShares
+      .slice(0, stations)
+      .map((share, k) => rivals.map((r) => Math.round(r.run * share) + k * r.stop)),
+  }
 }
 
 /**
@@ -339,6 +372,8 @@ function buildRaceField(race: Race, front: TypicalPlan): RaceField {
     rivalBaseS,
     rivalArrivalsS,
     rivalFinishS: finish,
+    rivalStopsS: stopsS,
+    cumulativeShares,
   }
 }
 
@@ -522,6 +557,8 @@ function typicalModelSeconds(race: Race, segments: RaceSegment[], level: number,
     stopS: { quick: 0, normal: 0, slow: 0 },
     fatigueWeight: fatiguePaceWeight(courseEffortKm(generateCourse(race))),
     rivalBaseS: [],
+    rivalStopsS: [],
+    cumulativeShares: [],
     rivalArrivalsS: segments.map(() => []),
     rivalFinishS: [],
   }

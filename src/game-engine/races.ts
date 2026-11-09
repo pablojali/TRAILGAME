@@ -10,6 +10,7 @@ import { roundStat } from '../domain/athlete/athlete'
 import { isAidStop, isIntensity, RACE_STRATEGY, type AidStop, type Intensity } from '../domain/races/strategyConfig'
 import type { ActiveRace, DayOutcome, FinishedRaceEntry, GameState, PendingRaceEntry, RaceEntry, RaceResult } from './gameState'
 import {
+  getEditionField,
   getRaceField,
   getReferenceFinishS,
   makeStop,
@@ -182,7 +183,12 @@ export interface RaceStepDecisions {
 
 export type RaceStepOutcome = { finished: false; state: GameState } | { finished: true; value: RaceDayResult }
 
-function contextOf(active: ActiveRace, race: Race, field: RaceField = getRaceField(race)): StepContext {
+/** The rivals of this edition of the race: the runner's entry and start fix their form of the day. */
+function fieldOf(active: ActiveRace, race: Race): RaceField {
+  return getEditionField(race, `${active.raceId}|${active.entryId}|${active.startedAt}`)
+}
+
+function contextOf(active: ActiveRace, race: Race, field: RaceField = fieldOf(active, race)): StepContext {
   return {
     race,
     field,
@@ -281,7 +287,7 @@ export function stepRace(
   if (!isAidStop(decisions.stop)) return { ok: false, error: 'unknown-stop' }
   if (!isIntensity(decisions.intensity)) return { ok: false, error: 'unknown-intensity' }
 
-  const field = getRaceField(race)
+  const field = fieldOf(active, race)
   const ctx = contextOf(active, race, field)
   const progress = runSegment(ctx, makeStop(ctx, toProgress(active), decisions.stop), decisions.intensity)
   const next = withProgress(active, progress)
@@ -430,7 +436,7 @@ export function getRaceReport(state: GameState): RaceReport | null {
   const active = state.activeRace
   const race = active && getRace(active.raceId)
   if (!active || !race) return null
-  const field = getRaceField(race)
+  const field = fieldOf(active, race)
   const k = active.splits.length - 1
   const last = active.splits[k]!
   const rivals = field.rivalArrivalsS[k] ?? field.rivalFinishS

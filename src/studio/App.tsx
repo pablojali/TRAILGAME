@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { BalancePanel } from './BalancePanel'
 import { CoachPanel } from './CoachPanel'
 import { EquipmentPanel } from './EquipmentPanel'
+import { NotificationsPanel } from './NotificationsPanel'
 import { TextsPanel } from './TextsPanel'
 import {
   checkToken,
@@ -38,7 +39,7 @@ import {
 import { RacesPanel } from './RacesPanel'
 
 const DRAFT_KEY = 'trailgame.studio.draft'
-type Tab = 'races' | 'equipment' | 'coach' | 'texts' | 'balance' | 'changes'
+type Tab = 'races' | 'equipment' | 'coach' | 'notifications' | 'texts' | 'balance' | 'changes'
 
 interface Draft {
   base: Record<FileId, string>
@@ -185,6 +186,9 @@ export function App() {
           <button type="button" aria-pressed={tab === 'coach'} onClick={() => setTab('coach')}>
             Coach
           </button>
+          <button type="button" aria-pressed={tab === 'notifications'} onClick={() => setTab('notifications')}>
+            Notificaciones
+          </button>
           <button type="button" aria-pressed={tab === 'texts'} onClick={() => setTab('texts')}>
             Textos
           </button>
@@ -230,6 +234,8 @@ export function App() {
           <EquipmentPanel ws={ws} setWs={setWs} selected={itemId} select={setItemId} />
         ) : tab === 'coach' ? (
           <CoachPanel ws={ws} setWs={setWs} selected={momentId} select={setMomentId} />
+        ) : tab === 'notifications' ? (
+          <NotificationsPanel token={token} ws={ws} setWs={setWs} addTexts={addTexts} setText={setText} drafts={textDrafts} />
         ) : tab === 'texts' ? (
           <TextsPanel token={token} ws={ws} addTexts={addTexts} setText={setText} drafts={textDrafts} />
         ) : tab === 'balance' ? (
@@ -352,7 +358,7 @@ function Review({
   onCreated(p: Proposal): void
 }) {
   const errors = validate(ws)
-  const { races, equipment, coach, balance, texts } = summary(ws)
+  const { races, equipment, coach, announcements, balance, texts } = summary(ws)
   const media = Object.values(ws.uploads).map((u) => (u.base64 === null ? u.label : `${u.label}${u.bytes ? ` (${megabytes(u.bytes)})` : ''}`))
   const migration = needsRankingMigration(ws)
   const [title, setTitle] = useState(() => {
@@ -360,6 +366,7 @@ function Review({
       races.length && `${races.length} carrera${races.length > 1 ? 's' : ''}`,
       equipment.length && `${equipment.length} artículo${equipment.length > 1 ? 's' : ''}`,
       coach.length && 'coach',
+      announcements.length && `${announcements.length} aviso${announcements.length > 1 ? 's' : ''}`,
       balance.length && 'balance',
       texts.length && `${texts.length} texto${texts.length > 1 ? 's' : ''}`,
       media.length && `${media.length} archivo${media.length > 1 ? 's' : ''}`,
@@ -378,6 +385,7 @@ function Review({
       ...(races.length ? ['### Carreras', ...races.map((l) => `- ${l}`), ''] : []),
       ...(equipment.length ? ['### Equipamiento', ...equipment.map((l) => `- ${l}`), ''] : []),
       ...(coach.length ? ['### Coach', ...coach.map((l) => `- ${l}`), ''] : []),
+      ...(announcements.length ? ['### Avisos a todos los jugadores', ...announcements.map((l) => `- ${l}`), ''] : []),
       ...(balance.length ? ['### Balance', ...balance.map((l) => `- ${l}`), ''] : []),
       ...(texts.length ? ['### Textos', ...texts.map((l) => `- ${l}`), ''] : []),
       ...(media.length ? ['### Fotos y vídeos', ...media.map((l) => `- ${l}`), ''] : []),
@@ -425,6 +433,7 @@ function Review({
         {(
           [
             ['Coach', coach],
+            ['Avisos a todos', announcements],
             ['Balance', balance],
             ['Textos', texts],
           ] as const

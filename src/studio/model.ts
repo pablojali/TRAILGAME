@@ -1,4 +1,5 @@
 import { parseCsv } from '../data/csv'
+import { parseAnnouncements } from '../domain/announcements/announcements'
 import { isCountryCode } from '../domain/athlete/countries'
 import { parseLevels } from '../domain/athlete/levels'
 import { parseEquipment } from '../domain/equipment/items'
@@ -21,6 +22,7 @@ export const FILES = {
   achievements: 'src/data/achievements.csv',
   raceField: 'src/data/race_field.csv',
   npcs: 'src/data/ranking_npcs.csv',
+  announcements: 'src/data/announcements.csv',
 } as const
 export type FileId = keyof typeof FILES
 export const FILE_IDS = Object.keys(FILES) as FileId[]
@@ -86,6 +88,13 @@ export function validate(ws: Workspace): string[] {
   check('Carreras', () => parseRaces(textOf(ws, 'races')))
   check('Equipamiento', () => parseEquipment(textOf(ws, 'equipment')))
   check('Coach', () => parseCoachMoments(textOf(ws, 'coach')))
+  check('Avisos', () => parseAnnouncements(textOf(ws, 'announcements')))
+  // The English text is the one every empty language shows.
+  for (const [label, id] of [['Avisos', 'announcements'], ['Coach', 'coach']] as const) {
+    for (const row of rows(ws.docs[id])) {
+      if (!row.values.title || !row.values.text) errors.push(`${label}: «${row.values.id ?? row.values.moment}» necesita título y texto en inglés (los idiomas vacíos lo muestran)`)
+    }
+  }
   check('Niveles', () => parseLevels(textOf(ws, 'levels')))
   check('Desafíos', () => parseAchievementTable(textOf(ws, 'achievements')))
   check('Rivales por categoría', () => parseRaceField(textOf(ws, 'raceField')))
@@ -219,6 +228,7 @@ export interface Summary {
   races: string[]
   equipment: string[]
   coach: string[]
+  announcements: string[]
   balance: string[]
   texts: string[]
 }
@@ -268,6 +278,7 @@ export function summary(ws: Workspace): Summary {
     races: describe(raceChanges, RACE_COLUMNS, raceName),
     equipment: describe(diffDocs(before.equipment, ws.docs.equipment, (v) => v.id!), EQUIPMENT_COLUMNS, itemName),
     coach: describe(diffDocs(before.coach, ws.docs.coach, (v) => `${v.moment} paso ${v.step}`), { trigger: 'disparador', after: 'después de', unless: 'salvo', targets: 'señala', tap: 'espera toque', title: 'título (EN)', text: 'texto (EN)' }, (k) => `Coach · ${k}`),
+    announcements: describe(diffDocs(before.announcements, ws.docs.announcements, (v) => v.id!), { from: 'desde', until: 'hasta', link: 'enlace', title: 'título (EN)', text: 'texto (EN)' }, (k) => `Aviso · ${k}`),
     balance,
     texts,
   }

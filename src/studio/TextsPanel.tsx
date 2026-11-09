@@ -33,7 +33,10 @@ export function TextsPanel({
   addTexts,
   setText,
   drafts,
+  only,
 }: {
+  /** Only these texts (one screen, keys starting with `prefix`), without the screen list. */
+  only?: { screen: string; prefix: string }
   token: string
   ws: Workspace
   addTexts(files: Record<string, TextFile>): void
@@ -42,7 +45,7 @@ export function TextsPanel({
 }) {
   const [screens, setScreens] = useState<string[] | null>(null)
   const [error, setError] = useState('')
-  const [screen, setScreen] = useState('dashboard')
+  const [screen, setScreen] = useState(only?.screen ?? 'dashboard')
   const [search, setSearch] = useState('')
   const [onlyProblems, setOnlyProblems] = useState(false)
   const loaded = screens !== null && screens.every((s) => LANGUAGES.every((l) => ws.texts[pathOf(l, s)]))
@@ -82,6 +85,7 @@ export function TextsPanel({
     for (const s of pool) {
       const english = ws.texts[pathOf('en', s)]!.data
       for (const key of Object.keys(english)) {
+        if (only && !key.startsWith(only.prefix)) continue
         const values = LANGUAGES.map((l) => ws.texts[pathOf(l, s)]!.data[key])
         if (query && !key.toLowerCase().includes(query) && !values.some((v) => JSON.stringify(v ?? '').toLowerCase().includes(query))) continue
         if (onlyProblems && !values.some((v) => v === undefined || placeholders(v) !== placeholders(english[key]) || (typeof v === 'string' && !v.trim()))) continue
@@ -89,7 +93,7 @@ export function TextsPanel({
       }
     }
     return out
-  }, [loaded, screens, screen, search, onlyProblems, ws.texts])
+  }, [loaded, screens, screen, search, onlyProblems, ws.texts, only])
 
   if (error) return <p className="error">{error}</p>
   if (!loaded || !screens) return <p className="loading">Leyendo los textos del juego (5 idiomas)…</p>
@@ -97,7 +101,8 @@ export function TextsPanel({
   const changedIn = (s: string) => LANGUAGES.filter((l) => jsonText(ws.texts[pathOf(l, s)]!.data) !== ws.texts[pathOf(l, s)]!.base).length
 
   return (
-    <div className="textsLayout">
+    <div className={only ? '' : 'textsLayout'}>
+      {!only && (
       <aside className="listPane screens" aria-label="Pantallas">
         <input type="search" placeholder="Buscar en todos los textos…" value={search} onChange={(e) => setSearch(e.target.value)} />
         <label className="check">
@@ -114,6 +119,7 @@ export function TextsPanel({
           ))}
         </ul>
       </aside>
+      )}
       <section className="editPane textsTable" aria-label="Textos">
         <p className="hint">
           {search ? `${keys.length} textos encontrados.` : `${SCREENS[screen] ?? screen}: ${keys.length} textos.`} Las palabras entre llaves, como {'{name}'}, se cambian

@@ -18,6 +18,7 @@ const base = {
   achievements: (await import('../data/achievements.csv?raw')).default,
   raceField: (await import('../data/race_field.csv?raw')).default,
   npcs: (await import('../data/ranking_npcs.csv?raw')).default,
+  announcements: (await import('../data/announcements.csv?raw')).default,
 }
 
 function edit(ws: Workspace, id: FileId, key: (v: Record<string, string>) => boolean, changes: Record<string, string>): Workspace {
@@ -89,5 +90,14 @@ describe('Studio workspace', () => {
       'supabase/migrations/20261109000000_studio_rankings.sql',
     ])
     expect(files.at(-1)!.text).toContain("('NPC-001', 'Ana91', 'MX', 'female', 19, 9822, 70, 2, 1)")
+  })
+
+  it('writes announcements and describes them', () => {
+    const ws = openWorkspace(base)
+    const added = { ...ws, docs: { ...ws.docs, announcements: insertRow(ws.docs.announcements, { id: 'hello', from: '2026-11-10T09:00Z', title: 'Hi', text: 'All' }) } }
+    expect(validate(added)).toEqual([])
+    expect(summary(added).announcements).toEqual(['**Aviso · hello** (nueva)'])
+    const wrong = { ...ws, docs: { ...ws.docs, announcements: insertRow(ws.docs.announcements, { id: 'hello', from: 'mañana', title: 'Hi', text: 'All' }) } }
+    expect(validate(wrong)[0]).toMatch(/^Avisos: .*UTC date/)
   })
 })

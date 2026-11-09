@@ -1136,3 +1136,53 @@ button:disabled {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Notifications */
+.statusTag {
+  display: inline-block;
+  align-self: flex-start;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.statusTag.live {
+  background: rgb(111 191 142 / 0.2);
+  color: var(--green);
+}
+
+.statusTag.scheduled {
+  background: rgb(212 162 60 / 0.2);
+  color: var(--gold);
+}
+
+.statusTag.ended {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--muted);
+}
+
+.inboxPreview {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  max-width: 420px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #0d100f;
+}
+
+.inboxIcon {
+  font-size: 22px;
+}
+
+.inboxPreview strong {
+  display: block;
+}
+
+.inboxPreview p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}

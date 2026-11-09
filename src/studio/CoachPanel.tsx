@@ -68,7 +68,7 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
       window.alert('Usa minúsculas, números y guiones, y un nombre que no exista.')
       return
     }
-    const row = newRow(ws.docs.coach, { moment: name, step: '1', trigger: 'pending', title: 'New tip', text: 'Write the text here.', title_es: 'Nuevo consejo', text_es: 'Escribe aquí el texto.' })
+    const row = newRow(ws.docs.coach, { moment: name, step: '1', trigger: 'pending', title: '', text: '', title_es: 'Nuevo consejo', text_es: 'Escribe aquí el texto.' })
     save([...moments, { id: name, rows: [row] }])
     select(name)
   }
@@ -239,7 +239,7 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
           <button
             type="button"
             className="ghost"
-            onClick={() => withSteps((s) => [...s, newRow(ws.docs.coach, { moment: current.id, title: 'New step', text: 'Write the text here.', title_es: 'Nuevo paso', text_es: 'Escribe aquí el texto.' })])}
+            onClick={() => withSteps((s) => [...s, newRow(ws.docs.coach, { moment: current.id, title: '', text: '', title_es: 'Nuevo paso', text_es: 'Escribe aquí el texto.' })])}
           >
             + Añadir paso
           </button>

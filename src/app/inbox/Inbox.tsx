@@ -6,6 +6,7 @@ import { useI18n, type MessageKey, type Translate } from '../../i18n/i18n'
 import { achievementTitleKey } from '../../i18n/labels'
 import { useGame } from '../game/gameContext'
 import { countryName } from '../../domain/athlete/countries'
+import { ANNOUNCEMENTS, fetchAnnouncements, type Announcement } from '../../domain/announcements/announcements'
 import { RANKING, rankingSeason } from '../../domain/ranking/ranking'
 import { getRankingService, type RankingService } from '../../repositories/supabase/rankingClient'
 import { arrange, buildInbox, loadMemory, markRead, rememberRank, saveMemory, type InboxItem, type RankingScope } from './inbox'
@@ -20,11 +21,17 @@ const ICON: Record<InboxItem['kind'], string> = {
   decay: '↘',
   cloud: '☁',
   ranking: '🏆',
+  announcement: '📣',
 }
 
-function texts(item: InboxItem, t: Translate, locale: string): { title: string; body: string } {
+function texts(item: InboxItem, t: Translate, locale: string, announcements: readonly Announcement[]): { title: string; body: string } {
   const v = item.values
   switch (item.kind) {
+    case 'announcement': {
+      const a = announcements.find((x) => x.id === v.id)
+      const l = locale as keyof Announcement['title']
+      return { title: a?.title[l] ?? a?.title.en ?? '', body: a?.text[l] ?? a?.text.en ?? '' }
+    }
     case 'race':
       return {
         title: t('inbox.race.title', { race: String(v.race) }),
@@ -110,7 +117,35 @@ function useRankingWatch(
   }, [service, country, racesRun, remember])
 }
 
-export function InboxButton({ rankingService = getRankingService() }: { rankingService?: RankingService | null }) {
+/**
+ * The announcements to every player: those in this build, then the published table read again now
+ * and every few minutes, so a new message arrives while the game is open.
+ */
+function useAnnouncements(load: () => Promise<Announcement[] | null>): readonly Announcement[] {
+  const [list, setList] = useState<readonly Announcement[]>(ANNOUNCEMENTS)
+  useEffect(() => {
+    let live = true
+    const check = () =>
+      void load().then((fresh) => {
+        if (live && fresh) setList(fresh)
+      })
+    check()
+    const timer = window.setInterval(check, RANK_CHECK_MS)
+    return () => {
+      live = false
+      window.clearInterval(timer)
+    }
+  }, [load])
+  return list
+}
+
+export function InboxButton({
+  rankingService = getRankingService(),
+  loadAnnouncements = fetchAnnouncements,
+}: {
+  rankingService?: RankingService | null
+  loadAnnouncements?: () => Promise<Announcement[] | null>
+}) {
   const { phase, decayNotice, dismissDecayNotice, cloudNotice, dismissCloudNotice, cloudStatus } = useGame()
   const { t, locale } = useI18n()
   const navigate = useNavigate()
@@ -137,13 +172,14 @@ export function InboxButton({ rankingService = getRankingService() }: { rankingS
   )
   const racesRun = state ? state.raceEntries.filter((entry) => entry.status === 'finished').length : 0
   useRankingWatch(rankingService, state?.athlete.country, racesRun, remember)
+  const announcements = useAnnouncements(loadAnnouncements)
 
   const { list, memory: next } = useMemo(() => {
-    const items = state ? buildInbox(state, now, { decay: decayNotice, cloudNotice, cloudError: cloudStatus === 'error' }) : []
+    const items = state ? buildInbox(state, now, { decay: decayNotice, cloudNotice, cloudError: cloudStatus === 'error' }, announcements) : []
     return arrange(items, memory, now)
     // `now` changes every render; the list only needs the inputs below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, memory, decayNotice, cloudNotice, cloudStatus])
+  }, [state, memory, decayNotice, cloudNotice, cloudStatus, announcements])
   const unread = list.filter((item) => item.unread).length
 
   // Remember first-seen times of new notifications.
@@ -223,7 +259,7 @@ export function InboxButton({ rankingService = getRankingService() }: { rankingS
           ) : (
             <ul className={styles.list}>
               {list.map((item) => {
-                const { title, body } = texts(item, t, locale)
+                const { title, body } = texts(item, t, locale, announcements)
                 const isNew = shownUnread.has(item.id)
                 return (
                   <li key={item.id}>

@@ -22,6 +22,19 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     trigger "pending" and never appears. Ask Claude to program it: a new trigger goes into
     `COACH_TRIGGERS`, and a new element gets a `data-coach` mark on its screen plus an entry in
     `COACH_TARGETS`.
+- **Notificaciones** (owner request, 9 November 2026):
+  - **Avisos a todos:** messages to every player, in `src/data/announcements.csv`.
+    - Each has a start date (now by default, or later to schedule it), an optional end date, an
+      optional link to a screen, and its title and text in five languages. English is required,
+      because empty languages show it.
+    - They appear in every player's Inbox (📣) between those dates.
+    - The game's build also publishes the table as `/announcements.csv`, which an open game reads
+      every 10 minutes. Players with the game open therefore receive a new announcement within
+      minutes of the proposal being published, without reloading.
+    - "Terminarlo" ends one, and announcements that are already published cannot be deleted. Never
+      reuse an id: players' Inboxes remember it as read.
+  - **Notificaciones automáticas:** the texts of the Inbox's own notifications (`inbox.*` in
+    `common.json`), with when each appears. Their rules are code: ask Claude for a new kind.
 - **Textos:** every game text (`src/i18n/locales/{lang}/{screen}.json`) in the five languages side
   by side, by screen or by search, with a "Solo con problemas" filter.
   - Only the wording can change. New keys need code.

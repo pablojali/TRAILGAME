@@ -1,3 +1,4 @@
+import { activeAnnouncements, type Announcement } from '../../domain/announcements/announcements'
 import { getLevel } from '../../domain/athlete/levels'
 import { getRace } from '../../domain/races/races'
 import { rankingSeason, seasonBounds } from '../../domain/ranking/ranking'
@@ -9,7 +10,7 @@ import { getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedul
  * The Inbox (owner request, 6 November 2026): notifications built from the career itself, so the
  * server needs nothing new. Each has a stable id; the ids already read are kept in the browser.
  */
-export type InboxKind = 'race' | 'challenge' | 'level' | 'season' | 'race-day' | 'decay' | 'cloud' | 'ranking'
+export type InboxKind = 'race' | 'challenge' | 'level' | 'season' | 'race-day' | 'decay' | 'cloud' | 'ranking' | 'announcement'
 
 export interface InboxItem {
   id: string
@@ -31,8 +32,12 @@ export interface Transient {
 /** At most this many notifications are kept, newest first. */
 export const INBOX_SIZE = 30
 
-export function buildInbox(state: GameState, now: number, transient: Transient = {}): InboxItem[] {
+export function buildInbox(state: GameState, now: number, transient: Transient = {}, announcements: readonly Announcement[] = []): InboxItem[] {
   const items: InboxItem[] = []
+  // Announcements to every player (owner, Trail Studio), while they are on.
+  for (const a of activeAnnouncements(announcements, now)) {
+    items.push({ id: `announcement:${a.id}`, kind: 'announcement', at: a.from, ...(a.link ? { link: a.link } : {}), values: { id: a.id } })
+  }
   // Race results.
   for (const entry of state.raceEntries) {
     if (entry.status !== 'finished') continue

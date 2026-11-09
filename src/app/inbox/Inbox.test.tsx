@@ -40,3 +40,20 @@ describe('Inbox bell (owner request, 6 November 2026)', () => {
     expect(screen.getByText('No notifications yet.')).toBeInTheDocument()
   })
 })
+
+describe('announcements in the Inbox', () => {
+  it('shows a message to every player, read again from the published table, in the player\'s language', async () => {
+    vi.setSystemTime(Date.UTC(2026, 10, 11, 12))
+    const csv = 'id,from,until,link,title,text,title_es,text_es\nhello,2026-11-10T09:00Z,,/races,New races,Five new races are open.,,\n'
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(csv)))
+    const user = userEvent.setup()
+    seedCareer(newGame())
+    const { router } = await renderApp('/')
+    await user.click(await screen.findByRole('button', { name: /^Notifications, \d+ new$/ }))
+    const inbox = screen.getByRole('dialog', { name: 'Inbox' })
+    expect(within(inbox).getByText('Five new races are open.')).toBeInTheDocument()
+    await user.click(within(inbox).getByText('New races'))
+    expect(router.state.location.pathname).toBe('/races')
+    vi.unstubAllGlobals()
+  })
+})

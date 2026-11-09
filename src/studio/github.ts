@@ -95,14 +95,19 @@ interface PullJson {
   html_url: string
   head: { ref: string; sha: string }
   mergeable_state?: string
+  state?: string
+  merged?: boolean
 }
 
 interface CheckRunsJson {
   check_runs: { status: string; conclusion: string | null }[]
 }
 
-async function proposalOf(token: string, pull: PullJson): Promise<Proposal> {
+async function proposalOf(token: string, pull: PullJson): Promise<Proposal | null> {
   const full = await call<PullJson>(token, `/repos/${REPO}/pulls/${pull.number}`)
+  // GitHub's list of open pull requests lags a few seconds behind a merge: the pull request itself
+  // is up to date (owner report, 9 November 2026: a published proposal came back with "Publicar").
+  if (full.merged || (full.state !== undefined && full.state !== 'open')) return null
   let state: Proposal['state'] = full.mergeable_state === 'dirty' ? 'conflict' : 'checking'
   if (state !== 'conflict') {
     try {
@@ -129,7 +134,8 @@ async function proposalOf(token: string, pull: PullJson): Promise<Proposal> {
 /** Open proposals made by the Studio. */
 export async function listProposals(token: string): Promise<Proposal[]> {
   const pulls = await call<PullJson[]>(token, `/repos/${REPO}/pulls?state=open&per_page=50`)
-  return Promise.all(pulls.filter((pull) => pull.head.ref.startsWith('studio/')).map((pull) => proposalOf(token, pull)))
+  const proposals = await Promise.all(pulls.filter((pull) => pull.head.ref.startsWith('studio/')).map((pull) => proposalOf(token, pull)))
+  return proposals.filter((p): p is Proposal => p !== null)
 }
 
 /** One commit with every file on a new branch from main, and its pull request. */
@@ -172,7 +178,9 @@ export async function createProposal(
     method: 'POST',
     body: JSON.stringify({ title, body, head: branch, base: 'main' }),
   })
-  return proposalOf(token, pull)
+  const proposal = await proposalOf(token, pull)
+  if (!proposal) throw new GitHubError(409, 'la propuesta se cerró al crearla')
+  return proposal
 }
 
 export interface RepoFile {
@@ -195,10 +203,16 @@ export async function listFolder(token: string, path: string): Promise<RepoFile[
 
 /** Publishes a proposal: merges it into main (the game then deploys it). */
 export async function publishProposal(token: string, proposal: Proposal): Promise<void> {
-  await call(token, `/repos/${REPO}/pulls/${proposal.number}/merge`, {
-    method: 'PUT',
-    body: JSON.stringify({ merge_method: 'merge', sha: proposal.headSha }),
-  })
+  try {
+    await call(token, `/repos/${REPO}/pulls/${proposal.number}/merge`, {
+      method: 'PUT',
+      body: JSON.stringify({ merge_method: 'merge', sha: proposal.headSha }),
+    })
+  } catch (error) {
+    // Already published (e.g. a second tap): that is what was asked for.
+    const pull = await call<PullJson>(token, `/repos/${REPO}/pulls/${proposal.number}`).catch(() => null)
+    if (!pull?.merged) throw error
+  }
   await call(token, `/repos/${REPO}/git/refs/heads/${proposal.branch}`, { method: 'DELETE' }).catch(() => undefined)
 }
 

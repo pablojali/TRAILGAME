@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BalancePanel } from './BalancePanel'
 import { CoachPanel } from './CoachPanel'
 import { EquipmentPanel } from './EquipmentPanel'
@@ -133,9 +133,11 @@ export function App() {
     }
   }, [])
 
+  // Proposals published or discarded here never come back, even while GitHub's list catches up.
+  const closed = useRef(new Set<number>())
   const refreshProposals = useCallback(async (tok: string) => {
     try {
-      setProposals(await listProposals(tok))
+      setProposals((await listProposals(tok)).filter((p) => !closed.current.has(p.number)))
       // A network hiccup earlier is over.
       setError((current) => (current.startsWith('No pude leer las propuestas') ? '' : current))
     } catch (e) {
@@ -244,6 +246,11 @@ export function App() {
           <BalancePanel ws={ws} setWs={setWs} />
         ) : (
           <ProposalsPanel
+            onDone={(number, message) => {
+              closed.current.add(number)
+              setProposals((list) => list?.filter((p) => p.number !== number) ?? list)
+              setNotice(message)
+            }}
             unsent={ws ? hasChanges(ws) : false}
             onReview={() => setReviewing(true)}
             token={token}
@@ -514,6 +521,7 @@ const STATE_TEXT: Record<Proposal['state'], string> = {
 }
 
 function ProposalsPanel({
+  onDone,
   unsent,
   onReview,
   token,
@@ -521,6 +529,8 @@ function ProposalsPanel({
   refresh,
   reload,
 }: {
+  /** A proposal was published or discarded: it leaves the list at once, with a message. */
+  onDone(number: number, message: string): void
   /** Changes or uploads not proposed yet. */
   unsent: boolean
   onReview(): void
@@ -539,6 +549,7 @@ function ProposalsPanel({
     try {
       if (action === 'publish') await publishProposal(token, p)
       else await discardProposal(token, p)
+      onDone(p.number, action === 'publish' ? `«${p.title}» está publicada: el juego se actualiza en unos minutos.` : `«${p.title}» se descartó.`)
       await refresh()
       await reload()
     } catch (e) {

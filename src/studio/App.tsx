@@ -136,6 +136,8 @@ export function App() {
   const refreshProposals = useCallback(async (tok: string) => {
     try {
       setProposals(await listProposals(tok))
+      // A network hiccup earlier is over.
+      setError((current) => (current.startsWith('No pude leer las propuestas') ? '' : current))
     } catch (e) {
       setError(`No pude leer las propuestas: ${(e as Error).message}`)
     }

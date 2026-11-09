@@ -242,6 +242,8 @@ export function App() {
           <BalancePanel ws={ws} setWs={setWs} />
         ) : (
           <ProposalsPanel
+            unsent={ws ? hasChanges(ws) : false}
+            onReview={() => setReviewing(true)}
             token={token}
             proposals={proposals}
             refresh={() => refreshProposals(token)}
@@ -253,7 +255,8 @@ export function App() {
         )}
       </main>
 
-      {ws && hasChanges(ws) && tab !== 'changes' && (
+      {/* On every tab, Propuestas included: what is waiting to be proposed is never out of sight. */}
+      {ws && hasChanges(ws) && (
         <footer className="saveBar">
           <span>
             Sin guardar:{' '}
@@ -509,11 +512,16 @@ const STATE_TEXT: Record<Proposal['state'], string> = {
 }
 
 function ProposalsPanel({
+  unsent,
+  onReview,
   token,
   proposals,
   refresh,
   reload,
 }: {
+  /** Changes or uploads not proposed yet. */
+  unsent: boolean
+  onReview(): void
   token: string
   proposals: Proposal[] | null
   refresh(): Promise<void>
@@ -546,6 +554,14 @@ function ProposalsPanel({
         </button>
       </div>
       {error && <p className="error">{error}</p>}
+      {unsent && (
+        <p className="warning">
+          Tienes cambios o archivos sin proponer: no aparecen aquí hasta que crees la propuesta.{' '}
+          <button type="button" className="link" onClick={onReview}>
+            Revisar y proponer
+          </button>
+        </p>
+      )}
       {proposals.length === 0 && <p className="muted">No hay propuestas pendientes. Edita carreras o equipamiento y pulsa «Revisar y proponer».</p>}
       <ul>
         {proposals.map((p) => (

@@ -7,21 +7,23 @@ import button from '../../components/Button.module.css'
 import { formatStat } from '../../components/format'
 import { Screen } from '../../components/Screen'
 import { Chips, Tabs } from '../../components/Tabs'
-import { getEquipmentItem } from '../../domain/equipment/items'
+import { getEquipmentItem, getRaceEffect } from '../../domain/equipment/items'
 import { ItemArt } from '../equipment/EquipmentScreen'
 import { getRace, type Race } from '../../domain/races/races'
 import type { AidStop, Intensity } from '../../domain/races/strategyConfig'
-import { getRaceSegments } from '../../game-engine/raceEngine'
+import { getRaceSegments, type RaceSegment } from '../../game-engine/raceEngine'
 import { isRaceDayToday } from '../../game-engine/raceSchedule'
 import {
   getEntry,
   getRaceReport,
+  previewStep,
   type RaceDayResult,
   type RaceStartError,
   type RaceStepError,
 } from '../../game-engine/races'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import {
+  INTENSITY_IDS,
   intensityHint,
   intensityKey,
   intensityOptions,
@@ -29,6 +31,8 @@ import {
   stopKey,
   stopDuration,
 } from './raceStrategyText'
+import { aidAdvice, roughDelta, segmentDemand, segmentKind } from './aidStation'
+import { coachPortrait } from '../coach/coach'
 import { RaceClipPlayer } from './RaceClipPlayer'
 import { raceClip } from './raceClips'
 import { durationText, ordinal, raceTimeText } from './raceText'
@@ -367,7 +371,51 @@ function NutritionToggle({
   )
 }
 
-/** The report at an aid station and the decisions for the next segment. */
+/** The elevation of the next segment as a small filled line (owner request, 9 November 2026). */
+function SegmentProfile({ segment }: { segment: RaceSegment }) {
+  const points: [number, number][] = [[0, 0]]
+  let x = 0
+  let y = 0
+  for (const { block } of segment.pieces) {
+    x += block.lengthM
+    y += block.gainM - block.lossM
+    points.push([x, y])
+  }
+  const ys = points.map((p) => p[1])
+  const low = Math.min(...ys)
+  const span = Math.max(Math.max(...ys) - low, 150)
+  const width = 100
+  const height = 32
+  const at = ([px, py]: [number, number]) =>
+    `${((px / Math.max(x, 1)) * width).toFixed(1)},${(height - 2 - ((py - low) / span) * (height - 6)).toFixed(1)}`
+  const line = points.map(at).join(' ')
+  return (
+    <svg className={styles.segmentProfile} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
+      <polygon points={`0,${height} ${line} ${width},${height}`} />
+      <polyline points={line} />
+    </svg>
+  )
+}
+
+function Meter({ label, value, tone }: { label: string; value: number; tone: 'energy' | 'fatigue' }) {
+  return (
+    <div className={styles.meter}>
+      <dt>{label}</dt>
+      <dd>
+        <span className={styles.meterTrack} aria-hidden="true">
+          <span className={styles[tone]} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+        </span>
+        {formatStat(value)}
+      </dd>
+    </div>
+  )
+}
+
+/**
+ * The report at an aid station and the decisions for the next segment (owner mockup, 9 November
+ * 2026): where the runner is, how they feel, what the next segment looks like, the approximate
+ * consequences of each stop and pace, and a coach's tip only when it matters.
+ */
 function AidStation({ race, present }: { race: Race; present: Present }) {
   const { state, stepRace } = useCareer()
   const report = getRaceReport(state)!
@@ -386,6 +434,43 @@ function AidStation({ race, present }: { race: Race; present: Present }) {
     setError('')
     heading.current?.focus()
   }, [station])
+
+  const next = report.next
+  const segments = getRaceSegments(race)
+  const totalM = segments.reduce((sum, s) => sum + s.distanceM, 0)
+  const gainSoFar = segments.slice(0, next.index).reduce((sum, s) => sum + s.gainM, 0)
+  const kind = segmentKind(next)
+  const demand = segmentDemand(next)
+
+  // Approximate consequences, from the same engine the server runs (owner request: estimates).
+  const byStop = Object.fromEntries(STOP_IDS.map((id) => [id, previewStep(state, id, intensity)]))
+  const byIntensity = Object.fromEntries(INTENSITY_IDS.map((id) => [id, previewStep(state, stop, id)]))
+  const target = byIntensity.target
+  const chosen = byIntensity[intensity]
+  const active = state.activeRace!
+  const technical = active.attributes.technical + getRaceEffect(active.equipment).attributes.technical
+  const advice = aidAdvice({
+    energy: report.energy,
+    kind,
+    intensity,
+    stop,
+    lastSegment,
+    gapAheadS: report.gapAheadS,
+    gapBehindS: report.gapBehindS,
+    technical,
+  })
+  const portrait = coachPortrait(state.athlete.sex, state.athlete.appearance.skin)
+
+  function timeText(seconds: number): string {
+    const delta = roughDelta(seconds)
+    return delta.sign ? t('raceRun.timeDelta', { delta: `${delta.sign}${delta.text}` }) : t('raceRun.aboutSame')
+  }
+
+  function fatigueText(change: number): string {
+    const rounded = Math.round(change)
+    if (rounded === 0) return t('raceRun.fatigueSame')
+    return t('raceRun.fatigueDelta', { delta: `${rounded > 0 ? '+' : '−'}${Math.abs(rounded)}` })
+  }
 
   async function go() {
     if (busy) return
@@ -407,78 +492,138 @@ function AidStation({ race, present }: { race: Race; present: Present }) {
       title={t('raceRun.positionTitle', { position: ordinal(report.position, locale), field: report.fieldSize })}
       description={t('raceRun.aidDescription', { time: raceTimeText(report.elapsedS), segment: station, count: report.segmentCount })}
     >
-      {/*
-       * The aid station picture stays visible on the left; the report and the decisions are a
-       * column on the right (owner request, 2 November 2026). No scrolling.
-       */}
       <div className={styles.aidLayout}>
         <div className={styles.aidPanel} role="region" aria-label={t('raceRun.report')}>
           <h2 ref={heading} tabIndex={-1} className={styles.srOnly}>
             {t('raceRun.station', { station })}
           </h2>
-          <dl className={styles.statRows}>
-            <div>
-              <dt>{t('raceRun.raceTime')}</dt>
-              <dd>{raceTimeText(report.elapsedS)}</dd>
-            </div>
-            <div>
-              <dt>{t('raceRun.ahead')}</dt>
-              <dd>{report.gapAheadS === null ? t('raceRun.youLead') : `+${durationText(report.gapAheadS)}`}</dd>
-            </div>
-            <div>
-              <dt>{t('raceRun.behind')}</dt>
-              <dd>{report.gapBehindS === null ? t('raceRun.nobody') : `−${durationText(report.gapBehindS)}`}</dd>
-            </div>
-            <div>
-              <dt>{t('raceRun.energy')}</dt>
-              <dd>{formatStat(report.energy)}</dd>
-            </div>
-            <div>
-              <dt>{t('stat.fatigue')}</dt>
-              <dd>{formatStat(report.fatigue)}</dd>
-            </div>
-            <div>
-              <dt>{t('raceRun.nutrition')}</dt>
-              <dd>
-                {[report.nutrition.gel && t('raceRun.nutritionGel'), report.nutrition.bar && t('raceRun.nutritionBar')]
-                  .filter(Boolean)
-                  .join(' + ') || t('raceRun.none')}
-              </dd>
-            </div>
-            <div>
-              <dt>{t('raceRun.segment', { segment: station })}</dt>
-              <dd>
-                {t(intensityKey(report.last.intensity))} · {durationText(report.last.segmentS)}
-              </dd>
-            </div>
-            <div>
-              <dt>{t(lastSegment ? 'raceRun.nextFinish' : 'raceRun.next', { segment: station + 1 })}</dt>
-              <dd>
-                {(report.next.distanceM / 1000).toFixed(1)} km · +{Math.round(report.next.gainM)} / −
-                {Math.round(report.next.lossM)} m
-              </dd>
-            </div>
-          </dl>
 
-          <section className={styles.aidChoice} aria-label={t('raceRun.stopLabel')}>
+          <div className={styles.aidProgress}>
+            <span>
+              {t('raceRun.progress', {
+                done: Math.round(next.startM / 1000),
+                total: Math.round(totalM / 1000),
+                gain: Math.round(gainSoFar).toLocaleString(locale),
+              })}
+            </span>
+            <span>{raceTimeText(report.elapsedS)}</span>
+            <span className={styles.aidProgressTrack} aria-hidden="true">
+              <span style={{ width: `${(next.startM / totalM) * 100}%` }} />
+            </span>
+          </div>
+
+          <div className={styles.aidCards}>
+            <section className={styles.aidCard} aria-label={t('raceRun.situation')}>
+              <span className={styles.tileLabel}>{t('raceRun.situation')}</span>
+              <dl className={styles.aidRows}>
+                <div>
+                  <dt>{t('raceRun.ahead')}</dt>
+                  <dd>{report.gapAheadS === null ? t('raceRun.youLead') : `+${durationText(report.gapAheadS)}`}</dd>
+                </div>
+                <div>
+                  <dt>{t('raceRun.behind')}</dt>
+                  <dd>{report.gapBehindS === null ? t('raceRun.nobody') : `−${durationText(report.gapBehindS)}`}</dd>
+                </div>
+                <div>
+                  <dt>{t('raceRun.nutrition')}</dt>
+                  <dd>
+                    {[report.nutrition.gel && t('raceRun.nutritionGel'), report.nutrition.bar && t('raceRun.nutritionBar')]
+                      .filter(Boolean)
+                      .join(' + ') || t('raceRun.none')}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+            <section className={styles.aidCard} aria-label={t('raceRun.runnerState')}>
+              <span className={styles.tileLabel}>{t('raceRun.runnerState')}</span>
+              <dl className={styles.aidRows}>
+                <Meter label={t('raceRun.energy')} value={report.energy} tone="energy" />
+                <Meter label={t('stat.fatigue')} value={report.fatigue} tone="fatigue" />
+              </dl>
+            </section>
+          </div>
+
+          <section className={`${styles.aidCard} ${styles.nextCard}`}>
+            <span className={styles.tileLabel}>
+              {t(lastSegment ? 'raceRun.nextFinish' : 'raceRun.next', { segment: station + 1 })}
+            </span>
+            <SegmentProfile segment={next} />
+            <div className={styles.nextFacts}>
+              <strong>{t(`raceRun.kind.${kind}` as MessageKey)}</strong>
+              <span className={styles[`demand-${demand}`]}>{t(`raceRun.demand.${demand}` as MessageKey)}</span>
+            </div>
+            <span className={styles.nextCourse}>
+              {(next.distanceM / 1000).toFixed(1)} km · +{Math.round(next.gainM)} / −{Math.round(next.lossM)} m
+            </span>
+          </section>
+
+          <section className={styles.aidCard} aria-label={t('raceRun.stopLabel')}>
             <span className={styles.tileLabel}>{t('raceRun.stopLabel')}</span>
-            <Chips<AidStop>
-              label={t('raceRun.stopLabel')}
-              options={STOP_IDS.map((id) => ({ id, label: `${t(stopKey(id))} ${stopDuration(report.stopS[id])}` }))}
-              value={stop}
-              onChange={setStop}
-            />
+            <div className={styles.optionRow}>
+              {STOP_IDS.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={styles.option}
+                  aria-pressed={id === stop}
+                  aria-label={`${t(stopKey(id))} ${stopDuration(report.stopS[id])}`}
+                  onClick={() => setStop(id)}
+                >
+                  <strong>{t(stopKey(id))}</strong>
+                  <span>{stopDuration(report.stopS[id])}</span>
+                  <span className={styles.good}>
+                    {t('raceRun.recovers', { n: Math.round(byStop[id]?.recovered ?? 0) })}
+                  </span>
+                </button>
+              ))}
+            </div>
           </section>
 
-          <section className={styles.aidChoice} aria-label={t('raceRun.segmentIntensity', { segment: station + 1 })}>
+          <section className={styles.aidCard} aria-label={t('raceRun.segmentIntensity', { segment: station + 1 })}>
             <span className={styles.tileLabel}>{t('raceRun.segmentIntensity', { segment: station + 1 })}</span>
-            <Chips<Intensity>
-              label={t('raceRun.segmentIntensity', { segment: station + 1 })}
-              options={intensityOptions(t)}
-              value={intensity}
-              onChange={setIntensity}
-            />
+            <div className={styles.paceGrid}>
+              {INTENSITY_IDS.map((id) => {
+                const preview = byIntensity[id]
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={styles.option}
+                    aria-pressed={id === intensity}
+                    aria-label={t(intensityKey(id))}
+                    onClick={() => setIntensity(id)}
+                  >
+                    <strong>{t(intensityKey(id))}</strong>
+                    {preview && target && id !== 'target' ? (
+                      <span>
+                        {timeText(preview.segmentS - target.segmentS)} ·{' '}
+                        {fatigueText(preview.fatigueAtArrival - target.fatigueAtArrival)}
+                      </span>
+                    ) : (
+                      preview && <span>{durationText(Math.round(preview.segmentS))}</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            {chosen && (
+              <span className={styles.arrival}>
+                {t(lastSegment ? 'raceRun.arrivalFinish' : 'raceRun.arrival', {
+                  n: Math.round(100 - chosen.fatigueAtArrival),
+                })}
+              </span>
+            )}
           </section>
+
+          {advice && (
+            <aside className={styles.coachTip} aria-label={t('raceRun.coachTip')}>
+              {portrait ? <img src={portrait} alt="" /> : <span aria-hidden="true">💡</span>}
+              <p>
+                <strong>{t('raceRun.coachTip')}</strong>
+                {t(`raceRun.advice.${advice}` as MessageKey)}
+              </p>
+            </aside>
+          )}
         </div>
 
         {error && (

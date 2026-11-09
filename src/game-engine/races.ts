@@ -461,6 +461,40 @@ export function getRaceReport(state: GameState): RaceReport | null {
   }
 }
 
+/** What one choice at the aid station would do (owner request, 9 November 2026: show the consequences). */
+export interface StepPreview {
+  /** Seconds the stop takes. */
+  stopS: number
+  /** In-race fatigue the stop takes away. */
+  recovered: number
+  /** Running seconds of the next segment (unrounded). */
+  segmentS: number
+  /** In-race fatigue on arrival at the end of the next segment (0–100). */
+  fatigueAtArrival: number
+}
+
+/**
+ * The next segment with a stop and an intensity, computed by the engine on the race in progress (the
+ * same rivals, day form and nutrition), without running it. The screen shows it rounded, as an estimate.
+ */
+export function previewStep(state: GameState, stop: AidStop, intensity: Intensity): StepPreview | null {
+  const active = state.activeRace
+  const race = active && getRace(active.raceId)
+  if (!active || !race) return null
+  const field = fieldOf(active, race)
+  if (active.splits.length >= field.segments.length) return null
+  const ctx = contextOf(active, race, field)
+  const before = toProgress(active)
+  const stopped = makeStop(ctx, before, stop)
+  const ran = runSegment(ctx, stopped, intensity)
+  return {
+    stopS: field.stopS[stop],
+    recovered: Math.max(0, before.fatigue - stopped.fatigue),
+    segmentS: ran.elapsedS - stopped.elapsedS,
+    fatigueAtArrival: Math.min(100, Math.max(0, ran.fatigue)),
+  }
+}
+
 /**
  * What racing today would do to Fatigue with the default plan, and whether it would injure the
  * athlete (same rule as training).

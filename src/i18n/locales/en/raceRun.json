@@ -98,7 +98,6 @@
   "raceRun.soundOff": "Turn sound off",
   "raceRun.progress": "KM {done}/{total} · {gain} m D+",
   "raceRun.situation": "Race situation",
-  "raceRun.position": "Position",
   "raceRun.runnerState": "Runner",
   "raceRun.kind.climb": "Long climb",
   "raceRun.kind.technical-descent": "Technical descent",
@@ -113,13 +112,26 @@
   "raceRun.timeDelta": "≈ {delta}",
   "raceRun.fatigueDelta": "{delta} fatigue",
   "raceRun.fatigueSame": "same fatigue",
-  "raceRun.arrival": "Estimated energy at the next aid station: ≈ {n}",
-  "raceRun.arrivalFinish": "Estimated energy at the finish: ≈ {n}",
   "raceRun.coachTip": "Coach's tip",
   "raceRun.advice.lowEnergy": "Your energy is low. Ease off now or you will pay for it later.",
   "raceRun.advice.climbHard": "Long climb ahead. Going hard here costs a lot of energy for little time.",
   "raceRun.advice.technicalDescent": "Technical descent and your technique is limited: going hard is risky.",
   "raceRun.advice.finalPush": "Last segment and you still have energy. Time to push.",
   "raceRun.advice.closeAhead": "The rival ahead is very close. A bit more pace could catch them.",
-  "raceRun.advice.closeBehind": "The rival behind is right on you. A long stop will cost you the place."
+  "raceRun.advice.closeBehind": "The rival behind is right on you. A long stop will cost you the place.",
+  "raceRun.runnerAhead": "Runner ahead · place {place}",
+  "raceRun.runnerBehind": "Runner behind · place {place}",
+  "raceRun.seconds": {
+    "one": "{count} second",
+    "other": "{count} seconds"
+  },
+  "raceRun.gapBoth": "You are {ahead} from gaining a place and {behind} ahead of the next runner.",
+  "raceRun.gapLead": "You lead, {behind} ahead of the next runner.",
+  "raceRun.gapLast": "You are {ahead} from gaining a place.",
+  "raceRun.projection": "Race projection",
+  "raceRun.energyAtFinish": "Energy at finish",
+  "raceRun.fatigueAtFinish": "Fatigue at finish",
+  "raceRun.remaining": "Time left",
+  "raceRun.estimatedPlace": "Position",
+  "raceRun.projectionNote": "Estimate if you keep this pace with normal stops."
 }

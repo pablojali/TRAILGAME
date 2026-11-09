@@ -18,7 +18,7 @@ import {
   typicalRunner,
   type StepContext,
 } from './raceEngine'
-import { getRaceFatigue, getRaceReport, previewStep, raceCurrentDay, startRace, stepRace } from './races'
+import { getRaceFatigue, getRaceReport, previewStep, projectRace, raceCurrentDay, startRace, stepRace } from './races'
 import { courseEffortKm, generateCourse, raceSeconds } from './raceSimulation'
 import { executeCurrentDay } from './training'
 
@@ -355,6 +355,29 @@ describe('race in progress', () => {
     expect(slow.recovered).toBeGreaterThan(quick.recovered)
     expect(previewStep(started.state, 'normal', 'hard')!.segmentS).toBeLessThan(previewStep(started.state, 'normal', 'easy')!.segmentS)
     expect(previewStep(state, 'normal', 'target')).toBeNull()
+  })
+
+  it('projects the finish: exact when the plan is kept, a position range around it', () => {
+    const { state, entryId } = raceSunday('RACE-007')
+    const started = startRace(state, SUNDAY, entryId, { intensity: 'target', gel: true, bar: false }, T0)
+    if (!started.ok) throw new Error(started.error)
+    const projection = projectRace(started.state, 'quick', 'easy')!
+    let current = started.state
+    let finished = null
+    for (let segment = 1; !finished; segment++) {
+      const next = stepRace(current, { segment, stop: segment === 1 ? 'quick' : 'normal', intensity: 'easy' }, T0)
+      if (!next.ok) throw new Error(next.error)
+      if (next.value.finished) finished = next.value.value
+      else current = next.value.state
+    }
+    const result = finished.entry.result
+    const elapsed = started.state.activeRace!.splits[0]!.arrivalS
+    expect(Math.abs(result.timeS - elapsed - projection.remainingS)).toBeLessThanOrEqual(2)
+    const [best, worst] = projection.positionRange
+    expect(best).toBeLessThanOrEqual(result.position)
+    expect(worst).toBeGreaterThanOrEqual(result.position)
+    expect(projectRace(started.state, 'normal', 'hard')!.fatigueAtFinish).toBeGreaterThan(projectRace(started.state, 'normal', 'recovery')!.fatigueAtFinish)
+    expect(projectRace(state, 'normal', 'target')).toBeNull()
   })
 
   it('reports position, gaps, energy and the next segment at an aid station', () => {

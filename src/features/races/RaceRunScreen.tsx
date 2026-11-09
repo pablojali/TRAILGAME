@@ -17,6 +17,7 @@ import {
   getEntry,
   getRaceReport,
   previewStep,
+  projectRace,
   type RaceDayResult,
   type RaceStartError,
   type RaceStepError,
@@ -446,7 +447,7 @@ function AidStation({ race, present }: { race: Race; present: Present }) {
   const byStop = Object.fromEntries(STOP_IDS.map((id) => [id, previewStep(state, id, intensity)]))
   const byIntensity = Object.fromEntries(INTENSITY_IDS.map((id) => [id, previewStep(state, stop, id)]))
   const target = byIntensity.target
-  const chosen = byIntensity[intensity]
+  const projection = projectRace(state, stop, intensity)
   const active = state.activeRace!
   const technical = active.attributes.technical + getRaceEffect(active.equipment).attributes.technical
   const advice = aidAdvice({
@@ -459,6 +460,16 @@ function AidStation({ race, present }: { race: Race; present: Present }) {
     gapBehindS: report.gapBehindS,
     technical,
   })
+  const spoken = (seconds: number) =>
+    seconds < 60 ? t('raceRun.seconds', { count: Math.round(seconds) }) : durationText(seconds)
+  const gapSentence =
+    report.gapAheadS !== null && report.gapBehindS !== null
+      ? t('raceRun.gapBoth', { ahead: spoken(report.gapAheadS), behind: spoken(report.gapBehindS) })
+      : report.gapAheadS !== null
+        ? t('raceRun.gapLast', { ahead: spoken(report.gapAheadS) })
+        : report.gapBehindS !== null
+          ? t('raceRun.gapLead', { behind: spoken(report.gapBehindS) })
+          : ''
   const portrait = coachPortrait(state.athlete.sex, state.athlete.appearance.skin)
 
   function timeText(seconds: number): string {
@@ -498,50 +509,54 @@ function AidStation({ race, present }: { race: Race; present: Present }) {
             {t('raceRun.station', { station })}
           </h2>
 
-          <div className={styles.aidProgress}>
-            <span>
-              {t('raceRun.progress', {
-                done: Math.round(next.startM / 1000),
-                total: Math.round(totalM / 1000),
-                gain: Math.round(gainSoFar).toLocaleString(locale),
-              })}
-            </span>
-            <span>{raceTimeText(report.elapsedS)}</span>
-            <span className={styles.aidProgressTrack} aria-hidden="true">
-              <span style={{ width: `${(next.startM / totalM) * 100}%` }} />
-            </span>
-          </div>
+          <section className={styles.aidCard} aria-label={t('raceRun.runnerState')}>
+            <div className={styles.aidProgress}>
+              <span>
+                {t('raceRun.progress', {
+                  done: Math.round(next.startM / 1000),
+                  total: Math.round(totalM / 1000),
+                  gain: Math.round(gainSoFar).toLocaleString(locale),
+                })}
+              </span>
+              <span>{raceTimeText(report.elapsedS)}</span>
+              <span className={styles.aidProgressTrack} aria-hidden="true">
+                <span style={{ width: `${(next.startM / totalM) * 100}%` }} />
+              </span>
+            </div>
+            <dl className={styles.stateRow}>
+              <Meter label={t('raceRun.energy')} value={report.energy} tone="energy" />
+              <Meter label={t('stat.fatigue')} value={report.fatigue} tone="fatigue" />
+              <div>
+                <dt>{t('raceRun.nutrition')}</dt>
+                <dd>
+                  {[report.nutrition.gel && t('raceRun.nutritionGel'), report.nutrition.bar && t('raceRun.nutritionBar')]
+                    .filter(Boolean)
+                    .join(' + ') || t('raceRun.none')}
+                </dd>
+              </div>
+            </dl>
+          </section>
 
-          <div className={styles.aidCards}>
-            <section className={styles.aidCard} aria-label={t('raceRun.situation')}>
-              <span className={styles.tileLabel}>{t('raceRun.situation')}</span>
-              <dl className={styles.aidRows}>
-                <div>
-                  <dt>{t('raceRun.ahead')}</dt>
-                  <dd>{report.gapAheadS === null ? t('raceRun.youLead') : `+${durationText(report.gapAheadS)}`}</dd>
-                </div>
-                <div>
-                  <dt>{t('raceRun.behind')}</dt>
-                  <dd>{report.gapBehindS === null ? t('raceRun.nobody') : `−${durationText(report.gapBehindS)}`}</dd>
-                </div>
-                <div>
-                  <dt>{t('raceRun.nutrition')}</dt>
-                  <dd>
-                    {[report.nutrition.gel && t('raceRun.nutritionGel'), report.nutrition.bar && t('raceRun.nutritionBar')]
-                      .filter(Boolean)
-                      .join(' + ') || t('raceRun.none')}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-            <section className={styles.aidCard} aria-label={t('raceRun.runnerState')}>
-              <span className={styles.tileLabel}>{t('raceRun.runnerState')}</span>
-              <dl className={styles.aidRows}>
-                <Meter label={t('raceRun.energy')} value={report.energy} tone="energy" />
-                <Meter label={t('stat.fatigue')} value={report.fatigue} tone="fatigue" />
-              </dl>
-            </section>
-          </div>
+          <section className={styles.aidCard} aria-label={t('raceRun.situation')}>
+            <span className={styles.tileLabel}>{t('raceRun.situation')}</span>
+            <dl className={styles.gapRow}>
+              <div>
+                <dt>
+                  {report.gapAheadS === null ? t('raceRun.ahead') : t('raceRun.runnerAhead', { place: report.position - 1 })}
+                </dt>
+                <dd className={styles.gapAhead}>
+                  {report.gapAheadS === null ? t('raceRun.youLead') : `+${durationText(report.gapAheadS)}`}
+                </dd>
+              </div>
+              <div>
+                <dt>
+                  {report.gapBehindS === null ? t('raceRun.behind') : t('raceRun.runnerBehind', { place: report.position + 1 })}
+                </dt>
+                <dd>{report.gapBehindS === null ? t('raceRun.nobody') : durationText(report.gapBehindS)}</dd>
+              </div>
+            </dl>
+            {gapSentence && <p className={styles.gapSentence}>{gapSentence}</p>}
+          </section>
 
           <section className={`${styles.aidCard} ${styles.nextCard}`}>
             <span className={styles.tileLabel}>
@@ -569,8 +584,10 @@ function AidStation({ race, present }: { race: Race; present: Present }) {
                   aria-label={`${t(stopKey(id))} ${stopDuration(report.stopS[id])}`}
                   onClick={() => setStop(id)}
                 >
-                  <strong>{t(stopKey(id))}</strong>
-                  <span>{stopDuration(report.stopS[id])}</span>
+                  <span className={styles.optionHead}>
+                    <strong>{t(stopKey(id))}</strong>
+                    <span>{stopDuration(report.stopS[id])}</span>
+                  </span>
                   <span className={styles.good}>
                     {t('raceRun.recovers', { n: Math.round(byStop[id]?.recovered ?? 0) })}
                   </span>
@@ -606,14 +623,36 @@ function AidStation({ race, present }: { race: Race; present: Present }) {
                 )
               })}
             </div>
-            {chosen && (
-              <span className={styles.arrival}>
-                {t(lastSegment ? 'raceRun.arrivalFinish' : 'raceRun.arrival', {
-                  n: Math.round(100 - chosen.fatigueAtArrival),
-                })}
-              </span>
-            )}
           </section>
+
+          {projection && (
+            <section className={styles.aidCard} aria-label={t('raceRun.projection')}>
+              <span className={styles.tileLabel}>{t('raceRun.projection')}</span>
+              <dl className={styles.projection}>
+                <div>
+                  <dt>{t('raceRun.energyAtFinish')}</dt>
+                  <dd className={styles.gapAhead}>≈ {Math.round(100 - projection.fatigueAtFinish)}</dd>
+                </div>
+                <div>
+                  <dt>{t('raceRun.fatigueAtFinish')}</dt>
+                  <dd>≈ {Math.round(projection.fatigueAtFinish)}</dd>
+                </div>
+                <div>
+                  <dt>{t('raceRun.remaining')}</dt>
+                  <dd>≈ {raceTimeText(Math.round(projection.remainingS / 10) * 10)}</dd>
+                </div>
+                <div>
+                  <dt>{t('raceRun.estimatedPlace')}</dt>
+                  <dd>
+                    {projection.positionRange[0] === projection.positionRange[1]
+                      ? ordinal(projection.positionRange[0], locale)
+                      : `${ordinal(projection.positionRange[0], locale)}–${ordinal(projection.positionRange[1], locale)}`}
+                  </dd>
+                </div>
+              </dl>
+              <span className={styles.projectionNote}>{t('raceRun.projectionNote')}</span>
+            </section>
+          )}
 
           {advice && (
             <aside className={styles.coachTip} aria-label={t('raceRun.coachTip')}>

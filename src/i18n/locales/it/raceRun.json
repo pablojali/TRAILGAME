@@ -98,7 +98,6 @@
   "raceRun.soundOff": "Disattiva l'audio",
   "raceRun.progress": "KM {done}/{total} · {gain} m D+ accumulati",
   "raceRun.situation": "Situazione di gara",
-  "raceRun.position": "Posizione",
   "raceRun.runnerState": "Stato del corridore",
   "raceRun.kind.climb": "Salita lunga",
   "raceRun.kind.technical-descent": "Discesa tecnica",
@@ -113,13 +112,26 @@
   "raceRun.timeDelta": "≈ {delta}",
   "raceRun.fatigueDelta": "{delta} fatica",
   "raceRun.fatigueSame": "stessa fatica",
-  "raceRun.arrival": "Energia stimata all'arrivo: ≈ {n}",
-  "raceRun.arrivalFinish": "Energia stimata al traguardo: ≈ {n}",
   "raceRun.coachTip": "Consiglio del coach",
   "raceRun.advice.lowEnergy": "La tua energia è bassa. Rallenta ora o lo pagherai dopo.",
   "raceRun.advice.climbHard": "Arriva una salita lunga. Spingere qui costa molta energia per poco tempo.",
   "raceRun.advice.technicalDescent": "Discesa tecnica e la tua tecnica è limitata: spingere è rischioso.",
   "raceRun.advice.finalPush": "Ultimo tratto e hai ancora energia. È il momento di spingere.",
   "raceRun.advice.closeAhead": "Il rivale davanti è vicinissimo. Un po' più di ritmo potrebbe bastare.",
-  "raceRun.advice.closeBehind": "Il rivale dietro è attaccato. Una sosta lunga ti costerà la posizione."
+  "raceRun.advice.closeBehind": "Il rivale dietro è attaccato. Una sosta lunga ti costerà la posizione.",
+  "raceRun.runnerAhead": "Corridore davanti · posto {place}",
+  "raceRun.runnerBehind": "Corridore dietro · posto {place}",
+  "raceRun.seconds": {
+    "one": "{count} secondo",
+    "other": "{count} secondi"
+  },
+  "raceRun.gapBoth": "Sei a {ahead} dal guadagnare un posto e hai {behind} di vantaggio sul corridore successivo.",
+  "raceRun.gapLead": "Sei in testa con {behind} di vantaggio sul corridore successivo.",
+  "raceRun.gapLast": "Sei a {ahead} dal guadagnare un posto.",
+  "raceRun.projection": "Proiezione di gara",
+  "raceRun.energyAtFinish": "Energia al traguardo",
+  "raceRun.fatigueAtFinish": "Fatica al traguardo",
+  "raceRun.remaining": "Tempo restante",
+  "raceRun.estimatedPlace": "Posizione",
+  "raceRun.projectionNote": "Stima se mantieni questo ritmo con soste normali."
 }

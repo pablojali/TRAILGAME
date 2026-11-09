@@ -872,22 +872,25 @@
   grid-column: 1 / -1;
 }
 
-.aidProgress,
 .aidCard {
   margin: 0;
-  padding: 6px var(--space-2);
+  padding: 5px var(--space-2);
   border: 1px solid rgb(255 255 255 / 0.14);
   border-radius: var(--radius-md);
   background: rgb(10 12 14 / 0.66);
   backdrop-filter: blur(6px);
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
 
 .aidProgress {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 4px var(--space-2);
+  gap: 3px var(--space-2);
   font-size: var(--font-size-xs);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -896,7 +899,7 @@
 .aidProgressTrack,
 .meterTrack {
   display: block;
-  height: 5px;
+  height: 4px;
   border-radius: 3px;
   background: rgb(255 255 255 / 0.14);
   overflow: hidden;
@@ -922,58 +925,81 @@
   background: var(--accent-secondary);
 }
 
-.aidCards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.aidCard {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.aidRows {
+/* Energy, Fatigue and nutrition in one row; the race gaps in two columns. */
+.stateRow,
+.gapRow,
+.projection {
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  display: grid;
+  gap: 2px var(--space-2);
 }
 
-.aidRows > div {
-  display: flex;
+.stateRow {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.gapRow {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.projection {
+  grid-template-columns: repeat(4, minmax(0, auto));
   justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-1);
 }
 
-.aidRows dt {
+.stateRow dt,
+.gapRow dt,
+.projection dt {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
-.aidRows dd {
+.stateRow dd,
+.projection dd {
   margin: 0;
   font-size: var(--font-size-xs);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+
+.gapRow dd {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.gapRow > div:last-child {
   text-align: right;
 }
 
-.aidRows > .meter {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2px;
+.gapRow dd.gapAhead,
+.projection dd.gapAhead {
+  color: var(--brand-text);
+}
+
+.projection dd.gapAhead {
+  font-size: var(--font-size-sm);
+}
+
+.gapSentence,
+.projectionNote {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 .meter dd {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .nextCard {
@@ -1061,9 +1087,9 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1px;
+  gap: 0;
   min-width: 0;
-  padding: 4px 8px;
+  padding: 3px 7px;
   border: 1px solid rgb(255 255 255 / 0.16);
   border-radius: var(--radius-sm);
   background: rgb(255 255 255 / 0.05);
@@ -1073,6 +1099,22 @@
   line-height: 1.25;
   text-align: left;
   cursor: pointer;
+}
+
+.option > .optionHead {
+  color: var(--text);
+}
+
+.optionHead > span {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.optionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 4px;
 }
 
 .option strong {
@@ -1097,11 +1139,6 @@
   color: var(--brand-text);
 }
 
-.arrival {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted);
-}
 
 .coachTip {
   display: flex;
@@ -1144,6 +1181,22 @@
 
   .aidPanel {
     grid-column: 2;
+  }
+}
+
+/* Short phones: a little less air so more of the column fits. */
+@media (max-height: 700px) {
+  .aidPanel {
+    gap: 4px;
+  }
+
+  .coachTip img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .segmentProfile {
+    height: 30px;
   }
 }
 
@@ -1251,4 +1304,28 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+}
+
+/* Narrow phones: smaller numbers and profile, so each aid station card keeps to fewer lines. */
+@media (max-width: 380px) {
+  .nextFacts {
+    font-size: var(--font-size-xs);
+  }
+
+  .segmentProfile {
+    width: 72px;
+  }
+
+  .gapRow dt {
+    font-size: 9px;
+  }
+
+  .gapRow dd {
+    font-size: var(--font-size-md);
+  }
+
+  .option {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
 }

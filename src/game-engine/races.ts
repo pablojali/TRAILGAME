@@ -495,6 +495,42 @@ export function previewStep(state: GameState, stop: AidStop, intensity: Intensit
   }
 }
 
+/** Where the race would end if the rest is run with one plan (owner request, 9 November 2026). */
+export interface RaceProjection {
+  /** Seconds from now (this stop included) to the finish. */
+  remainingS: number
+  /** In-race fatigue at the finish (0–100): the Fatigue the runner leaves the race with. */
+  fatigueAtFinish: number
+  /** Finishing places if the finish time came out a little better or worse (best first). */
+  positionRange: [number, number]
+}
+
+/** How far either side of the projected finish time the position range looks (the plan may change). */
+const PROJECTION_MARGIN = 0.01
+
+/**
+ * The rest of the race with this stop and intensity now, then Normal stops and the same intensity
+ * to the finish. An estimate: the player decides again at every aid station.
+ */
+export function projectRace(state: GameState, stop: AidStop, intensity: Intensity): RaceProjection | null {
+  const active = state.activeRace
+  const race = active && getRace(active.raceId)
+  if (!active || !race) return null
+  const field = fieldOf(active, race)
+  if (active.splits.length >= field.segments.length) return null
+  const ctx = contextOf(active, race, field)
+  const start = toProgress(active)
+  let progress = runSegment(ctx, makeStop(ctx, start, stop), intensity)
+  while (progress.splits.length < field.segments.length) progress = runSegment(ctx, makeStop(ctx, progress, 'normal'), intensity)
+  const finishS = progress.elapsedS
+  const place = (time: number) => 1 + field.rivalFinishS.filter((t) => t < time).length
+  return {
+    remainingS: finishS - start.elapsedS,
+    fatigueAtFinish: Math.min(100, Math.max(0, progress.fatigue)),
+    positionRange: [place(finishS * (1 - PROJECTION_MARGIN)), place(finishS * (1 + PROJECTION_MARGIN))],
+  }
+}
+
 /**
  * What racing today would do to Fatigue with the default plan, and whether it would injure the
  * athlete (same rule as training).

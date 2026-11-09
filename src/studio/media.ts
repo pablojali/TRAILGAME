@@ -19,8 +19,11 @@ export const clipPath = (raceId: string, segment: number, ext: 'mp4' | 'jpg') =>
 export const thumbnailFile = (itemId: string) => `thumb_${itemId.replace(/[^a-z0-9-]+/gi, '_')}.png`
 export const thumbnailPath = (file: string) => `assets/ui/thumbnails/${file}`
 
-/** The largest video the Studio sends (GitHub refuses files over 100 MB; the game wants about 3 MB). */
-export const MAX_VIDEO_BYTES = 50 * 1024 * 1024
+/**
+ * The largest video the Studio sends: Cloudflare Pages refuses files over 25 MiB, which breaks the
+ * game's deploy (owner report, 9 November 2026: a 25.6 MB clip). The game wants about 3 MB.
+ */
+export const MAX_VIDEO_BYTES = 24 * 1024 * 1024
 export const LARGE_VIDEO_BYTES = 8 * 1024 * 1024
 
 function base64Of(bytes: Uint8Array): string {

@@ -50,7 +50,7 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
   - **Race photo:** `assets/ui/races/RACE-xxx.jpg`, JPEG, 1672 px wide. Another picture of the same
     race, such as a `.webp`, is removed so the two do not compete.
   - **Race clip, one per segment:** `assets/race/clips/RACE-xxx/segment-N.mp4`. It must be a real
-    MP4 (the game's checks refuse anything else) of at most 50 MB; the editor warns above 8 MB and
+    MP4 (the game's checks refuse anything else) of at most 24 MB (Cloudflare Pages refuses files over 25 MiB); the editor warns above 8 MB and
     aims for 3 MB. A poster `segment-N.jpg` is taken from the video automatically.
   - **Shop picture:** `assets/ui/thumbnails/thumb_<item>.png`, 512 × 512 with transparency kept. The
     item's thumbnail column is updated to point at it. On main, CI crops it for the shop

@@ -9,6 +9,8 @@ describe('clip files (owner uploads)', () => {
     for (const [path, content] of Object.entries(CLIPS)) {
       expect(path, path).toMatch(/\/RACE-\d{3}\/segment-\d+\.(mp4|webm)$/)
       expect(content.length, path).toBeGreaterThan(20_000)
+      // Cloudflare Pages refuses files over 25 MiB: the game would not deploy (owner upload, 9 November 2026).
+      expect(content.length, `${path} is too large for Cloudflare (25 MiB at most)`).toBeLessThan(24 * 1024 * 1024)
       // An MP4 has its "ftyp" box at byte 4; a WebM starts with the EBML header.
       const ok = path.endsWith('.mp4') ? content.slice(4, 8) === 'ftyp' : content.charCodeAt(0) === 0x1a
       expect(ok, `${path} is not a playable video`).toBe(true)

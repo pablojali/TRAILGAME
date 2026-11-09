@@ -69,7 +69,11 @@ export function RaceMedia({ token, ws, setWs, raceId, segments }: { token: strin
     run(`clip-${segment}`, async () => {
       const bytes = new Uint8Array(await file.arrayBuffer())
       if (!isMp4(bytes)) throw new Error('Ese archivo no es un vídeo MP4. Expórtalo como MP4 (H.264), por ejemplo desde InShot o CapCut a 720p.')
-      if (file.size > MAX_VIDEO_BYTES) throw new Error(`El vídeo pesa ${megabytes(file.size)}: el máximo es ${megabytes(MAX_VIDEO_BYTES)}. Expórtalo a 720p.`)
+      if (file.size > MAX_VIDEO_BYTES) {
+        throw new Error(
+          `El vídeo pesa ${megabytes(file.size)}: Cloudflare no publica archivos de más de 25 MB. Expórtalo a 720p (InShot o CapCut: resolución 720p, calidad media) o pídele a Claude que lo comprima.`,
+        )
+      }
       const changes: Record<string, Upload | undefined> = {
         [clipPath(raceId, segment, 'mp4')]: await asUpload(file, `Vídeo del tramo ${segment} de ${raceId}`),
       }

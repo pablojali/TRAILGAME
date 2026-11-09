@@ -56,5 +56,7 @@
   "races.levelRange": "· levels {min}–{max}",
   "races.closedAbove": "Open up to level {level} (you: {you}): choose a harder race.",
   "races.enter": "Enter race",
-  "races.entering": "Entering…"
+  "races.entering": "Entering…",
+  "races.technical": "Technical",
+  "races.technicalityLabel": "Technical difficulty {value} of {max}"
 }

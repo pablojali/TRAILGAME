@@ -702,6 +702,66 @@
   backdrop-filter: blur(6px);
 }
 
+/* Gel and bar (owner request, 9 November 2026): the picture, lit with a check when taken. */
+.nutrition {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px var(--space-2);
+  padding: var(--space-2);
+}
+
+.nutritionArt {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 48px;
+}
+
+.nutritionArt img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: grayscale(1) brightness(0.6);
+  opacity: 0.55;
+  transition: filter 150ms ease, opacity 150ms ease;
+}
+
+.nutrition[aria-pressed='true'] .nutritionArt img {
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.5));
+  opacity: 1;
+}
+
+.nutritionCheck {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--color-charcoal-950);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Name (and "Not taken") beside the picture; the effect and stock on a line of their own. */
+.nutritionText {
+  display: contents;
+}
+
+.nutritionText > .tileLabel,
+.nutritionText > strong {
+  grid-column: 2;
+}
+
+.nutritionText > .tileNote {
+  grid-column: 1 / -1;
+}
+
 .chipsTight > div {
   flex-wrap: wrap;
   gap: 6px;
@@ -940,4 +1000,44 @@
   font-size: 11px;
   font-weight: 800;
   line-height: 1.5;
+}
+
+/* Technical difficulty 0–5 (owner request, 9 November 2026): label and five pips. */
+.technicality {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px var(--space-2);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: var(--radius-sm);
+  background: rgb(0 0 0 / 0.35);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.pips {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.pip,
+.pipOn {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.22);
+}
+
+.pipOn {
+  background: var(--accent);
+  box-shadow: 0 0 4px rgb(240 124 42 / 0.7);
+}
+
+.tileHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
 }

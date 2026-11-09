@@ -10,3 +10,6 @@ One picture per equipment item, shown on its shop and equipment cards (owner req
 Then put the file name in the `thumbnail` column of `src/data/equipment.csv` (after uploading: the
 checks fail if the table names a file that does not exist). A picture here is used before the one cut
 from the avatar art in `assets/ui/equipment`.
+
+The game shows each picture cropped to the item (`scripts/prepare_shop_art.py`, run by CI, writes
+`assets/ui/shop/`), so the margin in the file does not make the item small on the cards.

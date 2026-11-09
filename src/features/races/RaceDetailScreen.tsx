@@ -16,6 +16,7 @@ import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
 import { getFinishedEntries, getPendingEntry, type RaceEntryError } from '../../game-engine/races'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import { RaceDayPanel } from './RaceDayPanel'
+import { Technicality } from './Technicality'
 import { bandLabel, courseText, feePaidText, ordinal, percentText, raceTimeText } from './raceText'
 import styles from './Races.module.css'
 
@@ -75,7 +76,10 @@ function RaceDetail({ race }: { race: Race }) {
           <dd>{race.elevationGainM.toLocaleString(locale)} m</dd>
         </div>
         <div className={`${styles.tile} ${styles.tileWide}`}>
-          <dt>{t('races.terrain')}</dt>
+          <dt className={styles.tileHead}>
+            {t('races.terrain')}
+            <Technicality value={race.technicality} />
+          </dt>
           <dd>{raceTerrain(race, locale)}</dd>
         </div>
         <div className={styles.tile}>

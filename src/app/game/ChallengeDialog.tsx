@@ -1,14 +1,17 @@
 import { useEffect, useId, useRef } from 'react'
+import { useLocation } from 'react-router'
 import button from '../../components/Button.module.css'
 import { ACHIEVEMENTS } from '../../game-engine/achievements'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 import { achievementTitleKey, type AchievementKeyId } from '../../i18n/labels'
 import { useGame } from './gameContext'
+import { inRace } from './inRace'
 import styles from './LevelUpDialog.module.css'
 
 /**
  * "Challenge completed!" (owner design, 5 November 2026): shown when a training day or a race
- * reaches an achievement level, one at a time, after any level-up celebration. The coins and XP
+ * reaches an achievement level, one at a time, after any level-up celebration and never during a
+ * race. The coins and XP
  * are already paid by the game; the dialog only tells the player.
  */
 export function ChallengeDialog() {
@@ -16,7 +19,9 @@ export function ChallengeDialog() {
   const { t, locale } = useI18n()
   const titleId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
-  const shown = phase.kind === 'playing' && !levelUp && challengeDone !== null
+  // Not during a race either: it waits for the result screen.
+  const racing = inRace(useLocation().pathname)
+  const shown = phase.kind === 'playing' && !levelUp && challengeDone !== null && !racing
 
   useEffect(() => {
     if (shown) heading.current?.focus()

@@ -139,14 +139,26 @@ export async function createProposal(
   title: string,
   body: string,
   now = new Date(),
+  media: { path: string; base64: string | null }[] = [],
 ): Promise<Proposal> {
   const main = await call<{ object: { sha: string } }>(token, `/repos/${REPO}/git/ref/heads/main`)
   const base = await call<{ tree: { sha: string } }>(token, `/repos/${REPO}/git/commits/${main.object.sha}`)
+  // Pictures and videos go up as blobs first (base64); a null deletes the file.
+  const mediaEntries = await Promise.all(
+    media.map(async (file) => {
+      if (file.base64 === null) return { path: file.path, mode: '100644', type: 'blob', sha: null }
+      const blob = await call<{ sha: string }>(token, `/repos/${REPO}/git/blobs`, {
+        method: 'POST',
+        body: JSON.stringify({ content: file.base64, encoding: 'base64' }),
+      })
+      return { path: file.path, mode: '100644', type: 'blob', sha: blob.sha }
+    }),
+  )
   const tree = await call<{ sha: string }>(token, `/repos/${REPO}/git/trees`, {
     method: 'POST',
     body: JSON.stringify({
       base_tree: base.tree.sha,
-      tree: files.map((file) => ({ path: file.path, mode: '100644', type: 'blob', content: file.text })),
+      tree: [...files.map((file) => ({ path: file.path, mode: '100644', type: 'blob', content: file.text })), ...mediaEntries],
     }),
   })
   const commit = await call<{ sha: string }>(token, `/repos/${REPO}/git/commits`, {
@@ -161,6 +173,24 @@ export async function createProposal(
     body: JSON.stringify({ title, body, head: branch, base: 'main' }),
   })
   return proposalOf(token, pull)
+}
+
+export interface RepoFile {
+  name: string
+  path: string
+  /** A temporary address to show it (works for a private repository). */
+  url: string
+}
+
+/** The files of a folder on main (none when it does not exist). */
+export async function listFolder(token: string, path: string): Promise<RepoFile[]> {
+  try {
+    const entries = await call<{ name: string; path: string; type: string; download_url: string | null }[]>(token, `/repos/${REPO}/contents/${path}?ref=main`)
+    return entries.filter((e) => e.type === 'file' && e.download_url).map((e) => ({ name: e.name, path: e.path, url: e.download_url! }))
+  } catch (error) {
+    if (error instanceof GitHubError && error.status === 404) return []
+    throw error
+  }
 }
 
 /** Publishes a proposal: merges it into main (the game then deploys it). */

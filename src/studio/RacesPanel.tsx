@@ -7,6 +7,7 @@ import { getReferenceFinishS, getSegmentCount } from '../game-engine/raceEngine'
 import { courseEffortKm, generateCourse } from '../game-engine/raceSimulation'
 import { insertRow, rows, serializeDoc, updateRow, type CsvDoc } from './csvDoc'
 import { NumberField, Pips, PipsField, SelectField, TextField } from './fields'
+import { RaceMedia } from './MediaPanels'
 import type { Workspace } from './model'
 
 const DIFFICULTIES = ['I', 'II', 'III', 'IV', 'V']
@@ -55,7 +56,19 @@ function Profile({ race }: { race: Race }) {
   )
 }
 
-export function RacesPanel({ ws, setWs, selected, select }: { ws: Workspace; setWs(ws: Workspace): void; selected: string | null; select(id: string): void }) {
+export function RacesPanel({
+  token,
+  ws,
+  setWs,
+  selected,
+  select,
+}: {
+  token: string
+  ws: Workspace
+  setWs(ws: Workspace): void
+  selected: string | null
+  select(id: string): void
+}) {
   const raceRows = rows(ws.docs.races)
   const difficulty = new Map(rows(ws.docs.points).filter((r) => r.values.kind === 'race').map((r) => [r.values.key!, r.values.value!]))
   const baseRows = useMemo(() => new Map(rows(ws.docsBase.races).map((r) => [r.values.id!, JSON.stringify(r.values)])), [ws.docsBase])
@@ -265,6 +278,8 @@ export function RacesPanel({ ws, setWs, selected, select }: { ws: Workspace; set
               />
             ))}
           </div>
+
+          {race && <RaceMedia token={token} ws={ws} setWs={setWs} raceId={race.id} segments={getSegmentCount(race)} />}
         </section>
       )}
     </div>

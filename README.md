@@ -106,7 +106,7 @@ it (needs Pillow): `python3 scripts/prepare_avatar_art.py`. It writes the game l
 
 ## Trail Studio
 
-The designer edits races and equipment in **Trail Studio** (`trailgame-studio.pages.dev`). It is a
+The designer edits races and equipment, and uploads their photos, clips and shop pictures, in **Trail Studio** (`trailgame-studio.pages.dev`). It is a
 separate site that proposes changes as pull requests; see `docs/STUDIO.md`.
 
 ## Trail Coach artwork

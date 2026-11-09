@@ -11,7 +11,22 @@ import {
   savedToken,
   type Proposal,
 } from './github'
-import { changedFiles, FILES, needsRankingMigration, openWorkspace, proposalFiles, summary, textOf, validate, type FileId, type Workspace } from './model'
+import { forgetFolders } from './uploads'
+import { megabytes } from './media'
+import {
+  changedFiles,
+  FILES,
+  hasChanges,
+  needsRankingMigration,
+  openWorkspace,
+  proposalFiles,
+  proposalMedia,
+  summary,
+  textOf,
+  validate,
+  type FileId,
+  type Workspace,
+} from './model'
 import { RacesPanel } from './RacesPanel'
 
 const DRAFT_KEY = 'trailgame.studio.draft'
@@ -99,6 +114,15 @@ export function App() {
     void refreshProposals(token)
   }, [token, load, refreshProposals])
 
+  // Pictures and videos are not kept as a draft: warn before leaving with some not proposed.
+  const unsentUploads = ws ? Object.keys(ws.uploads).length > 0 : false
+  useEffect(() => {
+    if (!unsentUploads) return
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [unsentUploads])
+
   // While a proposal is being checked, look again every 20 seconds.
   useEffect(() => {
     if (!token || !proposals?.some((p) => p.state === 'checking')) return
@@ -109,6 +133,7 @@ export function App() {
   if (!token) return <Connect onConnected={(tok) => setToken(tok)} />
 
   const changed = ws ? changedFiles(ws) : []
+  const uploads = ws ? Object.keys(ws.uploads).length : 0
   const pending = proposals?.length ?? 0
 
   return (
@@ -158,18 +183,30 @@ export function App() {
         {!ws ? (
           <p className="loading">Leyendo las tablas del juego…</p>
         ) : tab === 'races' ? (
-          <RacesPanel ws={ws} setWs={setWs} selected={raceId} select={setRaceId} />
+          <RacesPanel token={token} ws={ws} setWs={setWs} selected={raceId} select={setRaceId} />
         ) : tab === 'equipment' ? (
           <EquipmentPanel ws={ws} setWs={setWs} selected={itemId} select={setItemId} />
         ) : (
-          <ProposalsPanel token={token} proposals={proposals} refresh={() => refreshProposals(token)} reload={() => load(token)} />
+          <ProposalsPanel
+            token={token}
+            proposals={proposals}
+            refresh={() => refreshProposals(token)}
+            reload={() => {
+              forgetFolders()
+              return load(token)
+            }}
+          />
         )}
       </main>
 
-      {ws && changed.length > 0 && tab !== 'changes' && (
+      {ws && hasChanges(ws) && tab !== 'changes' && (
         <footer className="saveBar">
           <span>
-            Cambios sin guardar en {changed.length === 1 ? '1 tabla' : `${changed.length} tablas`}.
+            Sin guardar:{' '}
+            {[changed.length && (changed.length === 1 ? '1 tabla' : `${changed.length} tablas`), uploads && (uploads === 1 ? '1 archivo' : `${uploads} archivos`)]
+              .filter(Boolean)
+              .join(' y ')}
+            .
           </span>
           <button
             type="button"
@@ -194,6 +231,7 @@ export function App() {
           onClose={() => setReviewing(false)}
           onCreated={(proposal) => {
             setReviewing(false)
+            for (const upload of Object.values(ws.uploads)) if (upload.previewUrl) URL.revokeObjectURL(upload.previewUrl)
             setWs(openWorkspace(ws.base))
             setProposals((list) => [proposal, ...(list ?? [])])
             setTab('changes')
@@ -267,10 +305,15 @@ function Review({
 }) {
   const errors = validate(ws)
   const { races, equipment } = summary(ws)
+  const media = Object.values(ws.uploads).map((u) => (u.base64 === null ? u.label : `${u.label}${u.bytes ? ` (${megabytes(u.bytes)})` : ''}`))
   const migration = needsRankingMigration(ws)
   const [title, setTitle] = useState(() => {
-    const parts = [races.length && `${races.length} carrera${races.length > 1 ? 's' : ''}`, equipment.length && `${equipment.length} artículo${equipment.length > 1 ? 's' : ''}`].filter(Boolean)
-    return `Studio: cambios en ${parts.join(' y ')}`
+    const parts = [
+      races.length && `${races.length} carrera${races.length > 1 ? 's' : ''}`,
+      equipment.length && `${equipment.length} artículo${equipment.length > 1 ? 's' : ''}`,
+      media.length && `${media.length} archivo${media.length > 1 ? 's' : ''}`,
+    ].filter(Boolean)
+    return `Studio: cambios en ${parts.join(', ')}`
   })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -283,13 +326,14 @@ function Review({
       '',
       ...(races.length ? ['### Carreras', ...races.map((l) => `- ${l}`), ''] : []),
       ...(equipment.length ? ['### Equipamiento', ...equipment.map((l) => `- ${l}`), ''] : []),
+      ...(media.length ? ['### Fotos y vídeos', ...media.map((l) => `- ${l}`), ''] : []),
       ...(migration
         ? ['⚠️ Incluye una migración de los rankings (niveles o dificultades de carreras). Después de publicar hay que aplicarla en Supabase: pídeselo a Claude.', '']
         : []),
       'La vista previa del juego muestra los cambios; el servidor usa los datos publicados hasta que se publique esta propuesta.',
     ]
     try {
-      onCreated(await createProposal(token, proposalFiles(ws, new Date()), title, lines.join('\n')))
+      onCreated(await createProposal(token, proposalFiles(ws, new Date()), title, lines.join('\n'), new Date(), proposalMedia(ws)))
     } catch (e) {
       setError(`GitHub no aceptó la propuesta: ${(e as Error).message}`)
       setBusy(false)
@@ -320,6 +364,16 @@ function Review({
                 <li key={line}>
                   <Rich line={line} />
                 </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {media.length > 0 && (
+          <>
+            <h3>Fotos y vídeos</h3>
+            <ul className="changes">
+              {media.map((line) => (
+                <li key={line}>{line}</li>
               ))}
             </ul>
           </>

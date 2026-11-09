@@ -1,6 +1,7 @@
 import { parseEquipment } from '../domain/equipment/items'
 import { parseRaces } from '../domain/races/races'
 import { diffDocs, parseDoc, rows, serializeDoc, type CsvDoc, type RowChange } from './csvDoc'
+import type { Upload } from './media'
 import { migrationPath, racePointsMigration, racePointsRows } from './migration'
 
 /** The tables Trail Studio edits, by repository path. */
@@ -17,6 +18,8 @@ export interface Workspace {
   /** The tables on main, read (to mark what changed). */
   docsBase: Record<FileId, CsvDoc>
   docs: Record<FileId, CsvDoc>
+  /** Pictures and videos added (or removed: base64 null), by repository path. Not kept as a draft. */
+  uploads: Record<string, Upload>
 }
 
 export function openWorkspace(base: Record<FileId, string>, drafts?: Partial<Record<FileId, string>>): Workspace {
@@ -25,7 +28,7 @@ export function openWorkspace(base: Record<FileId, string>, drafts?: Partial<Rec
     points: parseDoc(text('points')),
     equipment: parseDoc(text('equipment')),
   })
-  return { base, docsBase: read((id) => base[id]), docs: read((id) => drafts?.[id] ?? base[id]) }
+  return { base, docsBase: read((id) => base[id]), docs: read((id) => drafts?.[id] ?? base[id]), uploads: {} }
 }
 
 export function textOf(ws: Workspace, id: FileId): string {
@@ -147,6 +150,16 @@ export function summary(ws: Workspace): { races: string[]; equipment: string[] }
     return `${row?.values.name_es || row?.values.name || key} (${key})`
   }
   return { races, equipment: describe(diffDocs(before.docs.equipment, ws.docs.equipment, (v) => v.id!), EQUIPMENT_COLUMNS, itemName) }
+}
+
+/** Whether anything is waiting to be proposed: a table or an upload. */
+export function hasChanges(ws: Workspace): boolean {
+  return changedFiles(ws).length > 0 || Object.keys(ws.uploads).length > 0
+}
+
+/** The pictures and videos of a proposal (base64 null: delete the file). */
+export function proposalMedia(ws: Workspace): { path: string; base64: string | null }[] {
+  return Object.entries(ws.uploads).map(([path, upload]) => ({ path, base64: upload.base64 }))
 }
 
 /** The files of a proposal: the changed tables, and the ranking migration when it is needed. */

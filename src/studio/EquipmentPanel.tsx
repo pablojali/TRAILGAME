@@ -5,6 +5,9 @@ import { itemEffect, itemLabel } from '../i18n/equipmentText'
 import { translate } from '../i18n/i18n'
 import { insertRow, rows, serializeDoc, updateRow, type CsvDoc } from './csvDoc'
 import { Field, NumberField, SelectField, TextField } from './fields'
+import { Picker } from './MediaPanels'
+import { itemPicture, withUploads } from './uploads'
+import { thumbnailPath } from './media'
 import type { Workspace } from './model'
 
 const SHOP = import.meta.glob<string>('../../assets/ui/shop/*.webp', { eager: true, query: '?url', import: 'default' })
@@ -65,8 +68,7 @@ function readItem(doc: CsvDoc, values: Record<string, string>): { item?: Equipme
   }
 }
 
-function Card({ values, item }: { values: Record<string, string>; item?: EquipmentItem }) {
-  const picture = values.thumbnail ? pictureOf(values.thumbnail) : undefined
+function Card({ values, item, picture }: { values: Record<string, string>; item?: EquipmentItem; picture?: string }) {
   return (
     <div className="itemCard">
       <span className="itemTop">
@@ -81,8 +83,22 @@ function Card({ values, item }: { values: Record<string, string>; item?: Equipme
   )
 }
 
-export function EquipmentPanel({ ws, setWs, selected, select }: { ws: Workspace; setWs(ws: Workspace): void; selected: string | null; select(id: string): void }) {
+export function EquipmentPanel({
+  ws,
+  setWs,
+  selected,
+  select,
+}: {
+  ws: Workspace
+  setWs(ws: Workspace): void
+  selected: string | null
+  select(id: string): void
+}) {
   const [filter, setFilter] = useState('all')
+  const [pictureError, setPictureError] = useState('')
+  // A picture uploaded in this visit is shown before the published one.
+  const pictureFor = (values: Record<string, string>) =>
+    values.thumbnail ? (ws.uploads[thumbnailPath(values.thumbnail)]?.previewUrl ?? pictureOf(values.thumbnail)) : undefined
   const itemRows = rows(ws.docs.equipment)
   const baseRows = useMemo(() => new Map(rows(ws.docsBase.equipment).map((r) => [r.values.id!, JSON.stringify(r.values)])), [ws.docsBase])
   const shownRows = itemRows.filter((r) => filter === 'all' || r.values.type === filter)
@@ -125,7 +141,7 @@ export function EquipmentPanel({ ws, setWs, selected, select }: { ws: Workspace;
             <li key={row.values.id}>
               <button type="button" aria-pressed={row.values.id === v?.id} onClick={() => select(row.values.id!)}>
                 {baseRows.get(row.values.id!) !== JSON.stringify(row.values) && <span className="dot" title="Cambiado" />}
-                <Card values={row.values} item={readItem(ws.docs.equipment, row.values).item} />
+                <Card values={row.values} item={readItem(ws.docs.equipment, row.values).item} picture={pictureFor(row.values)} />
               </button>
             </li>
           ))}
@@ -141,7 +157,7 @@ export function EquipmentPanel({ ws, setWs, selected, select }: { ws: Workspace;
             </div>
           </div>
           <div className="previewRow">
-            <Card values={v} item={read.item} />
+            <Card values={v} item={read.item} picture={pictureFor(v)} />
             <div className="previewNote">
               <p>Así se verá en la tienda (en español).</p>
               {read.item?.effectText && <p className="muted">English: {read.item.effectText.replace(/^Races: /, '')}</p>}
@@ -157,10 +173,27 @@ export function EquipmentPanel({ ws, setWs, selected, select }: { ws: Workspace;
             {['gel', 'bar', 'nutrition'].includes(v.type!) && (
               <NumberField label="Unidades por pack" value={v.pack!} min={1} onChange={(x) => setItem({ pack: x })} />
             )}
-            <Field label="Imagen de la tienda" hint="Un archivo de assets/ui/thumbnails ({sex} = men o women)" wide>
+            <Field label="Imagen de la tienda" hint="Sube una imagen (mejor PNG con fondo transparente) o elige un archivo de assets/ui/thumbnails ({sex} = men o women)" wide>
               {(id) => (
                 <>
-                  <input id={id} list="studio-thumbnails" value={v.thumbnail} onChange={(e) => setItem({ thumbnail: e.target.value })} />
+                  <div className="inputRow">
+                    <input id={id} list="studio-thumbnails" value={v.thumbnail} onChange={(e) => setItem({ thumbnail: e.target.value })} />
+                    <Picker
+                      accept="image/*"
+                      label="Subir imagen"
+                      onFile={async (file) => {
+                        setPictureError('')
+                        try {
+                          const { path, upload, column } = await itemPicture(v.id!, file)
+                          const next = withUploads(ws, { [path]: upload })
+                          setWs({ ...next, docs: { ...next.docs, equipment: updateRow(next.docs.equipment, (r) => r.values.id === v.id, { thumbnail: column }) } })
+                        } catch (e) {
+                          setPictureError((e as Error).message)
+                        }
+                      }}
+                    />
+                  </div>
+                  {pictureError && <span className="error">{pictureError}</span>}
                   <datalist id="studio-thumbnails">
                     {SOURCES.map((file) => (
                       <option key={file} value={file} />

@@ -473,7 +473,13 @@ export function parseGameState(value: unknown, now: number): GameState | null {
 
 function parseCoachProgress(value: unknown): CoachProgress | null {
   if (!isRecord(value) || !isInt(value.welcomeStep, 0) || typeof value.welcomeDone !== 'boolean') return null
-  return { welcomeStep: value.welcomeStep, welcomeDone: value.welcomeDone }
+  const progress: CoachProgress = { welcomeStep: value.welcomeStep, welcomeDone: value.welcomeDone }
+  // Moments seen (ids, at most a few dozen) and the step on screen; anything else is dropped.
+  if (Array.isArray(value.seen) && value.seen.length <= 64 && value.seen.every((id) => typeof id === 'string' && id.length <= 40)) {
+    progress.seen = [...new Set(value.seen as string[])]
+  }
+  if (isInt(value.step, 0, 99)) progress.step = value.step
+  return progress
 }
 
 /** Classifies a raw saved string. Never throws. */

@@ -28,4 +28,4 @@ export function coachPortrait(sex: Sex, skin: SkinToneId): string | null {
 }
 
 /** Screens of the first welcome, in order. */
-export const WELCOME_STEPS = ['welcome', 'journey', 'start'] as const
+export const WELCOME_STEPS = ['welcome', 'start'] as const

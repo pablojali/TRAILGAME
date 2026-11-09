@@ -8,6 +8,7 @@ import { sceneForPath } from '../components/backdrop/backdrops'
 import { Icon } from '../components/Icon'
 import { CareerCreationScreen } from '../features/career-setup/CareerCreationScreen'
 import { WelcomeScreen } from '../features/coach/WelcomeScreen'
+import { CoachGuide } from '../features/coach/CoachGuide'
 import { IncompatibleSaveScreen } from '../features/career-setup/IncompatibleSaveScreen'
 import button from '../components/Button.module.css'
 import { Screen } from '../components/Screen'
@@ -87,6 +88,7 @@ export function AppShell() {
                 <NavLink
                   to={item.path}
                   end={item.path === '/'}
+                  data-coach={`nav-${item.id}`}
                   className={({ isActive }) =>
                     isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink
                   }
@@ -122,6 +124,7 @@ export function AppShell() {
         </div>
       </main>
 
+      <CoachGuide />
       <ConflictDialog />
       <LevelUpDialog />
       <ChallengeDialog />

@@ -131,9 +131,16 @@ export function mergeClientFields(server: GameState, client: GameState, now: num
       ...(client.athlete.country === undefined ? {} : { country: client.athlete.country }),
     },
   }
-  // The coach's progress is the player's; a welcome already done (or a career from before the
-  // coach, which has none) stays done.
-  if (client.coach && server.coach) merged.coach = server.coach?.welcomeDone ? { ...client.coach, welcomeDone: true } : client.coach
+  // The coach's progress is the player's; a welcome already done and moments already seen stay so
+  // (a career from before the coach has none and gets none).
+  if (client.coach && server.coach) {
+    const seen = [...new Set([...(server.coach.seen ?? []), ...(client.coach.seen ?? [])])]
+    merged.coach = {
+      ...client.coach,
+      welcomeDone: server.coach.welcomeDone || client.coach.welcomeDone,
+      ...(seen.length ? { seen } : {}),
+    }
+  }
   const look = setAppearance(merged, client.athlete.appearance)
   if (look.ok) merged = look.state
   // The plan for today and the rest of the week (validated by the engine, day by day).

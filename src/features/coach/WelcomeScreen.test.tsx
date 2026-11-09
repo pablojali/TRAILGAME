@@ -23,7 +23,7 @@ function freshCareer(): GameState {
 const savedCoach = () => readSave()?.state.coach
 
 describe('Trail Coach welcome', () => {
-  it('greets a new career full screen, without navigation, and walks through the three screens to the Dashboard', async () => {
+  it('greets a new career full screen, without navigation, and goes to the Dashboard in two screens', async () => {
     const user = userEvent.setup()
     seedCareer(freshCareer())
     const { router } = await renderApp('/training')
@@ -33,18 +33,14 @@ describe('Trail Coach welcome', () => {
     expect(screen.getByRole('img', { name: 'Your coach' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: "Let's go" }))
-    expect(screen.getByRole('heading', { level: 1, name: 'Your journey' })).toBeInTheDocument()
-    expect(screen.getByText('Compete in trail races')).toBeInTheDocument()
-    await waitFor(() => expect(savedCoach()).toEqual({ welcomeStep: 1, welcomeDone: false }))
-
-    await user.click(screen.getByRole('button', { name: 'Continue' }))
     expect(screen.getByText(/You don't need to learn everything today/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Skip' })).not.toBeInTheDocument()
+    await waitFor(() => expect(savedCoach()).toEqual({ welcomeStep: 1, welcomeDone: false }))
 
     await user.click(screen.getByRole('button', { name: 'Start my career' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/')
-    await waitFor(() => expect(savedCoach()).toEqual({ welcomeStep: 2, welcomeDone: true }))
+    await waitFor(() => expect(savedCoach()).toEqual({ welcomeStep: 1, welcomeDone: true }))
   })
 
   it('resumes at the screen the player left after a reload', async () => {
@@ -56,7 +52,7 @@ describe('Trail Coach welcome', () => {
     first.unmount()
 
     await renderApp('/')
-    expect(screen.getByRole('heading', { level: 1, name: 'Your journey' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start my career' })).toBeInTheDocument()
   })
 
   it('Skip marks it done: it never shows again', async () => {

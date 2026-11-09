@@ -2259,7 +2259,12 @@ function parseGameState(value, now) {
 }
 function parseCoachProgress(value) {
   if (!isRecord(value) || !isInt(value.welcomeStep, 0) || typeof value.welcomeDone !== "boolean") return null;
-  return { welcomeStep: value.welcomeStep, welcomeDone: value.welcomeDone };
+  const progress = { welcomeStep: value.welcomeStep, welcomeDone: value.welcomeDone };
+  if (Array.isArray(value.seen) && value.seen.length <= 64 && value.seen.every((id) => typeof id === "string" && id.length <= 40)) {
+    progress.seen = [...new Set(value.seen)];
+  }
+  if (isInt(value.step, 0, 99)) progress.step = value.step;
+  return progress;
 }
 
 // src/server/careerOps.ts
@@ -2279,7 +2284,14 @@ function mergeClientFields(server, client, now) {
       ...client.athlete.country === void 0 ? {} : { country: client.athlete.country }
     }
   };
-  if (client.coach && server.coach) merged.coach = server.coach?.welcomeDone ? { ...client.coach, welcomeDone: true } : client.coach;
+  if (client.coach && server.coach) {
+    const seen = [.../* @__PURE__ */ new Set([...server.coach.seen ?? [], ...client.coach.seen ?? []])];
+    merged.coach = {
+      ...client.coach,
+      welcomeDone: server.coach.welcomeDone || client.coach.welcomeDone,
+      ...seen.length ? { seen } : {}
+    };
+  }
   const look = setAppearance(merged, client.athlete.appearance);
   if (look.ok) merged = look.state;
   if (client.week.number === server.week.number) {

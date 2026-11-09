@@ -3,3 +3,4 @@
 # reuse one (players' Inbox remembers it as read). link: where tapping it goes in the game (e.g. /races), or empty.
 # title, text: English; _es, _fr, _it, _de: the other languages (empty = English). Players with the game open get it within 10 minutes.
 id,from,until,link,title,text,title_es,text_es,title_fr,text_fr,title_it,text_it,title_de,text_de
+aviso-20261109,2026-11-09T15:00Z,,,NEWS TESTING,testing all messages,Novedades,Escribe aquí el mensaje.,,,,,,

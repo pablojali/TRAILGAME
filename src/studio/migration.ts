@@ -16,6 +16,33 @@ export function racePointsRows(racesCsv: string, pointsCsv: string): string[] {
 
 const q = (s: string) => `'${s.replace(/'/g, "''")}'`
 
+/** The NPC rows as the migration loads them (id, name, country, sex, level, xp, strength, races per week). */
+export function npcRows(npcsCsv: string): string[] {
+  return parseCsv(npcsCsv).map((n) => [n.id, n.name, n.country, n.sex, n.level, n.xp, n.strength, n.races_per_week].join('|'))
+}
+
+function npcSection(npcsCsv: string): string[] {
+  const npcs = parseCsv(npcsCsv)
+  return [
+    '-- ranking_npcs data (from src/data/ranking_npcs.csv; checked by src/data/rankingNpcs.test.ts)',
+    'insert into public.ranking_npcs (id, name, country, sex, level, xp, strength, races_per_week, list_order) values',
+    npcs
+      .map((n, i) => `  (${q(n.id!)}, ${q(n.name!)}, ${q(n.country!)}, ${q(n.sex!)}, ${n.level}, ${n.xp}, ${n.strength}, ${n.races_per_week}, ${i + 1})`)
+      .join(',\n'),
+    'on conflict on constraint ranking_npcs_pkey do update set name = excluded.name, country = excluded.country, sex = excluded.sex,',
+    '  level = excluded.level, xp = excluded.xp, strength = excluded.strength, races_per_week = excluded.races_per_week, list_order = excluded.list_order;',
+    '',
+  ]
+}
+
+/** The whole ranking data (NPC runners too when `npcsCsv` is given), as one migration. */
+export function rankingMigration(racesCsv: string, pointsCsv: string, npcsCsv: string | null, why: string): string {
+  const points = racePointsMigration(racesCsv, pointsCsv, why)
+  if (!npcsCsv) return points
+  const [first, second, blank, ...rest] = points.split('\n')
+  return [first, second, blank, ...npcSection(npcsCsv), ...rest].join('\n')
+}
+
 export function racePointsMigration(racesCsv: string, pointsCsv: string, why: string): string {
   const level = new Map(parseCsv(racesCsv).map((race) => [race.id!, race.recommended_level!]))
   const points = parseCsv(pointsCsv)

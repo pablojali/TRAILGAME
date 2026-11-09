@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import { BalancePanel } from './BalancePanel'
+import { CoachPanel } from './CoachPanel'
 import { EquipmentPanel } from './EquipmentPanel'
+import { NotificationsPanel } from './NotificationsPanel'
+import { TextsPanel } from './TextsPanel'
 import {
   checkToken,
   createProposal,
@@ -15,8 +19,11 @@ import { forgetFolders } from './uploads'
 import { megabytes } from './media'
 import {
   changedFiles,
+  changedTexts,
+  FILE_IDS,
   FILES,
   hasChanges,
+  jsonText,
   needsRankingMigration,
   openWorkspace,
   proposalFiles,
@@ -25,16 +32,20 @@ import {
   textOf,
   validate,
   type FileId,
+  type TextFile,
+  type TextValue,
   type Workspace,
 } from './model'
 import { RacesPanel } from './RacesPanel'
 
 const DRAFT_KEY = 'trailgame.studio.draft'
-type Tab = 'races' | 'equipment' | 'changes'
+type Tab = 'races' | 'equipment' | 'coach' | 'notifications' | 'texts' | 'balance' | 'changes'
 
 interface Draft {
   base: Record<FileId, string>
   texts: Partial<Record<FileId, string>>
+  /** Game text files edited: their text on main when edited, and the edit. */
+  gameTexts?: Record<string, { base: string; text: string }>
 }
 
 function loadDraft(): Draft | null {
@@ -48,14 +59,21 @@ function loadDraft(): Draft | null {
 
 function storeDraft(ws: Workspace | null) {
   try {
-    if (!ws || changedFiles(ws).length === 0) localStorage.removeItem(DRAFT_KEY)
+    if (!ws || (changedFiles(ws).length === 0 && changedTexts(ws).length === 0)) localStorage.removeItem(DRAFT_KEY)
     else {
       const texts = Object.fromEntries(changedFiles(ws).map((id) => [id, textOf(ws, id)]))
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ base: ws.base, texts } satisfies Draft))
+      const gameTexts = Object.fromEntries(changedTexts(ws).map((path) => [path, { base: ws.texts[path]!.base, text: jsonText(ws.texts[path]!.data) }]))
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ base: ws.base, texts, gameTexts } satisfies Draft))
     }
   } catch {
     // Private mode: the draft lives for this visit only.
   }
+}
+
+/** The workspace as on main again (texts already read stay read, without their edits). */
+function freshWorkspace(ws: Workspace): Workspace {
+  const texts = Object.fromEntries(Object.entries(ws.texts).map(([path, file]) => [path, { base: file.base, data: JSON.parse(file.base) as Record<string, TextValue> }]))
+  return { ...openWorkspace(ws.base), texts }
 }
 
 /**
@@ -72,6 +90,7 @@ export function App() {
   const [tab, setTab] = useState<Tab>('races')
   const [raceId, setRaceId] = useState<string | null>(null)
   const [itemId, setItemId] = useState<string | null>(null)
+  const [momentId, setMomentId] = useState<string | null>(null)
   const [reviewing, setReviewing] = useState(false)
   const [proposals, setProposals] = useState<Proposal[] | null>(null)
 
@@ -79,14 +98,29 @@ export function App() {
     setWsState(next)
     storeDraft(next)
   }, [])
+  // Texts arrive and change while the table edits may change too: always on the latest workspace.
+  const addTexts = useCallback((files: Record<string, TextFile>) => {
+    setWsState((current) => (current ? { ...current, texts: { ...current.texts, ...files } } : current))
+  }, [])
+  const setText = useCallback((path: string, key: string, value: TextValue) => {
+    setWsState((current) => {
+      if (!current) return current
+      const file = current.texts[path]!
+      const next = { ...current, texts: { ...current.texts, [path]: { ...file, data: { ...file.data, [key]: value } } } }
+      storeDraft(next)
+      return next
+    })
+  }, [])
+  const [textDrafts, setTextDrafts] = useState<Record<string, { base: string; text: string }>>({})
 
   const load = useCallback(async (tok: string) => {
     setError('')
     try {
-      const entries = await Promise.all((Object.keys(FILES) as FileId[]).map(async (id) => [id, await readFile(tok, FILES[id])] as const))
+      const entries = await Promise.all(FILE_IDS.map(async (id) => [id, await readFile(tok, FILES[id])] as const))
       const base = Object.fromEntries(entries) as Record<FileId, string>
       const draft = loadDraft()
-      if (draft && (Object.keys(FILES) as FileId[]).every((id) => draft.base[id] === base[id])) {
+      setTextDrafts(draft?.gameTexts ?? {})
+      if (draft && FILE_IDS.every((id) => draft.base[id] === base[id])) {
         setWsState(openWorkspace(base, draft.texts))
         setNotice('Recuperé tus cambios sin guardar.')
       } else {
@@ -132,7 +166,7 @@ export function App() {
 
   if (!token) return <Connect onConnected={(tok) => setToken(tok)} />
 
-  const changed = ws ? changedFiles(ws) : []
+  const changed = ws ? [...changedFiles(ws), ...changedTexts(ws)] : []
   const uploads = ws ? Object.keys(ws.uploads).length : 0
   const pending = proposals?.length ?? 0
 
@@ -148,6 +182,18 @@ export function App() {
           </button>
           <button type="button" aria-pressed={tab === 'equipment'} onClick={() => setTab('equipment')}>
             Equipamiento
+          </button>
+          <button type="button" aria-pressed={tab === 'coach'} onClick={() => setTab('coach')}>
+            Coach
+          </button>
+          <button type="button" aria-pressed={tab === 'notifications'} onClick={() => setTab('notifications')}>
+            Notificaciones
+          </button>
+          <button type="button" aria-pressed={tab === 'texts'} onClick={() => setTab('texts')}>
+            Textos
+          </button>
+          <button type="button" aria-pressed={tab === 'balance'} onClick={() => setTab('balance')}>
+            Balance
           </button>
           <button type="button" aria-pressed={tab === 'changes'} onClick={() => setTab('changes')}>
             Propuestas{pending ? ` (${pending})` : ''}
@@ -186,6 +232,14 @@ export function App() {
           <RacesPanel token={token} ws={ws} setWs={setWs} selected={raceId} select={setRaceId} />
         ) : tab === 'equipment' ? (
           <EquipmentPanel ws={ws} setWs={setWs} selected={itemId} select={setItemId} />
+        ) : tab === 'coach' ? (
+          <CoachPanel ws={ws} setWs={setWs} selected={momentId} select={setMomentId} />
+        ) : tab === 'notifications' ? (
+          <NotificationsPanel token={token} ws={ws} setWs={setWs} addTexts={addTexts} setText={setText} drafts={textDrafts} />
+        ) : tab === 'texts' ? (
+          <TextsPanel token={token} ws={ws} addTexts={addTexts} setText={setText} drafts={textDrafts} />
+        ) : tab === 'balance' ? (
+          <BalancePanel ws={ws} setWs={setWs} />
         ) : (
           <ProposalsPanel
             token={token}
@@ -203,7 +257,7 @@ export function App() {
         <footer className="saveBar">
           <span>
             Sin guardar:{' '}
-            {[changed.length && (changed.length === 1 ? '1 tabla' : `${changed.length} tablas`), uploads && (uploads === 1 ? '1 archivo' : `${uploads} archivos`)]
+            {[changed.length && (changed.length === 1 ? '1 tabla o texto' : `${changed.length} tablas o textos`), uploads && (uploads === 1 ? '1 archivo' : `${uploads} archivos`)]
               .filter(Boolean)
               .join(' y ')}
             .
@@ -212,7 +266,7 @@ export function App() {
             type="button"
             className="ghost"
             onClick={() => {
-              if (window.confirm('¿Descartar todos los cambios sin guardar?')) setWs(openWorkspace(ws.base))
+              if (window.confirm('¿Descartar todos los cambios sin guardar?')) setWs(freshWorkspace(ws))
             }}
           >
             Descartar
@@ -232,7 +286,7 @@ export function App() {
           onCreated={(proposal) => {
             setReviewing(false)
             for (const upload of Object.values(ws.uploads)) if (upload.previewUrl) URL.revokeObjectURL(upload.previewUrl)
-            setWs(openWorkspace(ws.base))
+            setWs(freshWorkspace(ws))
             setProposals((list) => [proposal, ...(list ?? [])])
             setTab('changes')
           }}
@@ -304,13 +358,17 @@ function Review({
   onCreated(p: Proposal): void
 }) {
   const errors = validate(ws)
-  const { races, equipment } = summary(ws)
+  const { races, equipment, coach, announcements, balance, texts } = summary(ws)
   const media = Object.values(ws.uploads).map((u) => (u.base64 === null ? u.label : `${u.label}${u.bytes ? ` (${megabytes(u.bytes)})` : ''}`))
   const migration = needsRankingMigration(ws)
   const [title, setTitle] = useState(() => {
     const parts = [
       races.length && `${races.length} carrera${races.length > 1 ? 's' : ''}`,
       equipment.length && `${equipment.length} artículo${equipment.length > 1 ? 's' : ''}`,
+      coach.length && 'coach',
+      announcements.length && `${announcements.length} aviso${announcements.length > 1 ? 's' : ''}`,
+      balance.length && 'balance',
+      texts.length && `${texts.length} texto${texts.length > 1 ? 's' : ''}`,
       media.length && `${media.length} archivo${media.length > 1 ? 's' : ''}`,
     ].filter(Boolean)
     return `Studio: cambios en ${parts.join(', ')}`
@@ -326,9 +384,13 @@ function Review({
       '',
       ...(races.length ? ['### Carreras', ...races.map((l) => `- ${l}`), ''] : []),
       ...(equipment.length ? ['### Equipamiento', ...equipment.map((l) => `- ${l}`), ''] : []),
+      ...(coach.length ? ['### Coach', ...coach.map((l) => `- ${l}`), ''] : []),
+      ...(announcements.length ? ['### Avisos a todos los jugadores', ...announcements.map((l) => `- ${l}`), ''] : []),
+      ...(balance.length ? ['### Balance', ...balance.map((l) => `- ${l}`), ''] : []),
+      ...(texts.length ? ['### Textos', ...texts.map((l) => `- ${l}`), ''] : []),
       ...(media.length ? ['### Fotos y vídeos', ...media.map((l) => `- ${l}`), ''] : []),
       ...(migration
-        ? ['⚠️ Incluye una migración de los rankings (niveles o dificultades de carreras). Después de publicar hay que aplicarla en Supabase: pídeselo a Claude.', '']
+        ? ['⚠️ Incluye una migración de los rankings (niveles o dificultades de carreras, puntos por puesto o rivales NPC). Después de publicar hay que aplicarla en Supabase: pídeselo a Claude.', '']
         : []),
       'La vista previa del juego muestra los cambios; el servidor usa los datos publicados hasta que se publique esta propuesta.',
     ]
@@ -368,6 +430,27 @@ function Review({
             </ul>
           </>
         )}
+        {(
+          [
+            ['Coach', coach],
+            ['Avisos a todos', announcements],
+            ['Balance', balance],
+            ['Textos', texts],
+          ] as const
+        ).map(([title, lines]) =>
+          lines.length ? (
+            <div key={title}>
+              <h3>{title}</h3>
+              <ul className="changes">
+                {lines.map((line) => (
+                  <li key={line}>
+                    <Rich line={line} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null,
+        )}
         {media.length > 0 && (
           <>
             <h3>Fotos y vídeos</h3>
@@ -378,7 +461,7 @@ function Review({
             </ul>
           </>
         )}
-        {migration && <p className="warning">Cambian niveles o dificultades: la propuesta incluye la migración de los rankings.</p>}
+        {migration && <p className="warning">Cambian datos de los rankings: la propuesta incluye su migración. Después de publicar, avisa a Claude para aplicarla.</p>}
         {pendingProposals > 0 && <p className="warning">Tienes otra propuesta sin publicar: si tocan las mismas tablas, publica una antes de la otra.</p>}
         {errors.length > 0 ? (
           <div className="error">

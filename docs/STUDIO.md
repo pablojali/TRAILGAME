@@ -10,6 +10,41 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
 - **Equipamiento:** every item as its shop card. The editor sets type, level, price, pack, shop
   picture, avatar layer, attribute bonuses, time changes in percent, and texts in five languages.
   It previews the card as the shop shows it in Spanish.
+- **Coach** (owner request, 9 November 2026): the Trail Coach's moments, read from
+  `src/data/coach_moments.csv`.
+  - The moments are listed in the order the coach checks them; the first one not yet seen that
+    fits is shown. Each one can be moved earlier or later.
+  - When a moment appears is set by a trigger chosen from the game's list
+    (`src/features/coach/triggers.ts`), plus "only after" and "cancelled if" other moments.
+  - Each step sets what it points at (from the list of marked screen elements), whether it waits
+    for a tap, and the title and text in five languages. A preview shows the step in Spanish.
+  - A moment that needs a trigger or a screen element the game does not have yet is saved with the
+    trigger "pending" and never appears. Ask Claude to program it: a new trigger goes into
+    `COACH_TRIGGERS`, and a new element gets a `data-coach` mark on its screen plus an entry in
+    `COACH_TARGETS`.
+- **Notificaciones** (owner request, 9 November 2026):
+  - **Avisos a todos:** messages to every player, in `src/data/announcements.csv`.
+    - Each has a start date (now by default, or later to schedule it), an optional end date, an
+      optional link to a screen, and its title and text in five languages. English is required,
+      because empty languages show it.
+    - They appear in every player's Inbox (📣) between those dates.
+    - The game's build also publishes the table as `/announcements.csv`, which an open game reads
+      every 10 minutes. Players with the game open therefore receive a new announcement within
+      minutes of the proposal being published, without reloading.
+    - "Terminarlo" ends one, and announcements that are already published cannot be deleted. Never
+      reuse an id: players' Inboxes remember it as read.
+  - **Notificaciones automáticas:** the texts of the Inbox's own notifications (`inbox.*` in
+    `common.json`), with when each appears. Their rules are code: ask Claude for a new kind.
+- **Textos:** every game text (`src/i18n/locales/{lang}/{screen}.json`) in the five languages side
+  by side, by screen or by search, with a "Solo con problemas" filter.
+  - Only the wording can change. New keys need code.
+  - Placeholders such as `{name}` must stay as they are in English, and empty texts are refused.
+- **Balance:** levels, challenges, ranking points (difficulty bases, points per position, settings),
+  the rivals' field by category and the 200 NPC runners of the ranking.
+  - Each is an editable grid, with the table's own notes under "Qué es cada columna".
+  - Rows can be added or removed where the game allows it.
+  - Changes to ranking points or NPC runners add the ranking migration to the proposal (NPCs
+    included).
 - **Fotos y vídeos** (owner request, 9 November 2026). Uploads are prepared in the browser the way
   the game expects them:
   - **Race photo:** `assets/ui/races/RACE-xxx.jpg`, JPEG, 1672 px wide. Another picture of the same
@@ -31,9 +66,14 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
 The editor checks every change with the game's own table readers (`parseRaces`, `parseEquipment`)
 before it can be proposed. Only edited rows change in the CSV files.
 
-When a race's recommended level or difficulty changes, or a race is added, the proposal also adds a
-ranking migration (`src/studio/migration.ts`, the same SQL as
-`scripts/ranking_tables_sql.py --points-only`). After publishing, apply that migration to Supabase.
+The proposal also adds a ranking migration (`src/studio/migration.ts`, the same SQL as
+`scripts/ranking_tables_sql.py`) when any of these change:
+
+- a race's recommended level or difficulty, or a race is added;
+- the difficulty base points or the points per position;
+- the NPC runners.
+
+After publishing, apply that migration to Supabase.
 
 Drafts are kept in the browser until they are proposed or discarded.
 

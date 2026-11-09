@@ -122,9 +122,28 @@ export function insertRow(doc: CsvDoc, values: Record<string, string>, after?: (
   return { ...doc, lines }
 }
 
+/**
+ * A copy with these rows in this order (rows kept from the table keep their text; comments before
+ * the first row and after the last stay where they were).
+ */
+export function replaceRows(doc: CsvDoc, next: CsvRow[]): CsvDoc {
+  const first = doc.lines.findIndex((line) => line.kind === 'row')
+  let last = -1
+  doc.lines.forEach((line, i) => {
+    if (line.kind === 'row') last = i
+  })
+  const head = first === -1 ? doc.lines : doc.lines.slice(0, first)
+  const tail = first === -1 ? [] : doc.lines.slice(last + 1).filter((line) => line.kind !== 'row')
+  return { ...doc, lines: [...head, ...next.map((row): CsvLine => ({ kind: 'row', row })), ...tail] }
+}
+
+export function newRow(doc: CsvDoc, values: Record<string, string>): CsvRow {
+  return { raw: null, values: Object.fromEntries(doc.header.map((key) => [key, values[key] ?? ''])) }
+}
+
 export interface RowChange {
   key: string
-  kind: 'added' | 'changed'
+  kind: 'added' | 'changed' | 'removed'
   fields: { column: string; before: string; after: string }[]
 }
 
@@ -141,5 +160,7 @@ export function diffDocs(before: CsvDoc, after: CsvDoc, keyOf: (values: Record<s
     if (!previous) changes.push({ key, kind: 'added', fields })
     else if (fields.length) changes.push({ key, kind: 'changed', fields })
   }
+  const now = new Set(rows(after).map((row) => keyOf(row.values)))
+  for (const key of old.keys()) if (!now.has(key)) changes.push({ key, kind: 'removed', fields: [] })
   return changes
 }

@@ -683,10 +683,10 @@ var races_default = `# Race catalog (owner table, 5 November 2026). One row per 
 # Each race also needs its difficulty (I-V) in ranking_points.csv. Photo (assets/ui/races/RACE-xxx.webp) and clips (assets/race/clips) are optional.
 # After adding a race or changing a recommended level, the NPC rankings need a migration: python3 scripts/ranking_tables_sql.py --points-only.
 id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,terrain_es,terrain_fr,terrain_it,terrain_de
-RACE-001,Forest First Steps,open,5,120,4,0,Non-technical forest paths,Caminos de bosque sin dificultad t\xE9cnica,Chemins forestiers sans difficult\xE9 technique,Sentieri nel bosco senza difficolt\xE0 tecniche,Einfache Waldwege
-RACE-002,Riverside Trail,open,8,220,6,0,"Packed dirt, rolling hills","Tierra compacta, colinas suaves","Terre battue, collines douces","Sterrato compatto, colline dolci","Fester Boden, sanfte H\xFCgel"
-RACE-003,Pine Loop Challenge,open,10,350,8,2,"Forest trail, short climbs","Sendero de bosque, subidas cortas","Sentier forestier, mont\xE9es courtes","Sentiero nel bosco, salite brevi","Waldpfad, kurze Anstiege"
-RACE-004,Ridge Runner,trail,12,550,11,2,"Rolling ridges, mixed trail","Crestas onduladas, sendero mixto","Cr\xEAtes vallonn\xE9es, sentier mixte","Creste ondulate, sentiero misto","Wellige Grate, gemischte Pfade"
+RACE-001,Forest First Steps,open,5,50,4,0,Non-technical forest paths,Caminos de bosque sin dificultad t\xE9cnica,Chemins forestiers sans difficult\xE9 technique,Sentieri nel bosco senza difficolt\xE0 tecniche,Einfache Waldwege
+RACE-002,Riverside Trail,open,8,95,6,0,"Packed dirt, rolling hills","Tierra compacta, colinas suaves","Terre battue, collines douces","Sterrato compatto, colline dolci","Fester Boden, sanfte H\xFCgel"
+RACE-003,Pine Loop Challenge,open,10,150,8,1,"Forest trail, short climbs","Sendero de bosque, subidas cortas","Sentier forestier, mont\xE9es courtes","Sentiero nel bosco, salite brevi","Waldpfad, kurze Anstiege"
+RACE-004,Ridge Runner,mountain,12,180,11,3,"Rolling ridges, mixed trail","Crestas onduladas, sendero mixto","Cr\xEAtes vallonn\xE9es, sentier mixte","Creste ondulate, sentiero misto","Wellige Grate, gemischte Pfade"
 RACE-005,Stone Path Classic,trail,15,750,14,3,"Rocky sections, moderate technicality","Tramos rocosos, t\xE9cnica moderada","Passages rocheux, technicit\xE9 mod\xE9r\xE9e","Tratti rocciosi, tecnica moderata","Felsige Abschnitte, mittlere Technik"
 RACE-006,Wildwood Ascent,trail,18,950,18,2,"Sustained climbs, forest terrain","Subidas largas, terreno de bosque","Longues mont\xE9es, terrain forestier","Salite lunghe, terreno boschivo","Lange Anstiege, Waldgel\xE4nde"
 RACE-007,Summit Quest,mountain,22,1300,21,3,"Steep climbs, rocky descents","Subidas empinadas, bajadas rocosas","Mont\xE9es raides, descentes rocheuses","Salite ripide, discese rocciose","Steile Anstiege, felsige Abstiege"

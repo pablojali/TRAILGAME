@@ -1,5 +1,5 @@
-import type { MajorBand, MajorConfig, MajorEventInput, MajorStatus } from '../domain/major/major'
-import { MajorStoreError, type MajorEvent, type MajorStore } from './majorOps'
+import type { MajorBand, MajorConfig, MajorEventInput, MajorPlan, MajorStatus } from '../domain/major/major'
+import { MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore, type PlayerMajor } from './majorOps'
 import type { ServerConfig } from './supabaseRest'
 
 /**
@@ -58,6 +58,11 @@ function toEvent(row: EventRow): MajorEvent {
 
 /** The refusal behind a database error raised by the Major functions or the event guard. */
 export function refusalOf(message: string): MajorStoreError | null {
+  if (/ready window is closed/.test(message)) return new MajorStoreError('ready-closed')
+  if (/registration is closed/.test(message)) return new MajorStoreError('closed')
+  if (/already registered/.test(message)) return new MajorStoreError('already-registered')
+  if (/not registered/.test(message)) return new MajorStoreError('not-registered')
+  if (/has no category for level/.test(message)) return new MajorStoreError('no-category')
   if (/not found/.test(message)) return new MajorStoreError('not-found')
   if (/is not a draft|only its status can change/.test(message)) return new MajorStoreError('not-draft')
   if (/too soon/.test(message)) return new MajorStoreError('too-soon')
@@ -90,6 +95,9 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
     if (response.status === 204) return undefined as T
     return (await response.json()) as T
   }
+
+  const iso = (ms: number) => new Date(ms).toISOString()
+  const rpc = (name: string, args: Record<string, unknown>) => request(`rpc/${name}`, { method: 'POST', body: JSON.stringify(args) })
 
   async function getEvent(id: string): Promise<MajorEvent> {
     const rows = await request<EventRow[]>(`major_events?id=eq.${id}&${EVENT_SELECT}`)
@@ -222,6 +230,64 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
       else delete clips[String(segment)]
       await request(`major_events?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ clips }) }, 'return=minimal')
       return getEvent(id)
+    },
+
+    async advance(now) {
+      await rpc('major_advance', { p_now: iso(now) })
+    },
+
+    async playerMajors(userId, now) {
+      const since = iso(now - 2 * 86_400_000)
+      const rows = await request<EventRow[]>(
+        `major_events?status=neq.DRAFT&scheduled_start_at=gte.${encodeURIComponent(since)}&${EVENT_SELECT}&order=scheduled_start_at.asc&limit=20`,
+      )
+      if (rows.length === 0) return []
+      const ids = rows.map((r) => r.id).join(',')
+      const mine = await request<
+        { event_id: string; level: number; list: 'main' | 'waitlist'; status: MajorRegistration['status']; registered_at: string; ready_at: string | null; plan: Record<string, unknown>; major_categories: { idx: number } }[]
+      >(`major_registrations?user_id=eq.${encodeURIComponent(userId)}&event_id=in.(${ids})&select=event_id,level,list,status,registered_at,ready_at,plan,major_categories(idx)`)
+      const all = await request<{ event_id: string; list: 'main' | 'waitlist'; major_categories: { idx: number } }[]>(
+        `major_registrations?event_id=in.(${ids})&status=neq.WITHDRAWN&select=event_id,list,major_categories(idx)`,
+      )
+      return rows.map((row): PlayerMajor => {
+        const reg = mine.find((r) => r.event_id === row.id)
+        const entrants: PlayerMajor['entrants'] = {}
+        for (const r of all.filter((a) => a.event_id === row.id)) {
+          const counts = (entrants[r.major_categories.idx] ??= { main: 0, waitlist: 0 })
+          counts[r.list] += 1
+        }
+        return {
+          ...toEvent(row),
+          entrants,
+          registration: reg
+            ? {
+                categoryIdx: reg.major_categories.idx,
+                level: reg.level,
+                list: reg.list,
+                status: reg.status,
+                registeredAt: reg.registered_at,
+                readyAt: reg.ready_at,
+                plan: Object.keys(reg.plan ?? {}).length ? (reg.plan as unknown as MajorPlan) : null,
+              }
+            : null,
+        }
+      })
+    },
+
+    async register(eventId, userId, entry, now) {
+      await rpc('major_register', { p_event: eventId, p_user: userId, p_level: entry.level, p_name: entry.name, p_country: entry.country, p_now: iso(now) })
+    },
+
+    async withdraw(eventId, userId, now) {
+      await rpc('major_withdraw', { p_event: eventId, p_user: userId, p_now: iso(now) })
+    },
+
+    async savePlan(eventId, userId, plan, now) {
+      await rpc('major_save_plan', { p_event: eventId, p_user: userId, p_plan: plan, p_now: iso(now) })
+    },
+
+    async setReady(eventId, userId, snapshot, now) {
+      await rpc('major_set_ready', { p_event: eventId, p_user: userId, p_snapshot: snapshot, p_now: iso(now) })
     },
 
     async log(eventId, userId, kind, detail) {

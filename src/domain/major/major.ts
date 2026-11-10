@@ -128,3 +128,60 @@ export function nextSundayStart(now: number, startTimeUtc: string): number {
   if (start <= now) start += 7 * 86_400_000
   return start
 }
+
+/** The intensities and aid-station stops a Major plan may use (the race engine's). */
+const PLAN_INTENSITIES = ['recovery', 'easy', 'target', 'hard'] as const
+const PLAN_STOPS = ['quick', 'normal', 'slow'] as const
+const PLAN_STYLES = ['conservative', 'balanced', 'aggressive'] as const
+
+/**
+ * A runner's Major plan (owner specification §4, phase 2): the strategy style, the gel and bar to
+ * take, and for each segment its intensity and the stop at the aid station after it (the last
+ * segment has none). The server applies it at every aid station where the runner does not decide
+ * in time; it is frozen when the race starts.
+ */
+export interface MajorPlan {
+  style: (typeof PLAN_STYLES)[number] | null
+  gel: boolean
+  bar: boolean
+  segments: { intensity: (typeof PLAN_INTENSITIES)[number]; stop: (typeof PLAN_STOPS)[number] | null }[]
+}
+
+export function validatePlan(value: unknown, segmentCount: number): MajorPlan | null {
+  if (typeof value !== 'object' || value === null) return null
+  const plan = value as Record<string, unknown>
+  if (plan.style !== null && !PLAN_STYLES.includes(plan.style as never)) return null
+  if (typeof plan.gel !== 'boolean' || typeof plan.bar !== 'boolean') return null
+  if (!Array.isArray(plan.segments) || plan.segments.length !== segmentCount) return null
+  const segments: MajorPlan['segments'] = []
+  for (const [i, raw] of plan.segments.entries()) {
+    if (typeof raw !== 'object' || raw === null) return null
+    const { intensity, stop } = raw as Record<string, unknown>
+    if (!PLAN_INTENSITIES.includes(intensity as never)) return null
+    const last = i === segmentCount - 1
+    if (last ? stop !== null : !PLAN_STOPS.includes(stop as never)) return null
+    segments.push({ intensity: intensity as MajorPlan['segments'][number]['intensity'], stop: stop as MajorPlan['segments'][number]['stop'] })
+  }
+  return { style: plan.style as MajorPlan['style'], gel: plan.gel, bar: plan.bar, segments }
+}
+
+/** Target pace and Normal stops: the plan of a runner who never set one. */
+export function defaultPlan(segmentCount: number): MajorPlan {
+  return {
+    style: null,
+    gel: false,
+    bar: false,
+    segments: Array.from({ length: segmentCount }, (_, i) => ({ intensity: 'target', stop: i === segmentCount - 1 ? null : 'normal' })),
+  }
+}
+
+/** The runner as they confirmed READY: what the race uses (owner decisions 1 and 7). */
+export interface MajorRunnerSnapshot {
+  level: number
+  attributes: Record<string, number>
+  fitness: number
+  fatigue: number
+  equipment: string[]
+  /** Taken only when in stock at READY; deducted from the career when the race starts. */
+  nutrition: { gel: boolean; bar: boolean }
+}

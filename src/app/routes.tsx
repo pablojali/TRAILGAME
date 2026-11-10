@@ -4,6 +4,7 @@ import { AttributesScreen } from '../features/attributes/AttributesScreen'
 import { CareerScreen } from '../features/career/CareerScreen'
 import { DashboardScreen } from '../features/dashboard/DashboardScreen'
 import { EquipmentScreen } from '../features/equipment/EquipmentScreen'
+import { MajorScreen } from '../features/majors/MajorScreen'
 import { NotFoundScreen } from '../features/not-found/NotFoundScreen'
 import { RaceDetailScreen } from '../features/races/RaceDetailScreen'
 import { RaceRunScreen } from '../features/races/RaceRunScreen'
@@ -34,6 +35,7 @@ export const routes: RouteObject[] = [
       { path: 'races/:raceId', element: <RaceDetailScreen /> },
       { path: 'races/results/:entryId', element: <RaceResultScreen /> },
       { path: 'races/run/:entryId', element: <RaceRunScreen /> },
+      { path: 'majors/:majorId', element: <MajorScreen /> },
       { path: 'career', element: <CareerScreen /> },
       { path: 'attributes', element: <AttributesScreen /> },
       { path: 'settings', element: <SettingsScreen /> },

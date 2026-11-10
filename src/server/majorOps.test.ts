@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { MajorConfig, MajorEventInput } from '../domain/major/major'
-import { handleMajorOp, MajorStoreError, type MajorEvent, type MajorStore } from './majorOps'
+import type { MajorConfig, MajorEventInput, MajorRunnerSnapshot } from '../domain/major/major'
+import type { GameState } from '../game-engine/gameState'
+import { newGame, withAthlete } from '../test/gameFixtures'
+import { handleMajorOp, MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore } from './majorOps'
 import { refusalOf } from './majorRest'
 
 const NOW = Date.UTC(2026, 10, 10, 12)
@@ -15,6 +17,10 @@ function fakeStore() {
   }
   const events = new Map<string, MajorEvent>()
   const logs: string[] = []
+  const regs = new Map<string, MajorRegistration>()
+  const registered: { level: number; name: string; country: string | null }[] = []
+  const readies: MajorRunnerSnapshot[] = []
+  let advanced = 0
   const make = (id: string, input: MajorEventInput): MajorEvent => ({
     id, ...input, status: 'DRAFT', registrationOpenAt: null, readyOpenAt: null, decisionWindowS: null, runningS: null,
     participantLimit: null, bands: null, publishedAt: null, cancelReason: null, bannerPath: null, clips: {}, categories: [],
@@ -45,6 +51,22 @@ function fakeStore() {
     getEvent: async (id) => { const e = events.get(id); if (!e) throw new MajorStoreError('not-found'); return e },
     signUpload: async (path) => `token-for-${path}`,
     setBanner: async (id, path) => { const next = { ...events.get(id)!, bannerPath: path }; events.set(id, next); return next },
+    advance: async () => { advanced++ },
+    playerMajors: async (userId) =>
+      [...events.values()].filter((e) => e.status !== 'DRAFT').map((e) => ({ ...e, entrants: {}, registration: regs.get(`${e.id}:${userId}`) ?? null })),
+    register: async (eventId, userId, entry) => {
+      registered.push(entry)
+      regs.set(`${eventId}:${userId}`, { categoryIdx: 1, level: entry.level, list: 'main', status: 'REGISTERED', registeredAt: '', readyAt: null, plan: null })
+    },
+    withdraw: async (eventId, userId) => {
+      if (!regs.has(`${eventId}:${userId}`)) throw new MajorStoreError('not-registered')
+      regs.delete(`${eventId}:${userId}`)
+    },
+    savePlan: async (eventId, userId, plan) => { regs.set(`${eventId}:${userId}`, { ...regs.get(`${eventId}:${userId}`)!, plan }) },
+    setReady: async (eventId, userId, snapshot) => {
+      readies.push(snapshot)
+      regs.set(`${eventId}:${userId}`, { ...regs.get(`${eventId}:${userId}`)!, status: 'READY', readyAt: 'now' })
+    },
     setClip: async (id, segment, path) => {
       const e = events.get(id)!
       const clips = { ...e.clips }
@@ -55,10 +77,16 @@ function fakeStore() {
       return next
     },
   }
-  return { store, logs, events }
+  return { store, logs, events, registered, readies, advanced: () => advanced }
 }
 
-const deps = (store: MajorStore) => ({ store, authenticate: async (t: string | null) => t, now: () => NOW })
+const career = withAthlete({ ...newGame(), consumables: { gel: 2, bar: 0 } }, { xp: 2700, fatigue: 22 })
+const deps = (store: MajorStore, loaded: GameState | null = career) => ({
+  store,
+  authenticate: async (t: string | null) => t,
+  loadCareer: async () => loaded,
+  now: () => NOW,
+})
 const EVENT = { name: ' Major de noviembre ', description: '', raceId: 'RACE-002', scheduledStartAt: '2026-11-15T18:00:00Z' }
 
 describe('major-ops (Sunday Major, phase 1)', () => {
@@ -123,5 +151,31 @@ describe('major-ops (Sunday Major, phase 1)', () => {
     // Until the race is run.
     events.set(ID, { ...events.get(ID)!, status: 'RUNNING' })
     expect((await handleMajorOp(ADMIN, { action: 'media-upload', id: ID, kind: 'banner' }, deps(store))).body).toEqual({ ok: false, error: 'media-closed' })
+  })
+
+  it('lets players register with their level frozen from the server career, plan and confirm READY', async () => {
+    const fake = fakeStore()
+    const { store, events } = fake
+    await handleMajorOp(ADMIN, { action: 'event-create', event: EVENT }, deps(store))
+    events.set(ID, { ...events.get(ID)!, status: 'REGISTRATION_OPEN' })
+    // Any signed-in player, no admin rights needed; the clock runs on every call.
+    const list = await handleMajorOp(PLAYER, { action: 'majors' }, deps(store))
+    expect(list.body).toMatchObject({ ok: true, majors: [{ id: ID, registration: null }] })
+    expect(fake.advanced()).toBe(1)
+    expect((await handleMajorOp(PLAYER, { action: 'register', id: ID }, deps(store, null))).body).toEqual({ ok: false, error: 'no-career' })
+    await handleMajorOp(PLAYER, { action: 'register', id: ID }, deps(store))
+    expect(fake.registered).toEqual([{ level: 10, name: career.athlete.name, country: career.athlete.country ?? null }])
+
+    // Riverside Trail: 2 segments, a stop after the first only.
+    const plan = { style: 'balanced', gel: true, bar: true, segments: [{ intensity: 'hard', stop: 'quick' }, { intensity: 'hard', stop: null }] }
+    expect((await handleMajorOp(PLAYER, { action: 'save-plan', id: ID, plan: { ...plan, segments: plan.segments.slice(0, 1) } }, deps(store))).body).toEqual({ ok: false, error: 'plan-invalid' })
+    expect((await handleMajorOp(PLAYER, { action: 'save-plan', id: ID, plan }, deps(store))).body).toMatchObject({ ok: true, majors: [{ registration: { plan } }] })
+
+    await handleMajorOp(PLAYER, { action: 'ready', id: ID }, deps(store))
+    // The runner as the server has them; only the gel is in stock.
+    expect(fake.readies).toEqual([{ level: 10, attributes: career.athlete.attributes, fitness: career.athlete.fitness, fatigue: 22, equipment: career.equipment, nutrition: { gel: true, bar: false } }])
+    expect((await handleMajorOp(PLAYER, { action: 'withdraw', id: ID }, deps(store))).body).toMatchObject({ ok: true })
+    expect((await handleMajorOp(PLAYER, { action: 'withdraw', id: ID }, deps(store))).body).toEqual({ ok: false, error: 'not-registered' })
+    expect((await handleMajorOp(PLAYER, { action: 'ready', id: ID }, deps(store))).body).toEqual({ ok: false, error: 'not-registered' })
   })
 })

@@ -63,3 +63,16 @@ describe('Sunday Major rules (owner specification, 10 November 2026)', () => {
     expect(new Date(nextSundayStart(Date.UTC(2026, 10, 15, 19), '18:00')).toISOString()).toBe('2026-11-22T18:00:00.000Z')
   })
 })
+
+describe('Major plans', () => {
+  it('needs an intensity per segment and a stop after every segment but the last', async () => {
+    const { validatePlan, defaultPlan } = await import('./major')
+    const plan = defaultPlan(3)
+    expect(validatePlan(plan, 3)).toEqual(plan)
+    expect(validatePlan({ ...plan, style: 'balanced', gel: true }, 3)).toMatchObject({ style: 'balanced', gel: true })
+    expect(validatePlan(plan, 4)).toBeNull()
+    expect(validatePlan({ ...plan, segments: [...plan.segments.slice(0, 2), { intensity: 'target', stop: 'quick' }] }, 3)).toBeNull()
+    expect(validatePlan({ ...plan, segments: [{ intensity: 'sprint', stop: 'normal' }, ...plan.segments.slice(1)] }, 3)).toBeNull()
+    expect(validatePlan({ ...plan, style: 'wild' }, 3)).toBeNull()
+  })
+})

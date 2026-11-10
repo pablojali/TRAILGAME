@@ -1,6 +1,7 @@
 import { handleMajorOp } from '../majorOps'
+import { loadServerCareer } from '../careerOps'
 import { createSupabaseMajorStore } from '../majorRest'
-import { authenticateWithSupabase, type ServerConfig } from '../supabaseRest'
+import { authenticateWithSupabase, createSupabaseCareerOpsStore, type ServerConfig } from '../supabaseRest'
 
 /**
  * The Supabase Edge Function `major-ops` (Deno): the Sunday Major event manager. Bundled by
@@ -43,6 +44,7 @@ Deno.serve(async (request) => {
     const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? null
     const result = await handleMajorOp(token, body, {
       store: createSupabaseMajorStore(settings),
+      loadCareer: (userId) => loadServerCareer(createSupabaseCareerOpsStore(settings), userId, Date.now()),
       authenticate: (value) => authenticateWithSupabase(settings, value),
       now: () => Date.now(),
     })

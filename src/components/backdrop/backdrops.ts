@@ -59,6 +59,9 @@ export function sceneForPath(pathname: string, raceInProgress = false): Backdrop
     case 'equipment':
     case 'appearance':
       return 'equipment'
+    case 'majors':
+      // A Sunday Major: the start-line picture (its own banner shows inside the screen).
+      return 'finish'
     case 'races':
       if (pathname.startsWith('/races/run/')) return raceInProgress ? 'aid-station' : 'finish'
       if (pathname.startsWith('/races/results/')) return 'finish'

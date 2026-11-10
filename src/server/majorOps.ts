@@ -4,9 +4,14 @@ import {
   type MajorBand,
   type MajorConfig,
   type MajorEventInput,
+  type MajorPlan,
+  type MajorRunnerSnapshot,
   type MajorStatus,
+  validatePlan,
 } from '../domain/major/major'
+import { getLevel } from '../domain/athlete/levels'
 import { getRace } from '../domain/races/races'
+import type { GameState } from '../game-engine/gameState'
 import { getRaceSegments } from '../game-engine/raceEngine'
 
 /**
@@ -47,7 +52,16 @@ export interface MajorEvent {
 }
 
 /** Database refusals the administrator can act on. */
-export type MajorStoreRefusal = 'not-found' | 'not-draft' | 'too-soon' | 'final'
+export type MajorStoreRefusal =
+  | 'not-found'
+  | 'not-draft'
+  | 'too-soon'
+  | 'final'
+  | 'closed'
+  | 'ready-closed'
+  | 'already-registered'
+  | 'not-registered'
+  | 'no-category'
 
 export class MajorStoreError extends Error {
   readonly refusal: MajorStoreRefusal
@@ -55,6 +69,25 @@ export class MajorStoreError extends Error {
     super(refusal)
     this.refusal = refusal
   }
+}
+
+/** A player's registration to a Major (phase 2). */
+export interface MajorRegistration {
+  categoryIdx: number
+  /** Frozen at registration (owner decision 3). */
+  level: number
+  list: 'main' | 'waitlist'
+  status: 'REGISTERED' | 'READY' | 'WITHDRAWN' | 'RACING' | 'ABSENT'
+  registeredAt: string
+  readyAt: string | null
+  plan: MajorPlan | null
+}
+
+/** A published Major as a player sees it: their registration and how many are entered per category. */
+export interface PlayerMajor extends MajorEvent {
+  registration: MajorRegistration | null
+  /** By category index: entries on the main list and on the waiting list. */
+  entrants: Record<number, { main: number; waitlist: number }>
 }
 
 export interface MajorStore {
@@ -73,10 +106,19 @@ export interface MajorStore {
   signUpload(path: string): Promise<string>
   setBanner(id: string, path: string | null): Promise<MajorEvent>
   setClip(id: string, segment: number, path: string | null): Promise<MajorEvent>
+  /** Runs the clock (opens registration, locks grids at the start): idempotent. */
+  advance(now: number): Promise<void>
+  playerMajors(userId: string, now: number): Promise<PlayerMajor[]>
+  register(eventId: string, userId: string, entry: { level: number; name: string; country: string | null }, now: number): Promise<void>
+  withdraw(eventId: string, userId: string, now: number): Promise<void>
+  savePlan(eventId: string, userId: string, plan: MajorPlan, now: number): Promise<void>
+  setReady(eventId: string, userId: string, snapshot: MajorRunnerSnapshot, now: number): Promise<void>
 }
 
 export interface MajorOpsDeps {
   store: MajorStore
+  /** The player's career as the server has it (Fitness decay applied); null if none. */
+  loadCareer(userId: string): Promise<GameState | null>
   authenticate(token: string | null): Promise<string | null>
   now(): number
 }
@@ -92,6 +134,11 @@ export type MajorRequest =
   | { action: 'event-cancel'; id: string; reason: string }
   | { action: 'media-upload'; id: string; kind: 'banner' | 'clip'; segment: number | null }
   | { action: 'media-set'; id: string; kind: 'banner' | 'clip'; segment: number | null; path: string | null }
+  | { action: 'majors' }
+  | { action: 'register'; id: string }
+  | { action: 'withdraw'; id: string }
+  | { action: 'save-plan'; id: string; plan: unknown }
+  | { action: 'ready'; id: string }
 
 export interface MajorResponse {
   status: number
@@ -148,7 +195,14 @@ export function parseMajorRequest(body: unknown): MajorRequest | null {
     case 'whoami':
     case 'config-get':
     case 'events-list':
+    case 'majors':
       return { action: body.action }
+    case 'register':
+    case 'withdraw':
+    case 'ready':
+      return id ? { action: body.action, id } : null
+    case 'save-plan':
+      return id && isRecord(body.plan) ? { action: 'save-plan', id, plan: body.plan } : null
     case 'config-set':
       return isConfig(body.config) ? { action: 'config-set', config: body.config } : null
     case 'event-create':
@@ -178,6 +232,13 @@ export async function handleMajorOp(token: string | null, body: unknown, deps: M
   if (!userId) return refuse(401, 'not-signed-in')
   const request = parseMajorRequest(body)
   if (!request) return refuse(400, 'bad-request')
+  try {
+    const played = await playerOp(request, userId, deps)
+    if (played) return played
+  } catch (error) {
+    if (error instanceof MajorStoreError) return refuse(error.refusal === 'not-found' ? 404 : 409, error.refusal)
+    throw error
+  }
   const admin = await deps.store.isAdmin(userId)
   if (request.action === 'whoami') return ok({ userId, admin })
   if (!admin) return refuse(403, 'not-admin')
@@ -255,10 +316,66 @@ export async function handleMajorOp(token: string | null, body: unknown, deps: M
         if (reason.length < 1 || reason.length > 300) return refuse(422, 'cancel-reason')
         return ok({ event: await deps.store.cancel(request.id, userId, reason) })
       }
+      default:
+        return refuse(400, 'bad-request')
     }
   } catch (error) {
     if (error instanceof MajorStoreError) return refuse(error.refusal === 'not-found' ? 404 : 409, error.refusal)
     throw error
+  }
+}
+
+/**
+ * Player actions (phase 2): the published Majors with the player's registration, registering with
+ * the level frozen from the server's career, withdrawing, the race plan and READY with the runner
+ * as the server has them now. Null for any other action.
+ */
+async function playerOp(request: MajorRequest, userId: string, deps: MajorOpsDeps): Promise<MajorResponse | null> {
+  const now = deps.now()
+  switch (request.action) {
+    case 'majors':
+      await deps.store.advance(now)
+      return ok({ majors: await deps.store.playerMajors(userId, now), now: new Date(now).toISOString() })
+    case 'register': {
+      const career = await deps.loadCareer(userId)
+      if (!career) return refuse(409, 'no-career')
+      await deps.store.advance(now)
+      const { athlete } = career
+      await deps.store.register(request.id, userId, { level: getLevel(athlete.xp), name: athlete.name, country: athlete.country ?? null }, now)
+      return ok({ majors: await deps.store.playerMajors(userId, now) })
+    }
+    case 'withdraw':
+      await deps.store.withdraw(request.id, userId, now)
+      return ok({ majors: await deps.store.playerMajors(userId, now) })
+    case 'save-plan': {
+      const event = await deps.store.getEvent(request.id)
+      const race = getRace(event.raceId)
+      const plan = race ? validatePlan(request.plan, getRaceSegments(race).length) : null
+      if (!plan) return refuse(422, 'plan-invalid')
+      await deps.store.savePlan(request.id, userId, plan, now)
+      return ok({ majors: await deps.store.playerMajors(userId, now) })
+    }
+    case 'ready': {
+      const career = await deps.loadCareer(userId)
+      if (!career) return refuse(409, 'no-career')
+      await deps.store.advance(now)
+      const mine = (await deps.store.playerMajors(userId, now)).find((m) => m.id === request.id)?.registration
+      if (!mine || (mine.status !== 'REGISTERED' && mine.status !== 'READY')) return refuse(409, 'not-registered')
+      const { athlete } = career
+      const snapshot: MajorRunnerSnapshot = {
+        level: mine.level,
+        attributes: { ...athlete.attributes },
+        fitness: athlete.fitness,
+        fatigue: athlete.fatigue,
+        equipment: [...career.equipment],
+        // Only what is in stock now (owner decision 7: deducted when the race starts).
+        nutrition: { gel: (mine.plan?.gel ?? false) && career.consumables.gel > 0, bar: (mine.plan?.bar ?? false) && career.consumables.bar > 0 },
+      }
+      await deps.store.setReady(request.id, userId, snapshot, now)
+      return ok({ majors: await deps.store.playerMajors(userId, now) })
+    }
+    default:
+      return null
   }
 }
 

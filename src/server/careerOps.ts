@@ -109,6 +109,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_ATTEMPTS = 3
 
 /** A career as the server stores it: valid schema and content, or null. */
+/** The player's career as the server has it now (Fitness decay applied), for other functions. */
+export async function loadServerCareer(store: CareerOpsStore, userId: string, now: number): Promise<GameState | null> {
+  const record = await store.load(userId)
+  const state = record && readRecord(record, now)
+  return state ? applyFitnessDecay(state, now).state : null
+}
+
 function readRecord(record: CareerRecord, now: number): GameState | null {
   if (record.schemaVersion !== SCHEMA_VERSION) return null
   return parseGameState(record.state, now)

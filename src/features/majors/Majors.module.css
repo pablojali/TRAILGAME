@@ -1,0 +1,284 @@
+/* Sunday Major screens (owner specification, phase 2): the game's glass tiles over the backdrop. */
+.screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow-y: auto;
+}
+
+/* The action stays in reach, on its own band so it never covers the text it scrolls over. */
+.actionBar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-2);
+  background: linear-gradient(to top, rgb(10 12 14 / 0.92) 70%, rgb(10 12 14 / 0));
+}
+
+.actionBar > a,
+.actionBar > button {
+  width: 100%;
+}
+
+.grow {
+  flex: 1;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+
+.hero {
+  position: relative;
+  aspect-ratio: 16 / 7;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--brand-strong), var(--color-charcoal-800));
+}
+
+.hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chip {
+  position: absolute;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgb(10 12 14 / 0.75);
+  color: var(--text);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+}
+
+.phase-REGISTRATION_OPEN,
+.phase-READY {
+  background: var(--accent);
+  color: #1a1206;
+}
+
+.phase-CANCELLED {
+  background: #7a2a20;
+}
+
+.course,
+.description,
+.hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+}
+
+.course {
+  font-weight: 800;
+}
+
+.start {
+  margin: 0;
+  color: var(--accent-secondary);
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+}
+
+.hint,
+.description {
+  color: var(--text-muted);
+}
+
+.warning {
+  margin: 0;
+  color: var(--accent-secondary);
+  font-weight: 700;
+}
+
+.categories,
+.planRows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.categories li,
+.planRows li,
+.entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px var(--space-2);
+  padding: 6px var(--space-2);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-sm);
+  background: rgb(10 12 14 / 0.6);
+  backdrop-filter: blur(6px);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.categories li[aria-current='true'] {
+  border-color: var(--accent);
+}
+
+.count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.entry {
+  flex-direction: column;
+  align-items: flex-start;
+  border-color: var(--accent-secondary);
+}
+
+.entry strong {
+  font-size: var(--font-size-sm);
+}
+
+.planRows li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.planRows select {
+  min-height: 30px;
+  padding: 2px 6px;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: var(--radius-sm);
+  background: rgb(10 12 14 / 0.7);
+  color: var(--text);
+  font: inherit;
+}
+
+.finish {
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.nutrition {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.toggle {
+  flex: 1;
+  min-height: 34px;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: var(--radius-sm);
+  background: rgb(10 12 14 / 0.6);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+}
+
+.toggle[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.styles > div {
+  flex-wrap: wrap;
+}
+
+.message {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: var(--space-2);
+}
+
+.actions > * {
+  white-space: nowrap;
+}
+
+/* Short phones: a lower picture so more of the event fits. */
+@media (max-height: 760px) {
+  .hero {
+    aspect-ratio: 16 / 5;
+  }
+}
+
+.actions > :only-child {
+  grid-column: 1 / -1;
+}
+
+/* The next Major above the races. */
+.strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 6px var(--space-3);
+  border: 1px solid var(--accent-secondary);
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, rgb(212 162 60 / 0.25), rgb(10 12 14 / 0.6));
+  color: var(--text);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.stripText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stripText small {
+  color: var(--accent-secondary);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stripText b {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stripStatus {
+  flex: none;
+  color: var(--accent-secondary);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-md);
+  background: rgb(10 12 14 / 0.66);
+  backdrop-filter: blur(6px);
+}
+
+.planCard {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-md);
+  background: rgb(10 12 14 / 0.72);
+  backdrop-filter: blur(6px);
+}

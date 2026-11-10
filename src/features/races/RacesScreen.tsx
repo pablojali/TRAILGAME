@@ -8,6 +8,7 @@ import { canEnterAtLevel, getMaximumLevel, getMinimumLevel } from '../../domain/
 import { DIFFICULTIES, difficultyOf, isDifficulty, type Difficulty } from '../../domain/races/format'
 import { getRace, RACES } from '../../domain/races/races'
 import { getPendingEntry } from '../../game-engine/races'
+import { MajorStrip } from '../majors/MajorStrip'
 import { RacePhoto } from './RacePhoto'
 import { Technicality } from './Technicality'
 import { courseText } from './raceText'
@@ -42,6 +43,7 @@ export function RacesScreen() {
       title={t('races.title')}
       description={t('races.description')}
     >
+      <MajorStrip />
       <Tabs
         label={t('races.difficulties')}
         tabs={DIFFICULTIES.map((id) => ({ id, label: id }))}

@@ -89,6 +89,13 @@ var RACE_CATEGORIES = ["open", "trail", "mountain", "elite"];
 function isRaceCategory(value) {
   return RACE_CATEGORIES.includes(value);
 }
+var PRIZE_BANDS = [
+  { from: 1, to: 1, label: "1st" },
+  { from: 2, to: 2, label: "2nd" },
+  { from: 3, to: 3, label: "3rd" },
+  { from: 4, to: 10, label: "4th\u201310th" },
+  { from: 11, to: null, label: "11th or lower" }
+];
 
 // src/domain/races/races.ts
 var RACE_LANGUAGES = ["es", "fr", "it", "de"];
@@ -137,6 +144,9 @@ var BY_ID = new Map(RACES.map((race) => [race.id, race]));
 function getRace(id) {
   return BY_ID.get(id);
 }
+function isRaceId(value) {
+  return typeof value === "string" && BY_ID.has(value);
+}
 
 // src/domain/major/major.ts
 function validateBands(bands) {
@@ -181,24 +191,26 @@ function validateEventInput(input, now) {
   if (start <= now) return "past";
   return null;
 }
-
-// src/domain/athlete/athlete.ts
-var ATTRIBUTE_IDS = [
-  "endurance",
-  "climbing",
-  "speed",
-  "technical",
-  "recovery",
-  "consistency"
-];
-var ATTRIBUTE_LABELS = {
-  endurance: "Endurance",
-  climbing: "Climbing",
-  speed: "Speed",
-  technical: "Technical",
-  recovery: "Recovery",
-  consistency: "Consistency"
-};
+var PLAN_INTENSITIES = ["recovery", "easy", "target", "hard"];
+var PLAN_STOPS = ["quick", "normal", "slow"];
+var PLAN_STYLES = ["conservative", "balanced", "aggressive"];
+function validatePlan(value, segmentCount) {
+  if (typeof value !== "object" || value === null) return null;
+  const plan = value;
+  if (plan.style !== null && !PLAN_STYLES.includes(plan.style)) return null;
+  if (typeof plan.gel !== "boolean" || typeof plan.bar !== "boolean") return null;
+  if (!Array.isArray(plan.segments) || plan.segments.length !== segmentCount) return null;
+  const segments = [];
+  for (const [i, raw] of plan.segments.entries()) {
+    if (typeof raw !== "object" || raw === null) return null;
+    const { intensity, stop } = raw;
+    if (!PLAN_INTENSITIES.includes(intensity)) return null;
+    const last = i === segmentCount - 1;
+    if (last ? stop !== null : !PLAN_STOPS.includes(stop)) return null;
+    segments.push({ intensity, stop });
+  }
+  return { style: plan.style, gel: plan.gel, bar: plan.bar, segments };
+}
 
 // raw:src/data/levels.csv
 var levels_default = "# Levels (owner table, 3 November 2026). Edit freely: one row per level, in order.\n# xp: total XP needed to reach the level (level 1 is 0). attribute_points: points given on reaching it.\nlevel,xp,attribute_points\n1,0,0\n2,100,2\n3,250,2\n4,450,2\n5,700,2\n6,1000,2\n7,1350,2\n8,1750,2\n9,2200,2\n10,2700,2\n11,3250,2\n12,3850,2\n13,4500,2\n14,5200,2\n15,5950,2\n16,6750,2\n17,7600,2\n18,8500,2\n19,9450,2\n20,10450,2\n21,11500,2\n22,12600,2\n23,13750,2\n24,14950,2\n25,16200,2\n26,17500,2\n27,18850,2\n28,20250,2\n29,21700,2\n30,23200,2\n31,24750,2\n32,26350,2\n33,28000,2\n34,29700,2\n35,31450,2\n36,33250,2\n37,35100,2\n38,37000,2\n39,38950,2\n40,40950,2\n41,43000,2\n42,45100,2\n43,47250,2\n44,49450,2\n45,51700,2\n46,54000,2\n47,56350,2\n48,58750,2\n49,61200,2\n50,63700,2\n";
@@ -236,6 +248,42 @@ function getLevelProgress(xp) {
 }
 function getLevel(xp) {
   return getLevelProgress(xp).level;
+}
+function getAttributePointsBetween(from, to) {
+  return LEVEL_TABLE.filter((row) => row.level > from && row.level <= to).reduce((sum, row) => sum + row.attributePoints, 0);
+}
+function getEarnedAttributePoints(xp) {
+  return getAttributePointsBetween(1, getLevel(xp));
+}
+
+// src/domain/athlete/athlete.ts
+var ATTRIBUTE_IDS = [
+  "endurance",
+  "climbing",
+  "speed",
+  "technical",
+  "recovery",
+  "consistency"
+];
+var ATTRIBUTE_LABELS = {
+  endurance: "Endurance",
+  climbing: "Climbing",
+  speed: "Speed",
+  technical: "Technical",
+  recovery: "Recovery",
+  consistency: "Consistency"
+};
+function isSex(value) {
+  return value === "female" || value === "male";
+}
+var ATTRIBUTE_MIN = 1;
+var STAT_MIN = 0;
+var STAT_MAX = 100;
+function roundStat(value) {
+  return Math.round(value * 100) / 100;
+}
+function isAttributeId(value) {
+  return typeof value === "string" && ATTRIBUTE_IDS.includes(value);
 }
 
 // raw:src/data/race_field.csv
@@ -517,6 +565,13 @@ function parseEquipment(text) {
   return items;
 }
 var EQUIPMENT_ITEMS = parseEquipment(equipment_default);
+function isConsumable(item) {
+  return item.packSize !== void 0;
+}
+var OWNED_FROM_START = ["starter-shoes"];
+function getEquipmentItem(id) {
+  return EQUIPMENT_ITEMS.find((item) => item.id === id);
+}
 
 // src/domain/races/simulationConfig.ts
 var RACE_SIMULATION = {
@@ -707,7 +762,14 @@ function parseMajorRequest(body) {
     case "whoami":
     case "config-get":
     case "events-list":
+    case "majors":
       return { action: body.action };
+    case "register":
+    case "withdraw":
+    case "ready":
+      return id ? { action: body.action, id } : null;
+    case "save-plan":
+      return id && isRecord(body.plan) ? { action: "save-plan", id, plan: body.plan } : null;
     case "config-set":
       return isConfig(body.config) ? { action: "config-set", config: body.config } : null;
     case "event-create":
@@ -736,6 +798,13 @@ async function handleMajorOp(token, body, deps) {
   if (!userId) return refuse(401, "not-signed-in");
   const request = parseMajorRequest(body);
   if (!request) return refuse(400, "bad-request");
+  try {
+    const played = await playerOp(request, userId, deps);
+    if (played) return played;
+  } catch (error) {
+    if (error instanceof MajorStoreError) return refuse(error.refusal === "not-found" ? 404 : 409, error.refusal);
+    throw error;
+  }
   const admin = await deps.store.isAdmin(userId);
   if (request.action === "whoami") return ok({ userId, admin });
   if (!admin) return refuse(403, "not-admin");
@@ -808,10 +877,60 @@ async function handleMajorOp(token, body, deps) {
         if (reason.length < 1 || reason.length > 300) return refuse(422, "cancel-reason");
         return ok({ event: await deps.store.cancel(request.id, userId, reason) });
       }
+      default:
+        return refuse(400, "bad-request");
     }
   } catch (error) {
     if (error instanceof MajorStoreError) return refuse(error.refusal === "not-found" ? 404 : 409, error.refusal);
     throw error;
+  }
+}
+async function playerOp(request, userId, deps) {
+  const now = deps.now();
+  switch (request.action) {
+    case "majors":
+      await deps.store.advance(now);
+      return ok({ majors: await deps.store.playerMajors(userId, now), now: new Date(now).toISOString() });
+    case "register": {
+      const career = await deps.loadCareer(userId);
+      if (!career) return refuse(409, "no-career");
+      await deps.store.advance(now);
+      const { athlete } = career;
+      await deps.store.register(request.id, userId, { level: getLevel(athlete.xp), name: athlete.name, country: athlete.country ?? null }, now);
+      return ok({ majors: await deps.store.playerMajors(userId, now) });
+    }
+    case "withdraw":
+      await deps.store.withdraw(request.id, userId, now);
+      return ok({ majors: await deps.store.playerMajors(userId, now) });
+    case "save-plan": {
+      const event = await deps.store.getEvent(request.id);
+      const race = getRace(event.raceId);
+      const plan = race ? validatePlan(request.plan, getRaceSegments(race).length) : null;
+      if (!plan) return refuse(422, "plan-invalid");
+      await deps.store.savePlan(request.id, userId, plan, now);
+      return ok({ majors: await deps.store.playerMajors(userId, now) });
+    }
+    case "ready": {
+      const career = await deps.loadCareer(userId);
+      if (!career) return refuse(409, "no-career");
+      await deps.store.advance(now);
+      const mine = (await deps.store.playerMajors(userId, now)).find((m) => m.id === request.id)?.registration;
+      if (!mine || mine.status !== "REGISTERED" && mine.status !== "READY") return refuse(409, "not-registered");
+      const { athlete } = career;
+      const snapshot = {
+        level: mine.level,
+        attributes: { ...athlete.attributes },
+        fitness: athlete.fitness,
+        fatigue: athlete.fatigue,
+        equipment: [...career.equipment],
+        // Only what is in stock now (owner decision 7: deducted when the race starts).
+        nutrition: { gel: (mine.plan?.gel ?? false) && career.consumables.gel > 0, bar: (mine.plan?.bar ?? false) && career.consumables.bar > 0 }
+      };
+      await deps.store.setReady(request.id, userId, snapshot, now);
+      return ok({ majors: await deps.store.playerMajors(userId, now) });
+    }
+    default:
+      return null;
   }
 }
 function cleanInput(input) {
@@ -823,181 +942,234 @@ function cleanInput(input) {
   };
 }
 
-// src/server/majorRest.ts
-var MEDIA_BUCKET = "major-media";
-var EVENT_SELECT = "select=*,major_categories(idx,name,min_level,max_level)";
-function toEvent(row) {
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    raceId: row.race_id,
-    scheduledStartAt: row.scheduled_start_at,
-    status: row.status,
-    registrationOpenAt: row.registration_open_at,
-    readyOpenAt: row.ready_open_at,
-    decisionWindowS: row.decision_window_s,
-    runningS: row.running_s,
-    participantLimit: row.participant_limit,
-    bands: row.bands_snapshot,
-    publishedAt: row.published_at,
-    cancelReason: row.cancel_reason,
-    bannerPath: row.banner_path,
-    clips: row.clips ?? {},
-    categories: [...row.major_categories ?? []].sort((a, b) => a.idx - b.idx).map((c) => ({ idx: c.idx, name: c.name, minLevel: c.min_level, maxLevel: c.max_level }))
-  };
+// src/domain/athlete/profiles.ts
+var PROFILE_ATTRIBUTE_TOTAL = 96;
+var PROFILE_IDS = ["climber", "sprinter", "all-rounder", "endurance"];
+function isProfileId(value) {
+  return typeof value === "string" && PROFILE_IDS.includes(value);
 }
-function refusalOf(message) {
-  if (/not found/.test(message)) return new MajorStoreError("not-found");
-  if (/is not a draft|only its status can change/.test(message)) return new MajorStoreError("not-draft");
-  if (/too soon/.test(message)) return new MajorStoreError("too-soon");
-  if (/cannot change|is not allowed/.test(message)) return new MajorStoreError("final");
-  return null;
+
+// src/domain/training/sessions.ts
+var TRAINING_SESSIONS = {
+  "easy-run": {
+    id: "easy-run",
+    label: "Easy run",
+    description: "Relaxed aerobic running.",
+    xp: 9,
+    fitnessDelta: 0.5,
+    fatigueDelta: 5,
+    attribute: "endurance"
+  },
+  intervals: {
+    id: "intervals",
+    label: "Intervals",
+    description: "Hard repeats with short recoveries.",
+    xp: 16,
+    fitnessDelta: 0.75,
+    fatigueDelta: 14,
+    attribute: "speed"
+  },
+  hills: {
+    id: "hills",
+    label: "Hills",
+    description: "Repeated climbs and descents.",
+    xp: 14,
+    fitnessDelta: 0.5,
+    fatigueDelta: 12,
+    attribute: "climbing"
+  },
+  "long-run": {
+    id: "long-run",
+    label: "Long run",
+    description: "Extended time on feet.",
+    xp: 18,
+    fitnessDelta: 1,
+    fatigueDelta: 16,
+    attribute: "endurance"
+  },
+  strength: {
+    id: "strength",
+    label: "Strength",
+    description: "Gym and conditioning work.",
+    xp: 11,
+    fitnessDelta: 0.5,
+    fatigueDelta: 4,
+    attribute: "recovery"
+  },
+  "trail-technique": {
+    id: "trail-technique",
+    label: "Trail technique",
+    description: "Footwork on rough and technical ground.",
+    xp: 11,
+    fitnessDelta: 0.25,
+    fatigueDelta: 3,
+    attribute: "technical"
+  },
+  rest: {
+    id: "rest",
+    label: "Rest",
+    description: "Recover and reduce fatigue.",
+    xp: 0,
+    fitnessDelta: -2,
+    fatigueDelta: -8
+  }
+};
+function isSessionType(value) {
+  return typeof value === "string" && Object.hasOwn(TRAINING_SESSIONS, value);
 }
-function createSupabaseMajorStore(config2) {
-  const headers = {
-    apikey: config2.serviceRoleKey,
-    Authorization: `Bearer ${config2.serviceRoleKey}`,
-    "Content-Type": "application/json"
-  };
-  async function request(path, init = {}, prefer) {
-    const response = await fetch(`${config2.url}/rest/v1/${path}`, {
-      ...init,
-      headers: { ...headers, ...prefer ? { Prefer: prefer } : {} }
+
+// src/domain/athlete/heads.ts
+var HEAD_FILES = [
+  "lvl1_men_head_01_tone1",
+  "lvl1_men_head_01_tone2",
+  "lvl1_men_head_01_tone3",
+  "lvl1_men_head_01_tone4",
+  "lvl1_women_head_01_tone1",
+  "lvl1_women_head_01_tone2",
+  "lvl1_women_head_01_tone3",
+  "lvl1_women_head_02_tone1",
+  "lvl1_women_head_02_tone2",
+  "lvl5_women_head_01_tone3"
+];
+var NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/;
+function buildHeadCatalog(files) {
+  const byId = /* @__PURE__ */ new Map();
+  for (const file of files) {
+    const match = NAME.exec(file);
+    if (!match) continue;
+    const [, level, sexName, design, tone] = match;
+    const sex = sexName === "men" ? "male" : "female";
+    const id = `head-l${Number(level)}-${design}`;
+    const key = `${sex}/${id}`;
+    const head = byId.get(key) ?? { id, sex, level: Number(level), label: "", files: {} };
+    head.files[Number(tone)] = file;
+    byId.set(key, head);
+  }
+  const heads = [...byId.values()].sort((a, b) => a.level - b.level || a.id.localeCompare(b.id));
+  for (const sex of ["female", "male"]) {
+    heads.filter((h) => h.sex === sex).forEach((h, i) => h.label = `Hairstyle ${i + 1}`);
+  }
+  return heads;
+}
+var HEADS = buildHeadCatalog(HEAD_FILES);
+
+// src/domain/athlete/shirtFiles.ts
+var SHIRT_FILES = [
+  { file: "lvl1_men_shirt_01", label: "Charcoal T-shirt" },
+  { file: "lvl2_men_shirt_01", label: "Navy T-shirt" },
+  { file: "lvl3_men_shirt_01", label: "Burgundy T-shirt" },
+  { file: "lvl3_men_shirt_02", label: "Green T-shirt" },
+  { file: "lvl2_men_shirt_02", label: "Brick red T-shirt" },
+  { file: "lvl3_men_shirt_03", label: "Steel blue T-shirt" },
+  { file: "lvl1_women_shirt_01", label: "Blue tank top" },
+  { file: "lvl2_women_shirt_01", label: "Coral tank top" },
+  { file: "lvl3_women_shirt_01", label: "Green tank top" },
+  { file: "lvl1_women_shirt_02", label: "Cream tank top" },
+  { file: "lvl2_women_shirt_02", label: "Teal and grey tank top" },
+  { file: "lvl3_women_shirt_03", label: "Pink and white tank top" }
+];
+
+// src/domain/athlete/shirts.ts
+var NAME2 = /^lvl(\d+)_(men|women)_shirt_(\d{2})$/;
+function buildShirtCatalog(files) {
+  const shirts = [];
+  for (const { file, label } of files) {
+    const match = NAME2.exec(file);
+    if (!match) continue;
+    const [, level, sexName, design] = match;
+    shirts.push({
+      id: `shirt-l${Number(level)}-${design}`,
+      sex: sexName === "men" ? "male" : "female",
+      level: Number(level),
+      label,
+      file
     });
-    if (!response.ok) {
-      const text = await response.text();
-      let message = text;
-      try {
-        message = JSON.parse(text).message ?? text;
-      } catch {
-      }
-      throw refusalOf(message) ?? new Error(`Database request failed (${response.status}): ${message}`);
-    }
-    if (response.status === 204) return void 0;
-    return await response.json();
   }
-  async function getEvent(id) {
-    const rows = await request(`major_events?id=eq.${id}&${EVENT_SELECT}`);
-    if (!rows[0]) throw new MajorStoreError("not-found");
-    return toEvent(rows[0]);
+  return shirts.sort((a, b) => a.level - b.level || a.id.localeCompare(b.id));
+}
+var SHIRTS = buildShirtCatalog(SHIRT_FILES);
+
+// src/domain/athlete/appearance.ts
+var NO_OUTFIT = "none";
+var BASIC_HAIR = "natural";
+function toneNumber(skin) {
+  return Number(skin.slice("tone-".length));
+}
+function hairStyles(sex, skin) {
+  return [BASIC_HAIR, ...HEADS.filter((h) => h.sex === sex && h.files[toneNumber(skin)]).map((h) => h.id)];
+}
+var SKIN_TONES = {
+  female: ["tone-1", "tone-2", "tone-3"],
+  male: ["tone-1", "tone-2", "tone-3", "tone-4"]
+};
+function outfits(sex) {
+  return [NO_OUTFIT, ...SHIRTS.filter((shirt) => shirt.sex === sex).map((shirt) => shirt.id)];
+}
+function isRetiredTshirt(outfit) {
+  return outfit === "white-tshirt" || outfit.startsWith("tshirt-");
+}
+function defaultAppearance() {
+  return { hair: BASIC_HAIR, skin: "tone-2", outfit: NO_OUTFIT };
+}
+function appearanceForSex(appearance, sex) {
+  const tones = SKIN_TONES[sex];
+  const skin = tones.includes(appearance.skin) ? appearance.skin : tones[tones.length - 1];
+  const hair = hairStyles(sex, skin).includes(appearance.hair) ? appearance.hair : BASIC_HAIR;
+  const offered = outfits(sex);
+  const outfit = offered.includes(appearance.outfit) ? appearance.outfit : isRetiredTshirt(appearance.outfit) ? SHIRTS.find((shirt) => shirt.sex === sex && shirt.level === 1)?.id ?? NO_OUTFIT : NO_OUTFIT;
+  return { hair, skin, outfit };
+}
+function parseAppearance(value, sex) {
+  const fallback = defaultAppearance();
+  if (typeof value !== "object" || value === null) return fallback;
+  const { hair, skin, outfit } = value;
+  const knownSkin = SKIN_TONES.male.includes(skin) ? skin : fallback.skin;
+  return appearanceForSex(
+    {
+      hair: typeof hair === "string" ? hair : fallback.hair,
+      skin: knownSkin,
+      outfit: typeof outfit === "string" ? outfit : fallback.outfit
+    },
+    sex
+  );
+}
+
+// src/game-engine/fitnessDecay.ts
+var DECAY_PERIOD_MS = 24 * 60 * 60 * 1e3;
+var FITNESS_DECAY_PER_PERIOD = 1;
+var DECAY_GRACE_PERIODS = 1;
+function applyFitnessDecay(state, now) {
+  const reference = state.fitnessDecayReference;
+  if (!Number.isFinite(now)) return { state, periods: 0, fitnessLost: 0 };
+  if (!Number.isFinite(reference) || reference > now) {
+    return { state: { ...state, fitnessDecayReference: now }, periods: 0, fitnessLost: 0 };
   }
-  const eventBody = (input) => ({
-    name: input.name,
-    description: input.description,
-    race_id: input.raceId,
-    scheduled_start_at: input.scheduledStartAt
-  });
+  const periods = Math.max(0, Math.floor((now - reference) / DECAY_PERIOD_MS) - DECAY_GRACE_PERIODS);
+  if (periods === 0) return { state, periods: 0, fitnessLost: 0 };
+  const fitness = Math.max(0, roundStat(state.athlete.fitness - periods * FITNESS_DECAY_PER_PERIOD));
   return {
-    async isAdmin(userId) {
-      const rows = await request(`major_admins?user_id=eq.${encodeURIComponent(userId)}&select=user_id`);
-      return rows.length > 0;
+    state: {
+      ...state,
+      athlete: { ...state.athlete, fitness },
+      fitnessDecayReference: reference + periods * DECAY_PERIOD_MS
     },
-    async getConfig() {
-      const rows = await request("major_config?select=*");
-      const row = rows[0];
-      if (!row) throw new Error("major_config is empty");
-      return {
-        startTimeUtc: row.start_time_utc.slice(0, 5),
-        registrationOpenDays: row.registration_open_days,
-        readyMinutes: row.ready_minutes,
-        decisionWindowS: row.decision_window_s,
-        runningS: row.running_s,
-        participantLimit: row.participant_limit,
-        bands: row.bands
-      };
-    },
-    async setConfig(value, userId) {
-      await request(
-        "major_config?id=eq.true",
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            start_time_utc: value.startTimeUtc,
-            registration_open_days: value.registrationOpenDays,
-            ready_minutes: value.readyMinutes,
-            decision_window_s: value.decisionWindowS,
-            running_s: value.runningS,
-            participant_limit: value.participantLimit,
-            bands: value.bands.map((b) => ({ name: b.name.trim(), min: b.min, max: b.max })),
-            updated_at: (/* @__PURE__ */ new Date()).toISOString(),
-            updated_by: userId
-          })
-        },
-        "return=minimal"
-      );
-    },
-    async listEvents() {
-      const rows = await request(`major_events?${EVENT_SELECT}&order=scheduled_start_at.desc&limit=200`);
-      return rows.map(toEvent);
-    },
-    async createEvent(input, userId) {
-      const rows = await request(
-        "major_events",
-        { method: "POST", body: JSON.stringify({ ...eventBody(input), created_by: userId }) },
-        "return=representation"
-      );
-      return toEvent({ ...rows[0], major_categories: [] });
-    },
-    async updateDraft(id, input) {
-      const rows = await request(
-        `major_events?id=eq.${id}&status=eq.DRAFT`,
-        { method: "PATCH", body: JSON.stringify(eventBody(input)) },
-        "return=representation"
-      );
-      return rows[0] ? toEvent({ ...rows[0], major_categories: [] }) : null;
-    },
-    async publish(id, userId, now) {
-      await request("rpc/major_publish", {
-        method: "POST",
-        body: JSON.stringify({ p_event: id, p_actor: userId, p_now: new Date(now).toISOString() })
-      });
-      return getEvent(id);
-    },
-    async cancel(id, userId, reason) {
-      await request("rpc/major_cancel", {
-        method: "POST",
-        body: JSON.stringify({ p_event: id, p_actor: userId, p_reason: reason })
-      });
-      return getEvent(id);
-    },
-    getEvent,
-    async signUpload(path) {
-      const response = await fetch(`${config2.url}/storage/v1/object/upload/sign/${MEDIA_BUCKET}/${path}`, {
-        method: "POST",
-        headers: { ...headers, "x-upsert": "false" },
-        body: "{}"
-      });
-      if (!response.ok) throw new Error(`Signing the upload failed (${response.status}): ${await response.text()}`);
-      const { url } = await response.json();
-      const token = new URL(url, config2.url).searchParams.get("token");
-      if (!token) throw new Error("The signed upload has no token");
-      return token;
-    },
-    async setBanner(id, path) {
-      await request(`major_events?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ banner_path: path }) }, "return=minimal");
-      return getEvent(id);
-    },
-    async setClip(id, segment, path) {
-      const current = await getEvent(id);
-      const clips = { ...current.clips };
-      if (path) clips[String(segment)] = path;
-      else delete clips[String(segment)];
-      await request(`major_events?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ clips }) }, "return=minimal");
-      return getEvent(id);
-    },
-    async log(eventId, userId, kind, detail) {
-      await request(
-        "major_log",
-        { method: "POST", body: JSON.stringify({ event_id: eventId, actor: userId, kind, detail }) },
-        "return=minimal"
-      );
-    }
+    periods,
+    fitnessLost: roundStat(state.athlete.fitness - fitness)
   };
 }
 
-// raw:src/data/achievements.csv
-var achievements_default = "# Achievements (owner table, 5 November 2026). One row per achievement level, levels 1, 2, 3\u2026 in order.\n# achievement: first-steps (races finished), trail-explorer, first-summit, elite (races of that category), podium (top 3 finishes),\n# champion (wins), rising-star (total XP), level (runner level), dedicated (training weeks completed).\n# target: what the level asks for (rising in each achievement). coins and xp: the reward when the level is reached, given once.\nachievement,level,target,coins,xp\nfirst-steps,1,1,20,50\nfirst-steps,2,5,40,100\nfirst-steps,3,10,80,200\nfirst-steps,4,25,150,400\nfirst-steps,5,50,300,800\ntrail-explorer,1,1,50,100\ntrail-explorer,2,5,100,200\ntrail-explorer,3,10,200,400\ntrail-explorer,4,25,400,800\nfirst-summit,1,1,100,200\nfirst-summit,2,5,200,400\nfirst-summit,3,10,400,800\nfirst-summit,4,25,800,1600\nelite,1,1,200,400\nelite,2,5,400,800\nelite,3,10,800,1600\npodium,1,1,30,50\npodium,2,5,80,150\npodium,3,10,150,300\npodium,4,25,300,600\nchampion,1,1,50,100\nchampion,2,3,120,250\nchampion,3,10,300,600\nrising-star,1,1000,30,0\nrising-star,2,5000,80,0\nrising-star,3,20000,200,0\nrising-star,4,50000,400,0\nlevel,1,5,30,0\nlevel,2,10,60,0\nlevel,3,20,150,0\nlevel,4,30,300,0\nlevel,5,50,600,0\ndedicated,1,4,20,50\ndedicated,2,13,60,150\ndedicated,3,26,120,300\ndedicated,4,52,250,600\ndedicated,5,104,500,1200\n";
+// src/domain/athlete/countries.ts
+var COUNTRY_CODES = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" ");
+var CODES = new Set(COUNTRY_CODES);
+function isCountryCode(value) {
+  return typeof value === "string" && CODES.has(value);
+}
+
+// src/domain/economy/coins.ts
+var STARTING_COINS = 25;
+
+// src/game-engine/gameState.ts
+var DAYS_PER_WEEK = 7;
 
 // raw:src/data/ranking_points.csv
 var ranking_points_default = "# Ranking points (owner tables, 5 November 2026; points system v3 the same day). kind,key,value:\n# setting best_results: how many of a runner's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC).\n# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December. setting annual_months: the Annual ranking adds up each season's best results from the last that many months.\n# Points of a result = difficulty base points x position percent x competition percent, rounded to whole points.\n# The runner's level and sex never change the points (Game Design Bible 11.1); level only sets which races a runner may enter.\n# difficulty: base points of each difficulty (I Moderate ... V Extreme). race: the difficulty of each race (distance, climb, technicality and overall demands, not distance alone).\n# position: percent for each finishing position (positions not listed, 31st and later: 0). competition: percent of each competition format (standard races, weekly Majors, the annual World Cup).\n# Reference for choosing each race's difficulty (not read by the game; the race values live in races.csv): id, name, km, D+ m, D+ per km, effort km (km + D+/100), technicality 0-5, recommended level.\n#   RACE-001 Forest First Steps: 5 km, 120 m D+, 24 m/km, effort 6.2 km, technicality 0, level 4\n#   RACE-002 Riverside Trail: 8 km, 220 m D+, 28 m/km, effort 10.2 km, technicality 0, level 6\n#   RACE-003 Pine Loop Challenge: 10 km, 350 m D+, 35 m/km, effort 13.5 km, technicality 2, level 8\n#   RACE-004 Ridge Runner: 12 km, 550 m D+, 46 m/km, effort 17.5 km, technicality 2, level 11\n#   RACE-005 Stone Path Classic: 15 km, 750 m D+, 50 m/km, effort 22.5 km, technicality 3, level 14\n#   RACE-006 Wildwood Ascent: 18 km, 950 m D+, 53 m/km, effort 27.5 km, technicality 2, level 18\n#   RACE-007 Summit Quest: 22 km, 1300 m D+, 59 m/km, effort 35 km, technicality 3, level 21\n#   RACE-008 Alpine Traverse: 28 km, 1700 m D+, 61 m/km, effort 45 km, technicality 5, level 25\n#   RACE-009 Sky Ridge Ultra: 35 km, 2200 m D+, 63 m/km, effort 57 km, technicality 3, level 28\n#   RACE-010 High Peaks Challenge: 42 km, 2800 m D+, 67 m/km, effort 70 km, technicality 5, level 31\n#   RACE-011 Legends of the Crest: 55 km, 3600 m D+, 65 m/km, effort 91 km, technicality 5, level 40\n#   RACE-012 Beyond the Skyline: 70 km, 4800 m D+, 69 m/km, effort 118 km, technicality 5, level 50\n#   RACE-013 Granite Spine: 44 km, 3000 m D+, 68 m/km, effort 74 km, technicality 4, level 34\n#   RACE-014 Northern Lakes Ultra: 50 km, 3200 m D+, 64 m/km, effort 82 km, technicality 2, level 37\n#   RACE-015 Glacier Line: 57 km, 3800 m D+, 67 m/km, effort 95 km, technicality 5, level 43\n#   RACE-016 Midnight Traverse: 62 km, 4100 m D+, 66 m/km, effort 103 km, technicality 3, level 45\n#   RACE-017 Crown of the Range: 66 km, 4500 m D+, 68 m/km, effort 111 km, technicality 4, level 47\nkind,key,value\nsetting,best_results,10\nsetting,first_season,2026-11\nsetting,annual_months,12\ndifficulty,I,100\ndifficulty,II,125\ndifficulty,III,160\ndifficulty,IV,200\ndifficulty,V,250\nrace,RACE-001,I\nrace,RACE-002,I\nrace,RACE-003,I\nrace,RACE-004,II\nrace,RACE-005,II\nrace,RACE-006,II\nrace,RACE-007,III\nrace,RACE-008,III\nrace,RACE-009,IV\nrace,RACE-010,IV\nrace,RACE-011,V\nrace,RACE-012,V\nrace,RACE-013,IV\nrace,RACE-014,IV\nrace,RACE-015,V\nrace,RACE-016,V\nrace,RACE-017,V\nposition,1,100\nposition,2,85\nposition,3,75\nposition,4,70\nposition,5,65\nposition,6,60\nposition,7,56\nposition,8,52\nposition,9,48\nposition,10,45\nposition,11,43\nposition,12,40\nposition,13,37\nposition,14,34\nposition,15,31\nposition,16,28\nposition,17,25\nposition,18,22\nposition,19,19\nposition,20,16\nposition,21,12\nposition,22,12\nposition,23,12\nposition,24,12\nposition,25,12\nposition,26,8\nposition,27,8\nposition,28,8\nposition,29,8\nposition,30,8\ncompetition,standard,100\ncompetition,major,150\ncompetition,world_cup,200\n";
@@ -1054,6 +1226,9 @@ function parseRankingTable(text, raceIds = RACES.map((race) => race.id)) {
   return table;
 }
 var RANKING = parseRankingTable(ranking_points_default);
+
+// raw:src/data/achievements.csv
+var achievements_default = "# Achievements (owner table, 5 November 2026). One row per achievement level, levels 1, 2, 3\u2026 in order.\n# achievement: first-steps (races finished), trail-explorer, first-summit, elite (races of that category), podium (top 3 finishes),\n# champion (wins), rising-star (total XP), level (runner level), dedicated (training weeks completed).\n# target: what the level asks for (rising in each achievement). coins and xp: the reward when the level is reached, given once.\nachievement,level,target,coins,xp\nfirst-steps,1,1,20,50\nfirst-steps,2,5,40,100\nfirst-steps,3,10,80,200\nfirst-steps,4,25,150,400\nfirst-steps,5,50,300,800\ntrail-explorer,1,1,50,100\ntrail-explorer,2,5,100,200\ntrail-explorer,3,10,200,400\ntrail-explorer,4,25,400,800\nfirst-summit,1,1,100,200\nfirst-summit,2,5,200,400\nfirst-summit,3,10,400,800\nfirst-summit,4,25,800,1600\nelite,1,1,200,400\nelite,2,5,400,800\nelite,3,10,800,1600\npodium,1,1,30,50\npodium,2,5,80,150\npodium,3,10,150,300\npodium,4,25,300,600\nchampion,1,1,50,100\nchampion,2,3,120,250\nchampion,3,10,300,600\nrising-star,1,1000,30,0\nrising-star,2,5000,80,0\nrising-star,3,20000,200,0\nrising-star,4,50000,400,0\nlevel,1,5,30,0\nlevel,2,10,60,0\nlevel,3,20,150,0\nlevel,4,30,300,0\nlevel,5,50,600,0\ndedicated,1,4,20,50\ndedicated,2,13,60,150\ndedicated,3,26,120,300\ndedicated,4,52,250,600\ndedicated,5,104,500,1200\n";
 
 // src/game-engine/career.ts
 function medalFor(position) {
@@ -1177,84 +1352,476 @@ var ACHIEVEMENTS = DEFINITIONS.map((definition) => ({
   targets: targetsOf(definition.id),
   rewards: rewardsOf(definition.id)
 }));
-
-// src/domain/athlete/heads.ts
-var HEAD_FILES = [
-  "lvl1_men_head_01_tone1",
-  "lvl1_men_head_01_tone2",
-  "lvl1_men_head_01_tone3",
-  "lvl1_men_head_01_tone4",
-  "lvl1_women_head_01_tone1",
-  "lvl1_women_head_01_tone2",
-  "lvl1_women_head_01_tone3",
-  "lvl1_women_head_02_tone1",
-  "lvl1_women_head_02_tone2",
-  "lvl5_women_head_01_tone3"
-];
-var NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/;
-function buildHeadCatalog(files) {
-  const byId = /* @__PURE__ */ new Map();
-  for (const file of files) {
-    const match = NAME.exec(file);
-    if (!match) continue;
-    const [, level, sexName, design, tone] = match;
-    const sex = sexName === "men" ? "male" : "female";
-    const id = `head-l${Number(level)}-${design}`;
-    const key = `${sex}/${id}`;
-    const head = byId.get(key) ?? { id, sex, level: Number(level), label: "", files: {} };
-    head.files[Number(tone)] = file;
-    byId.set(key, head);
-  }
-  const heads = [...byId.values()].sort((a, b) => a.level - b.level || a.id.localeCompare(b.id));
-  for (const sex of ["female", "male"]) {
-    heads.filter((h) => h.sex === sex).forEach((h, i) => h.label = `Hairstyle ${i + 1}`);
-  }
-  return heads;
+function getAchievements(state) {
+  return ACHIEVEMENTS.map((definition) => {
+    const value = definition.value(state);
+    const reached = definition.targets.filter((target2) => value >= target2).length;
+    const complete = reached === definition.targets.length;
+    const index = complete ? definition.targets.length - 1 : reached;
+    const target = definition.targets[index];
+    return {
+      definition,
+      reached,
+      level: index + 1,
+      target,
+      value: Math.min(value, target),
+      complete,
+      reward: definition.rewards[index]
+    };
+  });
 }
-var HEADS = buildHeadCatalog(HEAD_FILES);
-
-// src/domain/athlete/shirtFiles.ts
-var SHIRT_FILES = [
-  { file: "lvl1_men_shirt_01", label: "Charcoal T-shirt" },
-  { file: "lvl2_men_shirt_01", label: "Navy T-shirt" },
-  { file: "lvl3_men_shirt_01", label: "Burgundy T-shirt" },
-  { file: "lvl3_men_shirt_02", label: "Green T-shirt" },
-  { file: "lvl2_men_shirt_02", label: "Brick red T-shirt" },
-  { file: "lvl3_men_shirt_03", label: "Steel blue T-shirt" },
-  { file: "lvl1_women_shirt_01", label: "Blue tank top" },
-  { file: "lvl2_women_shirt_01", label: "Coral tank top" },
-  { file: "lvl3_women_shirt_01", label: "Green tank top" },
-  { file: "lvl1_women_shirt_02", label: "Cream tank top" },
-  { file: "lvl2_women_shirt_02", label: "Teal and grey tank top" },
-  { file: "lvl3_women_shirt_03", label: "Pink and white tank top" }
-];
-
-// src/domain/athlete/shirts.ts
-var NAME2 = /^lvl(\d+)_(men|women)_shirt_(\d{2})$/;
-function buildShirtCatalog(files) {
-  const shirts = [];
-  for (const { file, label } of files) {
-    const match = NAME2.exec(file);
-    if (!match) continue;
-    const [, level, sexName, design] = match;
-    shirts.push({
-      id: `shirt-l${Number(level)}-${design}`,
-      sex: sexName === "men" ? "male" : "female",
-      level: Number(level),
-      label,
-      file
-    });
-  }
-  return shirts.sort((a, b) => a.level - b.level || a.id.localeCompare(b.id));
+function getReachedLevels(state) {
+  return Object.fromEntries(getAchievements(state).map((a) => [a.definition.id, a.reached]));
 }
-var SHIRTS = buildShirtCatalog(SHIRT_FILES);
 
-// src/domain/athlete/countries.ts
-var COUNTRY_CODES = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" ");
-var CODES = new Set(COUNTRY_CODES);
+// src/domain/training/injury.ts
+var INJURY_REST_DAYS = 5;
+
+// src/game-engine/raceSchedule.ts
+var RACE_DAY_INDEX = DAYS_PER_WEEK - 1;
 
 // src/repositories/gameRepository.ts
+var SCHEMA_VERSION = 2;
+var LEGACY_DEFAULT_SEX = "male";
+function isRecord2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function isInt(value, min, max = Number.MAX_SAFE_INTEGER) {
+  return typeof value === "number" && Number.isInteger(value) && value >= min && value <= max;
+}
+function isHundredths(value, min, max) {
+  return typeof value === "number" && Number.isFinite(value) && value >= min && value <= max && roundStat(value) === value;
+}
+function isStat(value) {
+  return isHundredths(value, STAT_MIN, STAT_MAX);
+}
+function isAttributeGain(value) {
+  return value === void 0 || isRecord2(value) && isAttributeId(value.attribute) && isHundredths(value.amount, 0, 1);
+}
+function isOutcome(value) {
+  return isRecord2(value) && isInt(value.xpGained, 0) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isAttributeGain(value.attributeGain) && (value.consistencyGain === void 0 || isHundredths(value.consistencyGain, 0, 1)) && (value.injured === void 0 || typeof value.injured === "boolean") && (value.raceEntryId === void 0 || typeof value.raceEntryId === "string" && value.raceEntryId.length > 0);
+}
+function isTrainingDay(value, index, currentDayIndex) {
+  if (!isRecord2(value) || value.day !== index + 1 || !isSessionType(value.session)) return false;
+  return index < currentDayIndex ? isOutcome(value.outcome) : value.outcome === null;
+}
+var ENTRY_TYPES = ["free", "standard", "early"];
 var FACTOR_IDS = ["fitness", "fatigue", ...ATTRIBUTE_IDS, "day-form", "equipment"];
+function isFiniteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+function isWholeNumber(value) {
+  return typeof value === "number" && Number.isInteger(value);
+}
+function isFactor(value) {
+  return isRecord2(value) && FACTOR_IDS.includes(value.id) && isFiniteNumber(value.value) && isFiniteNumber(value.reference) && isWholeNumber(value.effectS);
+}
+function isRaceResult(value, feePaid) {
+  return isRecord2(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && (value.rankingSeason === void 0 || isInt(value.rankingSeason, 190001, 999912)) && (value.rankingPoints === void 0 || isInt(value.rankingPoints, 0)) && (value.rankingAt === void 0 || isInt(value.rankingAt, 0)) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1))) && (value.splits === void 0 || Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true)) && (value.nutrition === void 0 || isNutrition(value.nutrition));
+}
+function isNutrition(value) {
+  return isRecord2(value) && typeof value.gel === "boolean" && typeof value.bar === "boolean";
+}
+function isSplitList(splits, fieldSize, finished2) {
+  let previous = 0;
+  return splits.every((split, index) => {
+    const last = index === splits.length - 1;
+    const ok2 = isRecord2(split) && isIntensity(split.intensity) && isInt(split.segmentS, 0) && isInt(split.arrivalS, 1) && split.arrivalS >= previous && isFiniteNumber(split.fatigue) && isInt(split.position, 1, fieldSize) && (last && !finished2 ? split.stop === void 0 : last ? split.stop === void 0 && split.stopS === void 0 : isAidStop(split.stop) && isInt(split.stopS, 0) && isFiniteNumber(split.fatigueAfterStop));
+    if (ok2) previous = split.arrivalS + (split.stopS ?? 0);
+    return ok2;
+  });
+}
+function parseActiveRace(value, entries, currentDayIndex) {
+  if (!isRecord2(value)) return null;
+  const entry = entries.find((e) => e.status === "pending");
+  const race = getRace(typeof value.raceId === "string" ? value.raceId : "");
+  const attributes = parseAttributes(value.attributes);
+  const { equipment, nutrition, splits } = value;
+  if (!entry || !race || value.entryId !== entry.id || value.raceId !== entry.raceId || currentDayIndex !== DAYS_PER_WEEK - 1 || !isFiniteNumber(value.startedAt) || !isInt(value.levelAtStart, 1) || !attributes || !isStat(value.fitness) || !isStat(value.fatigue) || !Array.isArray(equipment) || !equipment.every((id) => typeof id === "string" && getEquipmentItem(id) && !isConsumable(getEquipmentItem(id))) || !isFiniteNumber(value.dayForm) || Math.abs(value.dayForm) > 1 || !isNutrition(nutrition) || !isFiniteNumber(value.elapsedS) || value.elapsedS <= 0 || !isFiniteNumber(value.inRaceFatigue) || !Array.isArray(splits) || splits.length === 0 || splits.length >= getSegmentCount(race) || !isSplitList(splits, RACE_SIMULATION.fieldSize, false)) {
+    return null;
+  }
+  return {
+    entryId: entry.id,
+    raceId: race.id,
+    startedAt: value.startedAt,
+    levelAtStart: value.levelAtStart,
+    attributes,
+    fitness: value.fitness,
+    fatigue: value.fatigue,
+    equipment: [...equipment],
+    dayForm: value.dayForm,
+    nutrition: { gel: nutrition.gel, bar: nutrition.bar },
+    elapsedS: value.elapsedS,
+    inRaceFatigue: value.inRaceFatigue,
+    splits: structuredClone(splits)
+  };
+}
+function isRaceEntry(value) {
+  if (!isRecord2(value) || typeof value.id !== "string" || value.id.length === 0 || !isRaceId(value.raceId) || !ENTRY_TYPES.includes(value.entryType) || !isInt(value.feePaid, 0) || !isInt(value.levelAtEntry, 1) || !isFiniteNumber(value.enteredAt)) {
+    return false;
+  }
+  if (value.status === "pending") return value.result === void 0;
+  return value.status === "finished" && isRaceResult(value.result, value.feePaid);
+}
+function parseRaceEntries(value) {
+  if (!Array.isArray(value) || !value.every(isRaceEntry)) return null;
+  const entries = value;
+  if (new Set(entries.map((e) => e.id)).size !== entries.length) return null;
+  const pending = entries.filter((e) => e.status === "pending").map((e) => e.raceId);
+  if (new Set(pending).size !== pending.length) return null;
+  return entries.map((e) => structuredClone(e));
+}
+function parseAttributes(value) {
+  if (!isRecord2(value)) return null;
+  const attributes = {};
+  for (const id of ATTRIBUTE_IDS) {
+    const v = value[id];
+    if (!isHundredths(v, ATTRIBUTE_MIN, Number.MAX_SAFE_INTEGER)) return null;
+    attributes[id] = v;
+  }
+  return attributes;
+}
+function parseGameState(value, now) {
+  if (!isRecord2(value) || !isRecord2(value.athlete) || !isRecord2(value.week)) return null;
+  const { athlete, week } = value;
+  const attributes = parseAttributes(athlete.attributes);
+  const sex = athlete.sex === void 0 ? LEGACY_DEFAULT_SEX : athlete.sex;
+  if (typeof athlete.name !== "string" || !isSex(sex) || !isProfileId(athlete.profile) || !isInt(athlete.xp, 0) || !isStat(athlete.fitness) || !isStat(athlete.fatigue) || !attributes || !isInt(athlete.spentAttributePoints, 0, getEarnedAttributePoints(athlete.xp))) {
+    return null;
+  }
+  const total = roundStat(ATTRIBUTE_IDS.reduce((sum, id) => sum + attributes[id], 0));
+  if (total < PROFILE_ATTRIBUTE_TOTAL + athlete.spentAttributePoints) return null;
+  if (!isInt(week.number, 1) || !isInt(week.currentDayIndex, 0, DAYS_PER_WEEK - 1)) return null;
+  const currentDayIndex = week.currentDayIndex;
+  if (!Array.isArray(week.days) || week.days.length !== DAYS_PER_WEEK || !week.days.every((day, index) => isTrainingDay(day, index, currentDayIndex))) {
+    return null;
+  }
+  const forcedRestDays = value.forcedRestDays === void 0 ? 0 : value.forcedRestDays;
+  if (!isInt(forcedRestDays, 0, INJURY_REST_DAYS)) return null;
+  const forcedInWeek = week.days.slice(currentDayIndex, currentDayIndex + forcedRestDays);
+  if (!forcedInWeek.every((day) => day.session === "rest")) return null;
+  const coins = value.coins === void 0 ? STARTING_COINS : value.coins;
+  if (!isInt(coins, 0)) return null;
+  const raceEntries = parseRaceEntries(value.raceEntries === void 0 ? [] : value.raceEntries);
+  if (!raceEntries) return null;
+  const equipment = value.equipment === void 0 ? [] : value.equipment;
+  if (!Array.isArray(equipment) || !equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) {
+    return null;
+  }
+  const slots = equipment.map((id) => getEquipmentItem(id).slot);
+  if (new Set(slots).size !== slots.length) return null;
+  const ownedEquipment = value.ownedEquipment === void 0 ? [...OWNED_FROM_START] : value.ownedEquipment;
+  if (!Array.isArray(ownedEquipment) || !ownedEquipment.every((id) => typeof id === "string" && getEquipmentItem(id)) || new Set(ownedEquipment).size !== ownedEquipment.length || !OWNED_FROM_START.every((id) => ownedEquipment.includes(id)) || !equipment.every((id) => ownedEquipment.includes(id))) {
+    return null;
+  }
+  if ([...equipment, ...ownedEquipment].some((id) => isConsumable(getEquipmentItem(id)))) {
+    return null;
+  }
+  const rawConsumables = value.consumables === void 0 ? { gel: 0, bar: 0 } : value.consumables;
+  if (!isRecord2(rawConsumables) || !isInt(rawConsumables.gel, 0) || !isInt(rawConsumables.bar, 0)) return null;
+  const activeRace = value.activeRace === void 0 || value.activeRace === null ? null : parseActiveRace(value.activeRace, raceEntries, currentDayIndex);
+  if (value.activeRace !== void 0 && value.activeRace !== null && !activeRace) return null;
+  const finishedIds = new Set(raceEntries.filter((e) => e.status === "finished").map((e) => e.id));
+  const raceDays = week.days.filter((day) => day.outcome?.raceEntryId !== void 0);
+  if (!raceDays.every((day) => finishedIds.has(day.outcome.raceEntryId))) return null;
+  const previousDay = currentDayIndex > 0 ? week.days[currentDayIndex - 1] : void 0;
+  const previousDayActive = value.previousDayActive === void 0 ? previousDay !== void 0 && (previousDay.outcome?.raceEntryId !== void 0 || previousDay.session !== "rest") : value.previousDayActive;
+  if (typeof previousDayActive !== "boolean") return null;
+  const reference = value.fitnessDecayReference;
+  const rewarded = value.achievementLevelsRewarded;
+  if (rewarded !== void 0 && (!isRecord2(rewarded) || !Object.entries(rewarded).every(
+    ([id, level]) => ACHIEVEMENT_IDS.includes(id) && isInt(level, 0)
+  ))) {
+    return null;
+  }
+  const parsed = {
+    athlete: {
+      name: athlete.name,
+      sex,
+      // Missing: a career saved before appearance existed. Never rejects a save (cosmetic only).
+      appearance: parseAppearance(athlete.appearance, sex),
+      // Missing or unknown: no country (cosmetic; never rejects a save).
+      ...isCountryCode(athlete.country) ? { country: athlete.country } : {},
+      profile: athlete.profile,
+      xp: athlete.xp,
+      fitness: athlete.fitness,
+      fatigue: athlete.fatigue,
+      attributes,
+      spentAttributePoints: athlete.spentAttributePoints
+    },
+    week: {
+      number: week.number,
+      currentDayIndex,
+      days: week.days.map((day) => ({
+        day: day.day,
+        session: day.session,
+        outcome: day.outcome && { ...day.outcome }
+      }))
+    },
+    fitnessDecayReference: typeof reference === "number" && Number.isFinite(reference) ? reference : now,
+    previousDayActive,
+    forcedRestDays,
+    coins,
+    raceEntries,
+    equipment: [...equipment],
+    ownedEquipment: [...ownedEquipment],
+    consumables: { gel: rawConsumables.gel, bar: rawConsumables.bar },
+    activeRace,
+    achievementLevelsRewarded: {}
+  };
+  parsed.achievementLevelsRewarded = rewarded === void 0 ? getReachedLevels(parsed) : { ...rewarded };
+  const coach = parseCoachProgress(value.coach);
+  if (coach) parsed.coach = coach;
+  return parsed;
+}
+function parseCoachProgress(value) {
+  if (!isRecord2(value) || !isInt(value.welcomeStep, 0) || typeof value.welcomeDone !== "boolean") return null;
+  const progress = { welcomeStep: value.welcomeStep, welcomeDone: value.welcomeDone };
+  if (Array.isArray(value.seen) && value.seen.length <= 64 && value.seen.every((id) => typeof id === "string" && id.length <= 40)) {
+    progress.seen = [...new Set(value.seen)];
+  }
+  if (isInt(value.step, 0, 99)) progress.step = value.step;
+  return progress;
+}
+
+// src/server/careerOps.ts
+async function loadServerCareer(store, userId, now) {
+  const record = await store.load(userId);
+  const state = record && readRecord(record, now);
+  return state ? applyFitnessDecay(state, now).state : null;
+}
+function readRecord(record, now) {
+  if (record.schemaVersion !== SCHEMA_VERSION) return null;
+  return parseGameState(record.state, now);
+}
+
+// src/server/majorRest.ts
+var MEDIA_BUCKET = "major-media";
+var EVENT_SELECT = "select=*,major_categories(idx,name,min_level,max_level)";
+function toEvent(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    raceId: row.race_id,
+    scheduledStartAt: row.scheduled_start_at,
+    status: row.status,
+    registrationOpenAt: row.registration_open_at,
+    readyOpenAt: row.ready_open_at,
+    decisionWindowS: row.decision_window_s,
+    runningS: row.running_s,
+    participantLimit: row.participant_limit,
+    bands: row.bands_snapshot,
+    publishedAt: row.published_at,
+    cancelReason: row.cancel_reason,
+    bannerPath: row.banner_path,
+    clips: row.clips ?? {},
+    categories: [...row.major_categories ?? []].sort((a, b) => a.idx - b.idx).map((c) => ({ idx: c.idx, name: c.name, minLevel: c.min_level, maxLevel: c.max_level }))
+  };
+}
+function refusalOf(message) {
+  if (/ready window is closed/.test(message)) return new MajorStoreError("ready-closed");
+  if (/registration is closed/.test(message)) return new MajorStoreError("closed");
+  if (/already registered/.test(message)) return new MajorStoreError("already-registered");
+  if (/not registered/.test(message)) return new MajorStoreError("not-registered");
+  if (/has no category for level/.test(message)) return new MajorStoreError("no-category");
+  if (/not found/.test(message)) return new MajorStoreError("not-found");
+  if (/is not a draft|only its status can change/.test(message)) return new MajorStoreError("not-draft");
+  if (/too soon/.test(message)) return new MajorStoreError("too-soon");
+  if (/cannot change|is not allowed/.test(message)) return new MajorStoreError("final");
+  return null;
+}
+function createSupabaseMajorStore(config2) {
+  const headers = {
+    apikey: config2.serviceRoleKey,
+    Authorization: `Bearer ${config2.serviceRoleKey}`,
+    "Content-Type": "application/json"
+  };
+  async function request(path, init = {}, prefer) {
+    const response = await fetch(`${config2.url}/rest/v1/${path}`, {
+      ...init,
+      headers: { ...headers, ...prefer ? { Prefer: prefer } : {} }
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      let message = text;
+      try {
+        message = JSON.parse(text).message ?? text;
+      } catch {
+      }
+      throw refusalOf(message) ?? new Error(`Database request failed (${response.status}): ${message}`);
+    }
+    if (response.status === 204) return void 0;
+    return await response.json();
+  }
+  const iso = (ms) => new Date(ms).toISOString();
+  const rpc = (name, args) => request(`rpc/${name}`, { method: "POST", body: JSON.stringify(args) });
+  async function getEvent(id) {
+    const rows = await request(`major_events?id=eq.${id}&${EVENT_SELECT}`);
+    if (!rows[0]) throw new MajorStoreError("not-found");
+    return toEvent(rows[0]);
+  }
+  const eventBody = (input) => ({
+    name: input.name,
+    description: input.description,
+    race_id: input.raceId,
+    scheduled_start_at: input.scheduledStartAt
+  });
+  return {
+    async isAdmin(userId) {
+      const rows = await request(`major_admins?user_id=eq.${encodeURIComponent(userId)}&select=user_id`);
+      return rows.length > 0;
+    },
+    async getConfig() {
+      const rows = await request("major_config?select=*");
+      const row = rows[0];
+      if (!row) throw new Error("major_config is empty");
+      return {
+        startTimeUtc: row.start_time_utc.slice(0, 5),
+        registrationOpenDays: row.registration_open_days,
+        readyMinutes: row.ready_minutes,
+        decisionWindowS: row.decision_window_s,
+        runningS: row.running_s,
+        participantLimit: row.participant_limit,
+        bands: row.bands
+      };
+    },
+    async setConfig(value, userId) {
+      await request(
+        "major_config?id=eq.true",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            start_time_utc: value.startTimeUtc,
+            registration_open_days: value.registrationOpenDays,
+            ready_minutes: value.readyMinutes,
+            decision_window_s: value.decisionWindowS,
+            running_s: value.runningS,
+            participant_limit: value.participantLimit,
+            bands: value.bands.map((b) => ({ name: b.name.trim(), min: b.min, max: b.max })),
+            updated_at: (/* @__PURE__ */ new Date()).toISOString(),
+            updated_by: userId
+          })
+        },
+        "return=minimal"
+      );
+    },
+    async listEvents() {
+      const rows = await request(`major_events?${EVENT_SELECT}&order=scheduled_start_at.desc&limit=200`);
+      return rows.map(toEvent);
+    },
+    async createEvent(input, userId) {
+      const rows = await request(
+        "major_events",
+        { method: "POST", body: JSON.stringify({ ...eventBody(input), created_by: userId }) },
+        "return=representation"
+      );
+      return toEvent({ ...rows[0], major_categories: [] });
+    },
+    async updateDraft(id, input) {
+      const rows = await request(
+        `major_events?id=eq.${id}&status=eq.DRAFT`,
+        { method: "PATCH", body: JSON.stringify(eventBody(input)) },
+        "return=representation"
+      );
+      return rows[0] ? toEvent({ ...rows[0], major_categories: [] }) : null;
+    },
+    async publish(id, userId, now) {
+      await request("rpc/major_publish", {
+        method: "POST",
+        body: JSON.stringify({ p_event: id, p_actor: userId, p_now: new Date(now).toISOString() })
+      });
+      return getEvent(id);
+    },
+    async cancel(id, userId, reason) {
+      await request("rpc/major_cancel", {
+        method: "POST",
+        body: JSON.stringify({ p_event: id, p_actor: userId, p_reason: reason })
+      });
+      return getEvent(id);
+    },
+    getEvent,
+    async signUpload(path) {
+      const response = await fetch(`${config2.url}/storage/v1/object/upload/sign/${MEDIA_BUCKET}/${path}`, {
+        method: "POST",
+        headers: { ...headers, "x-upsert": "false" },
+        body: "{}"
+      });
+      if (!response.ok) throw new Error(`Signing the upload failed (${response.status}): ${await response.text()}`);
+      const { url } = await response.json();
+      const token = new URL(url, config2.url).searchParams.get("token");
+      if (!token) throw new Error("The signed upload has no token");
+      return token;
+    },
+    async setBanner(id, path) {
+      await request(`major_events?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ banner_path: path }) }, "return=minimal");
+      return getEvent(id);
+    },
+    async setClip(id, segment, path) {
+      const current = await getEvent(id);
+      const clips = { ...current.clips };
+      if (path) clips[String(segment)] = path;
+      else delete clips[String(segment)];
+      await request(`major_events?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ clips }) }, "return=minimal");
+      return getEvent(id);
+    },
+    async advance(now) {
+      await rpc("major_advance", { p_now: iso(now) });
+    },
+    async playerMajors(userId, now) {
+      const since = iso(now - 2 * 864e5);
+      const rows = await request(
+        `major_events?status=neq.DRAFT&scheduled_start_at=gte.${encodeURIComponent(since)}&${EVENT_SELECT}&order=scheduled_start_at.asc&limit=20`
+      );
+      if (rows.length === 0) return [];
+      const ids = rows.map((r) => r.id).join(",");
+      const mine = await request(`major_registrations?user_id=eq.${encodeURIComponent(userId)}&event_id=in.(${ids})&select=event_id,level,list,status,registered_at,ready_at,plan,major_categories(idx)`);
+      const all = await request(
+        `major_registrations?event_id=in.(${ids})&status=neq.WITHDRAWN&select=event_id,list,major_categories(idx)`
+      );
+      return rows.map((row) => {
+        const reg = mine.find((r) => r.event_id === row.id);
+        const entrants = {};
+        for (const r of all.filter((a) => a.event_id === row.id)) {
+          const counts = entrants[r.major_categories.idx] ??= { main: 0, waitlist: 0 };
+          counts[r.list] += 1;
+        }
+        return {
+          ...toEvent(row),
+          entrants,
+          registration: reg ? {
+            categoryIdx: reg.major_categories.idx,
+            level: reg.level,
+            list: reg.list,
+            status: reg.status,
+            registeredAt: reg.registered_at,
+            readyAt: reg.ready_at,
+            plan: Object.keys(reg.plan ?? {}).length ? reg.plan : null
+          } : null
+        };
+      });
+    },
+    async register(eventId, userId, entry, now) {
+      await rpc("major_register", { p_event: eventId, p_user: userId, p_level: entry.level, p_name: entry.name, p_country: entry.country, p_now: iso(now) });
+    },
+    async withdraw(eventId, userId, now) {
+      await rpc("major_withdraw", { p_event: eventId, p_user: userId, p_now: iso(now) });
+    },
+    async savePlan(eventId, userId, plan, now) {
+      await rpc("major_save_plan", { p_event: eventId, p_user: userId, p_plan: plan, p_now: iso(now) });
+    },
+    async setReady(eventId, userId, snapshot, now) {
+      await rpc("major_set_ready", { p_event: eventId, p_user: userId, p_snapshot: snapshot, p_now: iso(now) });
+    },
+    async log(eventId, userId, kind, detail) {
+      await request(
+        "major_log",
+        { method: "POST", body: JSON.stringify({ event_id: eventId, actor: userId, kind, detail }) },
+        "return=minimal"
+      );
+    }
+  };
+}
 
 // src/server/supabaseRest.ts
 async function authenticateWithSupabase(config2, token) {
@@ -1265,6 +1832,54 @@ async function authenticateWithSupabase(config2, token) {
   if (!response.ok) return null;
   const user = await response.json();
   return typeof user.id === "string" ? user.id : null;
+}
+function createSupabaseCareerOpsStore(config2) {
+  const headers = {
+    apikey: config2.serviceRoleKey,
+    Authorization: `Bearer ${config2.serviceRoleKey}`,
+    "Content-Type": "application/json"
+  };
+  async function get(path) {
+    const response = await fetch(`${config2.url}/rest/v1/${path}`, { headers });
+    if (!response.ok) throw new Error(`Database read failed (${response.status})`);
+    return await response.json();
+  }
+  return {
+    async load(userId) {
+      const rows = await get(
+        `careers?user_id=eq.${encodeURIComponent(userId)}&select=version,schema_version,game_state`
+      );
+      const row = rows[0];
+      return row ? { version: row.version, schemaVersion: row.schema_version, state: row.game_state } : null;
+    },
+    async operation(operationId) {
+      const rows = await get(
+        `career_operations?operation_id=eq.${encodeURIComponent(operationId)}&select=user_id,response`
+      );
+      const row = rows[0];
+      return row ? { userId: row.user_id, response: row.response } : null;
+    },
+    async commit({ userId, baseVersion, state, operationId, kind, response }) {
+      const result = await fetch(`${config2.url}/rest/v1/rpc/commit_career`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          p_user: userId,
+          p_base_version: baseVersion,
+          p_state: state,
+          p_schema_version: SCHEMA_VERSION,
+          p_operation_id: operationId,
+          p_kind: kind,
+          p_response: response
+        })
+      });
+      if (!result.ok) throw new Error(`Database write failed (${result.status}): ${await result.text()}`);
+      const rows = await result.json();
+      const row = rows[0];
+      if (!row) throw new Error("commit_career returned nothing");
+      return row;
+    }
+  };
 }
 
 // src/server/edge/majorOpsFunction.ts
@@ -1297,6 +1912,7 @@ Deno.serve(async (request) => {
     const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? null;
     const result = await handleMajorOp(token, body, {
       store: createSupabaseMajorStore(settings),
+      loadCareer: (userId) => loadServerCareer(createSupabaseCareerOpsStore(settings), userId, Date.now()),
       authenticate: (value) => authenticateWithSupabase(settings, value),
       now: () => Date.now()
     });

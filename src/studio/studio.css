@@ -147,6 +147,7 @@ button:disabled {
 }
 
 .top {
+  max-width: 100vw;
   position: sticky;
   top: 0;
   z-index: 5;
@@ -172,6 +173,13 @@ button:disabled {
   display: flex;
   gap: 4px;
   flex: 1;
+  min-width: 0;
+  /* On a phone the sections scroll sideways inside the bar, not the page. */
+  overflow-x: auto;
+}
+
+.tabs button {
+  flex: none;
 }
 
 .tabs button {
@@ -1185,4 +1193,128 @@ button:disabled {
 .inboxPreview p {
   margin: 4px 0 0;
   color: var(--muted);
+}
+
+/* Sunday Majors (owner specification, phase 1) */
+.majors {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.majorsHead,
+.majorsBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.majorForm {
+  margin: 10px 0 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.majorForm h4 {
+  margin-bottom: 8px;
+}
+
+.majors td.actions {
+  white-space: nowrap;
+}
+
+.majors td.actions button + button {
+  margin-left: 6px;
+}
+
+.majors .grid input {
+  width: 100%;
+  min-width: 70px;
+}
+
+.status-scheduled,
+.status-registration_open {
+  border-color: #6fbf8e;
+  color: #6fbf8e;
+}
+
+.status-draft {
+  border-color: #d4a23c;
+  color: #d4a23c;
+}
+
+.status-cancelled {
+  border-color: #e06c5b;
+  color: #e06c5b;
+}
+
+.majors,
+.majors .editPane {
+  min-width: 0;
+}
+
+.majors .gridWrap {
+  max-height: none;
+}
+
+/* Phone: the tables scroll sideways inside their frame rather than squeezing the columns. */
+.majors .gridWrap > .grid {
+  min-width: 640px;
+}
+
+.mediaRow {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.mediaPreview {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  background: #0b0d0c;
+  overflow: hidden;
+  font-size: 12px;
+  text-align: center;
+}
+
+.mediaPreview img,
+.mediaPreview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mediaActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.fileButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.fileButton input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .mediaRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

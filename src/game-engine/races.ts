@@ -24,7 +24,7 @@ import {
   type RaceSplit,
   type StepContext,
 } from './raceEngine'
-import { planRest, type RaceStyle } from './racePlan'
+import { planRest, runRest, type RaceStyle } from './racePlan'
 import { getScheduledEntry, RACE_DAY_INDEX } from './raceSchedule'
 import { courseEffortKm, explainRace, generateCourse, getDayForm, rivalTimes } from './raceSimulation'
 import { checkDay, completeCurrentDay, statChange, type DayRef, type TrainingError } from './training'
@@ -566,6 +566,17 @@ export function estimateFirstSegment(
   const ctx = prepContext(state, race, nutrition)
   const ran = runSegment(ctx, { elapsedS: 0, fatigue: ctx.runner.fatigue, splits: [] }, intensity)
   return { segmentS: ran.elapsedS, fatigueGain: ran.fatigue - ctx.runner.fatigue }
+}
+
+/** Before the start: the in-race fatigue at the finish with these intensities and Normal stops. */
+export function fatigueAtFinishBeforeStart(
+  state: GameState,
+  race: Race,
+  nutrition: Nutrition,
+  intensities: readonly Intensity[],
+): number {
+  const ctx = prepContext(state, race, nutrition)
+  return runRest(ctx, { elapsedS: 0, fatigue: ctx.runner.fatigue, splits: [] }, intensities).fatigue
 }
 
 /** At an aid station: the plan for the segments left (index 0 = the next one) for a style. */

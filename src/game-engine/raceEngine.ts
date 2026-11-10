@@ -7,7 +7,8 @@ import { RACE_FIELD } from '../domain/races/raceField'
 import { EQUIPMENT_ITEMS, type EquipmentItem } from '../domain/equipment/items'
 import { RACE_SIMULATION as SIM } from '../domain/races/simulationConfig'
 import {
-  fatiguePaceWeight,
+  distanceBand,
+  intensityEffect,
   RACE_STRATEGY as C,
   racePaces,
   stopSeconds,
@@ -368,7 +369,7 @@ function buildRaceField(race: Race, front: TypicalPlan): RaceField {
     fatigueScale: getFatigueScale(race, segments),
     timeScale,
     stopS,
-    fatigueWeight: fatiguePaceWeight(effort),
+    fatigueWeight: distanceBand(race.distanceKm).fatigueWeight,
     rivalBaseS,
     rivalArrivalsS,
     rivalFinishS: finish,
@@ -425,13 +426,18 @@ export interface StepContext {
   nutrition: Nutrition
 }
 
+/** How much a technical descent takes from Hard's gain: descent share × technicality / 5 × (1 − Technical / 100). */
+function descentTechnical(segment: RaceSegment, technical: number): number {
+  return segment.terrain.descent * (segment.technicality / 5) * Math.max(0, 1 - technical / 100)
+}
+
 /** In-race fatigue gained over a segment. */
 function segmentFatigue(ctx: StepContext, segment: RaceSegment, intensity: Intensity): number {
   const recovery = prepareRunner(ctx.runner).attributes.recovery
   return (
     C.fatiguePerEffortKm *
     segment.effortKm *
-    C.intensity[intensity].fatigue *
+    intensityEffect(ctx.race.distanceKm, intensity, ctx.runner.fatigue).fatigue *
     recoveryCurve(recovery) *
     ctx.field.fatigueScale *
     (ctx.nutrition.bar ? 1 - C.barFatigueSaving : 1)
@@ -440,24 +446,26 @@ function segmentFatigue(ctx: StepContext, segment: RaceSegment, intensity: Inten
 
 /**
  * Runs segment `progress.splits.length` at `intensity`. The pace uses the runner's Fatigue plus the
- * in-race fatigue above the plan (Target pace, Normal stops), taken halfway through the segment:
- * pushing makes the segment itself and the later ones slower, holding back makes them faster. It
- * weighs more in short races (`fatigueWeight`), so Hard all the way has a cost there too.
+ * in-race fatigue above the plan (Target pace, Normal stops) gained before the segment: pushing
+ * makes the later segments slower, holding back makes them faster, never the segment itself. How
+ * much it weighs depends on the race's distance band (`fatigueWeight`, `belowPlanWeight`).
  */
 export function runSegment(ctx: StepContext, progress: RaceProgress, intensity: Intensity): RaceProgress {
   const k = progress.splits.length
   const segment = ctx.field.segments[k]!
   const prepared = prepareRunner(ctx.runner)
   const planned = plannedGains(ctx.field.segments, prepared.attributes.recovery, ctx.field.fatigueScale).atStart[k]!
-  const plannedHere = C.fatiguePerEffortKm * segment.effortKm * recoveryCurve(prepared.attributes.recovery) * ctx.field.fatigueScale
   const gainHere = segmentFatigue(ctx, segment, intensity)
   const gained = progress.fatigue - ctx.runner.fatigue
-  const deviation = gained + gainHere / 2 - (planned + plannedHere / 2)
-  const paceFatigue = ctx.runner.fatigue + C.inRaceFatiguePaceWeight * ctx.field.fatigueWeight * deviation
+  // The fatigue gained before this segment only (owner rule, 10 November 2026): a segment never
+  // pays for its own effort, so the cost of pushing comes in the segments after.
+  const deviation = gained - planned
+  const weight = C.inRaceFatiguePaceWeight * ctx.field.fatigueWeight * (deviation < 0 ? distanceBand(ctx.race.distanceKm).belowPlanWeight : 1)
+  const paceFatigue = Math.max(0, ctx.runner.fatigue + weight * deviation)
   const seconds =
     segmentBaseSeconds(prepared, segment, paceFatigue, ctx.dayForm) *
     ctx.field.timeScale *
-    C.intensity[intensity].pace *
+    intensityEffect(ctx.race.distanceKm, intensity, ctx.runner.fatigue, descentTechnical(segment, prepared.attributes.technical)).pace *
     (ctx.nutrition.gel ? 1 - C.gelTimeSaving : 1)
   const elapsedS = progress.elapsedS + seconds
   const fatigue = progress.fatigue + gainHere
@@ -555,7 +563,7 @@ function typicalModelSeconds(race: Race, segments: RaceSegment[], level: number,
     fatigueScale: getFatigueScale(race, segments),
     timeScale: 1,
     stopS: { quick: 0, normal: 0, slow: 0 },
-    fatigueWeight: fatiguePaceWeight(courseEffortKm(generateCourse(race))),
+    fatigueWeight: distanceBand(race.distanceKm).fatigueWeight,
     rivalBaseS: [],
     rivalStopsS: [],
     cumulativeShares: [],

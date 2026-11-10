@@ -16,6 +16,7 @@ import { isRaceDayToday } from '../../game-engine/raceSchedule'
 import {
   getEntry,
   estimateFirstSegment,
+  fatigueAtFinishBeforeStart,
   getRaceReport,
   planRaceAhead,
   planRaceBeforeStart,
@@ -39,6 +40,7 @@ import { aidAdvice, roughDelta, segmentDemand, segmentKind } from './aidStation'
 import { coachPortrait } from '../coach/coach'
 import { RACE_STYLES, type RaceStyle } from '../../game-engine/racePlan'
 import { loadRacePlan, saveRacePlan } from './racePlanStore'
+import { prepAdvice } from './prepAdvice'
 import { RaceClipPlayer } from './RaceClipPlayer'
 import { raceClip } from './raceClips'
 import { durationText, ordinal, raceTimeText } from './raceText'
@@ -214,6 +216,10 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
   const plan = planRaceBeforeStart(state, race, nutrition, style, fixed)
   const intensity = plan[0] ?? 'target'
   const estimate = estimateFirstSegment(state, race, nutrition, intensity)
+  // The coach warns before the start when the plan and the Fatigue call for it (owner request, 10 November 2026).
+  const fatigueAtFinish = fatigueAtFinishBeforeStart(state, race, nutrition, plan)
+  const advice = prepAdvice({ distanceKm: race.distanceKm, fatigue: state.athlete.fatigue, plan, fatigueAtFinish })
+  const portrait = coachPortrait(state.athlete.sex, state.athlete.appearance.skin)
 
   function setStyle(next: RaceStyle) {
     setStyleState(next)
@@ -286,6 +292,19 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
                 </span>
               </section>
 
+              {advice && (
+                <aside className={styles.coachTip} aria-label={t('raceRun.coachTip')}>
+                  {portrait ? <img src={portrait} alt="" /> : <span aria-hidden="true">💡</span>}
+                  <p>
+                    <strong>{t('raceRun.coachTip')}</strong>
+                    {t(`raceRun.prepAdvice.${advice}` as MessageKey, {
+                      n: Math.min(100, Math.round(fatigueAtFinish)),
+                      fatigue: Math.round(state.athlete.fatigue),
+                    })}
+                  </p>
+                </aside>
+              )}
+
               <section className={styles.tile} aria-label={t('raceRun.segmentIntensity', { segment: 1 })} data-coach="intensity">
                 <span className={styles.tileLabel}>{t('raceRun.segmentIntensity', { segment: 1 })}</span>
                 <div className={styles.chipsTight}>
@@ -296,7 +315,7 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
                     onChange={(value) => setSegment(0, value)}
                   />
                 </div>
-                <span className={`${styles.tileNote} ${styles.tileHint}`}>{intensityHint(intensity, t)}</span>
+                <span className={`${styles.tileNote} ${styles.tileHint}`}>{intensityHint(intensity, t, race.distanceKm)}</span>
                 <span className={styles.estimate}>
                   <span>{t('raceRun.estimatedSegment', { time: durationText(Math.round(estimate.segmentS / 10) * 10) })}</span>
                   <span>{t('raceRun.estimatedFatigue', { n: Math.max(0, Math.round(estimate.fatigueGain)) })}</span>

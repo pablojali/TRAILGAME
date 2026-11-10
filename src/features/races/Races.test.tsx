@@ -235,8 +235,8 @@ describe('Race day and results', () => {
     await user.click(screen.getByRole('tab', { name: 'Result' }))
     expect(screen.getByText('Coins awarded')).toBeInTheDocument()
     delete (Element.prototype as Partial<Element>).scrollIntoView
-    expect(save).toMatchObject({ coins: 25 + result.coinsAwarded, athlete: { xp: 100 + result.xpAwarded, fatigue: 9.21 } })
-    // The Balanced strategy's plan (Easy, then Target) since 10 November 2026; Target throughout gave 10.95.
+    expect(save).toMatchObject({ coins: 25 + result.coinsAwarded, athlete: { xp: 100 + result.xpAwarded, fatigue: 17.53 } })
+    // The Balanced strategy's plan on a short race: Hard throughout since the distance bands (10 November 2026).
     expect(save.activeRace).toBeNull()
     expect(save.week).toMatchObject({ number: 2, currentDayIndex: 0 })
     first.unmount()
@@ -269,6 +269,17 @@ describe('Race day and results', () => {
     expect(screen.getByRole('button', { name: 'Enter race' })).toBeInTheDocument()
   })
 
+  it('has the coach warn before the start when the plan would injure the runner (owner request, 10 November 2026)', async () => {
+    const tired = withEntry(withAthlete(newGame(), { fatigue: 90 }), 'RACE-002', 0)
+    seedCareer(onSunday(tired.state))
+    const first = await renderApp('/races/run/entry-1')
+    expect(screen.getByRole('complementary', { name: "Coach's tip" })).toHaveTextContent(/over 95 means an injury/)
+    first.unmount()
+    seedCareer(onSunday(withEntry(withAthlete(newGame(), { fatigue: 10 }), 'RACE-002', 0).state))
+    await renderApp('/races/run/entry-1')
+    expect(screen.queryByRole('complementary', { name: "Coach's tip" })).not.toBeInTheDocument()
+  })
+
   it('runs a race step by step: preparation, aid stations with decisions, resume after a reload, splits', async () => {
     const user = userEvent.setup()
     // Mountain Ascent (RACE-007): 4 segments, 3 aid stations. One gel in stock, no bar.
@@ -295,7 +306,7 @@ describe('Race day and results', () => {
     expect(screen.getByRole('button', { name: /^Take energy gel/ })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: /^No cereal bar/ })).toHaveAttribute('aria-disabled', 'true')
     await user.click(screen.getByRole('button', { name: 'Hard' }))
-    expect(screen.getByText(/^2% faster, 60% more fatigue/)).toBeInTheDocument()
+    expect(screen.getByText(/^9% faster, 60% more fatigue/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Start race' }))
 
     // Aid station 1: report, then the stop and intensity for segment 2.

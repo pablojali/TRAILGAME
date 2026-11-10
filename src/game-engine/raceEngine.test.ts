@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Attributes } from '../domain/athlete/athlete'
 import { getRace, RACES } from '../domain/races/races'
-import { RACE_STRATEGY, racePaces, type Intensity } from '../domain/races/strategyConfig'
+import { intensityEffect, RACE_STRATEGY, racePaces, type Intensity } from '../domain/races/strategyConfig'
 import { parseGameState } from '../repositories/gameRepository'
 import { newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
 import type { GameState } from './gameState'
@@ -99,26 +99,60 @@ describe('calibration: Target pace with Normal stops is the race before strategi
 })
 
 describe('intensity', () => {
-  it('is more tiring from Recovery to Hard; on a short race Hard all the way does not pay, a Hard finish does', () => {
-    const ctx = context('RACE-001')
+  it('is more tiring from Recovery to Hard; under 30 km Hard wins about a minute every 11 (owner request, 10 November 2026)', () => {
+    const ctx = context('RACE-002')
     const runs = (['recovery', 'easy', 'target', 'hard'] as Intensity[]).map((i) => runPlan(ctx, i, 'normal'))
     const fatigue = runs.map((r) => r.fatigue)
     expect([...fatigue].sort((a, b) => a - b)).toEqual(fatigue)
-    // Recovery, Easy and Target: faster each step.
-    expect(runs[0]!.elapsedS).toBeGreaterThan(runs[1]!.elapsedS)
-    expect(runs[1]!.elapsedS).toBeGreaterThan(runs[2]!.elapsedS)
-    // Owner decision (2 November 2026): in-race fatigue weighs more in short races.
-    const target = runs[2]!.elapsedS
-    expect(Math.abs(runs[3]!.elapsedS - target) / target).toBeLessThan(0.02)
-    expect(runPlan(ctx, ['target', 'hard'], 'normal').elapsedS).toBeLessThan(Math.min(target, runs[3]!.elapsedS))
+    // Faster each step, Hard included.
+    const times = runs.map((r) => r.elapsedS)
+    expect([...times].sort((a, b) => b - a)).toEqual(times)
+    const start = { elapsedS: 0, fatigue: ctx.runner.fatigue, splits: [] }
+    const first = (i: Intensity) => runSegment(ctx, start, i).elapsedS
+    expect(first('target') - first('hard')).toBeGreaterThanOrEqual(first('target') / 12)
   })
 
-  it('does not make Hard always best: on the longest races going out hard costs time', () => {
-    const ctx = context('RACE-012')
-    const target = runPlan(ctx, 'target', 'normal').elapsedS
-    expect(runPlan(ctx, 'hard', 'normal').elapsedS).toBeGreaterThan(target)
-    // Holding back pays there: Easy all the way beats Target.
-    expect(runPlan(ctx, 'easy', 'normal').elapsedS).toBeLessThan(target)
+  it('takes away part of Hard’s gain on technical descents', () => {
+    const ctx = context('RACE-008')
+    const start = { elapsedS: 0, fatigue: 20, splits: [] }
+    const gain = (k: number) => {
+      let p = start as ReturnType<typeof runSegment> | typeof start
+      for (let i = 0; i < k; i++) p = makeStop(ctx, runSegment(ctx, p, 'target'), 'normal')
+      const t = runSegment(ctx, p, 'target').elapsedS - p.elapsedS
+      return 1 - (runSegment(ctx, p, 'hard').elapsedS - p.elapsedS) / t
+    }
+    const segments = ctx.field.segments
+    const technical = segments.findIndex((s) => s.terrain.descent > 0.4 && s.technicality >= 3)
+    const smooth = segments.findIndex((s) => s.terrain.descent < 0.1)
+    expect(gain(technical)).toBeLessThan(gain(smooth) * 0.7)
+  })
+
+  it('makes Hard all the way cost time from 30 km, unless the runner starts fresh', () => {
+    for (const id of ['RACE-009', 'RACE-012']) {
+      const tired = { ...context(id), runner: { ...context(id).runner, fatigue: 35 } }
+      const target = runPlan(tired, 'target', 'normal').elapsedS
+      expect(runPlan(tired, 'hard', 'normal').elapsedS).toBeGreaterThan(target * 1.02)
+      // Saving energy helps less than wasting it hurts: Target beats Easy.
+      expect(runPlan(tired, 'easy', 'normal').elapsedS).toBeGreaterThan(target)
+      const fresh = { ...tired, runner: { ...tired.runner, fatigue: 20 } }
+      const hardFresh = runPlan(fresh, 'hard', 'normal').elapsedS / runPlan(fresh, 'target', 'normal').elapsedS
+      expect(hardFresh).toBeLessThan(runPlan(tired, 'hard', 'normal').elapsedS / target)
+      // Fresh means career Fatigue under 25 (owner rule, 10 November 2026).
+      expect(intensityEffect(getRace(id)!.distanceKm, 'hard', 24.9).fatigue).toBeLessThan(intensityEffect(getRace(id)!.distanceKm, 'hard', 25).fatigue)
+    }
+  })
+
+  it('never makes a segment pay for its own effort: Hard is faster in every segment, the cost comes later', () => {
+    for (const id of ['RACE-002', 'RACE-009', 'RACE-012']) {
+      const ctx = { ...context(id), runner: { ...context(id).runner, fatigue: 35 } }
+      let progress: ReturnType<typeof runSegment> | { elapsedS: number; fatigue: number; splits: [] } = { elapsedS: 0, fatigue: 35, splits: [] }
+      for (let k = 0; k < ctx.field.segments.length; k++) {
+        if (k > 0) progress = makeStop(ctx, progress, 'normal')
+        const time = (i: Intensity) => runSegment(ctx, progress, i).elapsedS - progress.elapsedS
+        expect(time('hard')).toBeLessThan(time('target'))
+        progress = runSegment(ctx, progress, 'hard')
+      }
+    }
   })
 
   it('makes later segments slower after pushing early (the in-race fatigue counts)', () => {

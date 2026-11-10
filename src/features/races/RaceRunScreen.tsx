@@ -16,6 +16,7 @@ import { isRaceDayToday } from '../../game-engine/raceSchedule'
 import {
   getEntry,
   estimateFirstSegment,
+  fatigueAtFinishBeforeStart,
   getRaceReport,
   planRaceAhead,
   planRaceBeforeStart,
@@ -39,6 +40,7 @@ import { aidAdvice, roughDelta, segmentDemand, segmentKind } from './aidStation'
 import { coachPortrait } from '../coach/coach'
 import { RACE_STYLES, type RaceStyle } from '../../game-engine/racePlan'
 import { loadRacePlan, saveRacePlan } from './racePlanStore'
+import { prepAdvice } from './prepAdvice'
 import { RaceClipPlayer } from './RaceClipPlayer'
 import { raceClip } from './raceClips'
 import { durationText, ordinal, raceTimeText } from './raceText'
@@ -214,6 +216,10 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
   const plan = planRaceBeforeStart(state, race, nutrition, style, fixed)
   const intensity = plan[0] ?? 'target'
   const estimate = estimateFirstSegment(state, race, nutrition, intensity)
+  // The coach warns before the start when the plan and the Fatigue call for it (owner request, 10 November 2026).
+  const fatigueAtFinish = fatigueAtFinishBeforeStart(state, race, nutrition, plan)
+  const advice = prepAdvice({ distanceKm: race.distanceKm, fatigue: state.athlete.fatigue, plan, fatigueAtFinish })
+  const portrait = coachPortrait(state.athlete.sex, state.athlete.appearance.skin)
 
   function setStyle(next: RaceStyle) {
     setStyleState(next)
@@ -285,6 +291,19 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
                   {t(`raceRun.styleHint.${style}` as MessageKey)} {t('raceRun.styleNote')}
                 </span>
               </section>
+
+              {advice && (
+                <aside className={styles.coachTip} aria-label={t('raceRun.coachTip')}>
+                  {portrait ? <img src={portrait} alt="" /> : <span aria-hidden="true">💡</span>}
+                  <p>
+                    <strong>{t('raceRun.coachTip')}</strong>
+                    {t(`raceRun.prepAdvice.${advice}` as MessageKey, {
+                      n: Math.min(100, Math.round(fatigueAtFinish)),
+                      fatigue: Math.round(state.athlete.fatigue),
+                    })}
+                  </p>
+                </aside>
+              )}
 
               <section className={styles.tile} aria-label={t('raceRun.segmentIntensity', { segment: 1 })} data-coach="intensity">
                 <span className={styles.tileLabel}>{t('raceRun.segmentIntensity', { segment: 1 })}</span>

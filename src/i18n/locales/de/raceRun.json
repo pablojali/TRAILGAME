@@ -151,5 +151,8 @@
   "raceRun.styleNote": "Der Plan legt jede Abschnittsintensität fest. Ändern kannst du sie unter Strecke.",
   "raceRun.estimatedSegment": "Geschätzte Abschnittszeit {time}",
   "raceRun.estimatedFatigue": "Geschätzte Ermüdung +{n}",
-  "raceRun.planned": "Plan"
+  "raceRun.planned": "Plan",
+  "raceRun.prepAdvice.injuryRisk": "Mit diesem Plan kämst du mit Ermüdung ≈ {n} ins Ziel: über 95 verletzt du dich. Wähle eine sanftere Strategie oder Abschnitte.",
+  "raceRun.prepAdvice.tiredLong": "Du startest müde (Ermüdung {fatigue}). Im langen Rennen zahlst du hartes Tempo später: heb es dir für die letzten Abschnitte auf.",
+  "raceRun.prepAdvice.freshLong": "Du startest frisch (Ermüdung {fatigue}). Hartes Tempo kostet heute weniger: du kannst einige Abschnitte forcieren."
 }

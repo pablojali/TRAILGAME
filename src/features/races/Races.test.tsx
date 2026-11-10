@@ -269,6 +269,17 @@ describe('Race day and results', () => {
     expect(screen.getByRole('button', { name: 'Enter race' })).toBeInTheDocument()
   })
 
+  it('has the coach warn before the start when the plan would injure the runner (owner request, 10 November 2026)', async () => {
+    const tired = withEntry(withAthlete(newGame(), { fatigue: 90 }), 'RACE-002', 0)
+    seedCareer(onSunday(tired.state))
+    const first = await renderApp('/races/run/entry-1')
+    expect(screen.getByRole('complementary', { name: "Coach's tip" })).toHaveTextContent(/over 95 means an injury/)
+    first.unmount()
+    seedCareer(onSunday(withEntry(withAthlete(newGame(), { fatigue: 10 }), 'RACE-002', 0).state))
+    await renderApp('/races/run/entry-1')
+    expect(screen.queryByRole('complementary', { name: "Coach's tip" })).not.toBeInTheDocument()
+  })
+
   it('runs a race step by step: preparation, aid stations with decisions, resume after a reload, splits', async () => {
     const user = userEvent.setup()
     // Mountain Ascent (RACE-007): 4 segments, 3 aid stations. One gel in stock, no bar.

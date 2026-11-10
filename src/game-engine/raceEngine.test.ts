@@ -137,8 +137,8 @@ describe('intensity', () => {
       const fresh = { ...tired, runner: { ...tired.runner, fatigue: 20 } }
       const hardFresh = runPlan(fresh, 'hard', 'normal').elapsedS / runPlan(fresh, 'target', 'normal').elapsedS
       expect(hardFresh).toBeLessThan(runPlan(tired, 'hard', 'normal').elapsedS / target)
-      // Fresh means career Fatigue under 30 (owner rule, 10 November 2026).
-      expect(intensityEffect(getRace(id)!.distanceKm, 'hard', 29.9).fatigue).toBeLessThan(intensityEffect(getRace(id)!.distanceKm, 'hard', 30).fatigue)
+      // Fresh means career Fatigue under 25 (owner rule, 10 November 2026).
+      expect(intensityEffect(getRace(id)!.distanceKm, 'hard', 24.9).fatigue).toBeLessThan(intensityEffect(getRace(id)!.distanceKm, 'hard', 25).fatigue)
     }
   })
 

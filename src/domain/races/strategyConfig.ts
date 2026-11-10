@@ -29,7 +29,7 @@ export const RACE_STRATEGY = {
    * 1 = like career Fatigue; below the plan it speeds them up by `belowPlanWeight` of that, so
    * saving energy in an ultra helps less than wasting it hurts). Short races: Hard wins about a minute every 11 and the fatigue costs
    * little; ultras: Hard is a little faster now and costs a lot later, unless the runner starts the
-   * race fresh (career Fatigue under `fresh.belowFatigue`, owner rule: under 30; Hard's fatigue multiplier is then
+   * race fresh (career Fatigue under `fresh.belowFatigue`, owner rule: under 25; Hard's fatigue multiplier is then
    * `fresh.hardFatigue`). Bands by the race's distance: up to `maxKm` (the last band has none).
    */
   distanceBands: [
@@ -55,7 +55,7 @@ export const RACE_STRATEGY = {
       },
       fatigueWeight: 1.5,
       belowPlanWeight: 0.3,
-      fresh: { belowFatigue: 30, hardFatigue: 1.4 },
+      fresh: { belowFatigue: 25, hardFatigue: 1.4 },
     },
     {
       maxKm: null,
@@ -67,7 +67,7 @@ export const RACE_STRATEGY = {
       },
       fatigueWeight: 1.2,
       belowPlanWeight: 0.2,
-      fresh: { belowFatigue: 30, hardFatigue: 1.3 },
+      fresh: { belowFatigue: 25, hardFatigue: 1.3 },
     },
   ],
   /**

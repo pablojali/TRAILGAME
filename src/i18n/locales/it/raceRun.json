@@ -151,5 +151,8 @@
   "raceRun.styleNote": "Il piano fissa l'intensità di ogni tratto. Puoi cambiarla in Percorso.",
   "raceRun.estimatedSegment": "Tempo stimato del tratto {time}",
   "raceRun.estimatedFatigue": "Fatica stimata +{n}",
-  "raceRun.planned": "Piano"
+  "raceRun.planned": "Piano",
+  "raceRun.prepAdvice.injuryRisk": "Con questo piano finiresti con fatica ≈ {n}: oltre 95 ti infortuni. Scegli una strategia o tratti più leggeri.",
+  "raceRun.prepAdvice.tiredLong": "Parti stanco (fatica {fatigue}). In una gara lunga, spingere si paga dopo: tienilo per gli ultimi tratti.",
+  "raceRun.prepAdvice.freshLong": "Parti fresco (fatica {fatigue}). Oggi spingere costa meno: puoi accelerare in alcuni tratti."
 }

@@ -151,5 +151,8 @@
   "raceRun.styleNote": "Le plan fixe l'intensité de chaque tronçon. Modifie-la dans Parcours.",
   "raceRun.estimatedSegment": "Temps estimé du tronçon {time}",
   "raceRun.estimatedFatigue": "Fatigue estimée +{n}",
-  "raceRun.planned": "Plan"
+  "raceRun.planned": "Plan",
+  "raceRun.prepAdvice.injuryRisk": "Avec ce plan tu finirais avec une fatigue ≈ {n} : au-delà de 95, c'est la blessure. Choisis une stratégie ou des tronçons plus doux.",
+  "raceRun.prepAdvice.tiredLong": "Tu pars fatigué (fatigue {fatigue}). Sur une longue course, forcer se paie plus tard : garde-le pour les derniers tronçons.",
+  "raceRun.prepAdvice.freshLong": "Tu pars frais (fatigue {fatigue}). Forcer coûte moins aujourd'hui : tu peux accélérer sur certains tronçons."
 }

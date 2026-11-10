@@ -7,8 +7,8 @@ bands by distance, set in `RACE_STRATEGY.distanceBands` (`src/domain/races/strat
 | Band | Recovery | Easy | Target | Hard | Fatigue above plan slows (×) | Below plan speeds up (share) | Fresh start |
 |---|---|---|---|---|---|---|---|
 | Under 30 km | 1.08 / 0.45 | 1.04 / 0.70 | 1 / 1 | 0.91 / 1.6 | 0.6 | all | — |
-| 30–90 km | 1.06 / 0.45 | 1.03 / 0.70 | 1 / 1 | 0.95 / 2.0 | 1.5 | 0.3 | Fatigue under 30: Hard fatigue 1.4 |
-| Over 90 km | 1.05 / 0.45 | 1.025 / 0.70 | 1 / 1 | 0.95 / 1.9 | 1.2 | 0.2 | Fatigue under 30: Hard fatigue 1.3 |
+| 30–90 km | 1.06 / 0.45 | 1.03 / 0.70 | 1 / 1 | 0.95 / 2.0 | 1.5 | 0.3 | Fatigue under 25: Hard fatigue 1.4 |
+| Over 90 km | 1.05 / 0.45 | 1.025 / 0.70 | 1 / 1 | 0.95 / 1.9 | 1.2 | 0.2 | Fatigue under 25: Hard fatigue 1.3 |
 
 Each cell is pace multiplier / in-race fatigue multiplier. *Fresh start*: the runner's career Fatigue
 when the race starts. Technical descents also take away part of Hard's gain in every band: share
@@ -72,3 +72,8 @@ race is the hardest one the level allows.
 
 Ultra-level players start fresh far more often because their Recovery makes every Rest day recover
 more Fatigue. Beginners reach level 6 to 11 in 30 weeks and only run races under 30 km.
+
+Owner decision after this simulation: fresh means Fatigue under **25** (the median of ultra-level
+players is 19). Before the start, the coach warns when the plan would finish the race over Fatigue
+95 (an injury), when a race of 30 km or more is started tired with Hard in the plan, and says when
+the runner starts fresh and Hard costs less (`src/features/races/prepAdvice.ts`).

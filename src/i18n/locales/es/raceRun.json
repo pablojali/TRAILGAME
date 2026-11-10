@@ -151,5 +151,8 @@
   "raceRun.styleNote": "El plan fija la intensidad de cada tramo. Puedes cambiarla en Recorrido.",
   "raceRun.estimatedSegment": "Tiempo estimado del tramo {time}",
   "raceRun.estimatedFatigue": "Fatiga estimada +{n}",
-  "raceRun.planned": "Plan"
+  "raceRun.planned": "Plan",
+  "raceRun.prepAdvice.injuryRisk": "Con este plan terminarías con fatiga ≈ {n}: por encima de 95 te lesionas. Elige una estrategia o unos tramos más suaves.",
+  "raceRun.prepAdvice.tiredLong": "Llegas cansado (fatiga {fatigue}). En una carrera larga, ir Fuerte se paga después: guárdalo para los últimos tramos.",
+  "raceRun.prepAdvice.freshLong": "Llegas fresco (fatiga {fatigue}). Hoy ir Fuerte cuesta menos: puedes apretar en algunos tramos."
 }

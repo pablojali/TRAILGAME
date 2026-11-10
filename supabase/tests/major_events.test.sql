@@ -52,13 +52,27 @@ insert into public.major_events (id, name, race_id, scheduled_start_at)
 values ('00000000-0000-0000-0000-00000000e002', 'Pronto', 'RACE-001', now() + interval '10 minutes');
 select pg_temp.expect_error($$select public.major_publish('00000000-0000-0000-0000-00000000e002', null, now())$$, 'too soon to publish');
 
+-- Media: the banner and the clips may change after publishing, until the race is run.
+insert into public.major_events (id, name, race_id, scheduled_start_at)
+values ('00000000-0000-0000-0000-00000000e004', 'Con medios', 'RACE-001', now() + interval '2 days');
+select public.major_publish('00000000-0000-0000-0000-00000000e004', null, now());
+update public.major_events set banner_path = 'events/00000000-0000-0000-0000-00000000e004/banner-1.jpg',
+  clips = '{"1": "events/00000000-0000-0000-0000-00000000e004/segment-1-1.mp4"}' where id = '00000000-0000-0000-0000-00000000e004';
+select pg_temp.expect((select banner_path is not null and clips ? '1' from public.major_events where id = '00000000-0000-0000-0000-00000000e004'), 'a published event takes a banner and clips');
+select pg_temp.expect_error($$update public.major_events set banner_path = 'https://example.com/x.jpg' where id = '00000000-0000-0000-0000-00000000e004'$$, 'a banner is a path of the media bucket');
+update public.major_events set status = 'REGISTRATION_OPEN' where id = '00000000-0000-0000-0000-00000000e004';
+update public.major_events set status = 'LOCKED' where id = '00000000-0000-0000-0000-00000000e004';
+update public.major_events set status = 'STARTING' where id = '00000000-0000-0000-0000-00000000e004';
+update public.major_events set status = 'RUNNING' where id = '00000000-0000-0000-0000-00000000e004';
+select pg_temp.expect_error($$update public.major_events set banner_path = null where id = '00000000-0000-0000-0000-00000000e004'$$, 'media are frozen once the race runs');
+
 -- Players: they read published events and their categories, never drafts; they write nothing.
 insert into public.major_events (id, name, race_id, scheduled_start_at)
 values ('00000000-0000-0000-0000-00000000e003', 'Publicado', 'RACE-001', now() + interval '2 days');
 select public.major_publish('00000000-0000-0000-0000-00000000e003', null, now());
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000b2');
-select pg_temp.expect((select count(*) = 2 from public.major_events), 'a player reads the published and cancelled events, not the draft');
-select pg_temp.expect((select count(*) = 5 from public.major_categories), 'a player reads their categories');
+select pg_temp.expect((select count(*) = 3 from public.major_events), 'a player reads the published and cancelled events, not the draft');
+select pg_temp.expect((select count(*) = 6 from public.major_categories), 'a player reads their categories');
 select pg_temp.expect_error($$insert into public.major_events (name, race_id, scheduled_start_at) values ('x', 'RACE-001', now())$$, 'a player cannot create events');
 select pg_temp.expect_error($$update public.major_events set status = 'CANCELLED', cancel_reason = 'x'$$, 'a player cannot change events');
 select pg_temp.expect_error($$select * from public.major_config$$, 'a player cannot read the configuration');

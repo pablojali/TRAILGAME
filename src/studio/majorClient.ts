@@ -61,3 +61,16 @@ export function bothTimes(iso: string): string {
   return `${utc} UTC · ${local} hora local`
 }
 
+
+const MEDIA_BUCKET = 'major-media'
+
+/** The public address of a Major's banner or clip. */
+export function mediaUrl(path: string): string {
+  return majorClient().storage.from(MEDIA_BUCKET).getPublicUrl(path).data.publicUrl
+}
+
+/** Uploads a file with a one-time token from `major-ops` (the admin check happened there). */
+export async function uploadMedia(path: string, token: string, file: Blob, contentType: string): Promise<string | null> {
+  const { error } = await majorClient().storage.from(MEDIA_BUCKET).uploadToSignedUrl(path, token, file, { contentType })
+  return error ? error.message : null
+}

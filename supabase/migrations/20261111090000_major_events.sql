@@ -95,6 +95,12 @@ create table public.major_events (
   config_snapshot jsonb,
   published_at timestamptz,
   cancel_reason text check (cancel_reason is null or length(btrim(cancel_reason)) between 1 and 300),
+  -- Media in the Storage bucket `major-media` (owner request, 10 November 2026): the banner, and a
+  -- clip per segment ({"1": "events/<id>/segment-1-<ms>.mp4", …}; its poster is the same path in
+  -- .jpg). A segment without one plays the course race's own clip. They may change until the race
+  -- is run (cosmetic, not frozen with the published settings).
+  banner_path text check (banner_path is null or banner_path ~ '^events/[0-9a-f-]{36}/banner-[0-9]+\.jpg$'),
+  clips jsonb not null default '{}'::jsonb check (jsonb_typeof(clips) = 'object'),
   created_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -152,6 +158,9 @@ begin
     old.decision_window_s, old.running_s, old.participant_limit, old.bands_snapshot, old.config_snapshot, old.published_at
   ) then
     raise exception 'major event % is published: only its status can change', old.id;
+  end if;
+  if old.status in ('RUNNING') and (new.banner_path, new.clips) is distinct from (old.banner_path, old.clips) then
+    raise exception 'major event % is running: its media cannot change', old.id;
   end if;
   return new;
 end;
@@ -249,7 +258,21 @@ begin
 end;
 $$;
 
--- 8. Access. RLS everywhere; only the service role writes. Signed-in players read published events
+-- 8. The media bucket: public to read (the game shows banners and clips), written only by the
+-- service role through signed upload URLs that `major-ops` hands to administrators. Images up to
+-- 5 MB, videos up to 24 MB (as the game's own clips). Skipped where Storage does not exist (the
+-- local test database).
+do $$
+begin
+  if to_regclass('storage.buckets') is not null then
+    insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+    values ('major-media', 'major-media', true, 25165824, array['image/jpeg', 'video/mp4'])
+    on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+  end if;
+end $$;
+
+-- 9. Access. RLS everywhere; only the service role writes. Signed-in players read published events
 -- and their categories; nobody else reads the configuration, the administrators or the log.
 alter table public.major_admins enable row level security;
 alter table public.major_config enable row level security;

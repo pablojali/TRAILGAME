@@ -117,8 +117,14 @@ request, no code publish.
     also shown in local time;
   - publish: the event copies the configuration and the level bands, and registration opens per the
     configuration;
-  - cancel, with a reason.
-  - A published event can no longer be edited. The database refuses every invalid transition.
+  - cancel, with a reason;
+  - **banner and videos** ("Banner y vídeos"): a banner image (saved as a JPEG up to 1672 px
+    wide) and a clip per segment (MP4 up to 24 MB, uploaded as it is, with its poster picture).
+    A segment without its own clip plays the course race's clip.
+    - The files go to the Supabase Storage bucket `major-media` (public to read) through one-time
+      uploads signed by `major-ops`; nothing goes through GitHub.
+    - They can change until the race is run.
+  - A published event can no longer be edited (its media aside). The database refuses every invalid transition.
 - **Configuration:** default start time (UTC), when registration and READY open, the aid-station
   decision window, the running phase per segment, participants per category, and the level bands.
   The bands are contiguous from level 1, with the last one open-ended. The configuration applies to

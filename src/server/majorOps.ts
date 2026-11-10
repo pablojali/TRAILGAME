@@ -6,6 +6,8 @@ import {
   type MajorEventInput,
   type MajorStatus,
 } from '../domain/major/major'
+import { getRace } from '../domain/races/races'
+import { getRaceSegments } from '../game-engine/raceEngine'
 
 /**
  * The Edge Function `major-ops` (Sunday Major, phase 1: the event manager). Administrators create,
@@ -37,6 +39,10 @@ export interface MajorEvent {
   bands: MajorBand[] | null
   publishedAt: string | null
   cancelReason: string | null
+  /** In the Storage bucket `major-media`; null: none. */
+  bannerPath: string | null
+  /** Clip per segment number ("1", "2", …); missing: the course race's own clip. */
+  clips: Record<string, string>
   categories: MajorCategory[]
 }
 
@@ -62,6 +68,11 @@ export interface MajorStore {
   publish(id: string, userId: string, now: number): Promise<MajorEvent>
   cancel(id: string, userId: string, reason: string): Promise<MajorEvent>
   log(eventId: string | null, userId: string, kind: string, detail: Record<string, unknown>): Promise<void>
+  getEvent(id: string): Promise<MajorEvent>
+  /** A one-time signed upload to `path` in the media bucket: the token for the upload. */
+  signUpload(path: string): Promise<string>
+  setBanner(id: string, path: string | null): Promise<MajorEvent>
+  setClip(id: string, segment: number, path: string | null): Promise<MajorEvent>
 }
 
 export interface MajorOpsDeps {
@@ -79,11 +90,16 @@ export type MajorRequest =
   | { action: 'event-update'; id: string; event: MajorEventInput }
   | { action: 'event-publish'; id: string }
   | { action: 'event-cancel'; id: string; reason: string }
+  | { action: 'media-upload'; id: string; kind: 'banner' | 'clip'; segment: number | null }
+  | { action: 'media-set'; id: string; kind: 'banner' | 'clip'; segment: number | null; path: string | null }
 
 export interface MajorResponse {
   status: number
   body: Record<string, unknown>
 }
+
+/** Banners and clips may change until the race is run (cosmetic: owner request, 10 November 2026). */
+const MEDIA_EDITABLE: readonly MajorStatus[] = ['DRAFT', 'SCHEDULED', 'REGISTRATION_OPEN', 'LOCKED', 'STARTING']
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -143,6 +159,15 @@ export function parseMajorRequest(body: unknown): MajorRequest | null {
       return id ? { action: 'event-publish', id } : null
     case 'event-cancel':
       return id && typeof body.reason === 'string' ? { action: 'event-cancel', id, reason: body.reason } : null
+    case 'media-upload':
+    case 'media-set': {
+      const kind = body.kind === 'banner' || body.kind === 'clip' ? body.kind : null
+      const segment = kind === 'clip' && Number.isInteger(body.segment) ? (body.segment as number) : null
+      if (!id || !kind || (kind === 'clip' && segment === null)) return null
+      if (body.action === 'media-upload') return { action: 'media-upload', id, kind, segment }
+      if (body.path !== null && typeof body.path !== 'string') return null
+      return { action: 'media-set', id, kind, segment, path: body.path as string | null }
+    }
     default:
       return null
   }
@@ -187,6 +212,44 @@ export async function handleMajorOp(token: string | null, body: unknown, deps: M
       }
       case 'event-publish':
         return ok({ event: await deps.store.publish(request.id, userId, deps.now()) })
+      case 'media-upload':
+      case 'media-set': {
+        const event = await deps.store.getEvent(request.id)
+        if (!MEDIA_EDITABLE.includes(event.status)) return refuse(409, 'media-closed')
+        if (request.kind === 'clip') {
+          const race = getRace(event.raceId)
+          const segments = race ? getRaceSegments(race).length : 0
+          if (request.segment! < 1 || request.segment! > segments) return refuse(422, 'media-segment')
+        }
+        if (request.action === 'media-upload') {
+          const stamp = deps.now()
+          const base = `events/${event.id}/${request.kind === 'banner' ? 'banner' : `segment-${request.segment}`}-${stamp}`
+          if (request.kind === 'banner') {
+            const path = `${base}.jpg`
+            return ok({ uploads: [{ path, token: await deps.store.signUpload(path) }] })
+          }
+          // The clip and its poster picture (shown before it plays).
+          const video = `${base}.mp4`
+          const poster = `${base}.jpg`
+          return ok({
+            uploads: [
+              { path: video, token: await deps.store.signUpload(video) },
+              { path: poster, token: await deps.store.signUpload(poster) },
+            ],
+          })
+        }
+        const pattern = request.kind === 'banner' ? /^banner-\d+\.jpg$/ : new RegExp(`^segment-${request.segment}-\\d+\\.mp4$`)
+        const prefix = `events/${event.id}/`
+        if (request.path !== null && !(request.path.startsWith(prefix) && pattern.test(request.path.slice(prefix.length)))) {
+          return refuse(422, 'media-path')
+        }
+        const updated =
+          request.kind === 'banner'
+            ? await deps.store.setBanner(event.id, request.path)
+            : await deps.store.setClip(event.id, request.segment!, request.path)
+        await deps.store.log(event.id, userId, 'media', { kind: request.kind, segment: request.segment, path: request.path })
+        return ok({ event: updated })
+      }
       case 'event-cancel': {
         const reason = request.reason.trim()
         if (reason.length < 1 || reason.length > 300) return refuse(422, 'cancel-reason')

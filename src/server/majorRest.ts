@@ -22,8 +22,13 @@ interface EventRow {
   bands_snapshot: MajorBand[] | null
   published_at: string | null
   cancel_reason: string | null
+  banner_path: string | null
+  clips: Record<string, string> | null
   major_categories?: { idx: number; name: string; min_level: number; max_level: number | null }[]
 }
+
+/** The Storage bucket of the Majors' banners and clips (public to read). */
+export const MEDIA_BUCKET = 'major-media'
 
 const EVENT_SELECT = 'select=*,major_categories(idx,name,min_level,max_level)'
 
@@ -43,6 +48,8 @@ function toEvent(row: EventRow): MajorEvent {
     bands: row.bands_snapshot,
     publishedAt: row.published_at,
     cancelReason: row.cancel_reason,
+    bannerPath: row.banner_path,
+    clips: row.clips ?? {},
     categories: [...(row.major_categories ?? [])]
       .sort((a, b) => a.idx - b.idx)
       .map((c) => ({ idx: c.idx, name: c.name, minLevel: c.min_level, maxLevel: c.max_level })),
@@ -185,6 +192,35 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
         method: 'POST',
         body: JSON.stringify({ p_event: id, p_actor: userId, p_reason: reason }),
       })
+      return getEvent(id)
+    },
+
+    getEvent,
+
+    async signUpload(path) {
+      const response = await fetch(`${config.url}/storage/v1/object/upload/sign/${MEDIA_BUCKET}/${path}`, {
+        method: 'POST',
+        headers: { ...headers, 'x-upsert': 'false' },
+        body: '{}',
+      })
+      if (!response.ok) throw new Error(`Signing the upload failed (${response.status}): ${await response.text()}`)
+      const { url } = (await response.json()) as { url: string }
+      const token = new URL(url, config.url).searchParams.get('token')
+      if (!token) throw new Error('The signed upload has no token')
+      return token
+    },
+
+    async setBanner(id, path) {
+      await request(`major_events?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ banner_path: path }) }, 'return=minimal')
+      return getEvent(id)
+    },
+
+    async setClip(id, segment, path) {
+      const current = await getEvent(id)
+      const clips = { ...current.clips }
+      if (path) clips[String(segment)] = path
+      else delete clips[String(segment)]
+      await request(`major_events?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ clips }) }, 'return=minimal')
       return getEvent(id)
     },
 

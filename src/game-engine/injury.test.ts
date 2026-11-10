@@ -117,9 +117,10 @@ describe('injury rule', () => {
   it('the unchanged default plan (4 training, 3 rest days) adds 23 Fatigue a week and injures on Saturday of week 4', () => {
     let state = newGame()
     for (let i = 0; i < 21; i++) state = execute(state).state
-    expect(state.athlete.fatigue).toBe(69)
+    // A little under 69 and 84: the levels gained save a little training Fatigue (owner decision, 10 November 2026).
+    expect(state.athlete.fatigue).toBeCloseTo(69, 0)
     for (let i = 0; i < 5; i++) state = execute(state).state // Monday–Friday: 84
-    expect(state.athlete.fatigue).toBe(84)
+    expect(state.athlete.fatigue).toBeCloseTo(84, 0)
     expect(previewSession(state, 'long-run').injured).toBe(true)
   })
 })

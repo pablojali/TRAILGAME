@@ -77,3 +77,9 @@ Generated from the game's rules (`src/domain/athlete/levels.ts`, `shirts.ts`, `h
 | 48 | 58,750 | 2,450 | 94 | Races open: Beyond the Skyline (Elite) |  |
 | 49 | 61,200 | 2,500 | 96 |  |  |
 | 50 | 63,700 | — | 98 |  | Beyond the Skyline |
+
+## Experience: less training Fatigue (owner decision, 10 November 2026)
+
+A higher level tires less in training: every session's Fatigue is reduced by 3% at level 30, 5% at
+level 50 and 10% at level 100 (linear in between, 0% at level 1, 10% above 100). Rest and races are
+unchanged. Table: `LEVEL_FATIGUE_SAVING` in `src/domain/training/recovery.ts`.

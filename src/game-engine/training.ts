@@ -7,7 +7,7 @@ import {
   INJURY_REST_DAYS,
 } from '../domain/training/injury'
 import { WEEKLY_CONSISTENCY_GAIN } from '../domain/athlete/consistency'
-import { getRestFatigueDelta, RECOVERY_REST_FITNESS } from '../domain/training/recovery'
+import { getSessionFatigueDelta, RECOVERY_REST_FITNESS } from '../domain/training/recovery'
 import {
   ATTRIBUTE_GAIN_PER_SESSION,
   isSessionType,
@@ -111,8 +111,9 @@ export function isRecoveryRest(state: GameState): boolean {
 export function previewSession(state: GameState, session: SessionType): DayOutcome {
   const rules = TRAINING_SESSIONS[session]
   const { fitness, fatigue } = state.athlete
-  // Rest recovers more with Recovery gained above the profile's start (owner decision).
-  const fatigueDelta = session === 'rest' ? getRestFatigueDelta(state.athlete) : rules.fatigueDelta
+  // Rest recovers more with Recovery gained above the profile's start; training tires less with the
+  // level (owner decisions).
+  const fatigueDelta = getSessionFatigueDelta(state.athlete, session)
   const fatigueChange = statChange(fatigue, fatigueDelta)
   if (session !== 'rest' && fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD) {
     return {

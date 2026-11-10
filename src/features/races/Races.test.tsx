@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { GameState } from '../../game-engine/gameState'
 import { ordinal } from './raceText'
+import { getRace } from '../../domain/races/races'
+import { planRaceBeforeStart } from '../../game-engine/races'
 import { newGame, onSunday, withAthlete, withEntry } from '../../test/gameFixtures'
 import { readSave, renderApp, seedCareer, settled } from '../../test/renderApp'
 
@@ -233,7 +235,8 @@ describe('Race day and results', () => {
     await user.click(screen.getByRole('tab', { name: 'Result' }))
     expect(screen.getByText('Coins awarded')).toBeInTheDocument()
     delete (Element.prototype as Partial<Element>).scrollIntoView
-    expect(save).toMatchObject({ coins: 25 + result.coinsAwarded, athlete: { xp: 100 + result.xpAwarded, fatigue: 10.95 } })
+    expect(save).toMatchObject({ coins: 25 + result.coinsAwarded, athlete: { xp: 100 + result.xpAwarded, fatigue: 9.21 } })
+    // The Balanced strategy's plan (Easy, then Target) since 10 November 2026; Target throughout gave 10.95.
     expect(save.activeRace).toBeNull()
     expect(save.week).toMatchObject({ number: 2, currentDayIndex: 0 })
     first.unmount()
@@ -276,8 +279,18 @@ describe('Race day and results', () => {
     // Two tabs (owner request, 4 November 2026): the equipment worn is in the second.
     await user.click(screen.getByRole('tab', { name: 'Equipment' }))
     expect(screen.getByText('Nothing equipped.')).toBeInTheDocument()
+    // The course with each segment's effort and the plan's intensity (owner request, 10 November 2026).
+    await user.click(screen.getByRole('tab', { name: 'Course' }))
+    const course = within(screen.getByRole('region', { name: 'Course overview' }))
+    expect(course.getAllByRole('listitem')).toHaveLength(4)
+    expect(course.getByText('Total distance')).toBeInTheDocument()
+    const planned = () => [1, 2, 3, 4].map((n) => (course.getByRole('combobox', { name: `Segment ${n} intensity` }) as HTMLSelectElement).value)
+    expect(planned()).toEqual(planRaceBeforeStart(entered.state, getRace('RACE-007')!, { gel: true, bar: false }, 'balanced'))
+    await user.selectOptions(course.getByRole('combobox', { name: 'Segment 3 intensity' }), 'easy')
+    await user.selectOptions(course.getByRole('combobox', { name: 'Segment 4 intensity' }), 'easy')
     await user.click(screen.getByRole('tab', { name: 'Strategy' }))
-    expect(screen.getByText('Course · 4 segments, 3 aid stations')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Balanced' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText(/^Estimated segment time/)).toBeInTheDocument()
     // The gel is taken by default (in stock); there is no bar to take.
     expect(screen.getByRole('button', { name: /^Take energy gel/ })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: /^No cereal bar/ })).toHaveAttribute('aria-disabled', 'true')

@@ -1114,7 +1114,7 @@ var RACE_STRATEGY = {
    * 1 = like career Fatigue; below the plan it speeds them up by `belowPlanWeight` of that, so
    * saving energy in an ultra helps less than wasting it hurts). Short races: Hard wins about a minute every 11 and the fatigue costs
    * little; ultras: Hard is a little faster now and costs a lot later, unless the runner starts the
-   * race fresh (career Fatigue at most `fresh.maxFatigue`: Hard's fatigue multiplier is then
+   * race fresh (career Fatigue under `fresh.belowFatigue`, owner rule: under 30; Hard's fatigue multiplier is then
    * `fresh.hardFatigue`). Bands by the race's distance: up to `maxKm` (the last band has none).
    */
   distanceBands: [
@@ -1140,7 +1140,7 @@ var RACE_STRATEGY = {
       },
       fatigueWeight: 1.5,
       belowPlanWeight: 0.3,
-      fresh: { maxFatigue: 15, hardFatigue: 1.4 }
+      fresh: { belowFatigue: 30, hardFatigue: 1.4 }
     },
     {
       maxKm: null,
@@ -1152,7 +1152,7 @@ var RACE_STRATEGY = {
       },
       fatigueWeight: 1.2,
       belowPlanWeight: 0.2,
-      fresh: { maxFatigue: 10, hardFatigue: 1.3 }
+      fresh: { belowFatigue: 30, hardFatigue: 1.3 }
     }
   ],
   /**
@@ -1261,7 +1261,7 @@ function intensityEffect(distanceKm, intensity, startFatigue = Infinity, descent
   const loss = Math.min(1, Math.max(0, RACE_STRATEGY.hardTechnicalLoss * descentTechnical2));
   return {
     pace: 1 - (1 - pace) * (1 - loss),
-    fatigue: band.fresh && startFatigue <= band.fresh.maxFatigue ? band.fresh.hardFatigue : fatigue
+    fatigue: band.fresh && startFatigue < band.fresh.belowFatigue ? band.fresh.hardFatigue : fatigue
   };
 }
 function stopSeconds(effortKm2) {
@@ -1689,10 +1689,9 @@ function runSegment(ctx, progress, intensity) {
   const segment = ctx.field.segments[k];
   const prepared = prepareRunner(ctx.runner);
   const planned = plannedGains(ctx.field.segments, prepared.attributes.recovery, ctx.field.fatigueScale).atStart[k];
-  const plannedHere = RACE_STRATEGY.fatiguePerEffortKm * segment.effortKm * recoveryCurve(prepared.attributes.recovery) * ctx.field.fatigueScale;
   const gainHere = segmentFatigue(ctx, segment, intensity);
   const gained = progress.fatigue - ctx.runner.fatigue;
-  const deviation = gained + gainHere / 2 - (planned + plannedHere / 2);
+  const deviation = gained - planned;
   const weight = RACE_STRATEGY.inRaceFatiguePaceWeight * ctx.field.fatigueWeight * (deviation < 0 ? distanceBand(ctx.race.distanceKm).belowPlanWeight : 1);
   const paceFatigue = Math.max(0, ctx.runner.fatigue + weight * deviation);
   const seconds = segmentBaseSeconds(prepared, segment, paceFatigue, ctx.dayForm) * ctx.field.timeScale * intensityEffect(ctx.race.distanceKm, intensity, ctx.runner.fatigue, descentTechnical(segment, prepared.attributes.technical)).pace * (ctx.nutrition.gel ? 1 - RACE_STRATEGY.gelTimeSaving : 1);

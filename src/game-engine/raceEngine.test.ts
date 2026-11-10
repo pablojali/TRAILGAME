@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Attributes } from '../domain/athlete/athlete'
 import { getRace, RACES } from '../domain/races/races'
-import { RACE_STRATEGY, racePaces, type Intensity } from '../domain/races/strategyConfig'
+import { intensityEffect, RACE_STRATEGY, racePaces, type Intensity } from '../domain/races/strategyConfig'
 import { parseGameState } from '../repositories/gameRepository'
 import { newGame, onSunday, T0, withAthlete, withEntry } from '../test/gameFixtures'
 import type { GameState } from './gameState'
@@ -129,14 +129,29 @@ describe('intensity', () => {
 
   it('makes Hard all the way cost time from 30 km, unless the runner starts fresh', () => {
     for (const id of ['RACE-009', 'RACE-012']) {
-      const tired = { ...context(id), runner: { ...context(id).runner, fatigue: 25 } }
+      const tired = { ...context(id), runner: { ...context(id).runner, fatigue: 35 } }
       const target = runPlan(tired, 'target', 'normal').elapsedS
       expect(runPlan(tired, 'hard', 'normal').elapsedS).toBeGreaterThan(target * 1.02)
       // Saving energy helps less than wasting it hurts: Target beats Easy.
       expect(runPlan(tired, 'easy', 'normal').elapsedS).toBeGreaterThan(target)
-      const fresh = { ...tired, runner: { ...tired.runner, fatigue: 8 } }
+      const fresh = { ...tired, runner: { ...tired.runner, fatigue: 20 } }
       const hardFresh = runPlan(fresh, 'hard', 'normal').elapsedS / runPlan(fresh, 'target', 'normal').elapsedS
       expect(hardFresh).toBeLessThan(runPlan(tired, 'hard', 'normal').elapsedS / target)
+      // Fresh means career Fatigue under 30 (owner rule, 10 November 2026).
+      expect(intensityEffect(getRace(id)!.distanceKm, 'hard', 29.9).fatigue).toBeLessThan(intensityEffect(getRace(id)!.distanceKm, 'hard', 30).fatigue)
+    }
+  })
+
+  it('never makes a segment pay for its own effort: Hard is faster in every segment, the cost comes later', () => {
+    for (const id of ['RACE-002', 'RACE-009', 'RACE-012']) {
+      const ctx = { ...context(id), runner: { ...context(id).runner, fatigue: 35 } }
+      let progress: ReturnType<typeof runSegment> | { elapsedS: number; fatigue: number; splits: [] } = { elapsedS: 0, fatigue: 35, splits: [] }
+      for (let k = 0; k < ctx.field.segments.length; k++) {
+        if (k > 0) progress = makeStop(ctx, progress, 'normal')
+        const time = (i: Intensity) => runSegment(ctx, progress, i).elapsedS - progress.elapsedS
+        expect(time('hard')).toBeLessThan(time('target'))
+        progress = runSegment(ctx, progress, 'hard')
+      }
     }
   })
 

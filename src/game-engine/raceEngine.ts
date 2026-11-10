@@ -446,19 +446,20 @@ function segmentFatigue(ctx: StepContext, segment: RaceSegment, intensity: Inten
 
 /**
  * Runs segment `progress.splits.length` at `intensity`. The pace uses the runner's Fatigue plus the
- * in-race fatigue above the plan (Target pace, Normal stops), taken halfway through the segment:
- * pushing makes the segment itself and the later ones slower, holding back makes them faster. It
- * weighs more in short races (`fatigueWeight`), so Hard all the way has a cost there too.
+ * in-race fatigue above the plan (Target pace, Normal stops) gained before the segment: pushing
+ * makes the later segments slower, holding back makes them faster, never the segment itself. How
+ * much it weighs depends on the race's distance band (`fatigueWeight`, `belowPlanWeight`).
  */
 export function runSegment(ctx: StepContext, progress: RaceProgress, intensity: Intensity): RaceProgress {
   const k = progress.splits.length
   const segment = ctx.field.segments[k]!
   const prepared = prepareRunner(ctx.runner)
   const planned = plannedGains(ctx.field.segments, prepared.attributes.recovery, ctx.field.fatigueScale).atStart[k]!
-  const plannedHere = C.fatiguePerEffortKm * segment.effortKm * recoveryCurve(prepared.attributes.recovery) * ctx.field.fatigueScale
   const gainHere = segmentFatigue(ctx, segment, intensity)
   const gained = progress.fatigue - ctx.runner.fatigue
-  const deviation = gained + gainHere / 2 - (planned + plannedHere / 2)
+  // The fatigue gained before this segment only (owner rule, 10 November 2026): a segment never
+  // pays for its own effort, so the cost of pushing comes in the segments after.
+  const deviation = gained - planned
   const weight = C.inRaceFatiguePaceWeight * ctx.field.fatigueWeight * (deviation < 0 ? distanceBand(ctx.race.distanceKm).belowPlanWeight : 1)
   const paceFatigue = Math.max(0, ctx.runner.fatigue + weight * deviation)
   const seconds =

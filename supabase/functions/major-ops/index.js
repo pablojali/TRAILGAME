@@ -211,6 +211,14 @@ function validatePlan(value, segmentCount) {
   }
   return { style: plan.style, gel: plan.gel, bar: plan.bar, segments };
 }
+function defaultPlan(segmentCount) {
+  return {
+    style: null,
+    gel: false,
+    bar: false,
+    segments: Array.from({ length: segmentCount }, (_, i) => ({ intensity: "target", stop: i === segmentCount - 1 ? null : "normal" }))
+  };
+}
 
 // raw:src/data/levels.csv
 var levels_default = "# Levels (owner table, 3 November 2026). Edit freely: one row per level, in order.\n# xp: total XP needed to reach the level (level 1 is 0). attribute_points: points given on reaching it.\nlevel,xp,attribute_points\n1,0,0\n2,100,2\n3,250,2\n4,450,2\n5,700,2\n6,1000,2\n7,1350,2\n8,1750,2\n9,2200,2\n10,2700,2\n11,3250,2\n12,3850,2\n13,4500,2\n14,5200,2\n15,5950,2\n16,6750,2\n17,7600,2\n18,8500,2\n19,9450,2\n20,10450,2\n21,11500,2\n22,12600,2\n23,13750,2\n24,14950,2\n25,16200,2\n26,17500,2\n27,18850,2\n28,20250,2\n29,21700,2\n30,23200,2\n31,24750,2\n32,26350,2\n33,28000,2\n34,29700,2\n35,31450,2\n36,33250,2\n37,35100,2\n38,37000,2\n39,38950,2\n40,40950,2\n41,43000,2\n42,45100,2\n43,47250,2\n44,49450,2\n45,51700,2\n46,54000,2\n47,56350,2\n48,58750,2\n49,61200,2\n50,63700,2\n";
@@ -255,39 +263,6 @@ function getAttributePointsBetween(from, to) {
 function getEarnedAttributePoints(xp) {
   return getAttributePointsBetween(1, getLevel(xp));
 }
-
-// src/domain/athlete/athlete.ts
-var ATTRIBUTE_IDS = [
-  "endurance",
-  "climbing",
-  "speed",
-  "technical",
-  "recovery",
-  "consistency"
-];
-var ATTRIBUTE_LABELS = {
-  endurance: "Endurance",
-  climbing: "Climbing",
-  speed: "Speed",
-  technical: "Technical",
-  recovery: "Recovery",
-  consistency: "Consistency"
-};
-function isSex(value) {
-  return value === "female" || value === "male";
-}
-var ATTRIBUTE_MIN = 1;
-var STAT_MIN = 0;
-var STAT_MAX = 100;
-function roundStat(value) {
-  return Math.round(value * 100) / 100;
-}
-function isAttributeId(value) {
-  return typeof value === "string" && ATTRIBUTE_IDS.includes(value);
-}
-
-// raw:src/data/race_field.csv
-var race_field_default = "# Race field by category (owner table, 4 November 2026). One row per category: open, trail, mountain, elite.\n# The field is built on typical runners of the race's level (2 levels above about 2nd, the race's level 15th, 2 below 22nd).\n# training_gain: attribute points per level (each attribute) the typical runner gains from training, on top of the level table's points.\n# fitness_bonus: extra Fitness of the typical runner at level 1, fading to none at level 30 (where Fitness reaches 90).\n# front_ranks: the first rivals (of 29) who race all out: front_intensity (recovery, easy, target, hard or best) and front_stop (quick, normal, slow or best).\n# best: the intensity or stop that gives the fastest time on that course (Hard and Quick in short races; gentler in long ones).\n# Everyone wears the best shop gear of their level and takes a gel and a cereal bar; the rest of the field runs at target pace.\ncategory,training_gain,fitness_bonus,front_intensity,front_stop,front_ranks\nopen,0.2,3,best,best,10\ntrail,0.2,3,best,best,10\nmountain,0.2,3,best,best,10\nelite,0.2,3,best,best,10\n";
 
 // src/domain/races/strategyConfig.ts
 var INTENSITIES = ["recovery", "easy", "target", "hard"];
@@ -423,6 +398,81 @@ var RACE_STRATEGY = {
     { levels: -2, rivalIndex: 21 }
   ]
 };
+function racePaces(effortKm2) {
+  const rows = RACE_STRATEGY.paces;
+  if (effortKm2 <= rows[0].effortKm) return { winner: rows[0].winner, last: rows[0].last };
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1];
+    const b = rows[i];
+    if (effortKm2 <= b.effortKm) {
+      const t = (effortKm2 - a.effortKm) / (b.effortKm - a.effortKm);
+      return { winner: a.winner + t * (b.winner - a.winner), last: a.last + t * (b.last - a.last) };
+    }
+  }
+  const last = rows[rows.length - 1];
+  return { winner: last.winner, last: last.last };
+}
+function byEffort(rows, effortKm2, pick) {
+  if (effortKm2 <= rows[0].effortKm) return pick(rows[0]);
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1];
+    const b = rows[i];
+    if (effortKm2 <= b.effortKm) return pick(a) + (effortKm2 - a.effortKm) / (b.effortKm - a.effortKm) * (pick(b) - pick(a));
+  }
+  return pick(rows[rows.length - 1]);
+}
+function distanceBand(distanceKm) {
+  const bands = RACE_STRATEGY.distanceBands;
+  return bands.find((band) => band.maxKm !== null && distanceKm < band.maxKm) ?? bands[bands.length - 1];
+}
+function intensityEffect(distanceKm, intensity, startFatigue = Infinity, descentTechnical2 = 0) {
+  const band = distanceBand(distanceKm);
+  const { pace, fatigue } = band.intensity[intensity];
+  if (intensity !== "hard") return { pace, fatigue };
+  const loss = Math.min(1, Math.max(0, RACE_STRATEGY.hardTechnicalLoss * descentTechnical2));
+  return {
+    pace: 1 - (1 - pace) * (1 - loss),
+    fatigue: band.fresh && startFatigue < band.fresh.belowFatigue ? band.fresh.hardFatigue : fatigue
+  };
+}
+function stopSeconds(effortKm2) {
+  const rows = RACE_STRATEGY.stopDurations;
+  const at = (stop) => Math.round(byEffort(rows, effortKm2, (row) => row[stop]) / 5) * 5;
+  return { quick: at("quick"), normal: at("normal"), slow: at("slow") };
+}
+
+// src/domain/athlete/athlete.ts
+var ATTRIBUTE_IDS = [
+  "endurance",
+  "climbing",
+  "speed",
+  "technical",
+  "recovery",
+  "consistency"
+];
+var ATTRIBUTE_LABELS = {
+  endurance: "Endurance",
+  climbing: "Climbing",
+  speed: "Speed",
+  technical: "Technical",
+  recovery: "Recovery",
+  consistency: "Consistency"
+};
+function isSex(value) {
+  return value === "female" || value === "male";
+}
+var ATTRIBUTE_MIN = 1;
+var STAT_MIN = 0;
+var STAT_MAX = 100;
+function roundStat(value) {
+  return Math.round(value * 100) / 100;
+}
+function isAttributeId(value) {
+  return typeof value === "string" && ATTRIBUTE_IDS.includes(value);
+}
+
+// raw:src/data/race_field.csv
+var race_field_default = "# Race field by category (owner table, 4 November 2026). One row per category: open, trail, mountain, elite.\n# The field is built on typical runners of the race's level (2 levels above about 2nd, the race's level 15th, 2 below 22nd).\n# training_gain: attribute points per level (each attribute) the typical runner gains from training, on top of the level table's points.\n# fitness_bonus: extra Fitness of the typical runner at level 1, fading to none at level 30 (where Fitness reaches 90).\n# front_ranks: the first rivals (of 29) who race all out: front_intensity (recovery, easy, target, hard or best) and front_stop (quick, normal, slow or best).\n# best: the intensity or stop that gives the fastest time on that course (Hard and Quick in short races; gentler in long ones).\n# Everyone wears the best shop gear of their level and takes a gel and a cereal bar; the rest of the field runs at target pace.\ncategory,training_gain,fitness_bonus,front_intensity,front_stop,front_ranks\nopen,0.2,3,best,best,10\ntrail,0.2,3,best,best,10\nmountain,0.2,3,best,best,10\nelite,0.2,3,best,best,10\n";
 
 // src/domain/races/raceField.ts
 function parseRaceField(text) {
@@ -572,6 +622,29 @@ var OWNED_FROM_START = ["starter-shoes"];
 function getEquipmentItem(id) {
   return EQUIPMENT_ITEMS.find((item) => item.id === id);
 }
+function getRaceEffect(equipment) {
+  const effect = {
+    attributes: Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, 0])),
+    runnable: 1,
+    descent: 1,
+    climb: 1,
+    technicalPenalty: 1,
+    slowdown: 1
+  };
+  for (const id of equipment) {
+    const item = getEquipmentItem(id)?.raceEffect;
+    if (!item) continue;
+    for (const [attribute, bonus] of Object.entries(item.attributes ?? {})) {
+      effect.attributes[attribute] += bonus ?? 0;
+    }
+    effect.runnable *= item.runnable ?? 1;
+    effect.descent *= item.descent ?? 1;
+    effect.climb *= item.climb ?? 1;
+    effect.technicalPenalty *= item.technicalPenalty ?? 1;
+    effect.slowdown *= item.slowdown ?? 1;
+  }
+  return effect;
+}
 
 // src/domain/races/simulationConfig.ts
 var RACE_SIMULATION = {
@@ -667,6 +740,65 @@ function effortKm(segment) {
 function courseEffortKm(course) {
   return course.reduce((sum, s) => sum + effortKm(s), 0);
 }
+var runnableAbility = (a) => 0.75 * a.speed + 0.25 * a.endurance;
+var climbAbility = (a) => 0.7 * a.climbing + 0.3 * a.endurance;
+var technicalDescentAbility = (a) => 0.7 * a.technical + 0.3 * a.speed;
+var durability = (a) => 0.6 * a.endurance + 0.4 * a.recovery;
+function segmentAbility(segment, a) {
+  if (segment.type === "climb") {
+    const w = Math.min(1, segment.gainM / segment.lengthM / RACE_SIMULATION.climbWeightFullGradient);
+    return w * climbAbility(a) + (1 - w) * runnableAbility(a);
+  }
+  if (segment.type === "descent") {
+    const t = segment.technicality / MAX_TECHNICALITY;
+    return t * technicalDescentAbility(a) + (1 - t) * runnableAbility(a);
+  }
+  return runnableAbility(a);
+}
+function prepareRunner(athlete) {
+  const gear = getRaceEffect(athlete.equipment ?? []);
+  const a = Object.fromEntries(
+    ATTRIBUTE_IDS.map((id) => [id, athlete.attributes[id] + gear.attributes[id]])
+  );
+  return {
+    attributes: a,
+    gear,
+    fitnessFactor: 1 + RACE_SIMULATION.fitnessSlope * (50 - athlete.fitness) / 50,
+    fatigueScale: Math.pow(RACE_SIMULATION.abilityReference / a.consistency, RACE_SIMULATION.abilityExponent),
+    durabilityScore: durability(a)
+  };
+}
+function blockMinutes(runner, s, effortBefore, fatigue, dayForm = 0) {
+  const { attributes: a, gear } = runner;
+  const fatigueFactor = 1 + RACE_SIMULATION.fatigueSlope * fatigue * runner.fatigueScale / 100;
+  const e = effortKm(s);
+  const abilityFactor = Math.pow(RACE_SIMULATION.abilityReference / segmentAbility(s, a), RACE_SIMULATION.abilityExponent);
+  const technicalFactor = s.type === "descent" ? (
+    // Technical 100 or more removes the penalty; it never turns into a bonus (no attribute cap).
+    1 + RACE_SIMULATION.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * Math.max(0, 1 - a.technical / 100)
+  ) : 1;
+  const slowdown = 1 + RACE_SIMULATION.slowdownRate * gear.slowdown * (effortBefore / RACE_SIMULATION.slowdownReferenceEffortKm) * (RACE_SIMULATION.abilityReference / runner.durabilityScore);
+  const gearFactor = s.type === "climb" ? gear.climb : s.type === "descent" ? gear.descent : gear.runnable;
+  return e * RACE_SIMULATION.basePaceMinPerEffortKm * abilityFactor * technicalFactor * slowdown * gearFactor * runner.fitnessFactor * fatigueFactor * (1 + dayForm);
+}
+function fnv1a(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+function mulberry32(seed) {
+  let t = seed + 1831565813 >>> 0;
+  t = Math.imul(t ^ t >>> 15, t | 1);
+  t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+  return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+function getDayForm(raceId, entryId, enteredAt, consistency) {
+  const u = mulberry32(fnv1a(`${raceId}|${entryId}|${enteredAt}`));
+  return (2 * u - 1) * RACE_SIMULATION.dayFormMax * (1 - consistency / 100);
+}
 
 // src/game-engine/raceEngine.ts
 function getSegmentCount(race) {
@@ -728,8 +860,436 @@ function getRaceSegments(race) {
   }
   return segments;
 }
+function segmentBaseSeconds(runner, segment, fatigue, dayForm) {
+  return segment.pieces.reduce((sum, p) => sum + blockMinutes(runner, p.block, p.effortBefore, fatigue, dayForm), 0) * 60;
+}
+function recoveryCurve(recovery) {
+  return Math.pow(RACE_SIMULATION.abilityReference / recovery, RACE_SIMULATION.abilityExponent);
+}
+function stopRecovery(stop, gainedSoFar, recovery) {
+  if (gainedSoFar <= 0) return 0;
+  return Math.min(RACE_STRATEGY.maxStopRecovery, RACE_STRATEGY.stop[stop].recovery / recoveryCurve(recovery)) * gainedSoFar;
+}
+function plannedGains(segments, recovery, scale) {
+  const atStart = [];
+  let gained = 0;
+  segments.forEach((segment, k) => {
+    atStart.push(gained);
+    gained += RACE_STRATEGY.fatiguePerEffortKm * segment.effortKm * recoveryCurve(recovery) * scale;
+    if (k < segments.length - 1) gained -= stopRecovery("normal", gained, recovery);
+  });
+  return { atStart, final: gained };
+}
+function getFatigueScale(race, segments = getRaceSegments(race)) {
+  const before = Math.round(RACE_SIMULATION.raceFatigueBase + RACE_SIMULATION.raceFatiguePerEffortKm * courseEffortKm(generateCourse(race)));
+  return before / plannedGains(segments, RACE_SIMULATION.abilityReference, 1).final;
+}
+function getRivalStop(rivalIndex, rivals, front) {
+  if (front && rivalIndex < front.frontRanks) return front.frontStop;
+  return RACE_STRATEGY.rivalStops[Math.min(2, Math.floor(rivalIndex * 3 / rivals))];
+}
+function getRaceField(race) {
+  const { frontIntensity, frontStop } = RACE_FIELD[race.category];
+  if (frontIntensity !== "best" && frontStop !== "best") return buildRaceField(race, { intensity: frontIntensity, stop: frontStop });
+  const draft = buildRaceField(race, {
+    intensity: frontIntensity === "best" ? "target" : frontIntensity,
+    stop: frontStop === "best" ? "normal" : frontStop
+  });
+  const intensities = frontIntensity === "best" ? INTENSITIES : [frontIntensity];
+  const stops = frontStop === "best" ? AID_STOPS : [frontStop];
+  const level = race.recommendedLevel + RACE_STRATEGY.levelAnchors[0].levels;
+  let best;
+  for (const intensity of intensities) {
+    for (const stop of stops) {
+      const plan = { intensity, stop };
+      const seconds = typicalModelSeconds(race, draft.segments, level, plan) * draft.timeScale + (draft.segments.length - 1) * draft.stopS[stop];
+      if (!best || seconds < best.seconds - 1e-6) best = { plan, seconds };
+    }
+  }
+  return buildRaceField(race, best.plan);
+}
+function buildRaceField(race, front) {
+  const segments = getRaceSegments(race);
+  const course = generateCourse(race);
+  const effort = courseEffortKm(course);
+  const stations = segments.length - 1;
+  const rivals = RACE_STRATEGY.fieldSize - 1;
+  const R = race.recommendedLevel;
+  const table = { frontRanks: RACE_FIELD[race.category].frontRanks, frontStop: front.stop };
+  const planOf = (rivalIndex) => rivalIndex < table.frontRanks ? front : { intensity: "target", stop: "normal" };
+  const rawTime = (levels, plan) => typicalModelSeconds(race, segments, Math.max(1, R + levels), plan);
+  const anchorOf = (levels) => RACE_STRATEGY.levelAnchors.find((a) => a.levels === levels);
+  const modelTime = (levels) => {
+    const plan = planOf(anchorOf(levels).rivalIndex);
+    const raw = rawTime(levels, plan);
+    const atLevel = rawTime(0, plan);
+    return levels > 0 ? Math.min(raw, atLevel / (1 + RACE_STRATEGY.minLevelGap)) : levels < 0 ? Math.max(raw, atLevel * (1 + RACE_STRATEGY.minLevelGap)) : atLevel;
+  };
+  const stopS = stopSeconds(effort);
+  const [top, middle] = RACE_STRATEGY.levelAnchors;
+  const topModel = modelTime(top.levels);
+  const middleModel = modelTime(middle.levels);
+  const paces = racePaces(effort);
+  const winnerRun = effort * paces.winner * 60;
+  const stopOf = (i) => stations * stopS[getRivalStop(i, rivals, table)];
+  const anchorStop = (i) => stations * stopS[planOf(i).stop];
+  const k = top.rivalIndex / (middle.rivalIndex - top.rivalIndex);
+  const topStops = anchorStop(top.rivalIndex);
+  const timeScale = (winnerRun + stopOf(0) - topStops + k * (anchorStop(middle.rivalIndex) - topStops)) / (topModel - k * (middleModel - topModel));
+  const anchors = [
+    [0, winnerRun + stopOf(0)],
+    ...RACE_STRATEGY.levelAnchors.map((a) => [a.rivalIndex, modelTime(a.levels) * timeScale + anchorStop(a.rivalIndex)]),
+    [rivals - 1, effort * paces.last * 60 + stopOf(rivals - 1)]
+  ];
+  for (let j = 1; j < anchors.length; j++) {
+    anchors[j][1] = Math.max(anchors[j][1], anchors[j - 1][1] + (anchors[j][0] - anchors[j - 1][0]));
+  }
+  const finish = [];
+  for (let i = 0; i < rivals; i++) {
+    const j = anchors.findIndex(([index]) => index >= i);
+    const [i1, t1] = anchors[j];
+    const [i0, t0] = anchors[Math.max(0, j - 1)];
+    finish.push(Math.round(i1 === i0 ? t1 : t0 + (i - i0) / (i1 - i0) * (t1 - t0)));
+  }
+  const reference = typicalRunner(R, race.category);
+  const runner = prepareRunner(reference);
+  const referenceSegments = segments.map((seg) => segmentBaseSeconds(runner, seg, reference.fatigue, 0));
+  const referenceTotal = referenceSegments.reduce((x, y) => x + y, 0);
+  const cumulativeShares = [];
+  let sum = 0;
+  for (const seconds of referenceSegments) {
+    sum += seconds;
+    cumulativeShares.push(sum / referenceTotal);
+  }
+  const stopsS = finish.map((_, i) => stopS[getRivalStop(i, rivals, table)]);
+  const rivalBaseS = finish.map((t, i) => t - stations * stopsS[i]);
+  const rivalArrivalsS = segments.slice(0, -1).map((_, k2) => rivalBaseS.map((t, i) => Math.round(t * cumulativeShares[k2]) + k2 * stopsS[i]));
+  return {
+    segments,
+    frontPlan: front,
+    fatigueScale: getFatigueScale(race, segments),
+    timeScale,
+    stopS,
+    fatigueWeight: distanceBand(race.distanceKm).fatigueWeight,
+    rivalBaseS,
+    rivalArrivalsS,
+    rivalFinishS: finish,
+    rivalStopsS: stopsS,
+    cumulativeShares
+  };
+}
+function positionAmong(timeS, rivals) {
+  return 1 + rivals.filter((t) => t < timeS).length;
+}
+function descentTechnical(segment, technical) {
+  return segment.terrain.descent * (segment.technicality / 5) * Math.max(0, 1 - technical / 100);
+}
+function segmentFatigue(ctx, segment, intensity) {
+  const recovery = prepareRunner(ctx.runner).attributes.recovery;
+  return RACE_STRATEGY.fatiguePerEffortKm * segment.effortKm * intensityEffect(ctx.race.distanceKm, intensity, ctx.runner.fatigue).fatigue * recoveryCurve(recovery) * ctx.field.fatigueScale * (ctx.nutrition.bar ? 1 - RACE_STRATEGY.barFatigueSaving : 1);
+}
+function runSegment(ctx, progress, intensity) {
+  const k = progress.splits.length;
+  const segment = ctx.field.segments[k];
+  const prepared = prepareRunner(ctx.runner);
+  const planned = plannedGains(ctx.field.segments, prepared.attributes.recovery, ctx.field.fatigueScale).atStart[k];
+  const gainHere = segmentFatigue(ctx, segment, intensity);
+  const gained = progress.fatigue - ctx.runner.fatigue;
+  const deviation = gained - planned;
+  const weight = RACE_STRATEGY.inRaceFatiguePaceWeight * ctx.field.fatigueWeight * (deviation < 0 ? distanceBand(ctx.race.distanceKm).belowPlanWeight : 1);
+  const paceFatigue = Math.max(0, ctx.runner.fatigue + weight * deviation);
+  const seconds = segmentBaseSeconds(prepared, segment, paceFatigue, ctx.dayForm) * ctx.field.timeScale * intensityEffect(ctx.race.distanceKm, intensity, ctx.runner.fatigue, descentTechnical(segment, prepared.attributes.technical)).pace * (ctx.nutrition.gel ? 1 - RACE_STRATEGY.gelTimeSaving : 1);
+  const elapsedS = progress.elapsedS + seconds;
+  const fatigue = progress.fatigue + gainHere;
+  const last = k === ctx.field.segments.length - 1;
+  const arrivalS = Math.round(elapsedS);
+  const rivals = last ? ctx.field.rivalFinishS : ctx.field.rivalArrivalsS[k];
+  const previousArrival = k === 0 ? 0 : progress.splits[k - 1].arrivalS + (progress.splits[k - 1].stopS ?? 0);
+  const split = {
+    intensity,
+    segmentS: arrivalS - previousArrival,
+    arrivalS,
+    fatigue: roundStat(Math.min(100, fatigue)),
+    position: positionAmong(arrivalS, rivals)
+  };
+  return { elapsedS, fatigue, splits: [...progress.splits, split] };
+}
+function makeStop(ctx, progress, stop) {
+  const k = progress.splits.length - 1;
+  const recovery = prepareRunner(ctx.runner).attributes.recovery;
+  const fatigue = progress.fatigue - stopRecovery(stop, progress.fatigue - ctx.runner.fatigue, recovery);
+  const seconds = ctx.field.stopS[stop];
+  const split = { ...progress.splits[k], stop, stopS: seconds, fatigueAfterStop: roundStat(Math.min(100, fatigue)) };
+  return { elapsedS: progress.elapsedS + seconds, fatigue, splits: [...progress.splits.slice(0, k), split] };
+}
+function runPlan(ctx, intensities, stops) {
+  let progress = { elapsedS: 0, fatigue: ctx.runner.fatigue, splits: [] };
+  const n = ctx.field.segments.length;
+  for (let k = 0; k < n; k++) {
+    progress = runSegment(ctx, progress, typeof intensities === "string" ? intensities : intensities[k]);
+    if (k < n - 1) progress = makeStop(ctx, progress, typeof stops === "string" ? stops : stops[k]);
+  }
+  return progress;
+}
+function typicalRunner(level, category) {
+  const { trainingGain, fitnessBonus } = RACE_FIELD[category];
+  const value = 16 + getAttributePointsBetween(1, level) / ATTRIBUTE_IDS.length + trainingGain * (level - 1);
+  const base = {
+    attributes: Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, value])),
+    // From 25 + the training bonus at level 1 to Fitness 90 at level 30 (owner decisions, 29 October
+    // and 4 November 2026).
+    fitness: Math.min(90, 25 + fitnessBonus + (65 - fitnessBonus) * (level - 1) / 29),
+    fatigue: RACE_SIMULATION.referenceFatigue
+  };
+  const equipment = [];
+  if (RACE_STRATEGY.typicalGear) {
+    for (const slot of ["shoes", "pack", "poles"]) {
+      let best;
+      for (const item of EQUIPMENT_ITEMS) {
+        if (item.slot !== slot || item.price === null || (item.level ?? 0) > level) continue;
+        if (!best || (item.level ?? 0) > (best.level ?? 0)) best = item;
+      }
+      if (best) equipment.push(best.id);
+    }
+  }
+  return { ...base, equipment };
+}
+function typicalModelSeconds(race, segments, level, plan) {
+  const model = {
+    segments,
+    frontPlan: plan,
+    fatigueScale: getFatigueScale(race, segments),
+    timeScale: 1,
+    stopS: { quick: 0, normal: 0, slow: 0 },
+    fatigueWeight: distanceBand(race.distanceKm).fatigueWeight,
+    rivalBaseS: [],
+    rivalStopsS: [],
+    cumulativeShares: [],
+    rivalArrivalsS: segments.map(() => []),
+    rivalFinishS: []
+  };
+  const ctx = { race, field: model, runner: typicalRunner(level, race.category), dayForm: 0, nutrition: RACE_STRATEGY.typicalNutrition };
+  return runPlan(ctx, plan.intensity, plan.stop).elapsedS;
+}
+
+// src/game-engine/racePlan.ts
+var STYLE_INTENSITIES = {
+  conservative: ["recovery", "easy", "target"],
+  balanced: ["easy", "target", "hard"],
+  aggressive: ["recovery", "easy", "target", "hard"]
+};
+var STYLE_FATIGUE_COST = {
+  conservative: 0.1,
+  balanced: 0.02,
+  aggressive: 0
+};
+function runRest(ctx, start, intensities) {
+  let progress = start;
+  for (const intensity of intensities) {
+    if (progress.splits.length > 0) progress = makeStop(ctx, progress, "normal");
+    progress = runSegment(ctx, progress, intensity);
+  }
+  return progress;
+}
+function planRest(ctx, start, style, fixed = []) {
+  const left = ctx.field.segments.length - start.splits.length;
+  if (left <= 0) return [];
+  const plan = Array.from({ length: left }, (_, i) => fixed[i] ?? "target");
+  const base = runRest(ctx, start, plan);
+  const time = base.elapsedS - start.elapsedS;
+  const gain = Math.max(1, base.fatigue - start.fatigue);
+  const cost = STYLE_FATIGUE_COST[style] * time / gain;
+  const score = (candidate) => {
+    const end = runRest(ctx, start, candidate);
+    return end.elapsedS + cost * end.fatigue;
+  };
+  let best = score(plan);
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false;
+    for (let i = 0; i < left; i++) {
+      if (fixed[i]) continue;
+      for (const intensity of STYLE_INTENSITIES[style]) {
+        if (intensity === plan[i]) continue;
+        const candidate = plan.slice();
+        candidate[i] = intensity;
+        const value = score(candidate);
+        if (value < best - 0.5) {
+          best = value;
+          plan[i] = intensity;
+          changed = true;
+        }
+      }
+    }
+    if (!changed) break;
+  }
+  return plan;
+}
+
+// src/game-engine/majorRace.ts
+function majorField(race) {
+  return getRaceField(race);
+}
+function majorContext(race, field, eventId, runner) {
+  if (runner.kind === "PLAYER" && runner.snapshot) {
+    const s = runner.snapshot;
+    return {
+      race,
+      field,
+      runner: { attributes: s.attributes, fitness: s.fitness, fatigue: s.fatigue, equipment: [...s.equipment] },
+      dayForm: getDayForm(race.id, `${eventId}:${runner.slot}`, 0, s.attributes.consistency ?? 20),
+      nutrition: { ...s.nutrition }
+    };
+  }
+  const typical = typicalRunner(runner.level, race.category);
+  return {
+    race,
+    field,
+    runner: typical,
+    dayForm: getDayForm(race.id, `${eventId}:${runner.slot}`, 0, typical.attributes.consistency),
+    nutrition: { ...RACE_STRATEGY.typicalNutrition }
+  };
+}
+function initialState(ctx, runner) {
+  const progress = { elapsedS: 0, fatigue: ctx.runner.fatigue, splits: [] };
+  const segments = ctx.field.segments.length;
+  if (runner.kind === "NPC") {
+    const intensities = planRest(ctx, progress, "balanced");
+    return { progress, next: intensities[0] ?? "target", npcPlan: { intensities } };
+  }
+  const plan = runner.plan ?? defaultPlan(segments);
+  return { progress, next: plan.segments[0]?.intensity ?? "target" };
+}
+function rankByArrival(states) {
+  const order = [...states].sort(
+    (a, b) => Math.round(a.state.progress.elapsedS) - Math.round(b.state.progress.elapsedS) || a.slot - b.slot
+  );
+  return new Map(order.map((entry, i) => [entry.slot, i + 1]));
+}
+function runMajorSegment(contexts, runners) {
+  const ran = runners.map(({ slot, state }) => ({
+    slot,
+    state: { ...state, progress: runSegment(contexts.get(slot), state.progress, state.next) }
+  }));
+  const positions2 = rankByArrival(ran);
+  return ran.map(({ slot, state }) => {
+    const splits = state.progress.splits.slice();
+    const last = splits[splits.length - 1];
+    splits[splits.length - 1] = { ...last, position: positions2.get(slot) };
+    return { slot, state: { ...state, progress: { ...state.progress, splits } } };
+  });
+}
+function automaticDecision(runner, state, segment, segments) {
+  if (runner.kind === "NPC") return { stop: "normal", intensity: state.npcPlan?.intensities[segment + 1] ?? "target" };
+  const plan = runner.plan ?? defaultPlan(segments);
+  return { stop: plan.segments[segment]?.stop ?? "normal", intensity: plan.segments[segment + 1]?.intensity ?? "target" };
+}
+function applyMajorDecisions(contexts, runners) {
+  return runners.map(({ slot, state, decision }) => ({
+    slot,
+    state: { ...state, progress: makeStop(contexts.get(slot), state.progress, decision.stop), next: decision.intensity }
+  }));
+}
+function majorStandings(runners) {
+  const arrivals = runners.map(({ slot, state }) => {
+    const last = state.progress.splits[state.progress.splits.length - 1];
+    return { slot, timeS: last ? last.arrivalS : 0 };
+  });
+  arrivals.sort((a, b) => a.timeS - b.timeS || a.slot - b.slot);
+  const leader = arrivals[0]?.timeS ?? 0;
+  return arrivals.map((row, i) => ({ ...row, position: i + 1, gapS: row.timeS - leader }));
+}
+
+// src/server/majorOrchestrator.ts
+function runnerOf(row) {
+  return { slot: row.slot, kind: row.kind, level: row.level, snapshot: row.snapshot, plan: row.plan };
+}
+function contextsOf(raceId, eventId, rows) {
+  const race = getRace(raceId);
+  if (!race) throw new Error(`Major course ${raceId} is not in the catalog`);
+  const field = majorField(race);
+  return new Map(rows.map((row) => [row.slot, majorContext(race, field, eventId, runnerOf(row))]));
+}
+async function startEvents(store, now) {
+  let started = 0;
+  for (const event of await store.startableEvents(now)) {
+    const rows = await store.grid(event.id);
+    const race = getRace(event.raceId);
+    if (!race) continue;
+    const contexts = contextsOf(event.raceId, event.id, rows);
+    const states = rows.map((row) => ({ id: row.id, state: initialState(contexts.get(row.slot), runnerOf(row)) }));
+    if (await store.start(event.id, majorField(race).segments.length, states, now)) started++;
+  }
+  return started;
+}
+async function stepCategory(store, category) {
+  const rows = await store.categoryGrid(category.id);
+  const contexts = contextsOf(category.raceId, category.eventId, rows);
+  const bySlot = new Map(rows.map((row) => [row.slot, row]));
+  const runners = rows.map((row) => {
+    if (!row.state) throw new Error(`Major runner ${row.id} has no state`);
+    return { slot: row.slot, state: row.state };
+  });
+  const startedAt = category.phaseEndsAt;
+  if (category.phase === "RUNNING") {
+    const ran = runMajorSegment(contexts, runners);
+    const last = category.segment >= category.segments - 1;
+    return store.commitStep({
+      categoryId: category.id,
+      version: category.version,
+      phase: last ? "FINISHED" : "PA",
+      segment: category.segment,
+      startedAt,
+      endsAt: last ? null : startedAt + category.windowS * 1e3,
+      states: ran.map(({ slot, state }) => ({ id: bySlot.get(slot).id, state })),
+      decisions: [],
+      playerDecisionsSeen: 0
+    });
+  }
+  const stored = new Map((await store.decisions(category.id, category.segment)).map((d) => [d.participantId, d]));
+  const automatic = [];
+  const decided = runners.map(({ slot, state }) => {
+    const row = bySlot.get(slot);
+    const mine = stored.get(row.id);
+    let decision;
+    if (mine) decision = { stop: mine.stop, intensity: mine.intensity };
+    else {
+      decision = automaticDecision(runnerOf(row), state, category.segment, category.segments);
+      automatic.push({ participantId: row.id, segment: category.segment, ...decision });
+    }
+    return { slot, state, decision };
+  });
+  const after = applyMajorDecisions(contexts, decided);
+  return store.commitStep({
+    categoryId: category.id,
+    version: category.version,
+    phase: "RUNNING",
+    segment: category.segment + 1,
+    startedAt,
+    endsAt: startedAt + category.runningS * 1e3,
+    states: after.map(({ slot, state }) => ({ id: bySlot.get(slot).id, state })),
+    decisions: automatic,
+    playerDecisionsSeen: [...stored.values()].filter((d) => d.source === "PLAYER").length
+  });
+}
+async function advanceMajorRaces(store, now, maxRounds = 20) {
+  const started = await startEvents(store, now);
+  let steps = 0;
+  let refused = 0;
+  for (let round = 0; round < maxRounds; round++) {
+    const due = await store.dueCategories(now);
+    if (due.length === 0) break;
+    for (const category of due) {
+      if (await stepCategory(store, category)) steps++;
+      else refused++;
+    }
+    if (refused > 3) break;
+  }
+  return { started, steps };
+}
 
 // src/server/majorOps.ts
+var STOPS = ["quick", "normal", "slow"];
+var INTENSITIES2 = ["recovery", "easy", "target", "hard"];
 var MajorStoreError = class extends Error {
   refusal;
   constructor(refusal) {
@@ -763,7 +1323,12 @@ function parseMajorRequest(body) {
     case "config-get":
     case "events-list":
     case "majors":
+    case "tick":
       return { action: body.action };
+    case "race-state":
+      return id ? { action: "race-state", id } : null;
+    case "decide":
+      return id && Number.isInteger(body.segment) && STOPS.includes(body.stop) && INTENSITIES2.includes(body.intensity) ? { action: "decide", id, segment: body.segment, stop: body.stop, intensity: body.intensity } : null;
     case "register":
     case "withdraw":
     case "ready":
@@ -794,6 +1359,12 @@ function parseMajorRequest(body) {
   }
 }
 async function handleMajorOp(token, body, deps) {
+  if (isRecord(body) && body.action === "tick") {
+    if (!deps.tickAuthorized) return refuse(401, "not-signed-in");
+    const now = deps.now();
+    await deps.store.advance(now);
+    return ok(await advanceMajorRaces(deps.race, now));
+  }
   const userId = await deps.authenticate(token);
   if (!userId) return refuse(401, "not-signed-in");
   const request = parseMajorRequest(body);
@@ -890,7 +1461,20 @@ async function playerOp(request, userId, deps) {
   switch (request.action) {
     case "majors":
       await deps.store.advance(now);
+      await advanceQuietly(deps, now);
       return ok({ majors: await deps.store.playerMajors(userId, now), now: new Date(now).toISOString() });
+    case "race-state": {
+      await advanceQuietly(deps, now);
+      const view = await deps.store.raceView(request.id, userId);
+      if (!view) return refuse(404, "not-on-grid");
+      return ok({ race: liveRace(view), now: new Date(now).toISOString() });
+    }
+    case "decide": {
+      await advanceQuietly(deps, now);
+      await deps.store.decide(request.id, userId, request.segment, request.stop, request.intensity);
+      const view = await deps.store.raceView(request.id, userId);
+      return ok({ race: view && liveRace(view), now: new Date(now).toISOString() });
+    }
     case "register": {
       const career = await deps.loadCareer(userId);
       if (!career) return refuse(409, "no-career");
@@ -932,6 +1516,36 @@ async function playerOp(request, userId, deps) {
     default:
       return null;
   }
+}
+async function advanceQuietly(deps, now) {
+  try {
+    await advanceMajorRaces(deps.race, now, 5);
+  } catch (error) {
+    console.error("major advance failed", error instanceof Error ? error.message : error);
+  }
+}
+function liveRace(view) {
+  const withState = view.runners.filter((r) => r.state !== null);
+  const table = majorStandings(withState.map((r) => ({ slot: r.slot, state: r.state })));
+  const bySlot = new Map(view.runners.map((r) => [r.slot, r]));
+  const me = bySlot.get(view.mySlot);
+  return {
+    category: view.category,
+    standings: table.map((row) => {
+      const runner = bySlot.get(row.slot);
+      const last = runner.state?.progress.splits.at(-1);
+      return { ...row, kind: runner.kind, name: runner.name, country: runner.country, level: runner.level, me: row.slot === view.mySlot, intensity: last?.intensity ?? null };
+    }),
+    me: me?.state ? {
+      slot: me.slot,
+      elapsedS: me.state.progress.elapsedS,
+      energy: Math.max(0, 100 - me.state.progress.fatigue),
+      fatigue: me.state.progress.fatigue,
+      next: me.state.next,
+      splits: me.state.progress.splits
+    } : null,
+    myDecision: view.myDecision
+  };
 }
 function cleanInput(input) {
   return {
@@ -1620,6 +2234,8 @@ function toEvent(row) {
   };
 }
 function refusalOf(message) {
+  if (/decision window is closed/.test(message)) return new MajorStoreError("window-closed");
+  if (/not on the grid/.test(message)) return new MajorStoreError("not-on-grid");
   if (/ready window is closed/.test(message)) return new MajorStoreError("ready-closed");
   if (/registration is closed/.test(message)) return new MajorStoreError("closed");
   if (/already registered/.test(message)) return new MajorStoreError("already-registered");
@@ -1813,12 +2429,126 @@ function createSupabaseMajorStore(config2) {
     async setReady(eventId, userId, snapshot, now) {
       await rpc("major_set_ready", { p_event: eventId, p_user: userId, p_snapshot: snapshot, p_now: iso(now) });
     },
+    async raceView(eventId, userId) {
+      const mine = await request(
+        `major_participants?event_id=eq.${eventId}&user_id=eq.${encodeURIComponent(userId)}&select=id,category_id,slot`
+      );
+      const me = mine[0];
+      if (!me) return null;
+      const [categories, runners, decisions] = await Promise.all([
+        request(
+          `major_categories?id=eq.${me.category_id}&select=idx,name,phase,segment,segments,phase_ends_at`
+        ),
+        request(
+          `major_participants?category_id=eq.${me.category_id}&select=slot,kind,display_name,country,level,state&order=slot`
+        ),
+        request(
+          `major_decisions?participant_id=eq.${me.id}&select=segment,stop,intensity,source`
+        )
+      ]);
+      const c = categories[0];
+      const open = c.phase === "PA" ? decisions.find((d) => d.segment === c.segment) : void 0;
+      return {
+        category: { idx: c.idx, name: c.name, phase: c.phase, segment: c.segment, segments: c.segments, phaseEndsAt: c.phase_ends_at },
+        runners: runners.map((r) => ({
+          slot: r.slot,
+          kind: r.kind,
+          name: r.display_name,
+          country: r.country,
+          level: r.level,
+          state: "progress" in r.state ? r.state : null
+        })),
+        mySlot: me.slot,
+        myDecision: open ? { stop: open.stop, intensity: open.intensity, source: open.source } : null
+      };
+    },
+    async decide(eventId, userId, segment, stop, intensity) {
+      await rpc("major_decide", { p_event: eventId, p_user: userId, p_segment: segment, p_stop: stop, p_intensity: intensity });
+    },
     async log(eventId, userId, kind, detail) {
       await request(
         "major_log",
         { method: "POST", body: JSON.stringify({ event_id: eventId, actor: userId, kind, detail }) },
         "return=minimal"
       );
+    }
+  };
+}
+function createSupabaseRaceStore(config2) {
+  const headers = {
+    apikey: config2.serviceRoleKey,
+    Authorization: `Bearer ${config2.serviceRoleKey}`,
+    "Content-Type": "application/json"
+  };
+  async function request(path, init = {}) {
+    const response = await fetch(`${config2.url}/rest/v1/${path}`, { ...init, headers });
+    if (!response.ok) throw new Error(`Database request failed (${response.status}): ${await response.text()}`);
+    return await response.json();
+  }
+  const iso = (ms) => encodeURIComponent(new Date(ms).toISOString());
+  const SELECT = "select=id,category_id,slot,kind,level,runner_snapshot,plan,state&order=slot";
+  const toRow = (r) => ({
+    id: r.id,
+    categoryId: r.category_id,
+    slot: r.slot,
+    kind: r.kind,
+    level: r.level,
+    snapshot: r.runner_snapshot,
+    plan: r.plan && Object.keys(r.plan).length ? r.plan : null,
+    state: r.state && "progress" in r.state ? r.state : null
+  });
+  const rpc = async (name, args) => request(`rpc/${name}`, { method: "POST", body: JSON.stringify(args) });
+  return {
+    async startableEvents(now) {
+      const rows = await request(`major_events?status=eq.LOCKED&scheduled_start_at=lte.${iso(now)}&select=id,race_id`);
+      return rows.map((r) => ({ id: r.id, raceId: r.race_id }));
+    },
+    async grid(eventId) {
+      return (await request(`major_participants?event_id=eq.${eventId}&${SELECT}`)).map(toRow);
+    },
+    async start(eventId, segments, states, now) {
+      return rpc("major_start", { p_event: eventId, p_segments: segments, p_states: states, p_now: new Date(now).toISOString() });
+    },
+    async dueCategories(now) {
+      const rows = await request(
+        `major_categories?phase=in.(RUNNING,PA)&phase_ends_at=lte.${iso(now)}&select=id,event_id,phase,segment,segments,phase_ends_at,version,major_events(race_id,running_s,decision_window_s)&order=phase_ends_at&limit=40`
+      );
+      return rows.map(
+        (r) => ({
+          id: r.id,
+          eventId: r.event_id,
+          raceId: r.major_events.race_id,
+          phase: r.phase,
+          segment: r.segment,
+          segments: r.segments,
+          phaseEndsAt: Date.parse(r.phase_ends_at),
+          version: r.version,
+          runningS: r.major_events.running_s,
+          windowS: r.major_events.decision_window_s
+        })
+      );
+    },
+    async categoryGrid(categoryId) {
+      return (await request(`major_participants?category_id=eq.${categoryId}&${SELECT}`)).map(toRow);
+    },
+    async decisions(categoryId, segment) {
+      const rows = await request(
+        `major_decisions?segment=eq.${segment}&select=participant_id,stop,intensity,source,major_participants!inner(category_id)&major_participants.category_id=eq.${categoryId}`
+      );
+      return rows.map((r) => ({ participantId: r.participant_id, stop: r.stop, intensity: r.intensity, source: r.source }));
+    },
+    async commitStep(step) {
+      return rpc("major_commit_step", {
+        p_category: step.categoryId,
+        p_version: step.version,
+        p_phase: step.phase,
+        p_segment: step.segment,
+        p_started_at: new Date(step.startedAt).toISOString(),
+        p_ends_at: step.endsAt === null ? null : new Date(step.endsAt).toISOString(),
+        p_states: step.states,
+        p_decisions: step.decisions,
+        p_player_decisions_seen: step.playerDecisionsSeen
+      });
     }
   };
 }
@@ -1898,6 +2628,10 @@ function config() {
   if (!url || !anonKey || !serviceRoleKey) throw new Error("Supabase environment missing");
   return { url, anonKey, serviceRoleKey };
 }
+function tickSecret(request) {
+  const value = request.headers.get("x-major-tick");
+  return value && value.length >= 32 ? value : null;
+}
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (request.method !== "POST") return json(405, { ok: false, error: "method-not-allowed" });
@@ -1912,6 +2646,9 @@ Deno.serve(async (request) => {
     const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? null;
     const result = await handleMajorOp(token, body, {
       store: createSupabaseMajorStore(settings),
+      race: createSupabaseRaceStore(settings),
+      // The scheduler (pg_cron + pg_net) sends this secret; it is never in a browser.
+      tickAuthorized: tickSecret(request) !== null && tickSecret(request) === Deno.env.get("MAJOR_TICK_SECRET"),
       loadCareer: (userId) => loadServerCareer(createSupabaseCareerOpsStore(settings), userId, Date.now()),
       authenticate: (value) => authenticateWithSupabase(settings, value),
       now: () => Date.now()

@@ -1801,6 +1801,27 @@ function getRestRecoveryBonus(athlete) {
 function getRestFatigueDelta(athlete) {
   return TRAINING_SESSIONS.rest.fatigueDelta - getRestRecoveryBonus(athlete);
 }
+var LEVEL_FATIGUE_SAVING = [
+  { level: 1, saving: 0 },
+  { level: 30, saving: 0.03 },
+  { level: 50, saving: 0.05 },
+  { level: 100, saving: 0.1 }
+];
+function levelFatigueSaving(level) {
+  const rows = LEVEL_FATIGUE_SAVING;
+  if (level <= rows[0].level) return rows[0].saving;
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1];
+    const b = rows[i];
+    if (level <= b.level) return a.saving + (level - a.level) / (b.level - a.level) * (b.saving - a.saving);
+  }
+  return rows[rows.length - 1].saving;
+}
+function getSessionFatigueDelta(athlete, session) {
+  if (session === "rest") return getRestFatigueDelta(athlete);
+  const delta = TRAINING_SESSIONS[session].fatigueDelta;
+  return roundStat(delta * (1 - levelFatigueSaving(getLevel(athlete.xp))));
+}
 
 // src/game-engine/training.ts
 function clampStat(value) {
@@ -1829,7 +1850,7 @@ function isRecoveryRest(state) {
 function previewSession(state, session) {
   const rules = TRAINING_SESSIONS[session];
   const { fitness, fatigue } = state.athlete;
-  const fatigueDelta = session === "rest" ? getRestFatigueDelta(state.athlete) : rules.fatigueDelta;
+  const fatigueDelta = getSessionFatigueDelta(state.athlete, session);
   const fatigueChange = statChange(fatigue, fatigueDelta);
   if (session !== "rest" && fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD) {
     return {

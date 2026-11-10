@@ -6,7 +6,7 @@ import button from '../../components/Button.module.css'
 import { formatDelta, formatStat } from '../../components/format'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
-import { getRestFatigueDelta, RECOVERY_REST_FITNESS } from '../../domain/training/recovery'
+import { getRestFatigueDelta, getSessionFatigueDelta, RECOVERY_REST_FITNESS } from '../../domain/training/recovery'
 import {
   ATTRIBUTE_GAIN_PER_SESSION,
   isSessionType,
@@ -87,7 +87,7 @@ function plannedEffects(state: GameState, index: number): DayOutcome {
     return {
       xpGained: rules.xp,
       fitnessChange: rules.fitnessDelta,
-      fatigueChange: rules.fatigueDelta,
+      fatigueChange: getSessionFatigueDelta(state.athlete, session),
       ...(rules.attribute && { attributeGain: { attribute: rules.attribute, amount: ATTRIBUTE_GAIN_PER_SESSION } }),
     }
   }

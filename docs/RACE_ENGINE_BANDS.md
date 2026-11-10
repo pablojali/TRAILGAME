@@ -51,3 +51,24 @@ Hard vs Target per segment on Alpine Traverse (28 km, technicality 5): −8.6% o
 - In-race fatigue goes over 100 in races over 90 km at Target pace (122 at 160 km).
 - Under 30 km, Hard all the way is now the fastest plan; its cost is the career Fatigue it leaves
   (+7 to +16 over Target), which weighs on the next week's training.
+
+## How often runners start fresh (season simulation, 10 November 2026)
+
+100 simulated players × 30 weeks on the real engine (training, injuries, levels, attribute
+points, races run with the Balanced strategy, Normal stops). Each player draws a weekly plan (light
+30%, the default week 40%, heavy 30%), a taper before races (none 40%, Saturday rest 40%, Friday
+and Saturday rest 20%), a Fatigue guard (rests instead of a hard session at Fatigue 60: 35%, at 75:
+25%, never: 40%) and a race rhythm (every week 25%, every 2 weeks 50%, every 3 weeks 25%). Each
+race is the hardest one the level allows.
+
+| Share of races started with Fatigue under 30 | Beginners (level 1, short races) | Ultra-level players (level 30, 30–90 km) |
+|---|---|---|
+| All races | 19% (309 of 1636) | 64% (1086 of 1690) |
+| Light plan / default week / heavy plan | 68% / 1% / 2% | 92% / 66% / 35% |
+| No taper / Saturday rest / Friday and Saturday rest | 7% / 18% / 39% | 45% / 71% / 84% |
+| Race every week / 2 weeks / 3 weeks | 12% / 14% / 49% | 63% / 59% / 83% |
+| Fatigue at the start: 25th / 50th / 75th percentile | 42 / 57 / 68 | 1 / 19 / 48 |
+| Injuries in races / in training | 267 / 445 | 121 / 262 |
+
+Ultra-level players start fresh far more often because their Recovery makes every Rest day recover
+more Fatigue. Beginners reach level 6 to 11 in 30 weeks and only run races under 30 km.

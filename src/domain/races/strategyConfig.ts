@@ -22,13 +22,59 @@ export const RACE_STRATEGY = {
   kmPerSegment: 6,
   minSegments: 2,
   maxSegments: 8,
-  /** §3.2: time multiplier (pace) and in-race fatigue multiplier of each intensity. */
-  intensity: {
-    recovery: { pace: 1.04, fatigue: 0.45 },
-    easy: { pace: 1.02, fatigue: 0.7 },
-    target: { pace: 1.0, fatigue: 1.0 },
-    hard: { pace: 0.98, fatigue: 1.6 },
-  } satisfies Record<Intensity, { pace: number; fatigue: number }>,
+  /**
+   * Three race engines by distance (owner request, 10 November 2026: a sub-30 km race does not race
+   * like an ultra). Each band sets every intensity's time multiplier (pace) and in-race fatigue
+   * multiplier, and how much the in-race fatigue above the plan slows the runner (`fatigueWeight`,
+   * 1 = like career Fatigue; below the plan it speeds them up by `belowPlanWeight` of that, so
+   * saving energy in an ultra helps less than wasting it hurts). Short races: Hard wins about a minute every 11 and the fatigue costs
+   * little; ultras: Hard is a little faster now and costs a lot later, unless the runner starts the
+   * race fresh (career Fatigue at most `fresh.maxFatigue`: Hard's fatigue multiplier is then
+   * `fresh.hardFatigue`). Bands by the race's distance: up to `maxKm` (the last band has none).
+   */
+  distanceBands: [
+    {
+      maxKm: 30,
+      intensity: {
+        recovery: { pace: 1.08, fatigue: 0.45 },
+        easy: { pace: 1.04, fatigue: 0.7 },
+        target: { pace: 1.0, fatigue: 1.0 },
+        hard: { pace: 0.91, fatigue: 1.6 },
+      },
+      fatigueWeight: 0.6,
+      belowPlanWeight: 1,
+      fresh: null,
+    },
+    {
+      maxKm: 90,
+      intensity: {
+        recovery: { pace: 1.06, fatigue: 0.45 },
+        easy: { pace: 1.03, fatigue: 0.7 },
+        target: { pace: 1.0, fatigue: 1.0 },
+        hard: { pace: 0.95, fatigue: 2.0 },
+      },
+      fatigueWeight: 1.5,
+      belowPlanWeight: 0.3,
+      fresh: { maxFatigue: 15, hardFatigue: 1.4 },
+    },
+    {
+      maxKm: null,
+      intensity: {
+        recovery: { pace: 1.05, fatigue: 0.45 },
+        easy: { pace: 1.025, fatigue: 0.7 },
+        target: { pace: 1.0, fatigue: 1.0 },
+        hard: { pace: 0.95, fatigue: 1.9 },
+      },
+      fatigueWeight: 1.2,
+      belowPlanWeight: 0.2,
+      fresh: { maxFatigue: 10, hardFatigue: 1.3 },
+    },
+  ],
+  /**
+   * Technical descents take away part of Hard's gain (owner request, 10 November 2026): the share
+   * lost is the segment's descent share × technicality / 5 × (1 − Technical / 100), at most all of it.
+   */
+  hardTechnicalLoss: 1.6,
   /** In-race fatigue gained per effort-km at Target pace and Recovery 20, before calibration. */
   fatiguePerEffortKm: 0.6,
   /** §3.4: stop duration and share of the in-race fatigue gained so far that it recovers. */
@@ -49,14 +95,6 @@ export const RACE_STRATEGY = {
    * through the existing Fatigue factor. 1 = the same effect as career Fatigue.
    */
   inRaceFatiguePaceWeight: 1,
-  /**
-   * Short races (owner decision, 2 November 2026): the in-race fatigue above the plan weighs more on
-   * the pace, so going Hard all the way has a real cost there. Weight by effort-km, linear between.
-   */
-  fatigueWeights: [
-    { effortKm: 6.2, weight: 2 },
-    { effortKm: 65, weight: 1 },
-  ],
   /**
    * Stop durations in seconds by the race's effort-km (owner decision, 2 November 2026): short in
    * short races, longer in ultras. Linear between rows, flat outside them; whole 5 seconds.
@@ -132,9 +170,33 @@ function byEffort<T extends { effortKm: number }>(rows: readonly T[], effortKm: 
   return pick(rows[rows.length - 1]!)
 }
 
-/** Weight of the in-race fatigue above the plan on the pace, for a race of `effortKm`. */
-export function fatiguePaceWeight(effortKm: number): number {
-  return byEffort(RACE_STRATEGY.fatigueWeights, effortKm, (row) => row.weight)
+export type DistanceBand = (typeof RACE_STRATEGY.distanceBands)[number]
+
+/** The race engine band of a race of `distanceKm` (owner request, 10 November 2026). */
+export function distanceBand(distanceKm: number): DistanceBand {
+  const bands = RACE_STRATEGY.distanceBands
+  return bands.find((band) => band.maxKm !== null && distanceKm < band.maxKm) ?? bands[bands.length - 1]!
+}
+
+/**
+ * An intensity's pace and fatigue multipliers in a race: its band's, Hard's fatigue lower for a
+ * runner who starts fresh, Hard's gain cut on technical descents (`descentTechnical` = descent share
+ * × technicality / 5 × (1 − Technical / 100), 0 outside descents).
+ */
+export function intensityEffect(
+  distanceKm: number,
+  intensity: Intensity,
+  startFatigue = Infinity,
+  descentTechnical = 0,
+): { pace: number; fatigue: number } {
+  const band = distanceBand(distanceKm)
+  const { pace, fatigue } = band.intensity[intensity]
+  if (intensity !== 'hard') return { pace, fatigue }
+  const loss = Math.min(1, Math.max(0, RACE_STRATEGY.hardTechnicalLoss * descentTechnical))
+  return {
+    pace: 1 - (1 - pace) * (1 - loss),
+    fatigue: band.fresh && startFatigue <= band.fresh.maxFatigue ? band.fresh.hardFatigue : fatigue,
+  }
 }
 
 /** Seconds of each stop in a race of `effortKm`. */

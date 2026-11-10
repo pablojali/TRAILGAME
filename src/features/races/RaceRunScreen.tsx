@@ -296,7 +296,7 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
                     onChange={(value) => setSegment(0, value)}
                   />
                 </div>
-                <span className={`${styles.tileNote} ${styles.tileHint}`}>{intensityHint(intensity, t)}</span>
+                <span className={`${styles.tileNote} ${styles.tileHint}`}>{intensityHint(intensity, t, race.distanceKm)}</span>
                 <span className={styles.estimate}>
                   <span>{t('raceRun.estimatedSegment', { time: durationText(Math.round(estimate.segmentS / 10) * 10) })}</span>
                   <span>{t('raceRun.estimatedFatigue', { n: Math.max(0, Math.round(estimate.fatigueGain)) })}</span>

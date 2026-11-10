@@ -1,4 +1,4 @@
-import { RACE_STRATEGY, type AidStop, type Intensity } from '../../domain/races/strategyConfig'
+import { intensityEffect, type AidStop, type Intensity } from '../../domain/races/strategyConfig'
 import type { MessageKey, Translate } from '../../i18n/i18n'
 import type { RaceSegment } from '../../game-engine/raceEngine'
 
@@ -19,8 +19,9 @@ function percent(fraction: number): string {
 }
 
 /** e.g. "5% slower, 30% less fatigue". */
-export function intensityHint(intensity: Intensity, t: Translate): string {
-  const { pace, fatigue } = RACE_STRATEGY.intensity[intensity]
+export function intensityHint(intensity: Intensity, t: Translate, distanceKm: number): string {
+  // The race's distance band sets the intensities (owner request, 10 November 2026).
+  const { pace, fatigue } = intensityEffect(distanceKm, intensity)
   if (intensity === 'target') return t('race.hint.target')
   const speed = pace > 1 ? t('race.hint.slower', { percent: percent(pace - 1) }) : t('race.hint.faster', { percent: percent(1 - pace) })
   const tiring =

@@ -1,0 +1,199 @@
+import type { MajorBand, MajorConfig, MajorEventInput, MajorStatus } from '../domain/major/major'
+import { MajorStoreError, type MajorEvent, type MajorStore } from './majorOps'
+import type { ServerConfig } from './supabaseRest'
+
+/**
+ * Supabase access for `major-ops` over plain HTTP, with the service role key that exists only in
+ * the function's environment. Publishing and cancelling go through the database functions
+ * `major_publish` and `major_cancel`, which apply the state machine atomically.
+ */
+interface EventRow {
+  id: string
+  name: string
+  description: string
+  race_id: string
+  scheduled_start_at: string
+  status: MajorStatus
+  registration_open_at: string | null
+  ready_open_at: string | null
+  decision_window_s: number | null
+  running_s: number | null
+  participant_limit: number | null
+  bands_snapshot: MajorBand[] | null
+  published_at: string | null
+  cancel_reason: string | null
+  major_categories?: { idx: number; name: string; min_level: number; max_level: number | null }[]
+}
+
+const EVENT_SELECT = 'select=*,major_categories(idx,name,min_level,max_level)'
+
+function toEvent(row: EventRow): MajorEvent {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    raceId: row.race_id,
+    scheduledStartAt: row.scheduled_start_at,
+    status: row.status,
+    registrationOpenAt: row.registration_open_at,
+    readyOpenAt: row.ready_open_at,
+    decisionWindowS: row.decision_window_s,
+    runningS: row.running_s,
+    participantLimit: row.participant_limit,
+    bands: row.bands_snapshot,
+    publishedAt: row.published_at,
+    cancelReason: row.cancel_reason,
+    categories: [...(row.major_categories ?? [])]
+      .sort((a, b) => a.idx - b.idx)
+      .map((c) => ({ idx: c.idx, name: c.name, minLevel: c.min_level, maxLevel: c.max_level })),
+  }
+}
+
+/** The refusal behind a database error raised by the Major functions or the event guard. */
+export function refusalOf(message: string): MajorStoreError | null {
+  if (/not found/.test(message)) return new MajorStoreError('not-found')
+  if (/is not a draft|only its status can change/.test(message)) return new MajorStoreError('not-draft')
+  if (/too soon/.test(message)) return new MajorStoreError('too-soon')
+  if (/cannot change|is not allowed/.test(message)) return new MajorStoreError('final')
+  return null
+}
+
+export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
+  const headers = {
+    apikey: config.serviceRoleKey,
+    Authorization: `Bearer ${config.serviceRoleKey}`,
+    'Content-Type': 'application/json',
+  }
+
+  async function request<T>(path: string, init: RequestInit = {}, prefer?: string): Promise<T> {
+    const response = await fetch(`${config.url}/rest/v1/${path}`, {
+      ...init,
+      headers: { ...headers, ...(prefer ? { Prefer: prefer } : {}) },
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      let message = text
+      try {
+        message = (JSON.parse(text) as { message?: string }).message ?? text
+      } catch {
+        // Not JSON: keep the text.
+      }
+      throw refusalOf(message) ?? new Error(`Database request failed (${response.status}): ${message}`)
+    }
+    if (response.status === 204) return undefined as T
+    return (await response.json()) as T
+  }
+
+  async function getEvent(id: string): Promise<MajorEvent> {
+    const rows = await request<EventRow[]>(`major_events?id=eq.${id}&${EVENT_SELECT}`)
+    if (!rows[0]) throw new MajorStoreError('not-found')
+    return toEvent(rows[0])
+  }
+
+  const eventBody = (input: MajorEventInput) => ({
+    name: input.name,
+    description: input.description,
+    race_id: input.raceId,
+    scheduled_start_at: input.scheduledStartAt,
+  })
+
+  return {
+    async isAdmin(userId) {
+      const rows = await request<unknown[]>(`major_admins?user_id=eq.${encodeURIComponent(userId)}&select=user_id`)
+      return rows.length > 0
+    },
+
+    async getConfig() {
+      const rows = await request<
+        {
+          start_time_utc: string
+          registration_open_days: number
+          ready_minutes: number
+          decision_window_s: number
+          running_s: number
+          participant_limit: number
+          bands: MajorBand[]
+        }[]
+      >('major_config?select=*')
+      const row = rows[0]
+      if (!row) throw new Error('major_config is empty')
+      return {
+        startTimeUtc: row.start_time_utc.slice(0, 5),
+        registrationOpenDays: row.registration_open_days,
+        readyMinutes: row.ready_minutes,
+        decisionWindowS: row.decision_window_s,
+        runningS: row.running_s,
+        participantLimit: row.participant_limit,
+        bands: row.bands,
+      } satisfies MajorConfig
+    },
+
+    async setConfig(value, userId) {
+      await request(
+        'major_config?id=eq.true',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            start_time_utc: value.startTimeUtc,
+            registration_open_days: value.registrationOpenDays,
+            ready_minutes: value.readyMinutes,
+            decision_window_s: value.decisionWindowS,
+            running_s: value.runningS,
+            participant_limit: value.participantLimit,
+            bands: value.bands.map((b) => ({ name: b.name.trim(), min: b.min, max: b.max })),
+            updated_at: new Date().toISOString(),
+            updated_by: userId,
+          }),
+        },
+        'return=minimal',
+      )
+    },
+
+    async listEvents() {
+      const rows = await request<EventRow[]>(`major_events?${EVENT_SELECT}&order=scheduled_start_at.desc&limit=200`)
+      return rows.map(toEvent)
+    },
+
+    async createEvent(input, userId) {
+      const rows = await request<EventRow[]>(
+        'major_events',
+        { method: 'POST', body: JSON.stringify({ ...eventBody(input), created_by: userId }) },
+        'return=representation',
+      )
+      return toEvent({ ...rows[0]!, major_categories: [] })
+    },
+
+    async updateDraft(id, input) {
+      const rows = await request<EventRow[]>(
+        `major_events?id=eq.${id}&status=eq.DRAFT`,
+        { method: 'PATCH', body: JSON.stringify(eventBody(input)) },
+        'return=representation',
+      )
+      return rows[0] ? toEvent({ ...rows[0], major_categories: [] }) : null
+    },
+
+    async publish(id, userId, now) {
+      await request('rpc/major_publish', {
+        method: 'POST',
+        body: JSON.stringify({ p_event: id, p_actor: userId, p_now: new Date(now).toISOString() }),
+      })
+      return getEvent(id)
+    },
+
+    async cancel(id, userId, reason) {
+      await request('rpc/major_cancel', {
+        method: 'POST',
+        body: JSON.stringify({ p_event: id, p_actor: userId, p_reason: reason }),
+      })
+      return getEvent(id)
+    },
+
+    async log(eventId, userId, kind, detail) {
+      await request(
+        'major_log',
+        { method: 'POST', body: JSON.stringify({ event_id: eventId, actor: userId, kind, detail }) },
+        'return=minimal',
+      )
+    },
+  }
+}

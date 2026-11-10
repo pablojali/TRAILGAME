@@ -8,3 +8,8 @@ project_id = "zalyfrjfmsirvsrkdroy"
 verify_jwt = true
 # The bundled function (npm run build:functions), not an index.ts.
 entrypoint = "./functions/career-ops/index.js"
+
+[functions.major-ops]
+# The Sunday Major event manager: the caller's session is checked, then the admin rights.
+verify_jwt = true
+entrypoint = "./functions/major-ops/index.js"

@@ -1,5 +1,5 @@
-// Shared esbuild options for the Edge Function `career-ops`: used by scripts/build-functions.mjs and
-// by the test that checks the deployed bundle is up to date.
+// Shared esbuild options for the Edge Functions (`career-ops`, `major-ops`): used by
+// scripts/build-functions.mjs and by the test that checks the deployed bundles are up to date.
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -19,6 +19,17 @@ const rawText = {
       loader: 'text',
     }))
   },
+}
+
+/** Each Edge Function: its entry point and the bundle deployed to Supabase. */
+export const FUNCTIONS = [
+  { name: 'career-ops', entry: 'src/server/edge/careerOpsFunction.ts', outfile: 'supabase/functions/career-ops/index.js' },
+  { name: 'major-ops', entry: 'src/server/edge/majorOpsFunction.ts', outfile: 'supabase/functions/major-ops/index.js' },
+]
+
+/** esbuild options for one function's entry point. */
+export function functionBuildOptions(entry) {
+  return { ...functionsBuildOptions, entryPoints: [entry] }
 }
 
 export const functionsBuildOptions = {

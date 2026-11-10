@@ -1,8 +1,9 @@
-// Bundles the Edge Function `career-ops` (src/server/edge/careerOpsFunction.ts) with the game
-// engine it reuses into one file, supabase/functions/career-ops/index.js, ready to deploy.
-// Usage: npm run build:functions
+// Bundles each Edge Function (src/server/edge/*Function.ts) with the game engine it reuses into one
+// file, supabase/functions/<name>/index.js, ready to deploy. Usage: npm run build:functions
 import { build } from 'esbuild'
-import { functionsBuildOptions } from './functionsBuild.mjs'
+import { FUNCTIONS, functionBuildOptions } from './functionsBuild.mjs'
 
-await build({ ...functionsBuildOptions, outfile: 'supabase/functions/career-ops/index.js' })
-console.log('Built supabase/functions/career-ops/index.js')
+for (const fn of FUNCTIONS) {
+  await build({ ...functionBuildOptions(fn.entry), outfile: fn.outfile })
+  console.log(`Built ${fn.outfile}`)
+}

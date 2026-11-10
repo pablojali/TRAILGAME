@@ -284,7 +284,7 @@ Changes to existing objects:
 - **Regression:** the existing suite (solo races, training, progression, equipment, ranking), which
   runs unchanged on every PR.
 
-## 14. Decisions requested from the Product Owner
+## 14. Decisions (all approved by the Product Owner, 10 November 2026, as recommended)
 
 1. Major and the career calendar (§8.1).
 2. Rewards table and level multiplier (§8.2).

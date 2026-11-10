@@ -103,3 +103,27 @@ Drafts are kept in the browser until they are proposed or discarded.
 - `npm run dev:studio`: the Studio on a local server.
 - `npm run build:studio`: builds it into `dist-studio`. `npm run build` builds both sites, so CI
   checks the Studio too.
+
+## Majors (Sunday Major, phase 1, 10 November 2026)
+
+The **Majors** tab manages the Sunday Majors in the database (not in the repository): no pull
+request, no code publish.
+
+- **Sign-in:** the owner's game account (the email linked in the game's Settings). Studio sends a
+  magic link that comes back to the Studio. The Edge Function `major-ops` checks that the account
+  is in `major_admins`; a non-admin sees their user id to pass on to Claude.
+- **Events:**
+  - create and edit drafts: name, description, a race of the catalog, a Sunday and a time in UTC,
+    also shown in local time;
+  - publish: the event copies the configuration and the level bands, and registration opens per the
+    configuration;
+  - cancel, with a reason.
+  - A published event can no longer be edited. The database refuses every invalid transition.
+- **Configuration:** default start time (UTC), when registration and READY open, the aid-station
+  decision window, the running phase per segment, participants per category, and the level bands.
+  The bands are contiguous from level 1, with the last one open-ended. The configuration applies to
+  Majors published from then on.
+- **One-time setup:**
+  - The Studio's address must be in Supabase → Authentication → URL Configuration → Redirect URLs
+    (`https://trailgame-studio.pages.dev/**`).
+  - The owner's user id goes into `major_admins` (Claude adds it).

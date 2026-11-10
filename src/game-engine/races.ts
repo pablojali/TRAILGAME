@@ -24,6 +24,7 @@ import {
   type RaceSplit,
   type StepContext,
 } from './raceEngine'
+import { planRest, type RaceStyle } from './racePlan'
 import { getScheduledEntry, RACE_DAY_INDEX } from './raceSchedule'
 import { courseEffortKm, explainRace, generateCourse, getDayForm, rivalTimes } from './raceSimulation'
 import { checkDay, completeCurrentDay, statChange, type DayRef, type TrainingError } from './training'
@@ -529,6 +530,55 @@ export function projectRace(state: GameState, stop: AidStop, intensity: Intensit
     fatigueAtFinish: Math.min(100, Math.max(0, progress.fatigue)),
     positionRange: [place(finishS * (1 - PROJECTION_MARGIN)), place(finishS * (1 + PROJECTION_MARGIN))],
   }
+}
+
+/** The race as planned before the start: the base field, no day form, the nutrition chosen. */
+function prepContext(state: GameState, race: Race, nutrition: Nutrition): StepContext {
+  const { athlete } = state
+  return {
+    race,
+    field: getRaceField(race),
+    runner: snapshotRunner(athlete.attributes, athlete.fitness, athlete.fatigue, state.equipment),
+    dayForm: 0,
+    nutrition,
+  }
+}
+
+/** Before the start: the intensity of every segment for a style, keeping the player's own choices. */
+export function planRaceBeforeStart(
+  state: GameState,
+  race: Race,
+  nutrition: Nutrition,
+  style: RaceStyle,
+  fixed: readonly (Intensity | null | undefined)[] = [],
+): Intensity[] {
+  const ctx = prepContext(state, race, nutrition)
+  return planRest(ctx, { elapsedS: 0, fatigue: ctx.runner.fatigue, splits: [] }, style, fixed)
+}
+
+/** Before the start: the first segment's time and the in-race fatigue it adds, as an estimate. */
+export function estimateFirstSegment(
+  state: GameState,
+  race: Race,
+  nutrition: Nutrition,
+  intensity: Intensity,
+): { segmentS: number; fatigueGain: number } {
+  const ctx = prepContext(state, race, nutrition)
+  const ran = runSegment(ctx, { elapsedS: 0, fatigue: ctx.runner.fatigue, splits: [] }, intensity)
+  return { segmentS: ran.elapsedS, fatigueGain: ran.fatigue - ctx.runner.fatigue }
+}
+
+/** At an aid station: the plan for the segments left (index 0 = the next one) for a style. */
+export function planRaceAhead(
+  state: GameState,
+  style: RaceStyle,
+  fixed: readonly (Intensity | null | undefined)[] = [],
+): Intensity[] {
+  const active = state.activeRace
+  const race = active && getRace(active.raceId)
+  if (!active || !race) return []
+  const field = fieldOf(active, race)
+  return planRest(contextOf(active, race, field), toProgress(active), style, fixed)
 }
 
 /**

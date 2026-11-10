@@ -1,6 +1,6 @@
 import { itemLabel } from '../../i18n/equipmentText'
 import { useI18n, type MessageKey, type Translate } from '../../i18n/i18n'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
@@ -15,7 +15,10 @@ import { getRaceSegments, type RaceSegment } from '../../game-engine/raceEngine'
 import { isRaceDayToday } from '../../game-engine/raceSchedule'
 import {
   getEntry,
+  estimateFirstSegment,
   getRaceReport,
+  planRaceAhead,
+  planRaceBeforeStart,
   previewStep,
   projectRace,
   type RaceDayResult,
@@ -34,6 +37,8 @@ import {
 } from './raceStrategyText'
 import { aidAdvice, roughDelta, segmentDemand, segmentKind } from './aidStation'
 import { coachPortrait } from '../coach/coach'
+import { RACE_STYLES, type RaceStyle } from '../../game-engine/racePlan'
+import { loadRacePlan, saveRacePlan } from './racePlanStore'
 import { RaceClipPlayer } from './RaceClipPlayer'
 import { raceClip } from './raceClips'
 import { durationText, ordinal, raceTimeText } from './raceText'
@@ -184,34 +189,53 @@ function clipTitle(race: Race, segment: number, t: Translate): string {
 }
 
 /** Course, equipment, nutrition and the first intensity, then Start. */
+type PrepTab = 'strategy' | 'course' | 'equipment'
+
 function Preparation({ race, entryId, present }: { race: Race; entryId: string; present: Present }) {
   const { state, startRace } = useCareer()
   const { consumables, week } = state
   const segments = getRaceSegments(race)
-  const [intensity, setIntensity] = useState<Intensity>('target')
   // Taken by default whenever there is stock, also when the stock arrives after the screen opened
   // (e.g. the server's career synced a moment later); only the player's own choice overrides it.
   const [gelChoice, setGel] = useState<boolean | null>(null)
   const [barChoice, setBar] = useState<boolean | null>(null)
   const gel = gelChoice ?? consumables.gel > 0
   const bar = barChoice ?? consumables.bar > 0
+  // The automatic strategy (owner request, 10 November 2026): a style proposes every segment's
+  // intensity; the segments set by hand stay as set until the style changes.
+  const [style, setStyleState] = useState<RaceStyle>(() => loadRacePlan(entryId)?.style ?? 'balanced')
+  const [fixed, setFixed] = useState<(Intensity | null)[]>(() => loadRacePlan(entryId)?.fixed ?? [])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [tab, setTab] = useState<'strategy' | 'equipment'>('strategy')
-  const { t } = useI18n()
+  const [tab, setTab] = useState<PrepTab>('strategy')
+  const { t, locale } = useI18n()
+
+  const nutrition = { gel: gel && consumables.gel > 0, bar: bar && consumables.bar > 0 }
+  const plan = planRaceBeforeStart(state, race, nutrition, style, fixed)
+  const intensity = plan[0] ?? 'target'
+  const estimate = estimateFirstSegment(state, race, nutrition, intensity)
+
+  function setStyle(next: RaceStyle) {
+    setStyleState(next)
+    setFixed([])
+  }
+
+  function setSegment(index: number, value: Intensity) {
+    setFixed((current) => {
+      const next = segments.map((_, i) => current[i] ?? null)
+      next[index] = value
+      return next
+    })
+  }
 
   async function start() {
     if (busy) return
     setBusy(true)
     setError('')
+    saveRacePlan(entryId, { style, fixed })
     const failure = await present(
       1,
-      () =>
-        startRace({ week: week.number, dayIndex: week.currentDayIndex }, entryId, {
-          intensity,
-          gel: gel && consumables.gel > 0,
-          bar: bar && consumables.bar > 0,
-        }),
+      () => startRace({ week: week.number, dayIndex: week.currentDayIndex }, entryId, { intensity, ...nutrition }),
       (result) => ({ ok: result === null, finished: null }),
     )
     setBusy(false)
@@ -221,14 +245,15 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
   return (
     <Screen eyebrow={t('raceRun.eyebrow', { race: race.name })} title={t('raceRun.title')} description={t('raceRun.description')}>
       {/*
-       * Two tabs (owner request, 4 November 2026): Strategy and the equipment worn, so the finish arch
-       * and the ground of the picture stay visible. Start race is under both.
+       * Tabs (owner requests, 4 and 10 November 2026): Strategy, the Course with each segment's
+       * effort and planned intensity, and the equipment worn. Start race is under all of them.
        */}
       <div className={styles.tileScreen}>
-        <Tabs<'strategy' | 'equipment'>
+        <Tabs<PrepTab>
           label={t('raceRun.tabs')}
           tabs={[
             { id: 'strategy', label: t('raceRun.tab.strategy') },
+            { id: 'course', label: t('raceRun.tab.course') },
             { id: 'equipment', label: t('raceRun.tab.equipment') },
           ]}
           value={tab}
@@ -236,23 +261,6 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
         >
           {tab === 'strategy' ? (
             <div className={styles.prepPanel}>
-              <section className={`${styles.tile} ${styles.tileWide}`} aria-label={t('raceRun.course')}>
-                <span className={styles.tileLabel}>
-                  {t('raceRun.courseLabel', { segments: segments.length, count: segments.length - 1 })}
-                </span>
-                <ol className={styles.segmentCells}>
-                  {segments.map((segment) => (
-                    <li key={segment.index}>
-                      <span>S{segment.index + 1}</span>
-                      <span>{(segment.distanceM / 1000).toFixed(1)} km</span>
-                      <span>
-                        +{Math.round(segment.gainM)} / −{Math.round(segment.lossM)}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-
               <div className={styles.choiceTiles} role="group" aria-label={t('raceRun.nutrition')} data-coach="nutrition">
                 <NutritionToggle picture={gelPicture} label={t('raceRun.gel')} effect={t('raceRun.gelEffect')} stock={consumables.gel} taken={gel} onChange={setGel} />
                 <NutritionToggle picture={barPicture} label={t('raceRun.bar')} effect={t('raceRun.barEffect')} stock={consumables.bar} taken={bar} onChange={setBar} />
@@ -263,6 +271,21 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
                 </Link>
               )}
 
+              <section className={styles.tile} aria-label={t('raceRun.style')}>
+                <span className={styles.tileLabel}>{t('raceRun.style')}</span>
+                <div className={styles.chipsTight}>
+                  <Chips<RaceStyle>
+                    label={t('raceRun.style')}
+                    options={RACE_STYLES.map((id) => ({ id, label: t(`raceRun.style.${id}` as MessageKey) }))}
+                    value={style}
+                    onChange={setStyle}
+                  />
+                </div>
+                <span className={`${styles.tileNote} ${styles.tileHint}`}>
+                  {t(`raceRun.styleHint.${style}` as MessageKey)} {t('raceRun.styleNote')}
+                </span>
+              </section>
+
               <section className={styles.tile} aria-label={t('raceRun.segmentIntensity', { segment: 1 })} data-coach="intensity">
                 <span className={styles.tileLabel}>{t('raceRun.segmentIntensity', { segment: 1 })}</span>
                 <div className={styles.chipsTight}>
@@ -270,10 +293,56 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
                     label={t('raceRun.segmentIntensity', { segment: 1 })}
                     options={intensityOptions(t)}
                     value={intensity}
-                    onChange={setIntensity}
+                    onChange={(value) => setSegment(0, value)}
                   />
                 </div>
                 <span className={`${styles.tileNote} ${styles.tileHint}`}>{intensityHint(intensity, t)}</span>
+                <span className={styles.estimate}>
+                  <span>{t('raceRun.estimatedSegment', { time: durationText(Math.round(estimate.segmentS / 10) * 10) })}</span>
+                  <span>{t('raceRun.estimatedFatigue', { n: Math.max(0, Math.round(estimate.fatigueGain)) })}</span>
+                </span>
+              </section>
+            </div>
+          ) : tab === 'course' ? (
+            <div className={styles.prepPanel}>
+              <section className={`${styles.tile} ${styles.tileWide}`} aria-label={t('raceRun.courseOverview')}>
+                <span className={styles.tileLabel}>{t('raceRun.courseOverview')}</span>
+                <ol className={styles.courseRows}>
+                  {segments.map((segment, i) => (
+                    <li key={segment.index}>
+                      <span className={styles.courseHead}>
+                        <strong>
+                          S{segment.index + 1} · {t(`raceRun.courseKind.${courseKind(segment)}` as MessageKey)}
+                        </strong>
+                        <span>{formatKm(segment.distanceM, locale)} km</span>
+                      </span>
+                      <span className={styles.courseDetail}>{courseDetail(segment, t, locale)}</span>
+                      <select
+                        className={styles.courseSelect}
+                        aria-label={t('raceRun.segmentIntensity', { segment: segment.index + 1 })}
+                        data-manual={fixed[i] ? 'true' : undefined}
+                        value={plan[i]}
+                        onChange={(event) => setSegment(i, event.target.value as Intensity)}
+                      >
+                        {intensityOptions(t).map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </li>
+                  ))}
+                </ol>
+                <dl className={styles.courseTotals}>
+                  <div>
+                    <dt>{t('raceRun.totalDistance')}</dt>
+                    <dd>{formatKm(segments.reduce((sum, s) => sum + s.distanceM, 0), locale)} km</dd>
+                  </div>
+                  <div>
+                    <dt>{t('raceRun.totalGain')}</dt>
+                    <dd>{Math.round(segments.reduce((sum, s) => sum + s.gainM, 0)).toLocaleString(locale)} m</dd>
+                  </div>
+                </dl>
               </section>
             </div>
           ) : (
@@ -293,6 +362,30 @@ function Preparation({ race, entryId, present }: { race: Race; entryId: string; 
       </div>
     </Screen>
   )
+}
+
+/** The kind of effort in one word for the course overview (a technical descent is a descent here). */
+function courseKind(segment: RaceSegment): 'climb' | 'descent' | 'runnable' | 'mixed' {
+  const kind = segmentKind(segment)
+  return kind === 'technical-descent' ? 'descent' : kind
+}
+
+function formatKm(metres: number, locale: string): string {
+  return (Math.round(metres / 100) / 10).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+}
+
+/** "+95 m D+ · 2.4% average gradient", "−95 m D− · Technical descent" or "+40 / −60 m". */
+function courseDetail(segment: RaceSegment, t: Translate, locale: string): string {
+  const gain = Math.round(segment.gainM)
+  const loss = Math.round(segment.lossM)
+  const kind = segmentKind(segment)
+  if (kind === 'climb') {
+    const grade = (Math.round((segment.gainM / segment.distanceM) * 1000) / 10).toLocaleString(locale)
+    return t('raceRun.segmentClimb', { gain, grade: `${grade}%` })
+  }
+  if (kind === 'technical-descent') return t('raceRun.segmentTechnical', { loss })
+  if (kind === 'descent') return t('raceRun.segmentDescent', { loss })
+  return t('raceRun.segmentMixed', { gain, loss })
 }
 
 /** The pictures of the equipment worn, each with its name and level; opens Equipment. */
@@ -421,19 +514,29 @@ function AidStation({ race, present }: { race: Race; present: Present }) {
   const { state, stepRace } = useCareer()
   const report = getRaceReport(state)!
   const [stop, setStop] = useState<AidStop>('normal')
-  const [intensity, setIntensity] = useState<Intensity>(report.last.intensity)
+  const station = report.segmentsDone
+  // The preparation's strategy proposes this segment's intensity (owner request, 10 November
+  // 2026); without one (another device), the last intensity as before.
+  const suggested = useMemo(() => {
+    const stored = loadRacePlan(state.activeRace!.entryId)
+    return stored ? (planRaceAhead(state, stored.style, stored.fixed.slice(station))[0] ?? null) : null
+    // Once per aid station: the plan depends on the race so far, not on the choices being made.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [station])
+  const [intensity, setIntensity] = useState<Intensity>(suggested ?? report.last.intensity)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const heading = useRef<HTMLHeadingElement>(null)
-  const station = report.segmentsDone
   const lastSegment = report.segmentsDone === report.segmentCount - 1
   const { t, locale } = useI18n()
 
   // Every new aid station: back to the defaults, focus on the report.
   useEffect(() => {
     setStop('normal')
+    if (suggested) setIntensity(suggested)
     setError('')
     heading.current?.focus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [station])
 
   const next = report.next
@@ -610,7 +713,10 @@ function AidStation({ race, present }: { race: Race; present: Present }) {
                     aria-label={t(intensityKey(id))}
                     onClick={() => setIntensity(id)}
                   >
-                    <strong>{t(intensityKey(id))}</strong>
+                    <strong>
+                      {t(intensityKey(id))}
+                      {id === suggested && <span className={styles.planBadge}>{t('raceRun.planned')}</span>}
+                    </strong>
                     {preview && target && id !== 'target' ? (
                       <span>
                         {timeText(preview.segmentS - target.segmentS)} ·{' '}

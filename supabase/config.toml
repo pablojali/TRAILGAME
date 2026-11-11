@@ -10,6 +10,7 @@ verify_jwt = true
 entrypoint = "./functions/career-ops/index.js"
 
 [functions.major-ops]
-# The Sunday Major event manager: the caller's session is checked, then the admin rights.
-verify_jwt = true
+# The Sunday Majors. The function checks the caller's session itself (and the admin rights), and
+# the scheduler's tick carries its own secret instead of a session, so the gateway's JWT check is off.
+verify_jwt = false
 entrypoint = "./functions/major-ops/index.js"

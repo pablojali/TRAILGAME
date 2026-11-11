@@ -1,6 +1,6 @@
 import { handleMajorOp } from '../majorOps'
 import { loadServerCareer } from '../careerOps'
-import { createSupabaseMajorStore, createSupabaseRaceStore } from '../majorRest'
+import { checkTickSecret, createSupabaseMajorStore, createSupabaseRaceStore } from '../majorRest'
 import { authenticateWithSupabase, createSupabaseCareerOpsStore, type ServerConfig } from '../supabaseRest'
 
 /**
@@ -50,8 +50,8 @@ Deno.serve(async (request) => {
     const result = await handleMajorOp(token, body, {
       store: createSupabaseMajorStore(settings),
       race: createSupabaseRaceStore(settings),
-      // The scheduler (pg_cron + pg_net) sends this secret; it is never in a browser.
-      tickAuthorized: tickSecret(request) !== null && tickSecret(request) === Deno.env.get('MAJOR_TICK_SECRET'),
+      // The scheduler (pg_cron + pg_net) sends the secret kept in Vault; it is never in a browser.
+      tickAuthorized: (body as { action?: unknown } | null)?.action === 'tick' && (await checkTickSecret(settings, tickSecret(request))),
       loadCareer: (userId) => loadServerCareer(createSupabaseCareerOpsStore(settings), userId, Date.now()),
       authenticate: (value) => authenticateWithSupabase(settings, value),
       now: () => Date.now(),

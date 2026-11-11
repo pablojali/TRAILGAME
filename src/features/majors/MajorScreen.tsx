@@ -16,6 +16,7 @@ import { useI18n, type MessageKey } from '../../i18n/i18n'
 import type { PlayerMajor } from '../../server/majorOps'
 import { intensityOptions, STOP_IDS, stopKey } from '../races/raceStrategyText'
 import { levelRange, untilText, whenText } from './majorText'
+import { LiveRace } from './LiveRace'
 import { majorPhase, useMajors } from './useMajors'
 import styles from './Majors.module.css'
 
@@ -41,6 +42,8 @@ export function MajorScreen() {
   }
   const race = getRace(major.raceId)
   const phase = majorPhase(major, now)
+  // On the grid: the live race (phase 4) in place of the event and plan.
+  const racing = major.registration?.status === 'RACING'
   const run = async (request: Parameters<typeof act>[0], done = '') => {
     setMessage('')
     const problem = await act(request)
@@ -54,48 +57,52 @@ export function MajorScreen() {
       description={t('major.start', { when: `${whenText(major.scheduledStartAt, locale)} · ${untilText(major.scheduledStartAt, now, locale)}` })}
     >
       <div className={styles.screen}>
-        <Tabs<Tab>
-          label={major.name}
-          tabs={[
-            { id: 'event', label: t('major.tab.event') },
-            { id: 'plan', label: t('major.tab.plan') },
-          ]}
-          value={tab}
-          onChange={setTab}
-        >
-          {tab === 'event' ? (
-            <div className={styles.panel}>
-              <div className={styles.hero}>
-                {major.bannerPath ? (
-                  <img src={mediaUrl(major.bannerPath)} alt="" />
-                ) : race && racePhoto(race.id) ? (
-                  <img src={racePhoto(race.id)} alt="" />
-                ) : null}
-                <span className={`${styles.chip} ${styles[`phase-${phase}`] ?? ''}`}>
-                  {phase === 'SCHEDULED' && major.registrationOpenAt
-                    ? t('major.status.SCHEDULED', { when: whenText(major.registrationOpenAt, locale) })
-                    : t(`major.status.${phase}` as MessageKey)}
-                </span>
-              </div>
-              <div className={styles.info}>
-              <p className={styles.start}>
-                {t('major.start', { when: `${whenText(major.scheduledStartAt, locale)} · ${untilText(major.scheduledStartAt, now, locale)}` })}
-              </p>
-              {race && (
-                <p className={styles.course}>
-                  {t('major.course', { race: race.name, km: race.distanceKm, gain: race.elevationGainM.toLocaleString(locale) })}
+        {racing ? (
+          <LiveRace major={major} mediaUrl={mediaUrl} />
+        ) : (
+          <Tabs<Tab>
+            label={major.name}
+            tabs={[
+              { id: 'event', label: t('major.tab.event') },
+              { id: 'plan', label: t('major.tab.plan') },
+            ]}
+            value={tab}
+            onChange={setTab}
+          >
+            {tab === 'event' ? (
+              <div className={styles.panel}>
+                <div className={styles.hero}>
+                  {major.bannerPath ? (
+                    <img src={mediaUrl(major.bannerPath)} alt="" />
+                  ) : race && racePhoto(race.id) ? (
+                    <img src={racePhoto(race.id)} alt="" />
+                  ) : null}
+                  <span className={`${styles.chip} ${styles[`phase-${phase}`] ?? ''}`}>
+                    {phase === 'SCHEDULED' && major.registrationOpenAt
+                      ? t('major.status.SCHEDULED', { when: whenText(major.registrationOpenAt, locale) })
+                      : t(`major.status.${phase}` as MessageKey)}
+                  </span>
+                </div>
+                <div className={styles.info}>
+                <p className={styles.start}>
+                  {t('major.start', { when: `${whenText(major.scheduledStartAt, locale)} · ${untilText(major.scheduledStartAt, now, locale)}` })}
                 </p>
-              )}
-              {major.description && <p className={styles.description}>{major.description}</p>}
-              {major.status === 'CANCELLED' && major.cancelReason && <p className={styles.warning}>{t('major.cancelReason', { reason: major.cancelReason })}</p>}
+                {race && (
+                  <p className={styles.course}>
+                    {t('major.course', { race: race.name, km: race.distanceKm, gain: race.elevationGainM.toLocaleString(locale) })}
+                  </p>
+                )}
+                {major.description && <p className={styles.description}>{major.description}</p>}
+                {major.status === 'CANCELLED' && major.cancelReason && <p className={styles.warning}>{t('major.cancelReason', { reason: major.cancelReason })}</p>}
+                </div>
+                <Categories major={major} />
+                <YourEntry major={major} phase={phase} now={now} />
               </div>
-              <Categories major={major} />
-              <YourEntry major={major} phase={phase} now={now} />
-            </div>
-          ) : (
-            <PlanPanel major={major} busy={busy} onSave={(plan) => run({ action: 'save-plan', id: major.id, plan }, t('major.plan.saved'))} />
-          )}
-        </Tabs>
+            ) : (
+              <PlanPanel major={major} busy={busy} onSave={(plan) => run({ action: 'save-plan', id: major.id, plan }, t('major.plan.saved'))} />
+            )}
+          </Tabs>
+        )}
 
         <div className={styles.grow} />
         {message && (

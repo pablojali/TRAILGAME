@@ -76,8 +76,7 @@ says what is built, phase by phase.
 - **Decisions** (`major_decide`): the runner's own, only while their category's window for that
   aid station is open, by the database's clock. They can be changed until it closes.
 - **Who runs it:**
-  - `major-ops` action `tick`, called every 10 seconds by pg_cron through pg_net with a secret
-    (`MAJOR_TICK_SECRET`, an Edge Function secret; the cron job reads it from Vault);
+  - `major-ops` action `tick`, called every 10 seconds by pg_cron through pg_net (phase 4 below);
   - every player request to `majors`, `race-state` or `decide` also runs what is due;
   - no browser decides when the race moves on.
 - **Player actions:**
@@ -85,16 +84,40 @@ says what is built, phase by phase.
     (players and NPCs marked), and the player's own runner (energy, fatigue, next intensity,
     splits);
   - `decide`: the aid-station decision.
-  - The live screens come in phase 4.
 - **Length:** with `running_s` 150 and windows of 90 s, a 4-segment race lasts about 14.5 min and
   an 8-segment one about 30 min. Change `running_s` in the Studio's configuration to tune it.
-- **Not yet:**
-  - the gel and bar are not yet deducted from the career, and no rewards or ranking points are
-    given (phase 5);
-  - the game has no live race screen yet (phase 4).
+- **Not yet:** the gel and bar are not yet deducted from the career, and no rewards or ranking
+  points are given (phase 5).
+
+## Phase 4: the live race
+
+- **Screen** (`src/features/majors/LiveRace.tsx`): a runner on the grid (registration `RACING`)
+  sees the live race instead of the event and plan tabs.
+  - Phase card:
+    - the category's phase (segment running, aid-station decision, finish);
+    - the server's countdown, corrected for the device clock's offset, with a progress bar;
+    - position, time and energy.
+  - **Race** tab:
+    - the segment's clip while it runs (the event's own clip, else the course's);
+    - the gaps to the runners just ahead and behind;
+    - at an aid station, the decision: stop and next segment's pace, confirmed with one button
+      and changeable until the window closes. Until then, the screen says what the plan will do.
+    - At the finish, the place and time.
+  - **Standings** tab: the 50 in order, NPCs marked, `auto` on players whose last aid station was
+    decided by their plan, the player's row highlighted.
+  - The screen asks for `race-state` every 4 seconds; a lost connection only means catching up.
+- **`race-state` additions:** the decision source of each runner's last aid station, the player's
+  plan (to show what applies without a decision), and the phase lengths.
+- **The tick** (migration `20261114090000_major_tick.sql`):
+  - a random secret generated inside Vault (`major_tick_secret`); nobody types or sees it;
+  - pg_cron job `major-tick`, every 10 seconds, posts `{"action":"tick"}` to `major-ops` with the
+    secret in the `x-major-tick` header;
+  - `major-ops` checks it through `major_tick_check` (service role only);
+  - `major-ops` is deployed with `verify_jwt = false`: it checks the player's or admin's session
+    itself, and the tick carries no session.
+  - The `major-advance` job (every 15 s) keeps starting LOCKED events and filling grids.
 
 ## Next
 
-- Phase 4: the live race screens.
 - Phase 5: results, rewards, ranking (×1.5) and history.
 - Phase 6: the pilot.

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import type { MajorConfig, MajorEventInput, MajorRunnerSnapshot } from '../domain/major/major'
 import type { GameState } from '../game-engine/gameState'
 import { newGame, withAthlete } from '../test/gameFixtures'
+import type { AidStop, Intensity } from '../domain/races/strategyConfig'
+import type { MajorRunnerState } from '../game-engine/majorRace'
+import type { RaceStore } from './majorOrchestrator'
 import { handleMajorOp, MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore } from './majorOps'
 import { refusalOf } from './majorRest'
 
@@ -21,6 +24,8 @@ function fakeStore() {
   const registered: { level: number; name: string; country: string | null }[] = []
   const readies: MajorRunnerSnapshot[] = []
   let advanced = 0
+  let decided: { stop: AidStop; intensity: Intensity; source: 'PLAYER' | 'AUTO' } | null = null
+  const closed = false
   const make = (id: string, input: MajorEventInput): MajorEvent => ({
     id, ...input, status: 'DRAFT', registrationOpenAt: null, readyOpenAt: null, decisionWindowS: null, runningS: null,
     participantLimit: null, bands: null, publishedAt: null, cancelReason: null, bannerPath: null, clips: {}, categories: [],
@@ -67,6 +72,22 @@ function fakeStore() {
       readies.push(snapshot)
       regs.set(`${eventId}:${userId}`, { ...regs.get(`${eventId}:${userId}`)!, status: 'READY', readyAt: 'now' })
     },
+    raceView: async (eventId, userId) =>
+      userId === PLAYER && eventId === ID
+        ? {
+            category: { idx: 1, name: 'Banda 1', phase: 'PA', segment: 0, segments: 2, phaseEndsAt: '2026-11-15T18:04:00Z' },
+            runners: [
+              { slot: 1, kind: 'PLAYER', name: 'Ana', country: 'AR', level: 3, state: raceState(1300, 30) },
+              { slot: 2, kind: 'NPC', name: 'Bo', country: 'FR', level: 4, state: raceState(1290, 25) },
+            ],
+            mySlot: 1,
+            myDecision: decided,
+          }
+        : null,
+    decide: async (_e, _u, _segment, stop, intensity) => {
+      if (closed) throw new MajorStoreError('window-closed')
+      decided = { stop, intensity, source: 'PLAYER' }
+    },
     setClip: async (id, segment, path) => {
       const e = events.get(id)!
       const clips = { ...e.clips }
@@ -81,8 +102,27 @@ function fakeStore() {
 }
 
 const career = withAthlete({ ...newGame(), consumables: { gel: 2, bar: 0 } }, { xp: 2700, fatigue: 22 })
-const deps = (store: MajorStore, loaded: GameState | null = career) => ({
+const noRaces: RaceStore = {
+  startableEvents: async () => [],
+  grid: async () => [],
+  start: async () => false,
+  dueCategories: async () => [],
+  categoryGrid: async () => [],
+  decisions: async () => [],
+  commitStep: async () => false,
+}
+
+function raceState(arrivalS: number, fatigue: number): MajorRunnerState {
+  return {
+    progress: { elapsedS: arrivalS, fatigue, splits: [{ intensity: 'target', segmentS: arrivalS, arrivalS, fatigue, position: 1 }] },
+    next: 'target',
+  }
+}
+
+const deps = (store: MajorStore, loaded: GameState | null = career, tickAuthorized = false) => ({
   store,
+  race: noRaces,
+  tickAuthorized,
   authenticate: async (t: string | null) => t,
   loadCareer: async () => loaded,
   now: () => NOW,
@@ -177,5 +217,34 @@ describe('major-ops (Sunday Major, phase 1)', () => {
     expect((await handleMajorOp(PLAYER, { action: 'withdraw', id: ID }, deps(store))).body).toMatchObject({ ok: true })
     expect((await handleMajorOp(PLAYER, { action: 'withdraw', id: ID }, deps(store))).body).toEqual({ ok: false, error: 'not-registered' })
     expect((await handleMajorOp(PLAYER, { action: 'ready', id: ID }, deps(store))).body).toEqual({ ok: false, error: 'not-registered' })
+  })
+
+  it('runs the scheduler’s tick only with its secret', async () => {
+    const { store } = fakeStore()
+    expect((await handleMajorOp(null, { action: 'tick' }, deps(store))).status).toBe(401)
+    expect((await handleMajorOp(null, { action: 'tick' }, deps(store, career, true))).body).toEqual({ ok: true, started: 0, steps: 0 })
+  })
+
+  it('shows the live race to a runner on the grid: standings with gaps, their energy, and takes their decision', async () => {
+    const { store } = fakeStore()
+    const state = await handleMajorOp(PLAYER, { action: 'race-state', id: ID }, deps(store))
+    expect(state.body).toMatchObject({
+      ok: true,
+      race: {
+        category: { phase: 'PA', segment: 0 },
+        standings: [
+          { slot: 2, position: 1, gapS: 0, kind: 'NPC', name: 'Bo', me: false },
+          { slot: 1, position: 2, gapS: 10, kind: 'PLAYER', name: 'Ana', me: true },
+        ],
+        me: { slot: 1, energy: 70, next: 'target' },
+        myDecision: null,
+      },
+    })
+    expect((await handleMajorOp(ADMIN, { action: 'race-state', id: ID }, deps(store))).body).toEqual({ ok: false, error: 'not-on-grid' })
+    expect((await handleMajorOp(PLAYER, { action: 'decide', id: ID, segment: 0, stop: 'nap', intensity: 'hard' }, deps(store))).status).toBe(400)
+    expect((await handleMajorOp(PLAYER, { action: 'decide', id: ID, segment: 0, stop: 'quick', intensity: 'hard' }, deps(store))).body).toMatchObject({
+      ok: true,
+      race: { myDecision: { stop: 'quick', intensity: 'hard', source: 'PLAYER' } },
+    })
   })
 })

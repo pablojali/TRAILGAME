@@ -1,5 +1,8 @@
 import type { MajorBand, MajorConfig, MajorEventInput, MajorPlan, MajorStatus } from '../domain/major/major'
-import { MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore, type PlayerMajor } from './majorOps'
+import type { AidStop, Intensity } from '../domain/races/strategyConfig'
+import type { MajorRunnerState } from '../game-engine/majorRace'
+import { MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore, type PlayerMajor, type RaceView } from './majorOps'
+import type { DueCategory, GridRow, RaceStore, StoredDecision } from './majorOrchestrator'
 import type { ServerConfig } from './supabaseRest'
 
 /**
@@ -58,6 +61,8 @@ function toEvent(row: EventRow): MajorEvent {
 
 /** The refusal behind a database error raised by the Major functions or the event guard. */
 export function refusalOf(message: string): MajorStoreError | null {
+  if (/decision window is closed/.test(message)) return new MajorStoreError('window-closed')
+  if (/not on the grid/.test(message)) return new MajorStoreError('not-on-grid')
   if (/ready window is closed/.test(message)) return new MajorStoreError('ready-closed')
   if (/registration is closed/.test(message)) return new MajorStoreError('closed')
   if (/already registered/.test(message)) return new MajorStoreError('already-registered')
@@ -290,12 +295,144 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
       await rpc('major_set_ready', { p_event: eventId, p_user: userId, p_snapshot: snapshot, p_now: iso(now) })
     },
 
+    async raceView(eventId, userId) {
+      const mine = await request<{ id: string; category_id: string; slot: number }[]>(
+        `major_participants?event_id=eq.${eventId}&user_id=eq.${encodeURIComponent(userId)}&select=id,category_id,slot`,
+      )
+      const me = mine[0]
+      if (!me) return null
+      const [categories, runners, decisions] = await Promise.all([
+        request<{ idx: number; name: string; phase: RaceView['category']['phase']; segment: number; segments: number | null; phase_ends_at: string | null }[]>(
+          `major_categories?id=eq.${me.category_id}&select=idx,name,phase,segment,segments,phase_ends_at`,
+        ),
+        request<{ slot: number; kind: 'PLAYER' | 'NPC'; display_name: string; country: string | null; level: number; state: MajorRunnerState | Record<string, never> }[]>(
+          `major_participants?category_id=eq.${me.category_id}&select=slot,kind,display_name,country,level,state&order=slot`,
+        ),
+        request<{ segment: number; stop: AidStop; intensity: Intensity; source: 'PLAYER' | 'AUTO' }[]>(
+          `major_decisions?participant_id=eq.${me.id}&select=segment,stop,intensity,source`,
+        ),
+      ])
+      const c = categories[0]!
+      const open = c.phase === 'PA' ? decisions.find((d) => d.segment === c.segment) : undefined
+      return {
+        category: { idx: c.idx, name: c.name, phase: c.phase, segment: c.segment, segments: c.segments, phaseEndsAt: c.phase_ends_at },
+        runners: runners.map((r) => ({
+          slot: r.slot,
+          kind: r.kind,
+          name: r.display_name,
+          country: r.country,
+          level: r.level,
+          state: 'progress' in r.state ? (r.state as MajorRunnerState) : null,
+        })),
+        mySlot: me.slot,
+        myDecision: open ? { stop: open.stop, intensity: open.intensity, source: open.source } : null,
+      }
+    },
+
+    async decide(eventId, userId, segment, stop, intensity) {
+      await rpc('major_decide', { p_event: eventId, p_user: userId, p_segment: segment, p_stop: stop, p_intensity: intensity })
+    },
+
     async log(eventId, userId, kind, detail) {
       await request(
         'major_log',
         { method: 'POST', body: JSON.stringify({ event_id: eventId, actor: userId, kind, detail }) },
         'return=minimal',
       )
+    },
+  }
+}
+
+/** The orchestrator's storage on Supabase (phase 3): reads with the service role, steps via RPC. */
+export function createSupabaseRaceStore(config: ServerConfig): RaceStore {
+  const headers = {
+    apikey: config.serviceRoleKey,
+    Authorization: `Bearer ${config.serviceRoleKey}`,
+    'Content-Type': 'application/json',
+  }
+  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const response = await fetch(`${config.url}/rest/v1/${path}`, { ...init, headers })
+    if (!response.ok) throw new Error(`Database request failed (${response.status}): ${await response.text()}`)
+    return (await response.json()) as T
+  }
+  const iso = (ms: number) => encodeURIComponent(new Date(ms).toISOString())
+  type Row = {
+    id: string
+    category_id: string
+    slot: number
+    kind: 'PLAYER' | 'NPC'
+    level: number
+    runner_snapshot: GridRow['snapshot']
+    plan: Record<string, unknown>
+    state: Record<string, unknown>
+  }
+  const SELECT = 'select=id,category_id,slot,kind,level,runner_snapshot,plan,state&order=slot'
+  const toRow = (r: Row): GridRow => ({
+    id: r.id,
+    categoryId: r.category_id,
+    slot: r.slot,
+    kind: r.kind,
+    level: r.level,
+    snapshot: r.runner_snapshot,
+    plan: r.plan && Object.keys(r.plan).length ? (r.plan as unknown as GridRow['plan']) : null,
+    state: r.state && 'progress' in r.state ? (r.state as unknown as MajorRunnerState) : null,
+  })
+  const rpc = async (name: string, args: Record<string, unknown>) =>
+    request<boolean>(`rpc/${name}`, { method: 'POST', body: JSON.stringify(args) })
+
+  return {
+    async startableEvents(now) {
+      const rows = await request<{ id: string; race_id: string }[]>(`major_events?status=eq.LOCKED&scheduled_start_at=lte.${iso(now)}&select=id,race_id`)
+      return rows.map((r) => ({ id: r.id, raceId: r.race_id }))
+    },
+    async grid(eventId) {
+      return (await request<Row[]>(`major_participants?event_id=eq.${eventId}&${SELECT}`)).map(toRow)
+    },
+    async start(eventId, segments, states, now) {
+      return rpc('major_start', { p_event: eventId, p_segments: segments, p_states: states, p_now: new Date(now).toISOString() })
+    },
+    async dueCategories(now) {
+      const rows = await request<
+        { id: string; event_id: string; phase: 'RUNNING' | 'PA'; segment: number; segments: number; phase_ends_at: string; version: number; major_events: { race_id: string; running_s: number; decision_window_s: number } }[]
+      >(
+        `major_categories?phase=in.(RUNNING,PA)&phase_ends_at=lte.${iso(now)}&select=id,event_id,phase,segment,segments,phase_ends_at,version,major_events(race_id,running_s,decision_window_s)&order=phase_ends_at&limit=40`,
+      )
+      return rows.map(
+        (r): DueCategory => ({
+          id: r.id,
+          eventId: r.event_id,
+          raceId: r.major_events.race_id,
+          phase: r.phase,
+          segment: r.segment,
+          segments: r.segments,
+          phaseEndsAt: Date.parse(r.phase_ends_at),
+          version: r.version,
+          runningS: r.major_events.running_s,
+          windowS: r.major_events.decision_window_s,
+        }),
+      )
+    },
+    async categoryGrid(categoryId) {
+      return (await request<Row[]>(`major_participants?category_id=eq.${categoryId}&${SELECT}`)).map(toRow)
+    },
+    async decisions(categoryId, segment) {
+      const rows = await request<{ participant_id: string; stop: StoredDecision['stop']; intensity: StoredDecision['intensity']; source: StoredDecision['source'] }[]>(
+        `major_decisions?segment=eq.${segment}&select=participant_id,stop,intensity,source,major_participants!inner(category_id)&major_participants.category_id=eq.${categoryId}`,
+      )
+      return rows.map((r) => ({ participantId: r.participant_id, stop: r.stop, intensity: r.intensity, source: r.source }))
+    },
+    async commitStep(step) {
+      return rpc('major_commit_step', {
+        p_category: step.categoryId,
+        p_version: step.version,
+        p_phase: step.phase,
+        p_segment: step.segment,
+        p_started_at: new Date(step.startedAt).toISOString(),
+        p_ends_at: step.endsAt === null ? null : new Date(step.endsAt).toISOString(),
+        p_states: step.states,
+        p_decisions: step.decisions,
+        p_player_decisions_seen: step.playerDecisionsSeen,
+      })
     },
   }
 }

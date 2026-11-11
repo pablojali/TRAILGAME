@@ -50,9 +50,51 @@ says what is built, phase by phase.
     NPC or player), never the snapshots or plans;
   - every write goes through the functions, as the service role.
 
+## Phase 3: the orchestrator
+
+- **Engine** (`src/game-engine/majorRace.ts`):
+  - the solo races' own `runSegment` and `makeStop`, run for every runner of a category;
+  - positions are the runners' own order by arrival (ties by grid slot), with gaps to the leader;
+  - players race with their READY snapshot and plan; NPCs are the typical runner of their level
+    (that level's gear, gel and bar) with a Balanced plan and Normal stops;
+  - each runner's day form is drawn from the event and their slot;
+  - a player who follows their plan gets exactly the solo engine's result (tested).
+- **Phases per category** (`major_categories.phase`, `segment`, `phase_ends_at`, `version`):
+  1. `RUNNING` (segment k) lasts the event's running phase (`running_s`);
+  2. when it ends, segment k is simulated for all 50;
+  3. then `PA` (the aid station after k) stays open for the decision window (`decision_window_s`);
+  4. when it closes, each runner's decision applies: their own if sent, else their plan's, and
+     the plan for NPCs. Then `RUNNING` (k + 1);
+  5. after the last segment, `FINISHED`; when every category has finished, the event is
+     `FINISHED`.
+  - Each phase starts when the last one ended (the official schedule), so a late tick catches up.
+- **Single, atomic steps:**
+  - `major_commit_step` commits a step only from the version it was computed on;
+  - an aid-station step is refused if a player's decision arrived after the decisions were read;
+  - a refused step is read again.
+  - Two calls never apply a step twice, and a call that dies changes nothing.
+- **Decisions** (`major_decide`): the runner's own, only while their category's window for that
+  aid station is open, by the database's clock. They can be changed until it closes.
+- **Who runs it:**
+  - `major-ops` action `tick`, called every 10 seconds by pg_cron through pg_net with a secret
+    (`MAJOR_TICK_SECRET`, an Edge Function secret; the cron job reads it from Vault);
+  - every player request to `majors`, `race-state` or `decide` also runs what is due;
+  - no browser decides when the race moves on.
+- **Player actions:**
+  - `race-state`: the category's phase and window end, the 50 runners' standings with gaps
+    (players and NPCs marked), and the player's own runner (energy, fatigue, next intensity,
+    splits);
+  - `decide`: the aid-station decision.
+  - The live screens come in phase 4.
+- **Length:** with `running_s` 150 and windows of 90 s, a 4-segment race lasts about 14.5 min and
+  an 8-segment one about 30 min. Change `running_s` in the Studio's configuration to tune it.
+- **Not yet:**
+  - the gel and bar are not yet deducted from the career, and no rewards or ranking points are
+    given (phase 5);
+  - the game has no live race screen yet (phase 4).
+
 ## Next
 
-- Phase 3: the orchestrator (start, segments, aid-station windows, automatic decisions, recovery).
 - Phase 4: the live race screens.
 - Phase 5: results, rewards, ranking (×1.5) and history.
 - Phase 6: the pilot.

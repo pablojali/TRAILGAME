@@ -12,6 +12,12 @@ import {
 import { getLevel } from '../domain/athlete/levels'
 import { getRace } from '../domain/races/races'
 import type { GameState } from '../game-engine/gameState'
+import { majorStandings, type MajorRunnerState } from '../game-engine/majorRace'
+import type { AidStop, Intensity } from '../domain/races/strategyConfig'
+import { advanceMajorRaces, type RaceStore } from './majorOrchestrator'
+
+const STOPS: readonly AidStop[] = ['quick', 'normal', 'slow']
+const INTENSITIES: readonly Intensity[] = ['recovery', 'easy', 'target', 'hard']
 import { getRaceSegments } from '../game-engine/raceEngine'
 
 /**
@@ -54,6 +60,8 @@ export interface MajorEvent {
 /** Database refusals the administrator can act on. */
 export type MajorStoreRefusal =
   | 'not-found'
+  | 'window-closed'
+  | 'not-on-grid'
   | 'not-draft'
   | 'too-soon'
   | 'final'
@@ -113,10 +121,37 @@ export interface MajorStore {
   withdraw(eventId: string, userId: string, now: number): Promise<void>
   savePlan(eventId: string, userId: string, plan: MajorPlan, now: number): Promise<void>
   setReady(eventId: string, userId: string, snapshot: MajorRunnerSnapshot, now: number): Promise<void>
+  /** The player's category in the live race; null if they are not on the grid. */
+  raceView(eventId: string, userId: string): Promise<RaceView | null>
+  /** The player's decision at the open aid station (refused once the window closes). */
+  decide(eventId: string, userId: string, segment: number, stop: AidStop, intensity: Intensity): Promise<void>
+}
+
+/** A runner of the player's category, as the live race shows them (phase 3). */
+export interface RaceViewRunner {
+  slot: number
+  kind: 'PLAYER' | 'NPC'
+  name: string
+  country: string | null
+  level: number
+  state: MajorRunnerState | null
+}
+
+/** What `race-state` needs: the player's category, its runners and the player's own decision. */
+export interface RaceView {
+  category: { idx: number; name: string; phase: 'WAITING' | 'RUNNING' | 'PA' | 'FINISHED'; segment: number; segments: number | null; phaseEndsAt: string | null }
+  runners: RaceViewRunner[]
+  mySlot: number
+  /** The player's decision for the open aid station, if any. */
+  myDecision: { stop: AidStop; intensity: Intensity; source: 'PLAYER' | 'AUTO' } | null
 }
 
 export interface MajorOpsDeps {
   store: MajorStore
+  /** The race orchestrator's storage (phase 3). */
+  race: RaceStore
+  /** True when the request carries the scheduler's secret (the `tick` action). */
+  tickAuthorized?: boolean
   /** The player's career as the server has it (Fitness decay applied); null if none. */
   loadCareer(userId: string): Promise<GameState | null>
   authenticate(token: string | null): Promise<string | null>
@@ -139,6 +174,9 @@ export type MajorRequest =
   | { action: 'withdraw'; id: string }
   | { action: 'save-plan'; id: string; plan: unknown }
   | { action: 'ready'; id: string }
+  | { action: 'tick' }
+  | { action: 'race-state'; id: string }
+  | { action: 'decide'; id: string; segment: number; stop: AidStop; intensity: Intensity }
 
 export interface MajorResponse {
   status: number
@@ -196,7 +234,14 @@ export function parseMajorRequest(body: unknown): MajorRequest | null {
     case 'config-get':
     case 'events-list':
     case 'majors':
+    case 'tick':
       return { action: body.action }
+    case 'race-state':
+      return id ? { action: 'race-state', id } : null
+    case 'decide':
+      return id && Number.isInteger(body.segment) && STOPS.includes(body.stop as AidStop) && INTENSITIES.includes(body.intensity as Intensity)
+        ? { action: 'decide', id, segment: body.segment as number, stop: body.stop as AidStop, intensity: body.intensity as Intensity }
+        : null
     case 'register':
     case 'withdraw':
     case 'ready':
@@ -228,6 +273,13 @@ export function parseMajorRequest(body: unknown): MajorRequest | null {
 }
 
 export async function handleMajorOp(token: string | null, body: unknown, deps: MajorOpsDeps): Promise<MajorResponse> {
+  // The scheduler's tick: no user, its own secret (checked by the function before calling here).
+  if (isRecord(body) && body.action === 'tick') {
+    if (!deps.tickAuthorized) return refuse(401, 'not-signed-in')
+    const now = deps.now()
+    await deps.store.advance(now)
+    return ok(await advanceMajorRaces(deps.race, now))
+  }
   const userId = await deps.authenticate(token)
   if (!userId) return refuse(401, 'not-signed-in')
   const request = parseMajorRequest(body)
@@ -335,7 +387,20 @@ async function playerOp(request: MajorRequest, userId: string, deps: MajorOpsDep
   switch (request.action) {
     case 'majors':
       await deps.store.advance(now)
+      await advanceQuietly(deps, now)
       return ok({ majors: await deps.store.playerMajors(userId, now), now: new Date(now).toISOString() })
+    case 'race-state': {
+      await advanceQuietly(deps, now)
+      const view = await deps.store.raceView(request.id, userId)
+      if (!view) return refuse(404, 'not-on-grid')
+      return ok({ race: liveRace(view), now: new Date(now).toISOString() })
+    }
+    case 'decide': {
+      await advanceQuietly(deps, now)
+      await deps.store.decide(request.id, userId, request.segment, request.stop, request.intensity)
+      const view = await deps.store.raceView(request.id, userId)
+      return ok({ race: view && liveRace(view), now: new Date(now).toISOString() })
+    }
     case 'register': {
       const career = await deps.loadCareer(userId)
       if (!career) return refuse(409, 'no-career')
@@ -376,6 +441,46 @@ async function playerOp(request: MajorRequest, userId: string, deps: MajorOpsDep
     }
     default:
       return null
+  }
+}
+
+/**
+ * Players' requests also move the races on (owner specification §7: no browser decides, but any
+ * request may run what is already due), so a late scheduler never holds a race up. Never fails the
+ * request: the scheduler retries.
+ */
+async function advanceQuietly(deps: MajorOpsDeps, now: number): Promise<void> {
+  try {
+    await advanceMajorRaces(deps.race, now, 5)
+  } catch (error) {
+    console.error('major advance failed', error instanceof Error ? error.message : error)
+  }
+}
+
+/** The live race for a player: the phase, the standings with gaps, and their own runner. */
+export function liveRace(view: RaceView) {
+  const withState = view.runners.filter((r): r is RaceViewRunner & { state: MajorRunnerState } => r.state !== null)
+  const table = majorStandings(withState.map((r) => ({ slot: r.slot, state: r.state })))
+  const bySlot = new Map(view.runners.map((r) => [r.slot, r]))
+  const me = bySlot.get(view.mySlot)
+  return {
+    category: view.category,
+    standings: table.map((row) => {
+      const runner = bySlot.get(row.slot)!
+      const last = runner.state?.progress.splits.at(-1)
+      return { ...row, kind: runner.kind, name: runner.name, country: runner.country, level: runner.level, me: row.slot === view.mySlot, intensity: last?.intensity ?? null }
+    }),
+    me: me?.state
+      ? {
+          slot: me.slot,
+          elapsedS: me.state.progress.elapsedS,
+          energy: Math.max(0, 100 - me.state.progress.fatigue),
+          fatigue: me.state.progress.fatigue,
+          next: me.state.next,
+          splits: me.state.progress.splits,
+        }
+      : null,
+    myDecision: view.myDecision,
   }
 }
 

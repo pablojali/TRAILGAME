@@ -1,6 +1,6 @@
 import { handleMajorOp } from '../majorOps'
 import { loadServerCareer } from '../careerOps'
-import { createSupabaseMajorStore } from '../majorRest'
+import { createSupabaseMajorStore, createSupabaseRaceStore } from '../majorRest'
 import { authenticateWithSupabase, createSupabaseCareerOpsStore, type ServerConfig } from '../supabaseRest'
 
 /**
@@ -30,6 +30,11 @@ function config(): ServerConfig {
   return { url, anonKey, serviceRoleKey }
 }
 
+function tickSecret(request: Request): string | null {
+  const value = request.headers.get('x-major-tick')
+  return value && value.length >= 32 ? value : null
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (request.method !== 'POST') return json(405, { ok: false, error: 'method-not-allowed' })
@@ -44,6 +49,9 @@ Deno.serve(async (request) => {
     const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? null
     const result = await handleMajorOp(token, body, {
       store: createSupabaseMajorStore(settings),
+      race: createSupabaseRaceStore(settings),
+      // The scheduler (pg_cron + pg_net) sends this secret; it is never in a browser.
+      tickAuthorized: tickSecret(request) !== null && tickSecret(request) === Deno.env.get('MAJOR_TICK_SECRET'),
       loadCareer: (userId) => loadServerCareer(createSupabaseCareerOpsStore(settings), userId, Date.now()),
       authenticate: (value) => authenticateWithSupabase(settings, value),
       now: () => Date.now(),

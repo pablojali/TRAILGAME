@@ -410,6 +410,17 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
     [commit, currentState, ops, runServerOp, sync],
   )
 
+  const claimMajorResults = useCallback(async () => {
+    const state = currentState()
+    if (!ops || !state) return
+    await runServerOp('claim', (operationId) => ({
+      action: 'claim',
+      operationId,
+      baseVersion: sync?.knownVersion() ?? null,
+      snapshot: state,
+    }))
+  }, [currentState, ops, runServerOp, sync])
+
   const enter = useCallback(
     async (raceId: string): Promise<RaceEntryError | ServerError | null> => {
       const state = currentState()
@@ -597,6 +608,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       executeDay,
       allocateAttributePoint: allocate,
       enterRace: enter,
+      claimMajorResults,
       startRace: beginRace,
       stepRace: continueRace,
       setItemEquipped: equip,
@@ -625,6 +637,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       executeDay,
       allocate,
       enter,
+      claimMajorResults,
       beginRace,
       continueRace,
       equip,

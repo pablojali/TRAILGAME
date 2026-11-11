@@ -1,7 +1,7 @@
 import type { MajorBand, MajorConfig, MajorEventInput, MajorPlan, MajorStatus } from '../domain/major/major'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
 import type { MajorRunnerState } from '../game-engine/majorRace'
-import { MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore, type PlayerMajor, type RaceView } from './majorOps'
+import { MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore, type MajorReport, type PlayerMajor, type RaceView } from './majorOps'
 import type { DueCategory, GridRow, RaceStore, StoredDecision } from './majorOrchestrator'
 import type { ServerConfig } from './supabaseRest'
 
@@ -311,7 +311,7 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
         request<{ segment: number; stop: AidStop; intensity: Intensity; source: 'PLAYER' | 'AUTO' }[]>(
           `major_decisions?participant_id=eq.${me.id}&select=segment,stop,intensity,source`,
         ),
-        request<{ running_s: number; decision_window_s: number }[]>(`major_events?id=eq.${eventId}&select=running_s,decision_window_s`),
+        request<{ race_id: string; running_s: number; decision_window_s: number }[]>(`major_events?id=eq.${eventId}&select=race_id,running_s,decision_window_s`),
       ])
       const c = categories[0]!
       const open = c.phase === 'PA' ? decisions.find((d) => d.segment === c.segment) : undefined
@@ -326,6 +326,7 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
       }
       return {
         category: { idx: c.idx, name: c.name, phase: c.phase, segment: c.segment, segments: c.segments, phaseEndsAt: c.phase_ends_at },
+        raceId: events[0]?.race_id ?? '',
         runners: runners.map((r) => ({
           slot: r.slot,
           kind: r.kind,
@@ -345,6 +346,56 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
 
     async decide(eventId, userId, segment, stop, intensity) {
       await rpc('major_decide', { p_event: eventId, p_user: userId, p_segment: segment, p_stop: stop, p_intensity: intensity })
+    },
+
+    async report(eventId) {
+      type One<T> = T | T[] | null
+      const first = <T,>(value: One<T>): T | null => (Array.isArray(value) ? (value[0] ?? null) : value)
+      const [categories, runners] = await Promise.all([
+        request<{ id: string; idx: number; name: string; phase: string }[]>(`major_categories?event_id=eq.${eventId}&select=id,idx,name,phase&order=idx`),
+        request<
+          {
+            slot: number
+            category_id: string
+            kind: 'PLAYER' | 'NPC'
+            display_name: string
+            country: string | null
+            level: number
+            major_results: One<{ position: number; time_s: number }>
+            major_rewards: One<{ claimed_at: string | null }>
+          }[]
+        >(`major_participants?event_id=eq.${eventId}&select=slot,category_id,kind,display_name,country,level,major_results(position,time_s),major_rewards(claimed_at)&order=slot`),
+      ])
+      const report: MajorReport = {
+        categories: categories.map((c) => {
+          const rows = runners
+            .filter((r) => r.category_id === c.id)
+            .map((r) => {
+              const result = first(r.major_results)
+              const reward = first(r.major_rewards)
+              return {
+                slot: r.slot,
+                kind: r.kind,
+                name: r.display_name,
+                country: r.country,
+                level: r.level,
+                position: result?.position ?? null,
+                timeS: result?.time_s ?? null,
+                claimed: r.kind === 'PLAYER' ? reward !== null && reward.claimed_at !== null : null,
+              }
+            })
+            .sort((a, b) => (a.position ?? 99) - (b.position ?? 99) || a.slot - b.slot)
+          return {
+            idx: c.idx,
+            name: c.name,
+            phase: c.phase,
+            players: rows.filter((r) => r.kind === 'PLAYER').length,
+            npcs: rows.filter((r) => r.kind === 'NPC').length,
+            rows,
+          }
+        }),
+      }
+      return report
     },
 
     async log(eventId, userId, kind, detail) {
@@ -407,14 +458,15 @@ export function createSupabaseRaceStore(config: ServerConfig): RaceStore {
     },
     async dueCategories(now) {
       const rows = await request<
-        { id: string; event_id: string; phase: 'RUNNING' | 'PA'; segment: number; segments: number; phase_ends_at: string; version: number; major_events: { race_id: string; running_s: number; decision_window_s: number } }[]
+        { id: string; event_id: string; phase: 'RUNNING' | 'PA'; segment: number; segments: number; phase_ends_at: string; version: number; major_events: { name: string; race_id: string; running_s: number; decision_window_s: number } }[]
       >(
-        `major_categories?phase=in.(RUNNING,PA)&phase_ends_at=lte.${iso(now)}&select=id,event_id,phase,segment,segments,phase_ends_at,version,major_events(race_id,running_s,decision_window_s)&order=phase_ends_at&limit=40`,
+        `major_categories?phase=in.(RUNNING,PA)&phase_ends_at=lte.${iso(now)}&select=id,event_id,phase,segment,segments,phase_ends_at,version,major_events(name,race_id,running_s,decision_window_s)&order=phase_ends_at&limit=40`,
       )
       return rows.map(
         (r): DueCategory => ({
           id: r.id,
           eventId: r.event_id,
+          eventName: r.major_events.name,
           raceId: r.major_events.race_id,
           phase: r.phase,
           segment: r.segment,
@@ -446,6 +498,8 @@ export function createSupabaseRaceStore(config: ServerConfig): RaceStore {
         p_states: step.states,
         p_decisions: step.decisions,
         p_player_decisions_seen: step.playerDecisionsSeen,
+        p_results: step.results ?? null,
+        p_rewards: step.rewards ?? null,
       })
     },
   }

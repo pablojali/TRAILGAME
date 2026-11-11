@@ -70,6 +70,14 @@ select pg_temp.act_as('00000000-0000-0000-0000-0000000000a2');
 select pg_temp.expect((select string_agg(name, ',' order by rank) from public.get_ranking('annual', null, null, null, 10, 1)) = 'Ana,Bo',
   'always adds the caller''s own row');
 
+-- A Sunday Major's result (phase 5) is recorded as competition 'major'; every other as 'standard'.
+reset role;
+update public.careers set game_state = jsonb_build_object('athlete', pg_temp.athlete('Cy', 'AR', 'male'), 'raceEntries',
+  jsonb_build_array(pg_temp.result('major-x', (select now_season from s), 30, 0) || '{"major":{"eventId":"x","name":"M"}}'::jsonb))
+where user_id = '00000000-0000-0000-0000-0000000000a3';
+select pg_temp.expect((select competition = 'major' from public.ranking_results where entry_id = 'major-x'), 'a Major result is a major one');
+select pg_temp.expect((select bool_and(competition = 'standard') from public.ranking_results where entry_id <> 'major-x'), 'the others are standard');
+
 select pg_temp.act_as('anon');
 select pg_temp.expect_error('select * from public.get_ranking(''annual'')', 'closed to anon');
 select pg_temp.expect(true, 'ALL RANKING CHECKS PASSED');

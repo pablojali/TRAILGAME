@@ -6,6 +6,8 @@ import { execute, newGame, onSunday, T0, withAthlete, withEntry } from '../test/
 import { getRace } from '../domain/races/races'
 import { getRaceRewards, raceCurrentDay } from '../game-engine/races'
 import { getEditionField } from '../game-engine/raceEngine'
+import { majorEntryId, majorPrize, type MajorRewardPayload } from '../game-engine/majorRewards'
+import { majorPayload } from '../test/majorFixtures'
 import { handleCareerOp, type CareerOpsDeps, type CareerOpsStore, type CareerRecord, type OperationKind } from './careerOps'
 
 const NOW = T0 + 60 * 60 * 1000
@@ -763,5 +765,70 @@ describe('career-ops: races step by step on the server (Race Engine V1)', () => 
     const response = await handleCareerOp('token-ana', { action: 'race', operationId: op(1), baseVersion: 1, ref: ref(state), entryId: entry.id }, deps(memory))
     expect(response).toMatchObject({ status: 400, body: { ok: false, error: 'bad-request' } })
     expect(memory.commits()).toBe(0)
+  })
+})
+
+describe('career-ops: Sunday Major results (phase 5)', () => {
+  function withRewards(memory: ReturnType<typeof memoryStore>, rewards: { id: string; payload: MajorRewardPayload }[]) {
+    const claimed: string[] = []
+    memory.store.majorRewards = async () => rewards.filter((r) => !claimed.includes(r.id))
+    memory.store.markMajorRewards = async (ids) => {
+      claimed.push(...ids)
+    }
+    return claimed
+  }
+
+  it('adds a waiting Major result to the career at the next request, once, and marks it claimed', async () => {
+    const memory = memoryStore()
+    const career = newGame()
+    memory.seed('ana', career)
+    const payload = majorPayload()
+    const claimed = withRewards(memory, [{ id: 'r1', payload }])
+    const response = await handleCareerOp('token-ana', { action: 'save', baseVersion: 1, snapshot: career }, deps(memory))
+    expect(response.status).toBe(200)
+    const stored = memory.stateOf('ana')
+    const entry = stored.raceEntries.find((e) => e.id === majorEntryId(payload.eventId))
+    expect(entry).toMatchObject({ status: 'finished', major: { name: 'Major de Noviembre' }, result: { position: 12 } })
+    expect(stored.coins).toBe(career.coins + majorPrize(getRace('RACE-002')!, 12).coins)
+    expect(claimed).toEqual(['r1'])
+
+    // A reward not yet marked (the mark failed) is not applied again.
+    claimed.length = 0
+    const train = await handleCareerOp(
+      'token-ana',
+      { action: 'train', operationId: op(900), baseVersion: 2, ref: ref(stored), session: 'rest' },
+      deps(memory),
+    )
+    expect(train.status).toBe(200)
+    expect(memory.stateOf('ana').raceEntries.filter((e) => e.major)).toHaveLength(1)
+    expect(memory.stateOf('ana').coins).toBe(stored.coins)
+    expect(claimed).toEqual(['r1'])
+  })
+
+  it('claim: adds the waiting result right after the finish; with nothing waiting it saves nothing', async () => {
+    const memory = memoryStore()
+    const career = newGame()
+    memory.seed('ana', career)
+    withRewards(memory, [])
+    const idle = await handleCareerOp('token-ana', { action: 'claim', operationId: op(950), baseVersion: 1, snapshot: career }, deps(memory))
+    expect(idle.status).toBe(200)
+    expect(memory.commits()).toBe(0)
+    withRewards(memory, [{ id: 'r9', payload: majorPayload() }])
+    const claimed = await handleCareerOp('token-ana', { action: 'claim', operationId: op(951), baseVersion: 1, snapshot: career }, deps(memory))
+    expect(claimed.body).toMatchObject({ ok: true, version: 2 })
+    expect(memory.stateOf('ana').raceEntries).toHaveLength(1)
+    expect(memory.stateOf('ana').week).toEqual(career.week)
+  })
+
+  it('a reward store that fails does not block the player', async () => {
+    const memory = memoryStore()
+    const career = newGame()
+    memory.seed('ana', career)
+    memory.store.majorRewards = async () => {
+      throw new Error('down')
+    }
+    const response = await handleCareerOp('token-ana', { action: 'save', baseVersion: 1, snapshot: career }, deps(memory))
+    expect(response.status).toBe(200)
+    expect(memory.stateOf('ana').raceEntries).toHaveLength(0)
   })
 })

@@ -1318,3 +1318,34 @@ button:disabled {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Post-race report of a Major. */
+.majorReport {
+  margin: 10px 0 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.majorReport details {
+  margin-top: 10px;
+}
+
+.majorReport summary {
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.reportTotals {
+  margin: 6px 0;
+}
+
+.kind-npc {
+  border-color: #8a8f99;
+  color: #b9bec8;
+}
+
+.kind-player {
+  border-color: #f07c2a;
+  color: #f7a865;
+}

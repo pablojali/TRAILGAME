@@ -4,6 +4,7 @@ import { nextSundayStart, validateBands, type MajorBand, type MajorConfig, type 
 import { RACES } from '../domain/races/races'
 import type { MajorEvent } from '../server/majorOps'
 import { MajorMedia } from './MajorMedia'
+import { MajorReport } from './MajorReport'
 import { BAND_ERRORS, errorText } from './majorTexts'
 import { bothTimes, currentSession, majorClient, majorOps, sendMagicLink, signOut } from './majorClient'
 
@@ -126,6 +127,7 @@ function MajorsAdmin() {
   const [events, setEvents] = useState<MajorEvent[] | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [mediaFor, setMediaFor] = useState<string | null>(null)
+  const [reportFor, setReportFor] = useState<MajorEvent | null>(null)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -238,6 +240,7 @@ function MajorsAdmin() {
             </div>
           </>
         )}
+        {reportFor && <MajorReport eventId={reportFor.id} name={reportFor.name} onClose={() => setReportFor(null)} />}
         {!events ? (
           <p className="loading">Leyendo los Majors…</p>
         ) : events.length === 0 ? (
@@ -308,6 +311,11 @@ function MajorsAdmin() {
                       {!['RUNNING', 'FINISHED', 'CANCELLED'].includes(event.status) && (
                         <button type="button" className="ghost small" disabled={busy} onClick={() => setMediaFor(event.id)}>
                           Banner y vídeos
+                        </button>
+                      )}
+                      {(event.status === 'RUNNING' || event.status === 'FINISHED') && (
+                        <button type="button" className="primary small" disabled={busy} onClick={() => setReportFor(event)}>
+                          Informe
                         </button>
                       )}
                       {event.status !== 'FINISHED' && event.status !== 'CANCELLED' && (

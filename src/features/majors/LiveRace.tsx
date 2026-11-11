@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import button from '../../components/Button.module.css'
 import { Chips, Tabs } from '../../components/Tabs'
+import { useBackdropScene } from '../../components/backdrop/sceneOverride'
 import { getRace } from '../../domain/races/races'
 import type { AidStop, Intensity } from '../../domain/races/strategyConfig'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
+import { useGame } from '../../app/game/gameContext'
 import { getMajorService } from '../../repositories/supabase/majorClient'
 import type { LiveRace as LiveRaceView, PlayerMajor } from '../../server/majorOps'
 import { raceClip } from '../races/raceClips'
@@ -25,6 +27,14 @@ export function LiveRace({ major, mediaUrl }: { major: PlayerMajor; mediaUrl(pat
   const { t, locale } = useI18n()
   const [tab, setTab] = useState<Tab>('race')
   const now = useTicker()
+  // At an aid station: the solo races' aid-station picture behind the screen.
+  useBackdropScene(race?.category.phase === 'PA' ? 'aid-station' : null)
+  // At the finish: the result, coins, XP and points go into the career now.
+  const finished = race?.category.phase === 'FINISHED'
+  const { claimMajorResults } = useGame()
+  useEffect(() => {
+    if (finished) void claimMajorResults()
+  }, [finished, claimMajorResults])
   if (!race) return <p className={styles.hint}>{error ? t(`major.error.${error}` as MessageKey) : t('major.loading')}</p>
 
   const { category, me } = race
@@ -94,6 +104,7 @@ export function LiveRace({ major, mediaUrl }: { major: PlayerMajor; mediaUrl(pat
             {category.phase === 'FINISHED' && mine && (
               <p className={styles.entry}>
                 {t('major.live.result', { position: ordinal(mine.position, locale), field: race.standings.length, time: raceTimeText(mine.timeS) })}
+                {race.prize && <span> {t('major.live.prize', race.prize)}</span>}
               </p>
             )}
           </div>
@@ -191,7 +202,6 @@ function Standings({ race }: { race: LiveRaceView }) {
             {row.name}
             {row.me && <em> · {t('major.live.you')}</em>}
           </span>
-          {row.kind === 'NPC' && <span className={styles.tagNpc}>{t('major.live.npc')}</span>}
           {row.auto && <span className={styles.tagAuto}>{t('major.live.auto')}</span>}
           <span className={styles.gap}>{row.gapS === 0 ? raceTimeText(row.timeS) : `+${durationText(row.gapS)}`}</span>
         </li>

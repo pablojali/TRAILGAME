@@ -1,3 +1,4 @@
+import type { MajorRewardPayload } from '../game-engine/majorRewards'
 import type { GameState } from '../game-engine/gameState'
 import { SCHEMA_VERSION } from '../repositories/gameRepository'
 import type { CareerOpsStore, CommitStatus } from './careerOps'
@@ -74,6 +75,22 @@ export function createSupabaseCareerOpsStore(config: ServerConfig): CareerOpsSto
       const row = rows[0]
       if (!row) throw new Error('commit_career returned nothing')
       return row
+    },
+
+    async majorRewards(userId) {
+      return get<{ id: string; payload: MajorRewardPayload }>(
+        `major_rewards?user_id=eq.${encodeURIComponent(userId)}&claimed_at=is.null&select=id,payload&order=created_at`,
+      )
+    },
+
+    async markMajorRewards(ids) {
+      const list = ids.map((id) => encodeURIComponent(id)).join(',')
+      const response = await fetch(`${config.url}/rest/v1/major_rewards?id=in.(${list})&claimed_at=is.null`, {
+        method: 'PATCH',
+        headers: { ...headers, Prefer: 'return=minimal' },
+        body: JSON.stringify({ claimed_at: new Date().toISOString() }),
+      })
+      if (!response.ok) throw new Error(`Database write failed (${response.status})`)
     },
   }
 }

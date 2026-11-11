@@ -148,6 +148,8 @@ interface RaceEntryBase {
   levelAtEntry: number
   /** Epoch ms. */
   enteredAt: number
+  /** A Sunday Major (phase 5): the event, outside the calendar. Missing for every other race. */
+  major?: { eventId: string; name: string }
 }
 
 export interface PendingRaceEntry extends RaceEntryBase {

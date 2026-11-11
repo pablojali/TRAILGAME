@@ -163,9 +163,9 @@ export function CareerScreen({ rankingService = getRankingService() }: { ranking
                         <li key={entry.id}>
                           <Link to={`/races/results/${entry.id}`} className={styles.historyRow}>
                             <span className={styles.when}>
-                              {t('career.when', { week: entry.result.week, day: t(weekdayShortKey(entry.result.day)) })}
+                              {entry.major ? t('career.major') : t('career.when', { week: entry.result.week, day: t(weekdayShortKey(entry.result.day)) })}
                             </span>
-                            <span className={styles.raceName}>{race.name}</span>
+                            <span className={styles.raceName}>{entry.major ? entry.major.name : race.name}</span>
                             <Position position={entry.result.position} fieldSize={entry.result.fieldSize} />
                             <span className={styles.time}>{raceTimeText(entry.result.timeS)}</span>
                           </Link>

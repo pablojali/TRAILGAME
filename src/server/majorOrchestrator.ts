@@ -13,6 +13,8 @@ import {
   type MajorRunnerState,
 } from '../game-engine/majorRace'
 import type { StepContext } from '../game-engine/raceEngine'
+import type { MajorRewardPayload } from '../game-engine/majorRewards'
+import { majorStandings } from '../game-engine/majorRace'
 
 /**
  * The race orchestrator (Sunday Major, phase 3; owner specification §6–7). Stateless: every call
@@ -37,6 +39,7 @@ export interface GridRow {
 export interface DueCategory {
   id: string
   eventId: string
+  eventName: string
   raceId: string
   phase: 'RUNNING' | 'PA'
   segment: number
@@ -73,6 +76,9 @@ export interface RaceStore {
     states: { id: string; state: MajorRunnerState }[]
     decisions: { participantId: string; segment: number; stop: AidStop; intensity: Intensity }[]
     playerDecisionsSeen: number
+    /** At the finish (phase 5): every runner's place and time, and each player's reward. */
+    results?: { participantId: string; position: number; timeS: number }[]
+    rewards?: { participantId: string; payload: MajorRewardPayload }[]
   }): Promise<boolean>
 }
 
@@ -115,7 +121,9 @@ export async function stepCategory(store: RaceStore, category: DueCategory): Pro
   if (category.phase === 'RUNNING') {
     const ran = runMajorSegment(contexts, runners)
     const last = category.segment >= category.segments - 1
+    const finish = last ? finalResults(category, rows, contexts, ran) : {}
     return store.commitStep({
+      ...finish,
       categoryId: category.id,
       version: category.version,
       phase: last ? 'FINISHED' : 'PA',
@@ -154,6 +162,51 @@ export async function stepCategory(store: RaceStore, category: DueCategory): Pro
     decisions: automatic,
     playerDecisionsSeen: [...stored.values()].filter((d) => d.source === 'PLAYER').length,
   })
+}
+
+/** The final standings and each player's reward payload (career-ops applies it later). */
+function finalResults(
+  category: DueCategory,
+  rows: readonly GridRow[],
+  contexts: ReadonlyMap<number, StepContext>,
+  ran: readonly { slot: number; state: MajorRunnerState }[],
+): { results: { participantId: string; position: number; timeS: number }[]; rewards: { participantId: string; payload: MajorRewardPayload }[] } {
+  const bySlot = new Map(rows.map((row) => [row.slot, row]))
+  const stateOf = new Map(ran.map((r) => [r.slot, r.state]))
+  const table = majorStandings(ran)
+  const finishedAt = category.phaseEndsAt
+  // Every run took (segments × running phase) plus (segments − 1) windows, from the official start.
+  const startedAt = finishedAt - category.segments * category.runningS * 1000 - (category.segments - 1) * category.windowS * 1000
+  const results = table.map((row) => ({ participantId: bySlot.get(row.slot)!.id, position: row.position, timeS: row.timeS }))
+  const rewards = table.flatMap((row) => {
+    const runner = bySlot.get(row.slot)!
+    const snapshot = runner.snapshot
+    if (runner.kind !== 'PLAYER' || !snapshot) return []
+    const state = stateOf.get(row.slot)!
+    const ctx = contexts.get(row.slot)!
+    const payload: MajorRewardPayload = {
+      eventId: category.eventId,
+      eventName: category.eventName,
+      raceId: category.raceId,
+      position: row.position,
+      fieldSize: table.length,
+      timeS: row.timeS,
+      startedAt,
+      finishedAt,
+      levelAtStart: snapshot.level,
+      attributes: { ...snapshot.attributes },
+      fitness: snapshot.fitness,
+      fatigue: snapshot.fatigue,
+      equipment: [...snapshot.equipment],
+      dayForm: ctx.dayForm,
+      finishFatigue: Math.round(state.progress.fatigue * 100) / 100,
+      splits: state.progress.splits,
+      nutrition: { ...ctx.nutrition },
+      rivalTimesS: table.filter((other) => other.slot !== row.slot).map((other) => other.timeS),
+    }
+    return [{ participantId: runner.id, payload }]
+  })
+  return { results, rewards }
 }
 
 /**

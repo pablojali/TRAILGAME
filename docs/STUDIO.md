@@ -125,6 +125,10 @@ request, no code publish.
       uploads signed by `major-ops`; nothing goes through GitHub.
     - They can change until the race is run.
   - A published event can no longer be edited (its media aside). The database refuses every invalid transition.
+  - **Report** ("Informe", events running or finished; phase 5): how many players and NPCs raced
+    each category, and the standings with who was an NPC, the level, the time and whether the
+    player's result is already in their career. Players never see who is an NPC (in the game, only
+    a name ending with a full stop hints at it).
 - **Configuration:** default start time (UTC), when registration and READY open, the aid-station
   decision window, the running phase per segment, participants per category, and the level bands.
   The bands are contiguous from level 1, with the last one open-ended. The configuration applies to

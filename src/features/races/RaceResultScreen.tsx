@@ -69,8 +69,9 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
 
   const [params, setParams] = useSearchParams()
   const { t, locale } = useI18n()
-  // Results saved before Race Engine V1 have no splits.
-  const tabs = (result.splits ? RESULT_TABS : RESULT_TABS.filter((id) => id !== 'splits')).map((id) => ({
+  // Results saved before Race Engine V1 have no splits. A Sunday Major's field was the real one
+  // (players and NPCs), not the solo race's rivals: its standings are in the Major's own screen.
+  const tabs = RESULT_TABS.filter((id) => (id !== 'splits' || result.splits) && (id !== 'standings' || !entry.major)).map((id) => ({
     id,
     label: t(`result.tab.${id}`),
   }))
@@ -78,7 +79,7 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
 
   return (
     <Screen
-      eyebrow={t('result.eyebrow', { race: race.name })}
+      eyebrow={t('result.eyebrow', { race: entry.major ? `${entry.major.name} · ${race.name}` : race.name })}
       title={t('result.title', { position: ordinal(result.position, locale), field: result.fieldSize })}
       description={t('result.description', {
         format: t(`format.${raceFormat(race)}`),

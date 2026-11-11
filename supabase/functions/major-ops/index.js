@@ -96,6 +96,15 @@ var PRIZE_BANDS = [
   { from: 4, to: 10, label: "4th\u201310th" },
   { from: 11, to: null, label: "11th or lower" }
 ];
+var GROSS_PRIZES = {
+  open: [100, 70, 50, 25, 10],
+  trail: [300, 210, 150, 75, 30],
+  mountain: [700, 490, 350, 175, 70],
+  elite: [1500, 1050, 750, 375, 150]
+};
+var RACE_XP_BASE = { open: 300, trail: 600, mountain: 1e3, elite: 1800 };
+var RACE_MIN_XP = 18;
+var RACE_XP_BAND_PCT = [100, 70, 50, 25, 10];
 
 // src/domain/races/races.ts
 var RACE_LANGUAGES = ["es", "fr", "it", "de"];
@@ -1199,615 +1208,6 @@ function majorStandings(runners) {
   return arrivals.map((row, i) => ({ ...row, position: i + 1, gapS: row.timeS - leader }));
 }
 
-// src/server/majorOrchestrator.ts
-function runnerOf(row) {
-  return { slot: row.slot, kind: row.kind, level: row.level, snapshot: row.snapshot, plan: row.plan };
-}
-function contextsOf(raceId, eventId, rows) {
-  const race = getRace(raceId);
-  if (!race) throw new Error(`Major course ${raceId} is not in the catalog`);
-  const field = majorField(race);
-  return new Map(rows.map((row) => [row.slot, majorContext(race, field, eventId, runnerOf(row))]));
-}
-async function startEvents(store, now) {
-  let started = 0;
-  for (const event of await store.startableEvents(now)) {
-    const rows = await store.grid(event.id);
-    const race = getRace(event.raceId);
-    if (!race) continue;
-    const contexts = contextsOf(event.raceId, event.id, rows);
-    const states = rows.map((row) => ({ id: row.id, state: initialState(contexts.get(row.slot), runnerOf(row)) }));
-    if (await store.start(event.id, majorField(race).segments.length, states, now)) started++;
-  }
-  return started;
-}
-async function stepCategory(store, category) {
-  const rows = await store.categoryGrid(category.id);
-  const contexts = contextsOf(category.raceId, category.eventId, rows);
-  const bySlot = new Map(rows.map((row) => [row.slot, row]));
-  const runners = rows.map((row) => {
-    if (!row.state) throw new Error(`Major runner ${row.id} has no state`);
-    return { slot: row.slot, state: row.state };
-  });
-  const startedAt = category.phaseEndsAt;
-  if (category.phase === "RUNNING") {
-    const ran = runMajorSegment(contexts, runners);
-    const last = category.segment >= category.segments - 1;
-    return store.commitStep({
-      categoryId: category.id,
-      version: category.version,
-      phase: last ? "FINISHED" : "PA",
-      segment: category.segment,
-      startedAt,
-      endsAt: last ? null : startedAt + category.windowS * 1e3,
-      states: ran.map(({ slot, state }) => ({ id: bySlot.get(slot).id, state })),
-      decisions: [],
-      playerDecisionsSeen: 0
-    });
-  }
-  const stored = new Map((await store.decisions(category.id, category.segment)).map((d) => [d.participantId, d]));
-  const automatic = [];
-  const decided = runners.map(({ slot, state }) => {
-    const row = bySlot.get(slot);
-    const mine = stored.get(row.id);
-    let decision;
-    if (mine) decision = { stop: mine.stop, intensity: mine.intensity };
-    else {
-      decision = automaticDecision(runnerOf(row), state, category.segment, category.segments);
-      automatic.push({ participantId: row.id, segment: category.segment, ...decision });
-    }
-    return { slot, state, decision };
-  });
-  const after = applyMajorDecisions(contexts, decided);
-  return store.commitStep({
-    categoryId: category.id,
-    version: category.version,
-    phase: "RUNNING",
-    segment: category.segment + 1,
-    startedAt,
-    endsAt: startedAt + category.runningS * 1e3,
-    states: after.map(({ slot, state }) => ({ id: bySlot.get(slot).id, state })),
-    decisions: automatic,
-    playerDecisionsSeen: [...stored.values()].filter((d) => d.source === "PLAYER").length
-  });
-}
-async function advanceMajorRaces(store, now, maxRounds = 20) {
-  const started = await startEvents(store, now);
-  let steps = 0;
-  let refused = 0;
-  for (let round = 0; round < maxRounds; round++) {
-    const due = await store.dueCategories(now);
-    if (due.length === 0) break;
-    for (const category of due) {
-      if (await stepCategory(store, category)) steps++;
-      else refused++;
-    }
-    if (refused > 3) break;
-  }
-  return { started, steps };
-}
-
-// src/server/majorOps.ts
-var STOPS = ["quick", "normal", "slow"];
-var INTENSITIES2 = ["recovery", "easy", "target", "hard"];
-var MajorStoreError = class extends Error {
-  refusal;
-  constructor(refusal) {
-    super(refusal);
-    this.refusal = refusal;
-  }
-};
-var MEDIA_EDITABLE = ["DRAFT", "SCHEDULED", "REGISTRATION_OPEN", "LOCKED", "STARTING"];
-var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-var ok = (body = {}) => ({ status: 200, body: { ok: true, ...body } });
-var refuse = (status, error) => ({ status, body: { ok: false, error } });
-function isRecord(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function isEventInput(value) {
-  return isRecord(value) && typeof value.name === "string" && typeof value.description === "string" && typeof value.raceId === "string" && typeof value.scheduledStartAt === "string";
-}
-function isBand(value) {
-  return isRecord(value) && typeof value.name === "string" && typeof value.min === "number" && (value.max === null || typeof value.max === "number");
-}
-function isConfig(value) {
-  return isRecord(value) && typeof value.startTimeUtc === "string" && ["registrationOpenDays", "readyMinutes", "decisionWindowS", "runningS", "participantLimit"].every(
-    (key) => typeof value[key] === "number"
-  ) && Array.isArray(value.bands) && value.bands.every(isBand);
-}
-function parseMajorRequest(body) {
-  if (!isRecord(body) || typeof body.action !== "string") return null;
-  const id = typeof body.id === "string" && UUID.test(body.id) ? body.id : null;
-  switch (body.action) {
-    case "whoami":
-    case "config-get":
-    case "events-list":
-    case "majors":
-    case "tick":
-      return { action: body.action };
-    case "race-state":
-      return id ? { action: "race-state", id } : null;
-    case "decide":
-      return id && Number.isInteger(body.segment) && STOPS.includes(body.stop) && INTENSITIES2.includes(body.intensity) ? { action: "decide", id, segment: body.segment, stop: body.stop, intensity: body.intensity } : null;
-    case "register":
-    case "withdraw":
-    case "ready":
-      return id ? { action: body.action, id } : null;
-    case "save-plan":
-      return id && isRecord(body.plan) ? { action: "save-plan", id, plan: body.plan } : null;
-    case "config-set":
-      return isConfig(body.config) ? { action: "config-set", config: body.config } : null;
-    case "event-create":
-      return isEventInput(body.event) ? { action: "event-create", event: body.event } : null;
-    case "event-update":
-      return id && isEventInput(body.event) ? { action: "event-update", id, event: body.event } : null;
-    case "event-publish":
-      return id ? { action: "event-publish", id } : null;
-    case "event-cancel":
-      return id && typeof body.reason === "string" ? { action: "event-cancel", id, reason: body.reason } : null;
-    case "media-upload":
-    case "media-set": {
-      const kind = body.kind === "banner" || body.kind === "clip" ? body.kind : null;
-      const segment = kind === "clip" && Number.isInteger(body.segment) ? body.segment : null;
-      if (!id || !kind || kind === "clip" && segment === null) return null;
-      if (body.action === "media-upload") return { action: "media-upload", id, kind, segment };
-      if (body.path !== null && typeof body.path !== "string") return null;
-      return { action: "media-set", id, kind, segment, path: body.path };
-    }
-    default:
-      return null;
-  }
-}
-async function handleMajorOp(token, body, deps) {
-  if (isRecord(body) && body.action === "tick") {
-    if (!deps.tickAuthorized) return refuse(401, "not-signed-in");
-    const now = deps.now();
-    await deps.store.advance(now);
-    return ok(await advanceMajorRaces(deps.race, now));
-  }
-  const userId = await deps.authenticate(token);
-  if (!userId) return refuse(401, "not-signed-in");
-  const request = parseMajorRequest(body);
-  if (!request) return refuse(400, "bad-request");
-  try {
-    const played = await playerOp(request, userId, deps);
-    if (played) return played;
-  } catch (error) {
-    if (error instanceof MajorStoreError) return refuse(error.refusal === "not-found" ? 404 : 409, error.refusal);
-    throw error;
-  }
-  const admin = await deps.store.isAdmin(userId);
-  if (request.action === "whoami") return ok({ userId, admin });
-  if (!admin) return refuse(403, "not-admin");
-  try {
-    switch (request.action) {
-      case "config-get":
-        return ok({ config: await deps.store.getConfig() });
-      case "config-set": {
-        const problem = validateConfig(request.config);
-        if (problem) return refuse(422, `config-${problem}`);
-        await deps.store.setConfig(request.config, userId);
-        await deps.store.log(null, userId, "config-set", { config: request.config });
-        return ok({ config: await deps.store.getConfig() });
-      }
-      case "events-list":
-        return ok({ events: await deps.store.listEvents() });
-      case "event-create": {
-        const problem = validateEventInput(request.event, deps.now());
-        if (problem) return refuse(422, `event-${problem}`);
-        const event = await deps.store.createEvent(cleanInput(request.event), userId);
-        await deps.store.log(event.id, userId, "created", {});
-        return ok({ event });
-      }
-      case "event-update": {
-        const problem = validateEventInput(request.event, deps.now());
-        if (problem) return refuse(422, `event-${problem}`);
-        const event = await deps.store.updateDraft(request.id, cleanInput(request.event));
-        if (!event) return refuse(409, "not-draft");
-        await deps.store.log(event.id, userId, "edited", {});
-        return ok({ event });
-      }
-      case "event-publish":
-        return ok({ event: await deps.store.publish(request.id, userId, deps.now()) });
-      case "media-upload":
-      case "media-set": {
-        const event = await deps.store.getEvent(request.id);
-        if (!MEDIA_EDITABLE.includes(event.status)) return refuse(409, "media-closed");
-        if (request.kind === "clip") {
-          const race = getRace(event.raceId);
-          const segments = race ? getRaceSegments(race).length : 0;
-          if (request.segment < 1 || request.segment > segments) return refuse(422, "media-segment");
-        }
-        if (request.action === "media-upload") {
-          const stamp = deps.now();
-          const base = `events/${event.id}/${request.kind === "banner" ? "banner" : `segment-${request.segment}`}-${stamp}`;
-          if (request.kind === "banner") {
-            const path = `${base}.jpg`;
-            return ok({ uploads: [{ path, token: await deps.store.signUpload(path) }] });
-          }
-          const video = `${base}.mp4`;
-          const poster = `${base}.jpg`;
-          return ok({
-            uploads: [
-              { path: video, token: await deps.store.signUpload(video) },
-              { path: poster, token: await deps.store.signUpload(poster) }
-            ]
-          });
-        }
-        const pattern = request.kind === "banner" ? /^banner-\d+\.jpg$/ : new RegExp(`^segment-${request.segment}-\\d+\\.mp4$`);
-        const prefix = `events/${event.id}/`;
-        if (request.path !== null && !(request.path.startsWith(prefix) && pattern.test(request.path.slice(prefix.length)))) {
-          return refuse(422, "media-path");
-        }
-        const updated = request.kind === "banner" ? await deps.store.setBanner(event.id, request.path) : await deps.store.setClip(event.id, request.segment, request.path);
-        await deps.store.log(event.id, userId, "media", { kind: request.kind, segment: request.segment, path: request.path });
-        return ok({ event: updated });
-      }
-      case "event-cancel": {
-        const reason = request.reason.trim();
-        if (reason.length < 1 || reason.length > 300) return refuse(422, "cancel-reason");
-        return ok({ event: await deps.store.cancel(request.id, userId, reason) });
-      }
-      default:
-        return refuse(400, "bad-request");
-    }
-  } catch (error) {
-    if (error instanceof MajorStoreError) return refuse(error.refusal === "not-found" ? 404 : 409, error.refusal);
-    throw error;
-  }
-}
-async function playerOp(request, userId, deps) {
-  const now = deps.now();
-  switch (request.action) {
-    case "majors":
-      await deps.store.advance(now);
-      await advanceQuietly(deps, now);
-      return ok({ majors: await deps.store.playerMajors(userId, now), now: new Date(now).toISOString() });
-    case "race-state": {
-      await advanceQuietly(deps, now);
-      const view = await deps.store.raceView(request.id, userId);
-      if (!view) return refuse(404, "not-on-grid");
-      return ok({ race: liveRace(view), now: new Date(now).toISOString() });
-    }
-    case "decide": {
-      await advanceQuietly(deps, now);
-      await deps.store.decide(request.id, userId, request.segment, request.stop, request.intensity);
-      const view = await deps.store.raceView(request.id, userId);
-      return ok({ race: view && liveRace(view), now: new Date(now).toISOString() });
-    }
-    case "register": {
-      const career = await deps.loadCareer(userId);
-      if (!career) return refuse(409, "no-career");
-      await deps.store.advance(now);
-      const { athlete } = career;
-      await deps.store.register(request.id, userId, { level: getLevel(athlete.xp), name: athlete.name, country: athlete.country ?? null }, now);
-      return ok({ majors: await deps.store.playerMajors(userId, now) });
-    }
-    case "withdraw":
-      await deps.store.withdraw(request.id, userId, now);
-      return ok({ majors: await deps.store.playerMajors(userId, now) });
-    case "save-plan": {
-      const event = await deps.store.getEvent(request.id);
-      const race = getRace(event.raceId);
-      const plan = race ? validatePlan(request.plan, getRaceSegments(race).length) : null;
-      if (!plan) return refuse(422, "plan-invalid");
-      await deps.store.savePlan(request.id, userId, plan, now);
-      return ok({ majors: await deps.store.playerMajors(userId, now) });
-    }
-    case "ready": {
-      const career = await deps.loadCareer(userId);
-      if (!career) return refuse(409, "no-career");
-      await deps.store.advance(now);
-      const mine = (await deps.store.playerMajors(userId, now)).find((m) => m.id === request.id)?.registration;
-      if (!mine || mine.status !== "REGISTERED" && mine.status !== "READY") return refuse(409, "not-registered");
-      const { athlete } = career;
-      const snapshot = {
-        level: mine.level,
-        attributes: { ...athlete.attributes },
-        fitness: athlete.fitness,
-        fatigue: athlete.fatigue,
-        equipment: [...career.equipment],
-        // Only what is in stock now (owner decision 7: deducted when the race starts).
-        nutrition: { gel: (mine.plan?.gel ?? false) && career.consumables.gel > 0, bar: (mine.plan?.bar ?? false) && career.consumables.bar > 0 }
-      };
-      await deps.store.setReady(request.id, userId, snapshot, now);
-      return ok({ majors: await deps.store.playerMajors(userId, now) });
-    }
-    default:
-      return null;
-  }
-}
-async function advanceQuietly(deps, now) {
-  try {
-    await advanceMajorRaces(deps.race, now, 5);
-  } catch (error) {
-    console.error("major advance failed", error instanceof Error ? error.message : error);
-  }
-}
-function liveRace(view) {
-  const withState = view.runners.filter((r) => r.state !== null);
-  const table = majorStandings(withState.map((r) => ({ slot: r.slot, state: r.state })));
-  const bySlot = new Map(view.runners.map((r) => [r.slot, r]));
-  const me = bySlot.get(view.mySlot);
-  return {
-    category: view.category,
-    standings: table.map((row) => {
-      const runner = bySlot.get(row.slot);
-      const last = runner.state?.progress.splits.at(-1);
-      return {
-        ...row,
-        kind: runner.kind,
-        name: runner.name,
-        country: runner.country,
-        level: runner.level,
-        me: row.slot === view.mySlot,
-        intensity: last?.intensity ?? null,
-        // A player who let the plan decide (away, or chose not to): shown as automatic.
-        auto: runner.kind === "PLAYER" && view.sources[row.slot] === "AUTO"
-      };
-    }),
-    me: me?.state ? {
-      slot: me.slot,
-      elapsedS: me.state.progress.elapsedS,
-      energy: Math.max(0, 100 - me.state.progress.fatigue),
-      fatigue: me.state.progress.fatigue,
-      next: me.state.next,
-      splits: me.state.progress.splits
-    } : null,
-    myDecision: view.myDecision,
-    runningS: view.runningS,
-    windowS: view.windowS,
-    /** What the plan decides at the open aid station if the player sends nothing. */
-    planned: me?.state && view.category.phase === "PA" ? plannedDecision(view, me.state) : null
-  };
-}
-function plannedDecision(view, state) {
-  const me = view.runners.find((r) => r.slot === view.mySlot);
-  return automaticDecision(
-    { slot: me.slot, kind: me.kind, level: me.level, snapshot: null, plan: view.myPlan },
-    state,
-    view.category.segment,
-    view.category.segments ?? 1
-  );
-}
-function cleanInput(input) {
-  return {
-    name: input.name.trim(),
-    description: input.description.trim(),
-    raceId: input.raceId,
-    scheduledStartAt: new Date(Date.parse(input.scheduledStartAt)).toISOString()
-  };
-}
-
-// src/domain/athlete/profiles.ts
-var PROFILE_ATTRIBUTE_TOTAL = 96;
-var PROFILE_IDS = ["climber", "sprinter", "all-rounder", "endurance"];
-function isProfileId(value) {
-  return typeof value === "string" && PROFILE_IDS.includes(value);
-}
-
-// src/domain/training/sessions.ts
-var TRAINING_SESSIONS = {
-  "easy-run": {
-    id: "easy-run",
-    label: "Easy run",
-    description: "Relaxed aerobic running.",
-    xp: 9,
-    fitnessDelta: 0.5,
-    fatigueDelta: 5,
-    attribute: "endurance"
-  },
-  intervals: {
-    id: "intervals",
-    label: "Intervals",
-    description: "Hard repeats with short recoveries.",
-    xp: 16,
-    fitnessDelta: 0.75,
-    fatigueDelta: 14,
-    attribute: "speed"
-  },
-  hills: {
-    id: "hills",
-    label: "Hills",
-    description: "Repeated climbs and descents.",
-    xp: 14,
-    fitnessDelta: 0.5,
-    fatigueDelta: 12,
-    attribute: "climbing"
-  },
-  "long-run": {
-    id: "long-run",
-    label: "Long run",
-    description: "Extended time on feet.",
-    xp: 18,
-    fitnessDelta: 1,
-    fatigueDelta: 16,
-    attribute: "endurance"
-  },
-  strength: {
-    id: "strength",
-    label: "Strength",
-    description: "Gym and conditioning work.",
-    xp: 11,
-    fitnessDelta: 0.5,
-    fatigueDelta: 4,
-    attribute: "recovery"
-  },
-  "trail-technique": {
-    id: "trail-technique",
-    label: "Trail technique",
-    description: "Footwork on rough and technical ground.",
-    xp: 11,
-    fitnessDelta: 0.25,
-    fatigueDelta: 3,
-    attribute: "technical"
-  },
-  rest: {
-    id: "rest",
-    label: "Rest",
-    description: "Recover and reduce fatigue.",
-    xp: 0,
-    fitnessDelta: -2,
-    fatigueDelta: -8
-  }
-};
-function isSessionType(value) {
-  return typeof value === "string" && Object.hasOwn(TRAINING_SESSIONS, value);
-}
-
-// src/domain/athlete/heads.ts
-var HEAD_FILES = [
-  "lvl1_men_head_01_tone1",
-  "lvl1_men_head_01_tone2",
-  "lvl1_men_head_01_tone3",
-  "lvl1_men_head_01_tone4",
-  "lvl1_women_head_01_tone1",
-  "lvl1_women_head_01_tone2",
-  "lvl1_women_head_01_tone3",
-  "lvl1_women_head_02_tone1",
-  "lvl1_women_head_02_tone2",
-  "lvl5_women_head_01_tone3"
-];
-var NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/;
-function buildHeadCatalog(files) {
-  const byId = /* @__PURE__ */ new Map();
-  for (const file of files) {
-    const match = NAME.exec(file);
-    if (!match) continue;
-    const [, level, sexName, design, tone] = match;
-    const sex = sexName === "men" ? "male" : "female";
-    const id = `head-l${Number(level)}-${design}`;
-    const key = `${sex}/${id}`;
-    const head = byId.get(key) ?? { id, sex, level: Number(level), label: "", files: {} };
-    head.files[Number(tone)] = file;
-    byId.set(key, head);
-  }
-  const heads = [...byId.values()].sort((a, b) => a.level - b.level || a.id.localeCompare(b.id));
-  for (const sex of ["female", "male"]) {
-    heads.filter((h) => h.sex === sex).forEach((h, i) => h.label = `Hairstyle ${i + 1}`);
-  }
-  return heads;
-}
-var HEADS = buildHeadCatalog(HEAD_FILES);
-
-// src/domain/athlete/shirtFiles.ts
-var SHIRT_FILES = [
-  { file: "lvl1_men_shirt_01", label: "Charcoal T-shirt" },
-  { file: "lvl2_men_shirt_01", label: "Navy T-shirt" },
-  { file: "lvl3_men_shirt_01", label: "Burgundy T-shirt" },
-  { file: "lvl3_men_shirt_02", label: "Green T-shirt" },
-  { file: "lvl2_men_shirt_02", label: "Brick red T-shirt" },
-  { file: "lvl3_men_shirt_03", label: "Steel blue T-shirt" },
-  { file: "lvl1_women_shirt_01", label: "Blue tank top" },
-  { file: "lvl2_women_shirt_01", label: "Coral tank top" },
-  { file: "lvl3_women_shirt_01", label: "Green tank top" },
-  { file: "lvl1_women_shirt_02", label: "Cream tank top" },
-  { file: "lvl2_women_shirt_02", label: "Teal and grey tank top" },
-  { file: "lvl3_women_shirt_03", label: "Pink and white tank top" }
-];
-
-// src/domain/athlete/shirts.ts
-var NAME2 = /^lvl(\d+)_(men|women)_shirt_(\d{2})$/;
-function buildShirtCatalog(files) {
-  const shirts = [];
-  for (const { file, label } of files) {
-    const match = NAME2.exec(file);
-    if (!match) continue;
-    const [, level, sexName, design] = match;
-    shirts.push({
-      id: `shirt-l${Number(level)}-${design}`,
-      sex: sexName === "men" ? "male" : "female",
-      level: Number(level),
-      label,
-      file
-    });
-  }
-  return shirts.sort((a, b) => a.level - b.level || a.id.localeCompare(b.id));
-}
-var SHIRTS = buildShirtCatalog(SHIRT_FILES);
-
-// src/domain/athlete/appearance.ts
-var NO_OUTFIT = "none";
-var BASIC_HAIR = "natural";
-function toneNumber(skin) {
-  return Number(skin.slice("tone-".length));
-}
-function hairStyles(sex, skin) {
-  return [BASIC_HAIR, ...HEADS.filter((h) => h.sex === sex && h.files[toneNumber(skin)]).map((h) => h.id)];
-}
-var SKIN_TONES = {
-  female: ["tone-1", "tone-2", "tone-3"],
-  male: ["tone-1", "tone-2", "tone-3", "tone-4"]
-};
-function outfits(sex) {
-  return [NO_OUTFIT, ...SHIRTS.filter((shirt) => shirt.sex === sex).map((shirt) => shirt.id)];
-}
-function isRetiredTshirt(outfit) {
-  return outfit === "white-tshirt" || outfit.startsWith("tshirt-");
-}
-function defaultAppearance() {
-  return { hair: BASIC_HAIR, skin: "tone-2", outfit: NO_OUTFIT };
-}
-function appearanceForSex(appearance, sex) {
-  const tones = SKIN_TONES[sex];
-  const skin = tones.includes(appearance.skin) ? appearance.skin : tones[tones.length - 1];
-  const hair = hairStyles(sex, skin).includes(appearance.hair) ? appearance.hair : BASIC_HAIR;
-  const offered = outfits(sex);
-  const outfit = offered.includes(appearance.outfit) ? appearance.outfit : isRetiredTshirt(appearance.outfit) ? SHIRTS.find((shirt) => shirt.sex === sex && shirt.level === 1)?.id ?? NO_OUTFIT : NO_OUTFIT;
-  return { hair, skin, outfit };
-}
-function parseAppearance(value, sex) {
-  const fallback = defaultAppearance();
-  if (typeof value !== "object" || value === null) return fallback;
-  const { hair, skin, outfit } = value;
-  const knownSkin = SKIN_TONES.male.includes(skin) ? skin : fallback.skin;
-  return appearanceForSex(
-    {
-      hair: typeof hair === "string" ? hair : fallback.hair,
-      skin: knownSkin,
-      outfit: typeof outfit === "string" ? outfit : fallback.outfit
-    },
-    sex
-  );
-}
-
-// src/game-engine/fitnessDecay.ts
-var DECAY_PERIOD_MS = 24 * 60 * 60 * 1e3;
-var FITNESS_DECAY_PER_PERIOD = 1;
-var DECAY_GRACE_PERIODS = 1;
-function applyFitnessDecay(state, now) {
-  const reference = state.fitnessDecayReference;
-  if (!Number.isFinite(now)) return { state, periods: 0, fitnessLost: 0 };
-  if (!Number.isFinite(reference) || reference > now) {
-    return { state: { ...state, fitnessDecayReference: now }, periods: 0, fitnessLost: 0 };
-  }
-  const periods = Math.max(0, Math.floor((now - reference) / DECAY_PERIOD_MS) - DECAY_GRACE_PERIODS);
-  if (periods === 0) return { state, periods: 0, fitnessLost: 0 };
-  const fitness = Math.max(0, roundStat(state.athlete.fitness - periods * FITNESS_DECAY_PER_PERIOD));
-  return {
-    state: {
-      ...state,
-      athlete: { ...state.athlete, fitness },
-      fitnessDecayReference: reference + periods * DECAY_PERIOD_MS
-    },
-    periods,
-    fitnessLost: roundStat(state.athlete.fitness - fitness)
-  };
-}
-
-// src/domain/athlete/countries.ts
-var COUNTRY_CODES = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" ");
-var CODES = new Set(COUNTRY_CODES);
-function isCountryCode(value) {
-  return typeof value === "string" && CODES.has(value);
-}
-
-// src/domain/economy/coins.ts
-var STARTING_COINS = 25;
-
-// src/game-engine/gameState.ts
-var DAYS_PER_WEEK = 7;
-
 // raw:src/data/ranking_points.csv
 var ranking_points_default = "# Ranking points (owner tables, 5 November 2026; points system v3 the same day). kind,key,value:\n# setting best_results: how many of a runner's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC).\n# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December. setting annual_months: the Annual ranking adds up each season's best results from the last that many months.\n# Points of a result = difficulty base points x position percent x competition percent, rounded to whole points.\n# The runner's level and sex never change the points (Game Design Bible 11.1); level only sets which races a runner may enter.\n# difficulty: base points of each difficulty (I Moderate ... V Extreme). race: the difficulty of each race (distance, climb, technicality and overall demands, not distance alone).\n# position: percent for each finishing position (positions not listed, 31st and later: 0). competition: percent of each competition format (standard races, weekly Majors, the annual World Cup).\n# Reference for choosing each race's difficulty (not read by the game; the race values live in races.csv): id, name, km, D+ m, D+ per km, effort km (km + D+/100), technicality 0-5, recommended level.\n#   RACE-001 Forest First Steps: 5 km, 120 m D+, 24 m/km, effort 6.2 km, technicality 0, level 4\n#   RACE-002 Riverside Trail: 8 km, 220 m D+, 28 m/km, effort 10.2 km, technicality 0, level 6\n#   RACE-003 Pine Loop Challenge: 10 km, 350 m D+, 35 m/km, effort 13.5 km, technicality 2, level 8\n#   RACE-004 Ridge Runner: 12 km, 550 m D+, 46 m/km, effort 17.5 km, technicality 2, level 11\n#   RACE-005 Stone Path Classic: 15 km, 750 m D+, 50 m/km, effort 22.5 km, technicality 3, level 14\n#   RACE-006 Wildwood Ascent: 18 km, 950 m D+, 53 m/km, effort 27.5 km, technicality 2, level 18\n#   RACE-007 Summit Quest: 22 km, 1300 m D+, 59 m/km, effort 35 km, technicality 3, level 21\n#   RACE-008 Alpine Traverse: 28 km, 1700 m D+, 61 m/km, effort 45 km, technicality 5, level 25\n#   RACE-009 Sky Ridge Ultra: 35 km, 2200 m D+, 63 m/km, effort 57 km, technicality 3, level 28\n#   RACE-010 High Peaks Challenge: 42 km, 2800 m D+, 67 m/km, effort 70 km, technicality 5, level 31\n#   RACE-011 Legends of the Crest: 55 km, 3600 m D+, 65 m/km, effort 91 km, technicality 5, level 40\n#   RACE-012 Beyond the Skyline: 70 km, 4800 m D+, 69 m/km, effort 118 km, technicality 5, level 50\n#   RACE-013 Granite Spine: 44 km, 3000 m D+, 68 m/km, effort 74 km, technicality 4, level 34\n#   RACE-014 Northern Lakes Ultra: 50 km, 3200 m D+, 64 m/km, effort 82 km, technicality 2, level 37\n#   RACE-015 Glacier Line: 57 km, 3800 m D+, 67 m/km, effort 95 km, technicality 5, level 43\n#   RACE-016 Midnight Traverse: 62 km, 4100 m D+, 66 m/km, effort 103 km, technicality 3, level 45\n#   RACE-017 Crown of the Range: 66 km, 4500 m D+, 68 m/km, effort 111 km, technicality 4, level 47\nkind,key,value\nsetting,best_results,10\nsetting,first_season,2026-11\nsetting,annual_months,12\ndifficulty,I,100\ndifficulty,II,125\ndifficulty,III,160\ndifficulty,IV,200\ndifficulty,V,250\nrace,RACE-001,I\nrace,RACE-002,I\nrace,RACE-003,I\nrace,RACE-004,II\nrace,RACE-005,II\nrace,RACE-006,II\nrace,RACE-007,III\nrace,RACE-008,III\nrace,RACE-009,IV\nrace,RACE-010,IV\nrace,RACE-011,V\nrace,RACE-012,V\nrace,RACE-013,IV\nrace,RACE-014,IV\nrace,RACE-015,V\nrace,RACE-016,V\nrace,RACE-017,V\nposition,1,100\nposition,2,85\nposition,3,75\nposition,4,70\nposition,5,65\nposition,6,60\nposition,7,56\nposition,8,52\nposition,9,48\nposition,10,45\nposition,11,43\nposition,12,40\nposition,13,37\nposition,14,34\nposition,15,31\nposition,16,28\nposition,17,25\nposition,18,22\nposition,19,19\nposition,20,16\nposition,21,12\nposition,22,12\nposition,23,12\nposition,24,12\nposition,25,12\nposition,26,8\nposition,27,8\nposition,28,8\nposition,29,8\nposition,30,8\ncompetition,standard,100\ncompetition,major,150\ncompetition,world_cup,200\n";
 
@@ -1863,6 +1263,17 @@ function parseRankingTable(text, raceIds = RACES.map((race) => race.id)) {
   return table;
 }
 var RANKING = parseRankingTable(ranking_points_default);
+function raceDifficulty(raceId, table = RANKING) {
+  return table.raceDifficulty[raceId] ?? "I";
+}
+function rankingPoints(raceId, position, competition = "standard", table = RANKING) {
+  const base = table.difficultyPoints[raceDifficulty(raceId, table)];
+  const percent = table.positionPercent[position] ?? 0;
+  return Math.round(base * percent * table.competitionPercent[competition] / 1e4);
+}
+
+// src/domain/training/injury.ts
+var INJURY_REST_DAYS = 5;
 
 // raw:src/data/achievements.csv
 var achievements_default = "# Achievements (owner table, 5 November 2026). One row per achievement level, levels 1, 2, 3\u2026 in order.\n# achievement: first-steps (races finished), trail-explorer, first-summit, elite (races of that category), podium (top 3 finishes),\n# champion (wins), rising-star (total XP), level (runner level), dedicated (training weeks completed).\n# target: what the level asks for (rising in each achievement). coins and xp: the reward when the level is reached, given once.\nachievement,level,target,coins,xp\nfirst-steps,1,1,20,50\nfirst-steps,2,5,40,100\nfirst-steps,3,10,80,200\nfirst-steps,4,25,150,400\nfirst-steps,5,50,300,800\ntrail-explorer,1,1,50,100\ntrail-explorer,2,5,100,200\ntrail-explorer,3,10,200,400\ntrail-explorer,4,25,400,800\nfirst-summit,1,1,100,200\nfirst-summit,2,5,200,400\nfirst-summit,3,10,400,800\nfirst-summit,4,25,800,1600\nelite,1,1,200,400\nelite,2,5,400,800\nelite,3,10,800,1600\npodium,1,1,30,50\npodium,2,5,80,150\npodium,3,10,150,300\npodium,4,25,300,600\nchampion,1,1,50,100\nchampion,2,3,120,250\nchampion,3,10,300,600\nrising-star,1,1000,30,0\nrising-star,2,5000,80,0\nrising-star,3,20000,200,0\nrising-star,4,50000,400,0\nlevel,1,5,30,0\nlevel,2,10,60,0\nlevel,3,20,150,0\nlevel,4,30,300,0\nlevel,5,50,600,0\ndedicated,1,4,20,50\ndedicated,2,13,60,150\ndedicated,3,26,120,300\ndedicated,4,52,250,600\ndedicated,5,104,500,1200\n";
@@ -2011,11 +1422,686 @@ function getReachedLevels(state) {
   return Object.fromEntries(getAchievements(state).map((a) => [a.definition.id, a.reached]));
 }
 
-// src/domain/training/injury.ts
-var INJURY_REST_DAYS = 5;
+// src/domain/athlete/countries.ts
+var COUNTRY_CODES = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" ");
+var CODES = new Set(COUNTRY_CODES);
+function isCountryCode(value) {
+  return typeof value === "string" && CODES.has(value);
+}
+
+// src/domain/athlete/heads.ts
+var HEAD_FILES = [
+  "lvl1_men_head_01_tone1",
+  "lvl1_men_head_01_tone2",
+  "lvl1_men_head_01_tone3",
+  "lvl1_men_head_01_tone4",
+  "lvl1_women_head_01_tone1",
+  "lvl1_women_head_01_tone2",
+  "lvl1_women_head_01_tone3",
+  "lvl1_women_head_02_tone1",
+  "lvl1_women_head_02_tone2",
+  "lvl5_women_head_01_tone3"
+];
+var NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/;
+function buildHeadCatalog(files) {
+  const byId = /* @__PURE__ */ new Map();
+  for (const file of files) {
+    const match = NAME.exec(file);
+    if (!match) continue;
+    const [, level, sexName, design, tone] = match;
+    const sex = sexName === "men" ? "male" : "female";
+    const id = `head-l${Number(level)}-${design}`;
+    const key = `${sex}/${id}`;
+    const head = byId.get(key) ?? { id, sex, level: Number(level), label: "", files: {} };
+    head.files[Number(tone)] = file;
+    byId.set(key, head);
+  }
+  const heads = [...byId.values()].sort((a, b) => a.level - b.level || a.id.localeCompare(b.id));
+  for (const sex of ["female", "male"]) {
+    heads.filter((h) => h.sex === sex).forEach((h, i) => h.label = `Hairstyle ${i + 1}`);
+  }
+  return heads;
+}
+var HEADS = buildHeadCatalog(HEAD_FILES);
+
+// src/domain/athlete/shirtFiles.ts
+var SHIRT_FILES = [
+  { file: "lvl1_men_shirt_01", label: "Charcoal T-shirt" },
+  { file: "lvl2_men_shirt_01", label: "Navy T-shirt" },
+  { file: "lvl3_men_shirt_01", label: "Burgundy T-shirt" },
+  { file: "lvl3_men_shirt_02", label: "Green T-shirt" },
+  { file: "lvl2_men_shirt_02", label: "Brick red T-shirt" },
+  { file: "lvl3_men_shirt_03", label: "Steel blue T-shirt" },
+  { file: "lvl1_women_shirt_01", label: "Blue tank top" },
+  { file: "lvl2_women_shirt_01", label: "Coral tank top" },
+  { file: "lvl3_women_shirt_01", label: "Green tank top" },
+  { file: "lvl1_women_shirt_02", label: "Cream tank top" },
+  { file: "lvl2_women_shirt_02", label: "Teal and grey tank top" },
+  { file: "lvl3_women_shirt_03", label: "Pink and white tank top" }
+];
+
+// src/domain/athlete/shirts.ts
+var NAME2 = /^lvl(\d+)_(men|women)_shirt_(\d{2})$/;
+function buildShirtCatalog(files) {
+  const shirts = [];
+  for (const { file, label } of files) {
+    const match = NAME2.exec(file);
+    if (!match) continue;
+    const [, level, sexName, design] = match;
+    shirts.push({
+      id: `shirt-l${Number(level)}-${design}`,
+      sex: sexName === "men" ? "male" : "female",
+      level: Number(level),
+      label,
+      file
+    });
+  }
+  return shirts.sort((a, b) => a.level - b.level || a.id.localeCompare(b.id));
+}
+var SHIRTS = buildShirtCatalog(SHIRT_FILES);
+
+// src/domain/athlete/appearance.ts
+var NO_OUTFIT = "none";
+var BASIC_HAIR = "natural";
+function toneNumber(skin) {
+  return Number(skin.slice("tone-".length));
+}
+function hairStyles(sex, skin) {
+  return [BASIC_HAIR, ...HEADS.filter((h) => h.sex === sex && h.files[toneNumber(skin)]).map((h) => h.id)];
+}
+var SKIN_TONES = {
+  female: ["tone-1", "tone-2", "tone-3"],
+  male: ["tone-1", "tone-2", "tone-3", "tone-4"]
+};
+function outfits(sex) {
+  return [NO_OUTFIT, ...SHIRTS.filter((shirt) => shirt.sex === sex).map((shirt) => shirt.id)];
+}
+function isRetiredTshirt(outfit) {
+  return outfit === "white-tshirt" || outfit.startsWith("tshirt-");
+}
+function defaultAppearance() {
+  return { hair: BASIC_HAIR, skin: "tone-2", outfit: NO_OUTFIT };
+}
+function appearanceForSex(appearance, sex) {
+  const tones = SKIN_TONES[sex];
+  const skin = tones.includes(appearance.skin) ? appearance.skin : tones[tones.length - 1];
+  const hair = hairStyles(sex, skin).includes(appearance.hair) ? appearance.hair : BASIC_HAIR;
+  const offered = outfits(sex);
+  const outfit = offered.includes(appearance.outfit) ? appearance.outfit : isRetiredTshirt(appearance.outfit) ? SHIRTS.find((shirt) => shirt.sex === sex && shirt.level === 1)?.id ?? NO_OUTFIT : NO_OUTFIT;
+  return { hair, skin, outfit };
+}
+function parseAppearance(value, sex) {
+  const fallback = defaultAppearance();
+  if (typeof value !== "object" || value === null) return fallback;
+  const { hair, skin, outfit } = value;
+  const knownSkin = SKIN_TONES.male.includes(skin) ? skin : fallback.skin;
+  return appearanceForSex(
+    {
+      hair: typeof hair === "string" ? hair : fallback.hair,
+      skin: knownSkin,
+      outfit: typeof outfit === "string" ? outfit : fallback.outfit
+    },
+    sex
+  );
+}
+
+// src/domain/athlete/profiles.ts
+var PROFILE_ATTRIBUTE_TOTAL = 96;
+var PROFILE_IDS = ["climber", "sprinter", "all-rounder", "endurance"];
+function isProfileId(value) {
+  return typeof value === "string" && PROFILE_IDS.includes(value);
+}
+
+// src/domain/economy/coins.ts
+var STARTING_COINS = 25;
+
+// src/game-engine/gameState.ts
+var DAYS_PER_WEEK = 7;
 
 // src/game-engine/raceSchedule.ts
 var RACE_DAY_INDEX = DAYS_PER_WEEK - 1;
+
+// src/domain/training/sessions.ts
+var TRAINING_SESSIONS = {
+  "easy-run": {
+    id: "easy-run",
+    label: "Easy run",
+    description: "Relaxed aerobic running.",
+    xp: 9,
+    fitnessDelta: 0.5,
+    fatigueDelta: 5,
+    attribute: "endurance"
+  },
+  intervals: {
+    id: "intervals",
+    label: "Intervals",
+    description: "Hard repeats with short recoveries.",
+    xp: 16,
+    fitnessDelta: 0.75,
+    fatigueDelta: 14,
+    attribute: "speed"
+  },
+  hills: {
+    id: "hills",
+    label: "Hills",
+    description: "Repeated climbs and descents.",
+    xp: 14,
+    fitnessDelta: 0.5,
+    fatigueDelta: 12,
+    attribute: "climbing"
+  },
+  "long-run": {
+    id: "long-run",
+    label: "Long run",
+    description: "Extended time on feet.",
+    xp: 18,
+    fitnessDelta: 1,
+    fatigueDelta: 16,
+    attribute: "endurance"
+  },
+  strength: {
+    id: "strength",
+    label: "Strength",
+    description: "Gym and conditioning work.",
+    xp: 11,
+    fitnessDelta: 0.5,
+    fatigueDelta: 4,
+    attribute: "recovery"
+  },
+  "trail-technique": {
+    id: "trail-technique",
+    label: "Trail technique",
+    description: "Footwork on rough and technical ground.",
+    xp: 11,
+    fitnessDelta: 0.25,
+    fatigueDelta: 3,
+    attribute: "technical"
+  },
+  rest: {
+    id: "rest",
+    label: "Rest",
+    description: "Recover and reduce fatigue.",
+    xp: 0,
+    fitnessDelta: -2,
+    fatigueDelta: -8
+  }
+};
+function isSessionType(value) {
+  return typeof value === "string" && Object.hasOwn(TRAINING_SESSIONS, value);
+}
+
+// src/game-engine/races.ts
+function getPrizeBand(position) {
+  const index = PRIZE_BANDS.findIndex((band) => position >= band.from && (band.to === null || position <= band.to));
+  return index === -1 ? PRIZE_BANDS.length - 1 : index;
+}
+
+// src/game-engine/majorRewards.ts
+function majorPrize(race, position) {
+  const band = getPrizeBand(position);
+  const grossPrize = GROSS_PRIZES[race.category][band];
+  return {
+    band,
+    grossPrize,
+    coins: grossPrize,
+    xp: Math.max(RACE_MIN_XP, Math.floor(RACE_XP_BASE[race.category] * RACE_XP_BAND_PCT[band] / 100)),
+    rankingPoints: rankingPoints(race.id, position, "major")
+  };
+}
+
+// src/server/majorOrchestrator.ts
+function runnerOf(row) {
+  return { slot: row.slot, kind: row.kind, level: row.level, snapshot: row.snapshot, plan: row.plan };
+}
+function contextsOf(raceId, eventId, rows) {
+  const race = getRace(raceId);
+  if (!race) throw new Error(`Major course ${raceId} is not in the catalog`);
+  const field = majorField(race);
+  return new Map(rows.map((row) => [row.slot, majorContext(race, field, eventId, runnerOf(row))]));
+}
+async function startEvents(store, now) {
+  let started = 0;
+  for (const event of await store.startableEvents(now)) {
+    const rows = await store.grid(event.id);
+    const race = getRace(event.raceId);
+    if (!race) continue;
+    const contexts = contextsOf(event.raceId, event.id, rows);
+    const states = rows.map((row) => ({ id: row.id, state: initialState(contexts.get(row.slot), runnerOf(row)) }));
+    if (await store.start(event.id, majorField(race).segments.length, states, now)) started++;
+  }
+  return started;
+}
+async function stepCategory(store, category) {
+  const rows = await store.categoryGrid(category.id);
+  const contexts = contextsOf(category.raceId, category.eventId, rows);
+  const bySlot = new Map(rows.map((row) => [row.slot, row]));
+  const runners = rows.map((row) => {
+    if (!row.state) throw new Error(`Major runner ${row.id} has no state`);
+    return { slot: row.slot, state: row.state };
+  });
+  const startedAt = category.phaseEndsAt;
+  if (category.phase === "RUNNING") {
+    const ran = runMajorSegment(contexts, runners);
+    const last = category.segment >= category.segments - 1;
+    const finish = last ? finalResults(category, rows, contexts, ran) : {};
+    return store.commitStep({
+      ...finish,
+      categoryId: category.id,
+      version: category.version,
+      phase: last ? "FINISHED" : "PA",
+      segment: category.segment,
+      startedAt,
+      endsAt: last ? null : startedAt + category.windowS * 1e3,
+      states: ran.map(({ slot, state }) => ({ id: bySlot.get(slot).id, state })),
+      decisions: [],
+      playerDecisionsSeen: 0
+    });
+  }
+  const stored = new Map((await store.decisions(category.id, category.segment)).map((d) => [d.participantId, d]));
+  const automatic = [];
+  const decided = runners.map(({ slot, state }) => {
+    const row = bySlot.get(slot);
+    const mine = stored.get(row.id);
+    let decision;
+    if (mine) decision = { stop: mine.stop, intensity: mine.intensity };
+    else {
+      decision = automaticDecision(runnerOf(row), state, category.segment, category.segments);
+      automatic.push({ participantId: row.id, segment: category.segment, ...decision });
+    }
+    return { slot, state, decision };
+  });
+  const after = applyMajorDecisions(contexts, decided);
+  return store.commitStep({
+    categoryId: category.id,
+    version: category.version,
+    phase: "RUNNING",
+    segment: category.segment + 1,
+    startedAt,
+    endsAt: startedAt + category.runningS * 1e3,
+    states: after.map(({ slot, state }) => ({ id: bySlot.get(slot).id, state })),
+    decisions: automatic,
+    playerDecisionsSeen: [...stored.values()].filter((d) => d.source === "PLAYER").length
+  });
+}
+function finalResults(category, rows, contexts, ran) {
+  const bySlot = new Map(rows.map((row) => [row.slot, row]));
+  const stateOf = new Map(ran.map((r) => [r.slot, r.state]));
+  const table = majorStandings(ran);
+  const finishedAt = category.phaseEndsAt;
+  const startedAt = finishedAt - category.segments * category.runningS * 1e3 - (category.segments - 1) * category.windowS * 1e3;
+  const results = table.map((row) => ({ participantId: bySlot.get(row.slot).id, position: row.position, timeS: row.timeS }));
+  const rewards = table.flatMap((row) => {
+    const runner = bySlot.get(row.slot);
+    const snapshot = runner.snapshot;
+    if (runner.kind !== "PLAYER" || !snapshot) return [];
+    const state = stateOf.get(row.slot);
+    const ctx = contexts.get(row.slot);
+    const payload = {
+      eventId: category.eventId,
+      eventName: category.eventName,
+      raceId: category.raceId,
+      position: row.position,
+      fieldSize: table.length,
+      timeS: row.timeS,
+      startedAt,
+      finishedAt,
+      levelAtStart: snapshot.level,
+      attributes: { ...snapshot.attributes },
+      fitness: snapshot.fitness,
+      fatigue: snapshot.fatigue,
+      equipment: [...snapshot.equipment],
+      dayForm: ctx.dayForm,
+      finishFatigue: Math.round(state.progress.fatigue * 100) / 100,
+      splits: state.progress.splits,
+      nutrition: { ...ctx.nutrition },
+      rivalTimesS: table.filter((other) => other.slot !== row.slot).map((other) => other.timeS)
+    };
+    return [{ participantId: runner.id, payload }];
+  });
+  return { results, rewards };
+}
+async function advanceMajorRaces(store, now, maxRounds = 20) {
+  const started = await startEvents(store, now);
+  let steps = 0;
+  let refused = 0;
+  for (let round = 0; round < maxRounds; round++) {
+    const due = await store.dueCategories(now);
+    if (due.length === 0) break;
+    for (const category of due) {
+      if (await stepCategory(store, category)) steps++;
+      else refused++;
+    }
+    if (refused > 3) break;
+  }
+  return { started, steps };
+}
+
+// src/server/majorOps.ts
+var STOPS = ["quick", "normal", "slow"];
+var INTENSITIES2 = ["recovery", "easy", "target", "hard"];
+var MajorStoreError = class extends Error {
+  refusal;
+  constructor(refusal) {
+    super(refusal);
+    this.refusal = refusal;
+  }
+};
+var MEDIA_EDITABLE = ["DRAFT", "SCHEDULED", "REGISTRATION_OPEN", "LOCKED", "STARTING"];
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+var ok = (body = {}) => ({ status: 200, body: { ok: true, ...body } });
+var refuse = (status, error) => ({ status, body: { ok: false, error } });
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function isEventInput(value) {
+  return isRecord(value) && typeof value.name === "string" && typeof value.description === "string" && typeof value.raceId === "string" && typeof value.scheduledStartAt === "string";
+}
+function isBand(value) {
+  return isRecord(value) && typeof value.name === "string" && typeof value.min === "number" && (value.max === null || typeof value.max === "number");
+}
+function isConfig(value) {
+  return isRecord(value) && typeof value.startTimeUtc === "string" && ["registrationOpenDays", "readyMinutes", "decisionWindowS", "runningS", "participantLimit"].every(
+    (key) => typeof value[key] === "number"
+  ) && Array.isArray(value.bands) && value.bands.every(isBand);
+}
+function parseMajorRequest(body) {
+  if (!isRecord(body) || typeof body.action !== "string") return null;
+  const id = typeof body.id === "string" && UUID.test(body.id) ? body.id : null;
+  switch (body.action) {
+    case "whoami":
+    case "config-get":
+    case "events-list":
+    case "majors":
+    case "tick":
+      return { action: body.action };
+    case "race-state":
+      return id ? { action: "race-state", id } : null;
+    case "decide":
+      return id && Number.isInteger(body.segment) && STOPS.includes(body.stop) && INTENSITIES2.includes(body.intensity) ? { action: "decide", id, segment: body.segment, stop: body.stop, intensity: body.intensity } : null;
+    case "register":
+    case "withdraw":
+    case "ready":
+      return id ? { action: body.action, id } : null;
+    case "save-plan":
+      return id && isRecord(body.plan) ? { action: "save-plan", id, plan: body.plan } : null;
+    case "config-set":
+      return isConfig(body.config) ? { action: "config-set", config: body.config } : null;
+    case "event-create":
+      return isEventInput(body.event) ? { action: "event-create", event: body.event } : null;
+    case "event-update":
+      return id && isEventInput(body.event) ? { action: "event-update", id, event: body.event } : null;
+    case "event-publish":
+      return id ? { action: "event-publish", id } : null;
+    case "event-report":
+      return id ? { action: "event-report", id } : null;
+    case "event-cancel":
+      return id && typeof body.reason === "string" ? { action: "event-cancel", id, reason: body.reason } : null;
+    case "media-upload":
+    case "media-set": {
+      const kind = body.kind === "banner" || body.kind === "clip" ? body.kind : null;
+      const segment = kind === "clip" && Number.isInteger(body.segment) ? body.segment : null;
+      if (!id || !kind || kind === "clip" && segment === null) return null;
+      if (body.action === "media-upload") return { action: "media-upload", id, kind, segment };
+      if (body.path !== null && typeof body.path !== "string") return null;
+      return { action: "media-set", id, kind, segment, path: body.path };
+    }
+    default:
+      return null;
+  }
+}
+async function handleMajorOp(token, body, deps) {
+  if (isRecord(body) && body.action === "tick") {
+    if (!deps.tickAuthorized) return refuse(401, "not-signed-in");
+    const now = deps.now();
+    await deps.store.advance(now);
+    return ok(await advanceMajorRaces(deps.race, now));
+  }
+  const userId = await deps.authenticate(token);
+  if (!userId) return refuse(401, "not-signed-in");
+  const request = parseMajorRequest(body);
+  if (!request) return refuse(400, "bad-request");
+  try {
+    const played = await playerOp(request, userId, deps);
+    if (played) return played;
+  } catch (error) {
+    if (error instanceof MajorStoreError) return refuse(error.refusal === "not-found" ? 404 : 409, error.refusal);
+    throw error;
+  }
+  const admin = await deps.store.isAdmin(userId);
+  if (request.action === "whoami") return ok({ userId, admin });
+  if (!admin) return refuse(403, "not-admin");
+  try {
+    switch (request.action) {
+      case "config-get":
+        return ok({ config: await deps.store.getConfig() });
+      case "config-set": {
+        const problem = validateConfig(request.config);
+        if (problem) return refuse(422, `config-${problem}`);
+        await deps.store.setConfig(request.config, userId);
+        await deps.store.log(null, userId, "config-set", { config: request.config });
+        return ok({ config: await deps.store.getConfig() });
+      }
+      case "events-list":
+        return ok({ events: await deps.store.listEvents() });
+      case "event-create": {
+        const problem = validateEventInput(request.event, deps.now());
+        if (problem) return refuse(422, `event-${problem}`);
+        const event = await deps.store.createEvent(cleanInput(request.event), userId);
+        await deps.store.log(event.id, userId, "created", {});
+        return ok({ event });
+      }
+      case "event-update": {
+        const problem = validateEventInput(request.event, deps.now());
+        if (problem) return refuse(422, `event-${problem}`);
+        const event = await deps.store.updateDraft(request.id, cleanInput(request.event));
+        if (!event) return refuse(409, "not-draft");
+        await deps.store.log(event.id, userId, "edited", {});
+        return ok({ event });
+      }
+      case "event-publish":
+        return ok({ event: await deps.store.publish(request.id, userId, deps.now()) });
+      case "media-upload":
+      case "media-set": {
+        const event = await deps.store.getEvent(request.id);
+        if (!MEDIA_EDITABLE.includes(event.status)) return refuse(409, "media-closed");
+        if (request.kind === "clip") {
+          const race = getRace(event.raceId);
+          const segments = race ? getRaceSegments(race).length : 0;
+          if (request.segment < 1 || request.segment > segments) return refuse(422, "media-segment");
+        }
+        if (request.action === "media-upload") {
+          const stamp = deps.now();
+          const base = `events/${event.id}/${request.kind === "banner" ? "banner" : `segment-${request.segment}`}-${stamp}`;
+          if (request.kind === "banner") {
+            const path = `${base}.jpg`;
+            return ok({ uploads: [{ path, token: await deps.store.signUpload(path) }] });
+          }
+          const video = `${base}.mp4`;
+          const poster = `${base}.jpg`;
+          return ok({
+            uploads: [
+              { path: video, token: await deps.store.signUpload(video) },
+              { path: poster, token: await deps.store.signUpload(poster) }
+            ]
+          });
+        }
+        const pattern = request.kind === "banner" ? /^banner-\d+\.jpg$/ : new RegExp(`^segment-${request.segment}-\\d+\\.mp4$`);
+        const prefix = `events/${event.id}/`;
+        if (request.path !== null && !(request.path.startsWith(prefix) && pattern.test(request.path.slice(prefix.length)))) {
+          return refuse(422, "media-path");
+        }
+        const updated = request.kind === "banner" ? await deps.store.setBanner(event.id, request.path) : await deps.store.setClip(event.id, request.segment, request.path);
+        await deps.store.log(event.id, userId, "media", { kind: request.kind, segment: request.segment, path: request.path });
+        return ok({ event: updated });
+      }
+      case "event-report":
+        return ok({ report: await deps.store.report(request.id) });
+      case "event-cancel": {
+        const reason = request.reason.trim();
+        if (reason.length < 1 || reason.length > 300) return refuse(422, "cancel-reason");
+        return ok({ event: await deps.store.cancel(request.id, userId, reason) });
+      }
+      default:
+        return refuse(400, "bad-request");
+    }
+  } catch (error) {
+    if (error instanceof MajorStoreError) return refuse(error.refusal === "not-found" ? 404 : 409, error.refusal);
+    throw error;
+  }
+}
+async function playerOp(request, userId, deps) {
+  const now = deps.now();
+  switch (request.action) {
+    case "majors":
+      await deps.store.advance(now);
+      await advanceQuietly(deps, now);
+      return ok({ majors: await deps.store.playerMajors(userId, now), now: new Date(now).toISOString() });
+    case "race-state": {
+      await advanceQuietly(deps, now);
+      const view = await deps.store.raceView(request.id, userId);
+      if (!view) return refuse(404, "not-on-grid");
+      return ok({ race: liveRace(view), now: new Date(now).toISOString() });
+    }
+    case "decide": {
+      await advanceQuietly(deps, now);
+      await deps.store.decide(request.id, userId, request.segment, request.stop, request.intensity);
+      const view = await deps.store.raceView(request.id, userId);
+      return ok({ race: view && liveRace(view), now: new Date(now).toISOString() });
+    }
+    case "register": {
+      const career = await deps.loadCareer(userId);
+      if (!career) return refuse(409, "no-career");
+      await deps.store.advance(now);
+      const { athlete } = career;
+      await deps.store.register(request.id, userId, { level: getLevel(athlete.xp), name: athlete.name, country: athlete.country ?? null }, now);
+      return ok({ majors: await deps.store.playerMajors(userId, now) });
+    }
+    case "withdraw":
+      await deps.store.withdraw(request.id, userId, now);
+      return ok({ majors: await deps.store.playerMajors(userId, now) });
+    case "save-plan": {
+      const event = await deps.store.getEvent(request.id);
+      const race = getRace(event.raceId);
+      const plan = race ? validatePlan(request.plan, getRaceSegments(race).length) : null;
+      if (!plan) return refuse(422, "plan-invalid");
+      await deps.store.savePlan(request.id, userId, plan, now);
+      return ok({ majors: await deps.store.playerMajors(userId, now) });
+    }
+    case "ready": {
+      const career = await deps.loadCareer(userId);
+      if (!career) return refuse(409, "no-career");
+      await deps.store.advance(now);
+      const mine = (await deps.store.playerMajors(userId, now)).find((m) => m.id === request.id)?.registration;
+      if (!mine || mine.status !== "REGISTERED" && mine.status !== "READY") return refuse(409, "not-registered");
+      const { athlete } = career;
+      const snapshot = {
+        level: mine.level,
+        attributes: { ...athlete.attributes },
+        fitness: athlete.fitness,
+        fatigue: athlete.fatigue,
+        equipment: [...career.equipment],
+        // Only what is in stock now (owner decision 7: deducted when the race starts).
+        nutrition: { gel: (mine.plan?.gel ?? false) && career.consumables.gel > 0, bar: (mine.plan?.bar ?? false) && career.consumables.bar > 0 }
+      };
+      await deps.store.setReady(request.id, userId, snapshot, now);
+      return ok({ majors: await deps.store.playerMajors(userId, now) });
+    }
+    default:
+      return null;
+  }
+}
+async function advanceQuietly(deps, now) {
+  try {
+    await advanceMajorRaces(deps.race, now, 5);
+  } catch (error) {
+    console.error("major advance failed", error instanceof Error ? error.message : error);
+  }
+}
+function liveRace(view) {
+  const withState = view.runners.filter((r) => r.state !== null);
+  const table = majorStandings(withState.map((r) => ({ slot: r.slot, state: r.state })));
+  const bySlot = new Map(view.runners.map((r) => [r.slot, r]));
+  const me = bySlot.get(view.mySlot);
+  return {
+    category: view.category,
+    standings: table.map((row) => {
+      const runner = bySlot.get(row.slot);
+      const last = runner.state?.progress.splits.at(-1);
+      const me2 = row.slot === view.mySlot;
+      return {
+        ...row,
+        name: runner.name,
+        country: runner.country,
+        me: me2,
+        intensity: last?.intensity ?? null,
+        auto: me2 && view.sources[row.slot] === "AUTO"
+      };
+    }),
+    me: me?.state ? {
+      slot: me.slot,
+      elapsedS: me.state.progress.elapsedS,
+      energy: Math.max(0, 100 - me.state.progress.fatigue),
+      fatigue: me.state.progress.fatigue,
+      next: me.state.next,
+      splits: me.state.progress.splits
+    } : null,
+    myDecision: view.myDecision,
+    runningS: view.runningS,
+    windowS: view.windowS,
+    /** At the finish: what the place gives (added to the career at the player's next request). */
+    prize: view.category.phase === "FINISHED" ? finishPrize(view, table) : null,
+    /** What the plan decides at the open aid station if the player sends nothing. */
+    planned: me?.state && view.category.phase === "PA" ? plannedDecision(view, me.state) : null
+  };
+}
+function finishPrize(view, table) {
+  const race = getRace(view.raceId);
+  const mine = table.find((row) => row.slot === view.mySlot);
+  if (!race || !mine) return null;
+  const prize = majorPrize(race, mine.position);
+  return { coins: prize.coins, xp: prize.xp, points: prize.rankingPoints };
+}
+function plannedDecision(view, state) {
+  const me = view.runners.find((r) => r.slot === view.mySlot);
+  return automaticDecision(
+    { slot: me.slot, kind: me.kind, level: me.level, snapshot: null, plan: view.myPlan },
+    state,
+    view.category.segment,
+    view.category.segments ?? 1
+  );
+}
+function cleanInput(input) {
+  return {
+    name: input.name.trim(),
+    description: input.description.trim(),
+    raceId: input.raceId,
+    scheduledStartAt: new Date(Date.parse(input.scheduledStartAt)).toISOString()
+  };
+}
+
+// src/game-engine/fitnessDecay.ts
+var DECAY_PERIOD_MS = 24 * 60 * 60 * 1e3;
+var FITNESS_DECAY_PER_PERIOD = 1;
+var DECAY_GRACE_PERIODS = 1;
+function applyFitnessDecay(state, now) {
+  const reference = state.fitnessDecayReference;
+  if (!Number.isFinite(now)) return { state, periods: 0, fitnessLost: 0 };
+  if (!Number.isFinite(reference) || reference > now) {
+    return { state: { ...state, fitnessDecayReference: now }, periods: 0, fitnessLost: 0 };
+  }
+  const periods = Math.max(0, Math.floor((now - reference) / DECAY_PERIOD_MS) - DECAY_GRACE_PERIODS);
+  if (periods === 0) return { state, periods: 0, fitnessLost: 0 };
+  const fitness = Math.max(0, roundStat(state.athlete.fitness - periods * FITNESS_DECAY_PER_PERIOD));
+  return {
+    state: {
+      ...state,
+      athlete: { ...state.athlete, fitness },
+      fitnessDecayReference: reference + periods * DECAY_PERIOD_MS
+    },
+    periods,
+    fitnessLost: roundStat(state.athlete.fitness - fitness)
+  };
+}
 
 // src/repositories/gameRepository.ts
 var SCHEMA_VERSION = 2;
@@ -2094,7 +2180,7 @@ function parseActiveRace(value, entries, currentDayIndex) {
   };
 }
 function isRaceEntry(value) {
-  if (!isRecord2(value) || typeof value.id !== "string" || value.id.length === 0 || !isRaceId(value.raceId) || !ENTRY_TYPES.includes(value.entryType) || !isInt(value.feePaid, 0) || !isInt(value.levelAtEntry, 1) || !isFiniteNumber(value.enteredAt)) {
+  if (!isRecord2(value) || typeof value.id !== "string" || value.id.length === 0 || !isRaceId(value.raceId) || !ENTRY_TYPES.includes(value.entryType) || !isInt(value.feePaid, 0) || !isInt(value.levelAtEntry, 1) || !isFiniteNumber(value.enteredAt) || value.major !== void 0 && !(isRecord2(value.major) && typeof value.major.eventId === "string" && value.major.eventId.length > 0 && typeof value.major.name === "string")) {
     return false;
   }
   if (value.status === "pending") return value.result === void 0;
@@ -2468,7 +2554,7 @@ function createSupabaseMajorStore(config2) {
         request(
           `major_decisions?participant_id=eq.${me.id}&select=segment,stop,intensity,source`
         ),
-        request(`major_events?id=eq.${eventId}&select=running_s,decision_window_s`)
+        request(`major_events?id=eq.${eventId}&select=race_id,running_s,decision_window_s`)
       ]);
       const c = categories[0];
       const open = c.phase === "PA" ? decisions.find((d) => d.segment === c.segment) : void 0;
@@ -2482,6 +2568,7 @@ function createSupabaseMajorStore(config2) {
       }
       return {
         category: { idx: c.idx, name: c.name, phase: c.phase, segment: c.segment, segments: c.segments, phaseEndsAt: c.phase_ends_at },
+        raceId: events[0]?.race_id ?? "",
         runners: runners.map((r) => ({
           slot: r.slot,
           kind: r.kind,
@@ -2500,6 +2587,40 @@ function createSupabaseMajorStore(config2) {
     },
     async decide(eventId, userId, segment, stop, intensity) {
       await rpc("major_decide", { p_event: eventId, p_user: userId, p_segment: segment, p_stop: stop, p_intensity: intensity });
+    },
+    async report(eventId) {
+      const first = (value) => Array.isArray(value) ? value[0] ?? null : value;
+      const [categories, runners] = await Promise.all([
+        request(`major_categories?event_id=eq.${eventId}&select=id,idx,name,phase&order=idx`),
+        request(`major_participants?event_id=eq.${eventId}&select=slot,category_id,kind,display_name,country,level,major_results(position,time_s),major_rewards(claimed_at)&order=slot`)
+      ]);
+      const report = {
+        categories: categories.map((c) => {
+          const rows = runners.filter((r) => r.category_id === c.id).map((r) => {
+            const result = first(r.major_results);
+            const reward = first(r.major_rewards);
+            return {
+              slot: r.slot,
+              kind: r.kind,
+              name: r.display_name,
+              country: r.country,
+              level: r.level,
+              position: result?.position ?? null,
+              timeS: result?.time_s ?? null,
+              claimed: r.kind === "PLAYER" ? reward !== null && reward.claimed_at !== null : null
+            };
+          }).sort((a, b) => (a.position ?? 99) - (b.position ?? 99) || a.slot - b.slot);
+          return {
+            idx: c.idx,
+            name: c.name,
+            phase: c.phase,
+            players: rows.filter((r) => r.kind === "PLAYER").length,
+            npcs: rows.filter((r) => r.kind === "NPC").length,
+            rows
+          };
+        })
+      };
+      return report;
     },
     async log(eventId, userId, kind, detail) {
       await request(
@@ -2547,12 +2668,13 @@ function createSupabaseRaceStore(config2) {
     },
     async dueCategories(now) {
       const rows = await request(
-        `major_categories?phase=in.(RUNNING,PA)&phase_ends_at=lte.${iso(now)}&select=id,event_id,phase,segment,segments,phase_ends_at,version,major_events(race_id,running_s,decision_window_s)&order=phase_ends_at&limit=40`
+        `major_categories?phase=in.(RUNNING,PA)&phase_ends_at=lte.${iso(now)}&select=id,event_id,phase,segment,segments,phase_ends_at,version,major_events(name,race_id,running_s,decision_window_s)&order=phase_ends_at&limit=40`
       );
       return rows.map(
         (r) => ({
           id: r.id,
           eventId: r.event_id,
+          eventName: r.major_events.name,
           raceId: r.major_events.race_id,
           phase: r.phase,
           segment: r.segment,
@@ -2583,7 +2705,9 @@ function createSupabaseRaceStore(config2) {
         p_ends_at: step.endsAt === null ? null : new Date(step.endsAt).toISOString(),
         p_states: step.states,
         p_decisions: step.decisions,
-        p_player_decisions_seen: step.playerDecisionsSeen
+        p_player_decisions_seen: step.playerDecisionsSeen,
+        p_results: step.results ?? null,
+        p_rewards: step.rewards ?? null
       });
     }
   };
@@ -2653,6 +2777,20 @@ function createSupabaseCareerOpsStore(config2) {
       const row = rows[0];
       if (!row) throw new Error("commit_career returned nothing");
       return row;
+    },
+    async majorRewards(userId) {
+      return get(
+        `major_rewards?user_id=eq.${encodeURIComponent(userId)}&claimed_at=is.null&select=id,payload&order=created_at`
+      );
+    },
+    async markMajorRewards(ids) {
+      const list = ids.map((id) => encodeURIComponent(id)).join(",");
+      const response = await fetch(`${config2.url}/rest/v1/major_rewards?id=in.(${list})&claimed_at=is.null`, {
+        method: "PATCH",
+        headers: { ...headers, Prefer: "return=minimal" },
+        body: JSON.stringify({ claimed_at: (/* @__PURE__ */ new Date()).toISOString() })
+      });
+      if (!response.ok) throw new Error(`Database write failed (${response.status})`);
     }
   };
 }

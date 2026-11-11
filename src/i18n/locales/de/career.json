@@ -40,6 +40,7 @@
   "career.history": "Rennverlauf",
   "career.historyEmpty": "Hier erscheint jedes Rennen, das du läufst, das neueste zuerst.",
   "career.when": "Woche {week} · {day}",
+  "career.major": "Sunday Major",
   "career.level": "Stufe {level}",
   "career.complete": " · Abgeschlossen",
   "career.completeLabel": "Abgeschlossen",

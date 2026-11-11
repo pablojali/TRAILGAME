@@ -117,7 +117,7 @@ describe('Sunday Major for the player (phase 2)', () => {
     const racing = major({ status: 'RUNNING', registration: { categoryIdx: 1, level: 1, list: 'main', status: 'RACING', registeredAt: '', readyAt: 'x', plan: null } })
     call.mockImplementation(async () => ({ ok: true, majors: [racing] }))
     let myDecision: { stop: string; intensity: string; source: string } | null = null
-    const row = (slot: number, position: number, timeS: number, extra = {}) => ({ slot, position, timeS, gapS: timeS - 1300, kind: 'NPC', name: `Rival ${slot}`, country: 'FR', level: 3, me: false, intensity: 'target', auto: false, ...extra })
+    const row = (slot: number, position: number, timeS: number, extra = {}) => ({ slot, position, timeS, gapS: timeS - 1300, name: `Rival ${slot}.`, country: 'FR', me: false, intensity: 'target', auto: false, ...extra })
     race.mockImplementation(async (request: { action: string; stop?: string; intensity?: string }) => {
       if (request.action === 'decide') myDecision = { stop: request.stop!, intensity: request.intensity!, source: 'PLAYER' }
       return {
@@ -125,7 +125,7 @@ describe('Sunday Major for the player (phase 2)', () => {
         now: new Date().toISOString(),
         race: {
           category: { idx: 1, name: 'Banda 1', phase: 'PA', segment: 0, segments: 2, phaseEndsAt: new Date(Date.now() + 60_000).toISOString() },
-          standings: [row(2, 1, 1300), row(1, 2, 1310, { kind: 'PLAYER', name: 'Demo Runner', me: true }), row(3, 3, 1330, { kind: 'PLAYER', name: 'Bea', auto: true })],
+          standings: [row(2, 1, 1300), row(1, 2, 1310, { name: 'Demo Runner', me: true }), row(3, 3, 1330, { name: 'Bea' })],
           me: { slot: 1, elapsedS: 1310, energy: 72, fatigue: 28, next: 'target', splits: [] },
           myDecision,
           planned: { stop: 'normal', intensity: 'target' },
@@ -137,7 +137,7 @@ describe('Sunday Major for the player (phase 2)', () => {
     await renderApp(`/majors/${ID}`)
     expect(await screen.findByText('Aid station 1 · your decision')).toBeInTheDocument()
     expect(screen.getByText(/left$/)).toBeInTheDocument()
-    expect(screen.getByText('Ahead · Rival 2')).toBeInTheDocument()
+    expect(screen.getByText('Ahead · Rival 2.')).toBeInTheDocument()
     expect(screen.getByText('+0:10')).toBeInTheDocument()
     expect(screen.getByText("If you don't decide: Normal stop · Target pace (your plan).")).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Slow' }))
@@ -150,7 +150,8 @@ describe('Sunday Major for the player (phase 2)', () => {
     const table = within(screen.getByRole('list', { name: 'Standings' }))
     expect(table.getAllByRole('listitem')).toHaveLength(3)
     expect(table.getByText('Demo Runner').closest('li')).toHaveAttribute('aria-current', 'true')
-    expect(within(table.getByText('Rival 2').closest('li')!).getByText('NPC')).toBeInTheDocument()
-    expect(within(table.getByText('Bea').closest('li')!).getByText('auto')).toBeInTheDocument()
+    // NPCs are not identifiable: no tag on anyone else's row.
+    expect(table.queryByText('NPC')).toBeNull()
+    expect(within(table.getByText('Bea').closest('li')!).queryByText('auto')).toBeNull()
   })
 })

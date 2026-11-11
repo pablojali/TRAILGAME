@@ -5,6 +5,7 @@ import { Coins } from '../components/Coins'
 import { getLevel } from '../domain/athlete/levels'
 import { Backdrop } from '../components/backdrop/Backdrop'
 import { sceneForPath } from '../components/backdrop/backdrops'
+import { useSceneOverride } from '../components/backdrop/sceneOverride'
 import { Icon } from '../components/Icon'
 import { CareerCreationScreen } from '../features/career-setup/CareerCreationScreen'
 import { WelcomeScreen } from '../features/coach/WelcomeScreen'
@@ -27,6 +28,7 @@ export function AppShell() {
   const { t } = useI18n()
   const { pathname } = useLocation()
   const main = useRef<HTMLElement>(null)
+  const sceneOverride = useSceneOverride()
   const previousPhase = useRef(phase.kind)
 
   // When the setup flow changes (career started, restart, reset), move focus to the new content.
@@ -51,7 +53,7 @@ export function AppShell() {
 
   return (
     <div className={`${styles.shell} ${inSetup ? styles.setup : styles.scenic}`}>
-      {!inSetup && <Backdrop scene={sceneForPath(pathname, phase.kind === 'playing' && phase.state.activeRace !== null)} />}
+      {!inSetup && <Backdrop scene={sceneOverride ?? sceneForPath(pathname, phase.kind === 'playing' && phase.state.activeRace !== null)} />}
       <a href="#main-content" className={styles.skipLink}>
         {t('shell.skip')}
       </a>

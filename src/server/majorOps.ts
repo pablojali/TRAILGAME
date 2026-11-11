@@ -13,6 +13,7 @@ import { getLevel } from '../domain/athlete/levels'
 import { getRace } from '../domain/races/races'
 import type { GameState } from '../game-engine/gameState'
 import { automaticDecision, majorStandings, type MajorRunnerState } from '../game-engine/majorRace'
+import { majorPrize } from '../game-engine/majorRewards'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
 import { advanceMajorRaces, type RaceStore } from './majorOrchestrator'
 
@@ -125,6 +126,25 @@ export interface MajorStore {
   raceView(eventId: string, userId: string): Promise<RaceView | null>
   /** The player's decision at the open aid station (refused once the window closes). */
   decide(eventId: string, userId: string, segment: number, stop: AidStop, intensity: Intensity): Promise<void>
+  /** The post-race report for admins (phase 5): each category's runners with their result. */
+  report(eventId: string): Promise<MajorReport>
+}
+
+/** A runner in the admin's post-race report: who was an NPC is shown here only. */
+export interface MajorReportRow {
+  slot: number
+  kind: 'PLAYER' | 'NPC'
+  name: string
+  country: string | null
+  level: number
+  position: number | null
+  timeS: number | null
+  /** Players: whether their result is already in their career. */
+  claimed: boolean | null
+}
+
+export interface MajorReport {
+  categories: { idx: number; name: string; phase: string; players: number; npcs: number; rows: MajorReportRow[] }[]
 }
 
 /** A runner of the player's category, as the live race shows them (phase 3). */
@@ -140,6 +160,8 @@ export interface RaceViewRunner {
 /** What `race-state` needs: the player's category, its runners and the player's own decision. */
 export interface RaceView {
   category: { idx: number; name: string; phase: 'WAITING' | 'RUNNING' | 'PA' | 'FINISHED'; segment: number; segments: number | null; phaseEndsAt: string | null }
+  /** The event's course. */
+  raceId: string
   runners: RaceViewRunner[]
   mySlot: number
   /** The player's decision for the open aid station, if any. */
@@ -174,6 +196,7 @@ export type MajorRequest =
   | { action: 'event-update'; id: string; event: MajorEventInput }
   | { action: 'event-publish'; id: string }
   | { action: 'event-cancel'; id: string; reason: string }
+  | { action: 'event-report'; id: string }
   | { action: 'media-upload'; id: string; kind: 'banner' | 'clip'; segment: number | null }
   | { action: 'media-set'; id: string; kind: 'banner' | 'clip'; segment: number | null; path: string | null }
   | { action: 'majors' }
@@ -263,6 +286,8 @@ export function parseMajorRequest(body: unknown): MajorRequest | null {
       return id && isEventInput(body.event) ? { action: 'event-update', id, event: body.event } : null
     case 'event-publish':
       return id ? { action: 'event-publish', id } : null
+    case 'event-report':
+      return id ? { action: 'event-report', id } : null
     case 'event-cancel':
       return id && typeof body.reason === 'string' ? { action: 'event-cancel', id, reason: body.reason } : null
     case 'media-upload':
@@ -370,6 +395,8 @@ export async function handleMajorOp(token: string | null, body: unknown, deps: M
         await deps.store.log(event.id, userId, 'media', { kind: request.kind, segment: request.segment, path: request.path })
         return ok({ event: updated })
       }
+      case 'event-report':
+        return ok({ report: await deps.store.report(request.id) })
       case 'event-cancel': {
         const reason = request.reason.trim()
         if (reason.length < 1 || reason.length > 300) return refuse(422, 'cancel-reason')
@@ -475,16 +502,16 @@ export function liveRace(view: RaceView) {
     standings: table.map((row) => {
       const runner = bySlot.get(row.slot)!
       const last = runner.state?.progress.splits.at(-1)
+      const me = row.slot === view.mySlot
+      // NPCs are not identifiable (owner request, 11 November 2026): no kind, no level, and only the
+      // player's own row says whether their last aid station was decided by their plan.
       return {
         ...row,
-        kind: runner.kind,
         name: runner.name,
         country: runner.country,
-        level: runner.level,
-        me: row.slot === view.mySlot,
+        me,
         intensity: last?.intensity ?? null,
-        // A player who let the plan decide (away, or chose not to): shown as automatic.
-        auto: runner.kind === 'PLAYER' && view.sources[row.slot] === 'AUTO',
+        auto: me && view.sources[row.slot] === 'AUTO',
       }
     }),
     me: me?.state
@@ -500,9 +527,19 @@ export function liveRace(view: RaceView) {
     myDecision: view.myDecision,
     runningS: view.runningS,
     windowS: view.windowS,
+    /** At the finish: what the place gives (added to the career at the player's next request). */
+    prize: view.category.phase === 'FINISHED' ? finishPrize(view, table) : null,
     /** What the plan decides at the open aid station if the player sends nothing. */
     planned: me?.state && view.category.phase === 'PA' ? plannedDecision(view, me.state) : null,
   }
+}
+
+function finishPrize(view: RaceView, table: readonly { slot: number; position: number }[]) {
+  const race = getRace(view.raceId)
+  const mine = table.find((row) => row.slot === view.mySlot)
+  if (!race || !mine) return null
+  const prize = majorPrize(race, mine.position)
+  return { coins: prize.coins, xp: prize.xp, points: prize.rankingPoints }
 }
 
 /** The player's plan for the open aid station (owner specification §5.2: applied without a decision). */

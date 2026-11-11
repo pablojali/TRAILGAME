@@ -117,7 +117,55 @@ says what is built, phase by phase.
     itself, and the tick carries no session.
   - The `major-advance` job (every 15 s) keeps starting LOCKED events and filling grids.
 
+## Phase 5: results, rewards, ranking and history
+
+Migration `20261115090000_major_results.sql`; engine `src/game-engine/majorRewards.ts`.
+
+- **At the finish** (`major_commit_step`, the same transaction as the last step, once):
+  - `major_results`: every runner's place and time;
+  - `major_rewards`: one row per player with their result (place, time, splits, nutrition, READY
+    snapshot, the other runners' times). Never for an NPC.
+  - Both are readable by the service role only.
+- **Into the career** (`career-ops`):
+  - the orchestrator never writes careers. `career-ops` adds every waiting result to the career
+    before any request of that player (`save`, a training day, a purchase…), and right after the
+    finish through the new action `claim`, which the live screen calls when the race ends;
+  - the result is a finished race entry with id `major-{event id}` and `major: {eventId, name}`.
+    An entry already in the career is never added again, so a reward is applied once even if
+    marking it claimed fails.
+- **What the result gives** (owner decisions §8.1, §8.2 and §8.7 of the phase 0 audit):
+  - outside the calendar: no game day is used, the week does not move on;
+  - coins and XP: the course's prize table by place, **no level multiplier**;
+  - Fatigue: the in-race fatigue at the finish minus the Fatigue at READY, added to the career's
+    Fatigue now. Above the injury threshold, the usual injury (Fitness lost, forced Rest days);
+  - the gel and bar taken leave the stock (never below 0);
+  - achievements are checked as after any race.
+- **Ranking:**
+  - the course's points for the place with the Major's ×1.5 (`competition,major,150` in
+    `ranking_points.csv`), in the season of the race's finish;
+  - the database's trigger records it in `ranking_results` like any race, now with
+    `competition` = `major` (every other result: `standard`).
+- **History:** the Major appears in Career › History with its name and opens the usual result
+  screen (time, prize band, splits, the explanation). Its standings tab is left out: the field was
+  the real one, not the solo race's rivals.
+- **Finish screen:** place and time, and the coins, XP and points it gives.
+
+### NPCs are not identifiable (owner request, 11 November 2026)
+
+- Players no longer read `kind` of the grid (column privileges), and `race-state` sends no kind,
+  level or `auto` tag for anyone but the player.
+- An NPC's name ends with a full stop (`Ana91.`); a player's never does (trailing stops are removed
+  when the grid is filled). That is the only hint.
+- The live screen shows the solo races' aid-station picture at every aid station (a per-event
+  picture from Trail Studio can come later).
+
+### Trail Studio: post-race report
+
+- Majors › **Informe** (events running or finished): players and NPCs in each category and in
+  total, and each category's standings with who was an NPC, the level, the time and whether the
+  player's result is already in their career.
+- `major-ops` admin action `event-report`.
+
 ## Next
 
-- Phase 5: results, rewards, ranking (×1.5) and history.
 - Phase 6: the pilot.

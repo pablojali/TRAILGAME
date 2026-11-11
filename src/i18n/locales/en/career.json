@@ -40,6 +40,7 @@
   "career.history": "Race history",
   "career.historyEmpty": "Every race you run appears here, newest first.",
   "career.when": "Week {week} · {day}",
+  "career.major": "Sunday Major",
   "career.level": "Level {level}",
   "career.complete": " · Complete",
   "career.completeLabel": "Complete",

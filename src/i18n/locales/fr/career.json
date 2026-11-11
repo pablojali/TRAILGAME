@@ -40,6 +40,7 @@
   "career.history": "Historique des courses",
   "career.historyEmpty": "Chaque course que tu cours apparaît ici, la plus récente d'abord.",
   "career.when": "Semaine {week} · {day}",
+  "career.major": "Sunday Major",
   "career.level": "Niveau {level}",
   "career.complete": " · Terminé",
   "career.completeLabel": "Terminé",

@@ -86,6 +86,8 @@ export interface GameContextValue {
   allocateAttributePoint(attribute: AttributeId, expectedSpent: number): Promise<AllocationError | ServerError | null>
   /** Enters a race (free; level checked) once. Server-decided with Supabase (Phase 3B.2). */
   enterRace(raceId: string): Promise<RaceEntryError | ServerError | null>
+  /** Asks the server for the Sunday Major results waiting for this career (phase 5). */
+  claimMajorResults(): Promise<void>
   /** Buys an item once for `confirmedPrice` coins. Server-decided with Supabase (Phase 3B.2). */
   buyItem(itemId: string, confirmedPrice: number): Promise<BuyError | ServerError | null>
   /** Puts an owned item on (replacing the same slot) or takes it off. Server-decided with Supabase. */

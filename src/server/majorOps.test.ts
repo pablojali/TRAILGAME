@@ -32,6 +32,14 @@ function fakeStore() {
   })
   const store: MajorStore = {
     isAdmin: async (user) => user === ADMIN,
+    report: async () => ({
+      categories: [
+        { idx: 1, name: 'Banda 1', phase: 'FINISHED', players: 1, npcs: 1, rows: [
+          { slot: 2, kind: 'NPC', name: 'Bo.', country: 'FR', level: 4, position: 1, timeS: 3600, claimed: null },
+          { slot: 1, kind: 'PLAYER', name: 'Ana', country: 'AR', level: 3, position: 2, timeS: 3610, claimed: true },
+        ] },
+      ],
+    }),
     getConfig: async () => config,
     setConfig: async (value) => { config = value },
     listEvents: async () => [...events.values()],
@@ -82,7 +90,8 @@ function fakeStore() {
             ],
             mySlot: 1,
             myDecision: decided,
-            sources: { 1: 'AUTO' as const },
+            raceId: 'RACE-002',
+            sources: { 1: 'AUTO' as const, 2: 'AUTO' as const },
             myPlan: null,
             runningS: 150,
             windowS: 90,
@@ -229,6 +238,15 @@ describe('major-ops (Sunday Major, phase 1)', () => {
     expect((await handleMajorOp(null, { action: 'tick' }, deps(store, career, true))).body).toEqual({ ok: true, started: 0, steps: 0 })
   })
 
+  it('gives admins only the post-race report, with who was an NPC', async () => {
+    const { store } = fakeStore()
+    expect((await handleMajorOp(ADMIN, { action: 'event-report', id: ID }, deps(store))).body).toMatchObject({
+      ok: true,
+      report: { categories: [{ players: 1, npcs: 1 }] },
+    })
+    expect((await handleMajorOp(PLAYER, { action: 'event-report', id: ID }, deps(store))).status).toBe(403)
+  })
+
   it('shows the live race to a runner on the grid: standings with gaps, their energy, and takes their decision', async () => {
     const { store } = fakeStore()
     const state = await handleMajorOp(PLAYER, { action: 'race-state', id: ID }, deps(store))
@@ -237,15 +255,19 @@ describe('major-ops (Sunday Major, phase 1)', () => {
       race: {
         category: { phase: 'PA', segment: 0 },
         standings: [
-          { slot: 2, position: 1, gapS: 0, kind: 'NPC', name: 'Bo', me: false },
-          { slot: 1, position: 2, gapS: 10, kind: 'PLAYER', name: 'Ana', me: true, auto: true },
+          { slot: 2, position: 1, gapS: 0, name: 'Bo', me: false, auto: false },
+          { slot: 1, position: 2, gapS: 10, name: 'Ana', me: true, auto: true },
         ],
         me: { slot: 1, energy: 70, next: 'target' },
         myDecision: null,
         // Without a decision: the plan (none: Normal stop, Target pace).
         planned: { stop: 'normal', intensity: 'target' },
+        prize: null,
       },
     })
+    // NPCs are not identifiable: no kind or level in the standings.
+    const rows = (state.body as { race: { standings: Record<string, unknown>[] } }).race.standings
+    expect(rows.every((row) => !('kind' in row) && !('level' in row))).toBe(true)
     expect((await handleMajorOp(ADMIN, { action: 'race-state', id: ID }, deps(store))).body).toEqual({ ok: false, error: 'not-on-grid' })
     expect((await handleMajorOp(PLAYER, { action: 'decide', id: ID, segment: 0, stop: 'nap', intensity: 'hard' }, deps(store))).status).toBe(400)
     expect((await handleMajorOp(PLAYER, { action: 'decide', id: ID, segment: 0, stop: 'quick', intensity: 'hard' }, deps(store))).body).toMatchObject({

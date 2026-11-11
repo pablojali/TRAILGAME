@@ -2244,7 +2244,7 @@ function parseActiveRace(value, entries, currentDayIndex) {
   };
 }
 function isRaceEntry(value) {
-  if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 || !isRaceId(value.raceId) || !ENTRY_TYPES.includes(value.entryType) || !isInt(value.feePaid, 0) || !isInt(value.levelAtEntry, 1) || !isFiniteNumber(value.enteredAt)) {
+  if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 || !isRaceId(value.raceId) || !ENTRY_TYPES.includes(value.entryType) || !isInt(value.feePaid, 0) || !isInt(value.levelAtEntry, 1) || !isFiniteNumber(value.enteredAt) || value.major !== void 0 && !(isRecord(value.major) && typeof value.major.eventId === "string" && value.major.eventId.length > 0 && typeof value.major.name === "string")) {
     return false;
   }
   if (value.status === "pending") return value.result === void 0;
@@ -2371,6 +2371,107 @@ function parseCoachProgress(value) {
   return progress;
 }
 
+// src/game-engine/majorRewards.ts
+function majorPrize(race, position) {
+  const band = getPrizeBand(position);
+  const grossPrize = GROSS_PRIZES[race.category][band];
+  return {
+    band,
+    grossPrize,
+    coins: grossPrize,
+    xp: Math.max(RACE_MIN_XP, Math.floor(RACE_XP_BASE[race.category] * RACE_XP_BAND_PCT[band] / 100)),
+    rankingPoints: rankingPoints(race.id, position, "major")
+  };
+}
+function majorEntryId(eventId) {
+  return `major-${eventId}`;
+}
+function applyMajorReward(state, payload) {
+  const id = majorEntryId(payload.eventId);
+  if (state.raceEntries.some((entry2) => entry2.id === id)) return null;
+  const race = getRace(payload.raceId);
+  if (!race) return null;
+  const prize = majorPrize(race, payload.position);
+  const athlete = state.athlete;
+  const fatigueChange = statChange(athlete.fatigue, roundStat(payload.finishFatigue - payload.fatigue));
+  const injured = athlete.fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD;
+  const fitnessChange = injured ? statChange(athlete.fitness, -INJURY_FITNESS_LOSS) : 0;
+  const xpAwarded = injured ? RACE_MIN_XP : prize.xp;
+  const input = { attributes: payload.attributes, fitness: payload.fitness, fatigue: payload.fatigue, equipment: payload.equipment };
+  const field = getRaceField(race);
+  const referenceTimeS = getReferenceFinishS(race, field);
+  const explanation = explainRace(race, input, payload.dayForm);
+  const season = rankingSeason(payload.finishedAt);
+  const day = state.week.currentDayIndex + 1;
+  const result = {
+    startedAt: payload.startedAt,
+    week: state.week.number,
+    day,
+    levelAtStart: payload.levelAtStart,
+    attributes: input.attributes,
+    fitness: payload.fitness,
+    fatigue: payload.fatigue,
+    equipment: [...payload.equipment],
+    dayForm: payload.dayForm,
+    timeS: payload.timeS,
+    position: payload.position,
+    fieldSize: payload.fieldSize,
+    band: prize.band,
+    grossPrize: prize.grossPrize,
+    multiplierPct: 100,
+    coinsAwarded: prize.coins,
+    xpAwarded,
+    netCoins: prize.coins,
+    fatigueChange,
+    fitnessChange,
+    injured,
+    referenceTimeS,
+    gapS: payload.timeS - referenceTimeS,
+    factors: explanation.factors.map((f) => ({ ...f, effectS: Math.round(f.effectS * field.timeScale) })),
+    rivalTimesS: [...payload.rivalTimesS],
+    splits: payload.splits.map((split) => ({ ...split })),
+    nutrition: { ...payload.nutrition },
+    ...season >= 1 ? { rankingSeason: season, rankingPoints: prize.rankingPoints, rankingAt: payload.finishedAt } : {}
+  };
+  const entry = {
+    id,
+    raceId: race.id,
+    entryType: "free",
+    feePaid: 0,
+    levelAtEntry: payload.levelAtStart,
+    enteredAt: payload.startedAt,
+    major: { eventId: payload.eventId, name: payload.eventName },
+    status: "finished",
+    result
+  };
+  const levelBefore = getLevel(athlete.xp);
+  const rewarded = applyAchievementRewards({
+    ...state,
+    coins: state.coins + prize.coins,
+    consumables: {
+      gel: Math.max(0, state.consumables.gel - (payload.nutrition.gel ? 1 : 0)),
+      bar: Math.max(0, state.consumables.bar - (payload.nutrition.bar ? 1 : 0))
+    },
+    forcedRestDays: injured ? Math.max(state.forcedRestDays, INJURY_REST_DAYS) : state.forcedRestDays,
+    athlete: {
+      ...athlete,
+      xp: athlete.xp + xpAwarded,
+      fatigue: roundStat(athlete.fatigue + fatigueChange),
+      fitness: roundStat(athlete.fitness + fitnessChange)
+    },
+    raceEntries: [...state.raceEntries, entry]
+  });
+  const levelAfter = getLevel(rewarded.state.athlete.xp);
+  return {
+    state: rewarded.state,
+    entry,
+    achievementsEarned: rewarded.earned,
+    levelBefore,
+    levelAfter,
+    attributePointsAwarded: getAttributePointsBetween(levelBefore, levelAfter)
+  };
+}
+
 // src/server/careerOps.ts
 var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 var MAX_ATTEMPTS = 3;
@@ -2407,6 +2508,25 @@ function mergeClientFields(server, client, now) {
     }
   }
   return parseGameState(JSON.parse(JSON.stringify(merged)), now) ?? server;
+}
+function withMajorRewards(career, rewards) {
+  let state = career;
+  for (const reward of rewards) state = applyMajorReward(state, reward.payload)?.state ?? state;
+  return state;
+}
+async function pendingMajorRewards(deps, userId) {
+  try {
+    return await deps.store.majorRewards?.(userId) ?? [];
+  } catch {
+    return [];
+  }
+}
+async function markMajorRewards(deps, rewards) {
+  if (rewards.length === 0) return;
+  try {
+    await deps.store.markMajorRewards?.(rewards.map((r) => r.id));
+  } catch {
+  }
 }
 function compute(request, career, now) {
   switch (request.action) {
@@ -2457,6 +2577,8 @@ function compute(request, career, now) {
       if (!entered.ok) return { ok: false, error: entered.error };
       return { ok: true, state: entered.state, result: { entry: entered.entry } };
     }
+    case "claim":
+      return { ok: true, state: career };
     default:
       return { ok: false, error: "bad-request" };
   }
@@ -2486,6 +2608,8 @@ function validRequest(body) {
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.raceId === "string";
     case "save":
       return base && request.snapshot !== void 0;
+    case "claim":
+      return base && typeof request.operationId === "string" && UUID.test(request.operationId);
     case "new-career": {
       const identity = request.identity;
       return base && isProfileId(request.profile) && typeof identity === "object" && identity !== null && typeof identity.name === "string";
@@ -2508,6 +2632,7 @@ async function handleCareerOp(token, body, deps) {
   if (request.action === "save") return save(userId, request, deps, now);
   const previous = await deps.store.operation(request.operationId);
   if (previous) return replay(userId, previous, deps, now);
+  const rewards = await pendingMajorRewards(deps, userId);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const record = await deps.store.load(userId);
     if (!record) return fail(409, "no-career");
@@ -2515,7 +2640,11 @@ async function handleCareerOp(token, body, deps) {
     if (!server) return fail(409, "cloud-unreadable");
     const client = request.baseVersion === record.version && request.snapshot !== void 0 ? parseGameState(request.snapshot, now) : null;
     const merged = client ? mergeClientFields(server, client, now) : server;
-    const career = applyFitnessDecay(merged, now).state;
+    const career = withMajorRewards(applyFitnessDecay(merged, now).state, rewards);
+    if (request.action === "claim" && career.raceEntries.length === server.raceEntries.length) {
+      await markMajorRewards(deps, rewards);
+      return { status: 200, body: { ok: true, state: career, version: record.version } };
+    }
     const computed = compute(request, career, now);
     if (!computed.ok) return fail(422, computed.error, { state: career, version: record.version });
     const committed = await deps.store.commit({
@@ -2527,6 +2656,7 @@ async function handleCareerOp(token, body, deps) {
       response: computed.result ? { result: computed.result } : {}
     });
     if (committed.status === "saved") {
+      await markMajorRewards(deps, rewards);
       return { status: 200, body: { ok: true, state: computed.state, version: committed.version, result: computed.result } };
     }
     if (committed.status === "duplicate") return replay(userId, { userId, response: committed.response }, deps, now);
@@ -2545,6 +2675,7 @@ async function replay(userId, previous, deps, now) {
 async function save(userId, request, deps, now) {
   const client = parseGameState(request.snapshot, now);
   if (!client) return fail(400, "malformed-snapshot");
+  const rewards = await pendingMajorRewards(deps, userId);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const record = await deps.store.load(userId);
     if (!record) {
@@ -2556,9 +2687,12 @@ async function save(userId, request, deps, now) {
     const server = readRecord(record, now);
     if (!server) return fail(409, "cloud-unreadable", { version: record.version });
     if (request.baseVersion !== record.version) return fail(409, "conflict", { state: server, version: record.version });
-    const merged = mergeClientFields(applyFitnessDecay(server, now).state, client, now);
+    const merged = withMajorRewards(mergeClientFields(applyFitnessDecay(server, now).state, client, now), rewards);
     const committed = await deps.store.commit({ userId, baseVersion: record.version, state: merged, operationId: null, kind: "save", response: null });
-    if (committed.status === "saved") return { status: 200, body: { ok: true, state: merged, version: committed.version } };
+    if (committed.status === "saved") {
+      await markMajorRewards(deps, rewards);
+      return { status: 200, body: { ok: true, state: merged, version: committed.version } };
+    }
   }
   return fail(409, "busy");
 }
@@ -2628,6 +2762,20 @@ function createSupabaseCareerOpsStore(config2) {
       const row = rows[0];
       if (!row) throw new Error("commit_career returned nothing");
       return row;
+    },
+    async majorRewards(userId) {
+      return get(
+        `major_rewards?user_id=eq.${encodeURIComponent(userId)}&claimed_at=is.null&select=id,payload&order=created_at`
+      );
+    },
+    async markMajorRewards(ids) {
+      const list = ids.map((id) => encodeURIComponent(id)).join(",");
+      const response = await fetch(`${config2.url}/rest/v1/major_rewards?id=in.(${list})&claimed_at=is.null`, {
+        method: "PATCH",
+        headers: { ...headers, Prefer: "return=minimal" },
+        body: JSON.stringify({ claimed_at: (/* @__PURE__ */ new Date()).toISOString() })
+      });
+      if (!response.ok) throw new Error(`Database write failed (${response.status})`);
     }
   };
 }

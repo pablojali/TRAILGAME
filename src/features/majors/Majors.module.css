@@ -443,21 +443,12 @@
   text-align: right;
 }
 
-.tagNpc,
 .tagAuto {
   padding: 0 5px;
   border-radius: 999px;
   font-size: 9px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.tagNpc {
-  border: 1px solid rgb(255 255 255 / 0.3);
-  color: var(--text-muted);
-}
-
-.tagAuto {
   background: rgb(212 162 60 / 0.25);
   color: var(--accent-secondary);
 }

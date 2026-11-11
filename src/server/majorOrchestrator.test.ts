@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
 import type { MajorRunnerState } from '../game-engine/majorRace'
+import { getRace } from '../domain/races/races'
+import { rankingPoints } from '../domain/ranking/ranking'
+import { applyMajorReward, majorPrize } from '../game-engine/majorRewards'
+import { parseGameState } from '../repositories/gameRepository'
 import { newGame } from '../test/gameFixtures'
 import { advanceMajorRaces, type DueCategory, type GridRow, type RaceStore, type StoredDecision } from './majorOrchestrator'
 
@@ -23,6 +27,7 @@ function memoryStore(raceId = 'RACE-007') {
   let cat = { phase: 'WAITING' as DueCategory['phase'] | 'WAITING' | 'FINISHED', segment: 0, segments: 0, endsAt: 0, version: 0 }
   const decisions = new Map<string, StoredDecision & { segment: number }>()
   const commits: string[] = []
+  const finish: { results: NonNullable<Parameters<RaceStore['commitStep']>[0]['results']>; rewards: NonNullable<Parameters<RaceStore['commitStep']>[0]['rewards']> } = { results: [], rewards: [] }
   const store: RaceStore = {
     startableEvents: async (now) => (event === 'LOCKED' && now >= START ? [{ id: 'e1', raceId }] : []),
     grid: async () => rows,
@@ -35,7 +40,7 @@ function memoryStore(raceId = 'RACE-007') {
     },
     dueCategories: async (now) =>
       (cat.phase === 'RUNNING' || cat.phase === 'PA') && cat.endsAt <= now
-        ? [{ id: 'c1', eventId: 'e1', raceId, phase: cat.phase, segment: cat.segment, segments: cat.segments, phaseEndsAt: cat.endsAt, version: cat.version, runningS: RUN_S, windowS: WINDOW_S }]
+        ? [{ id: 'c1', eventId: 'e1', eventName: 'Major', raceId, phase: cat.phase, segment: cat.segment, segments: cat.segments, phaseEndsAt: cat.endsAt, version: cat.version, runningS: RUN_S, windowS: WINDOW_S }]
         : [],
     categoryGrid: async () => rows.map((r) => ({ ...r })),
     decisions: async (_c, segment) => [...decisions.values()].filter((d) => d.segment === segment),
@@ -46,7 +51,11 @@ function memoryStore(raceId = 'RACE-007') {
       for (const d of step.decisions) decisions.set(`${d.participantId}:${d.segment}`, { ...d, source: 'AUTO' })
       cat = { ...cat, phase: step.phase, segment: step.segment, endsAt: step.endsAt ?? 0, version: cat.version + 1 }
       commits.push(`${step.phase}${step.segment}`)
-      if (step.phase === 'FINISHED') event = 'FINISHED'
+      if (step.phase === 'FINISHED') {
+        event = 'FINISHED'
+        finish.results = step.results ?? []
+        finish.rewards = step.rewards ?? []
+      }
       return true
     },
   }
@@ -54,7 +63,7 @@ function memoryStore(raceId = 'RACE-007') {
     if (cat.phase !== 'PA' || cat.segment !== segment || now >= cat.endsAt) throw new Error('window closed')
     decisions.set(`p1:${segment}`, { participantId: 'p1', segment, stop, intensity, source: 'PLAYER' })
   }
-  return { store, rows, decide, commits, state: () => ({ event, ...cat }) }
+  return { store, rows, decide, commits, finish, state: () => ({ event, ...cat }) }
 }
 
 const player = (rows: GridRow[]) => rows.find((r) => r.id === 'p1')!.state as MajorRunnerState
@@ -86,6 +95,25 @@ describe('Major race orchestrator (phase 3)', () => {
     expect(m.commits).toEqual(['PA0', 'RUNNING1', 'PA1', 'RUNNING2', 'PA2', 'RUNNING3', 'FINISHED3'])
     const positions = m.rows.map((r) => (r.state as MajorRunnerState).progress.splits.at(-1)!.position).sort((a, b) => a - b)
     expect(positions).toEqual(Array.from({ length: 50 }, (_, i) => i + 1))
+    // The finish (phase 5): everyone's place and time, a reward for the player only.
+    expect(m.finish.results.map((r) => r.position).sort((a, b) => a - b)).toEqual(positions)
+    expect(m.finish.rewards).toHaveLength(1)
+    const reward = m.finish.rewards[0]!
+    const mine = player(m.rows)
+    expect(reward.participantId).toBe('p1')
+    expect(reward.payload).toMatchObject({
+      eventId: 'e1',
+      raceId: 'RACE-007',
+      position: mine.progress.splits.at(-1)!.position,
+      timeS: mine.progress.splits.at(-1)!.arrivalS,
+      fieldSize: 50,
+      startedAt: START,
+      finishedAt: START + (4 * RUN_S + 3 * WINDOW_S) * 1000,
+      fatigue: 20,
+      levelAtStart: 5,
+    })
+    expect(reward.payload.rivalTimesS).toHaveLength(49)
+    expect(reward.payload.splits).toHaveLength(4)
     // Nothing left to do.
     expect(await advanceMajorRaces(m.store, START + 7_200_000)).toEqual({ started: 0, steps: 0 })
   })
@@ -119,5 +147,53 @@ describe('Major race orchestrator (phase 3)', () => {
     await advanceMajorRaces(m.store, START + 240_000)
     expect(player(m.rows).progress.splits[0]!.stop).toBe('quick')
     expect(player(m.rows).next).toBe('hard')
+  })
+})
+
+describe('Major results in the career (phase 5)', () => {
+  async function finishedRace() {
+    const m = memoryStore()
+    await advanceMajorRaces(m.store, START)
+    await advanceMajorRaces(m.store, START + 3_600_000)
+    return m.finish.rewards[0]!.payload
+  }
+
+  it('adds the result as a finished race outside the calendar: course prize with no multiplier, ranking ×1.5, Fatigue, nutrition', async () => {
+    const payload = { ...(await finishedRace()), nutrition: { gel: true, bar: false } }
+    const career = { ...newGame(), coins: 10, consumables: { gel: 2, bar: 1 } }
+    const applied = applyMajorReward(career, payload)!
+    const race = getRace('RACE-007')!
+    const prize = majorPrize(race, payload.position)
+    const entry = applied.entry
+    expect(entry).toMatchObject({ id: 'major-e1', raceId: 'RACE-007', status: 'finished', feePaid: 0, major: { eventId: 'e1', name: 'Major' } })
+    expect(entry.result).toMatchObject({
+      position: payload.position,
+      fieldSize: 50,
+      timeS: payload.timeS,
+      multiplierPct: 100,
+      coinsAwarded: prize.coins,
+      rankingPoints: rankingPoints('RACE-007', payload.position, 'major'),
+      rankingAt: payload.finishedAt,
+    })
+    expect(prize.rankingPoints).toBe(Math.round(rankingPoints('RACE-007', payload.position) * 1.5))
+    expect(applied.state.coins).toBe(10 + prize.coins)
+    expect(applied.state.consumables).toEqual({ gel: 1, bar: 1 })
+    expect(applied.state.athlete.fatigue).toBeCloseTo(career.athlete.fatigue + (payload.finishFatigue - payload.fatigue), 2)
+    // Outside the calendar: the same day, the same week.
+    expect(applied.state.week).toEqual(career.week)
+    // A valid career that survives a save.
+    expect(parseGameState(JSON.parse(JSON.stringify(applied.state)), START)).not.toBeNull()
+    // Never applied twice.
+    expect(applyMajorReward(applied.state, payload)).toBeNull()
+  })
+
+  it('injures a runner whose Fatigue goes past the threshold, as a solo race does', async () => {
+    const payload = await finishedRace()
+    const career = newGame()
+    const tired = { ...career, athlete: { ...career.athlete, fatigue: 99 } }
+    const applied = applyMajorReward(tired, { ...payload, finishFatigue: payload.fatigue + 10 })!
+    expect(applied.entry.result.injured).toBe(true)
+    expect(applied.state.forcedRestDays).toBeGreaterThan(0)
+    expect(applied.state.athlete.fitness).toBeLessThan(tired.athlete.fitness)
   })
 })

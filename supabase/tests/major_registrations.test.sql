@@ -80,7 +80,7 @@ select pg_temp.expect((select count(distinct npc_id) = count(*) from npcs), 'no 
 -- Access: a player reads their own registration and the grid without snapshots or plans.
 select pg_temp.act_as('00000000-0000-0000-0000-000000000001');
 select pg_temp.expect((select count(*) = 1 from public.major_registrations), 'a player reads only their own registration');
-select pg_temp.expect((select count(*) = 6 from (select id, slot, kind, display_name, level from public.major_participants) g), 'a player reads the grid');
+select pg_temp.expect((select count(*) = 6 from (select id, slot, display_name, level from public.major_participants) g), 'a player reads the grid');
 select pg_temp.expect_error($$select runner_snapshot from public.major_participants$$, 'but not the runners'' snapshots');
 select pg_temp.expect_error($$select public.major_register('00000000-0000-0000-0000-00000000f001', auth.uid(), 1, 'x', null, now())$$, 'a player cannot call the functions directly');
 select pg_temp.expect_error($$update public.major_registrations set level = 99$$, 'a player cannot change a registration');

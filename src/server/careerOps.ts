@@ -10,6 +10,7 @@ import type { AidStop, Intensity } from '../domain/races/strategyConfig'
 import { enterRace, startRace, stepRace } from '../game-engine/races'
 import { executeCurrentDay, planSession, type DayRef } from '../game-engine/training'
 import { parseGameState, SCHEMA_VERSION } from '../repositories/gameRepository'
+import { applyMajorReward, type MajorRewardPayload } from '../game-engine/majorRewards'
 
 /**
  * Server-authoritative career operations, run in the Supabase Edge Function `career-ops`.
@@ -46,6 +47,10 @@ export interface CareerOpsStore {
     kind: OperationKind
     response: Record<string, unknown> | null
   }): Promise<{ status: CommitStatus; version: number | null; response: unknown }>
+  /** Sunday Major rewards waiting for this player (phase 5). */
+  majorRewards?(userId: string): Promise<{ id: string; payload: MajorRewardPayload }[]>
+  /** Marks rewards as applied, once the career that holds them is saved. */
+  markMajorRewards?(ids: string[]): Promise<void>
 }
 
 export interface CareerOpsDeps {
@@ -65,6 +70,7 @@ export type OperationKind =
   | 'enter-race'
   | 'save'
   | 'new-career'
+  | 'claim'
 
 interface WithSnapshot {
   /** The cloud version the client's snapshot is based on. */
@@ -97,6 +103,8 @@ export type CareerOpRequest =
   /** Free; the server checks the runner's level against the race's minimum. */
   | ({ action: 'enter-race'; operationId: string; raceId: string } & WithSnapshot)
   | ({ action: 'save'; snapshot: unknown } & WithSnapshot)
+  /** Adds the Sunday Major results waiting for the player now (phase 5); nothing else changes. */
+  | ({ action: 'claim'; operationId: string } & WithSnapshot)
   | { action: 'new-career'; baseVersion: number | null; profile: ProfileId; identity: AthleteIdentity }
 
 export type CareerOpResponse =
@@ -162,6 +170,34 @@ export function mergeClientFields(server: GameState, client: GameState, now: num
   return parseGameState(JSON.parse(JSON.stringify(merged)), now) ?? server
 }
 
+/**
+ * The Sunday Major results waiting for the player, added to the career before anything else
+ * (phase 5). Idempotent: a result already in the career (its entry id is the event's) is skipped.
+ */
+function withMajorRewards(career: GameState, rewards: readonly { id: string; payload: MajorRewardPayload }[]): GameState {
+  let state = career
+  for (const reward of rewards) state = applyMajorReward(state, reward.payload)?.state ?? state
+  return state
+}
+
+async function pendingMajorRewards(deps: CareerOpsDeps, userId: string) {
+  try {
+    return (await deps.store.majorRewards?.(userId)) ?? []
+  } catch {
+    // The race's result waits for the next request; the operation itself goes on.
+    return []
+  }
+}
+
+async function markMajorRewards(deps: CareerOpsDeps, rewards: readonly { id: string }[]) {
+  if (rewards.length === 0) return
+  try {
+    await deps.store.markMajorRewards?.(rewards.map((r) => r.id))
+  } catch {
+    // Marked at a later request; the career already holds the result, so it is not applied twice.
+  }
+}
+
 type Computation =
   | { ok: true; state: GameState; result?: Record<string, unknown> }
   | { ok: false; error: string }
@@ -216,6 +252,9 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       if (!entered.ok) return { ok: false, error: entered.error }
       return { ok: true, state: entered.state, result: { entry: entered.entry } }
     }
+    case 'claim':
+      // The waiting Major results were already added to `career` (withMajorRewards).
+      return { ok: true, state: career }
     default:
       return { ok: false, error: 'bad-request' }
   }
@@ -264,6 +303,8 @@ function validRequest(body: unknown): body is CareerOpRequest {
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.raceId === 'string'
     case 'save':
       return base && request.snapshot !== undefined
+    case 'claim':
+      return base && typeof request.operationId === 'string' && UUID.test(request.operationId)
     case 'new-career': {
       const identity = request.identity as Record<string, unknown> | undefined
       return base && isProfileId(request.profile) && typeof identity === 'object' && identity !== null && typeof identity.name === 'string'
@@ -298,6 +339,7 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
   const previous = await deps.store.operation(request.operationId)
   if (previous) return replay(userId, previous, deps, now)
 
+  const rewards = await pendingMajorRewards(deps, userId)
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const record = await deps.store.load(userId)
     if (!record) return fail(409, 'no-career')
@@ -305,7 +347,12 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
     if (!server) return fail(409, 'cloud-unreadable')
     const client = request.baseVersion === record.version && request.snapshot !== undefined ? parseGameState(request.snapshot, now) : null
     const merged = client ? mergeClientFields(server, client, now) : server
-    const career = applyFitnessDecay(merged, now).state
+    const career = withMajorRewards(applyFitnessDecay(merged, now).state, rewards)
+    // Nothing waiting: nothing to save.
+    if (request.action === 'claim' && career.raceEntries.length === server.raceEntries.length) {
+      await markMajorRewards(deps, rewards)
+      return { status: 200, body: { ok: true, state: career, version: record.version } }
+    }
     const computed = compute(request, career, now)
     if (!computed.ok) return fail(422, computed.error, { state: career, version: record.version })
     const committed = await deps.store.commit({
@@ -317,6 +364,7 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
       response: computed.result ? { result: computed.result } : {},
     })
     if (committed.status === 'saved') {
+      await markMajorRewards(deps, rewards)
       return { status: 200, body: { ok: true, state: computed.state, version: committed.version!, result: computed.result } }
     }
     if (committed.status === 'duplicate') return replay(userId, { userId, response: committed.response }, deps, now)
@@ -344,6 +392,7 @@ async function replay(userId: string, previous: { userId: string; response: unkn
 async function save(userId: string, request: Extract<CareerOpRequest, { action: 'save' }>, deps: CareerOpsDeps, now: number): Promise<HttpResult> {
   const client = parseGameState(request.snapshot, now)
   if (!client) return fail(400, 'malformed-snapshot')
+  const rewards = await pendingMajorRewards(deps, userId)
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const record = await deps.store.load(userId)
     if (!record) {
@@ -355,9 +404,12 @@ async function save(userId: string, request: Extract<CareerOpRequest, { action: 
     const server = readRecord(record, now)
     if (!server) return fail(409, 'cloud-unreadable', { version: record.version })
     if (request.baseVersion !== record.version) return fail(409, 'conflict', { state: server, version: record.version })
-    const merged = mergeClientFields(applyFitnessDecay(server, now).state, client, now)
+    const merged = withMajorRewards(mergeClientFields(applyFitnessDecay(server, now).state, client, now), rewards)
     const committed = await deps.store.commit({ userId, baseVersion: record.version, state: merged, operationId: null, kind: 'save', response: null })
-    if (committed.status === 'saved') return { status: 200, body: { ok: true, state: merged, version: committed.version! } }
+    if (committed.status === 'saved') {
+      await markMajorRewards(deps, rewards)
+      return { status: 200, body: { ok: true, state: merged, version: committed.version! } }
+    }
   }
   return fail(409, 'busy')
 }

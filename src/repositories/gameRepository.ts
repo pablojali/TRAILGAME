@@ -288,7 +288,9 @@ function isRaceEntry(value: unknown): value is RaceEntry {
     !ENTRY_TYPES.includes(value.entryType) ||
     !isInt(value.feePaid, 0) ||
     !isInt(value.levelAtEntry, 1) ||
-    !isFiniteNumber(value.enteredAt)
+    !isFiniteNumber(value.enteredAt) ||
+    (value.major !== undefined &&
+      !(isRecord(value.major) && typeof value.major.eventId === 'string' && value.major.eventId.length > 0 && typeof value.major.name === 'string'))
   ) {
     return false
   }

@@ -40,6 +40,7 @@
   "career.history": "Storico delle gare",
   "career.historyEmpty": "Qui compare ogni gara che corri, la più recente per prima.",
   "career.when": "Settimana {week} · {day}",
+  "career.major": "Sunday Major",
   "career.level": "Livello {level}",
   "career.complete": " · Completato",
   "career.completeLabel": "Completato",

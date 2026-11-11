@@ -6,9 +6,9 @@ import type { PlayerMajor } from '../../server/majorOps'
 import { newGame, withAthlete } from '../../test/gameFixtures'
 import { renderApp, seedCareer } from '../../test/renderApp'
 
-const { call } = vi.hoisted(() => ({ call: vi.fn() }))
+const { call, race } = vi.hoisted(() => ({ call: vi.fn(), race: vi.fn() }))
 vi.mock('../../repositories/supabase/majorClient', () => ({
-  getMajorService: () => ({ call, mediaUrl: (path: string) => `https://media/${path}` }),
+  getMajorService: () => ({ call, race, mediaUrl: (path: string) => `https://media/${path}` }),
 }))
 
 const ID = '11111111-1111-4111-8111-111111111111'
@@ -32,7 +32,10 @@ function major(overrides: Partial<PlayerMajor> = {}): PlayerMajor {
 }
 
 describe('Sunday Major for the player (phase 2)', () => {
-  beforeEach(() => call.mockReset())
+  beforeEach(() => {
+    call.mockReset()
+    race.mockReset()
+  })
 
   it('shows the next Major above the races, registers, saves the plan and confirms READY', async () => {
     const user = userEvent.setup()
@@ -106,5 +109,48 @@ describe('Sunday Major for the player (phase 2)', () => {
     await renderApp(`/majors/${ID}`)
     await user.click(await screen.findByRole('button', { name: 'Register (free)' }))
     expect(await screen.findByText('Registration is closed.')).toBeInTheDocument()
+  })
+
+  it('shows the live race on the grid: the aid-station decision with its countdown, the plan if none, and the standings', async () => {
+    const user = userEvent.setup()
+    seedCareer()
+    const racing = major({ status: 'RUNNING', registration: { categoryIdx: 1, level: 1, list: 'main', status: 'RACING', registeredAt: '', readyAt: 'x', plan: null } })
+    call.mockImplementation(async () => ({ ok: true, majors: [racing] }))
+    let myDecision: { stop: string; intensity: string; source: string } | null = null
+    const row = (slot: number, position: number, timeS: number, extra = {}) => ({ slot, position, timeS, gapS: timeS - 1300, kind: 'NPC', name: `Rival ${slot}`, country: 'FR', level: 3, me: false, intensity: 'target', auto: false, ...extra })
+    race.mockImplementation(async (request: { action: string; stop?: string; intensity?: string }) => {
+      if (request.action === 'decide') myDecision = { stop: request.stop!, intensity: request.intensity!, source: 'PLAYER' }
+      return {
+        ok: true,
+        now: new Date().toISOString(),
+        race: {
+          category: { idx: 1, name: 'Banda 1', phase: 'PA', segment: 0, segments: 2, phaseEndsAt: new Date(Date.now() + 60_000).toISOString() },
+          standings: [row(2, 1, 1300), row(1, 2, 1310, { kind: 'PLAYER', name: 'Demo Runner', me: true }), row(3, 3, 1330, { kind: 'PLAYER', name: 'Bea', auto: true })],
+          me: { slot: 1, elapsedS: 1310, energy: 72, fatigue: 28, next: 'target', splits: [] },
+          myDecision,
+          planned: { stop: 'normal', intensity: 'target' },
+          runningS: 150,
+          windowS: 90,
+        },
+      }
+    })
+    await renderApp(`/majors/${ID}`)
+    expect(await screen.findByText('Aid station 1 · your decision')).toBeInTheDocument()
+    expect(screen.getByText(/left$/)).toBeInTheDocument()
+    expect(screen.getByText('Ahead · Rival 2')).toBeInTheDocument()
+    expect(screen.getByText('+0:10')).toBeInTheDocument()
+    expect(screen.getByText("If you don't decide: Normal stop · Target pace (your plan).")).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Slow' }))
+    await user.click(screen.getByRole('button', { name: 'Easy' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm decision' }))
+    expect(race).toHaveBeenCalledWith({ action: 'decide', id: ID, segment: 0, stop: 'slow', intensity: 'easy' })
+    expect(await screen.findByText('Sent: Slow stop · Easy. You can change it until the window closes.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: 'Standings' }))
+    const table = within(screen.getByRole('list', { name: 'Standings' }))
+    expect(table.getAllByRole('listitem')).toHaveLength(3)
+    expect(table.getByText('Demo Runner').closest('li')).toHaveAttribute('aria-current', 'true')
+    expect(within(table.getByText('Rival 2').closest('li')!).getByText('NPC')).toBeInTheDocument()
+    expect(within(table.getByText('Bea').closest('li')!).getByText('auto')).toBeInTheDocument()
   })
 })

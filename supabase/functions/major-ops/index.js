@@ -1534,7 +1534,17 @@ function liveRace(view) {
     standings: table.map((row) => {
       const runner = bySlot.get(row.slot);
       const last = runner.state?.progress.splits.at(-1);
-      return { ...row, kind: runner.kind, name: runner.name, country: runner.country, level: runner.level, me: row.slot === view.mySlot, intensity: last?.intensity ?? null };
+      return {
+        ...row,
+        kind: runner.kind,
+        name: runner.name,
+        country: runner.country,
+        level: runner.level,
+        me: row.slot === view.mySlot,
+        intensity: last?.intensity ?? null,
+        // A player who let the plan decide (away, or chose not to): shown as automatic.
+        auto: runner.kind === "PLAYER" && view.sources[row.slot] === "AUTO"
+      };
     }),
     me: me?.state ? {
       slot: me.slot,
@@ -1544,8 +1554,21 @@ function liveRace(view) {
       next: me.state.next,
       splits: me.state.progress.splits
     } : null,
-    myDecision: view.myDecision
+    myDecision: view.myDecision,
+    runningS: view.runningS,
+    windowS: view.windowS,
+    /** What the plan decides at the open aid station if the player sends nothing. */
+    planned: me?.state && view.category.phase === "PA" ? plannedDecision(view, me.state) : null
   };
+}
+function plannedDecision(view, state) {
+  const me = view.runners.find((r) => r.slot === view.mySlot);
+  return automaticDecision(
+    { slot: me.slot, kind: me.kind, level: me.level, snapshot: null, plan: view.myPlan },
+    state,
+    view.category.segment,
+    view.category.segments ?? 1
+  );
 }
 function cleanInput(input) {
   return {
@@ -2431,11 +2454,11 @@ function createSupabaseMajorStore(config2) {
     },
     async raceView(eventId, userId) {
       const mine = await request(
-        `major_participants?event_id=eq.${eventId}&user_id=eq.${encodeURIComponent(userId)}&select=id,category_id,slot`
+        `major_participants?event_id=eq.${eventId}&user_id=eq.${encodeURIComponent(userId)}&select=id,category_id,slot,plan`
       );
       const me = mine[0];
       if (!me) return null;
-      const [categories, runners, decisions] = await Promise.all([
+      const [categories, runners, decisions, events] = await Promise.all([
         request(
           `major_categories?id=eq.${me.category_id}&select=idx,name,phase,segment,segments,phase_ends_at`
         ),
@@ -2444,10 +2467,19 @@ function createSupabaseMajorStore(config2) {
         ),
         request(
           `major_decisions?participant_id=eq.${me.id}&select=segment,stop,intensity,source`
-        )
+        ),
+        request(`major_events?id=eq.${eventId}&select=running_s,decision_window_s`)
       ]);
       const c = categories[0];
       const open = c.phase === "PA" ? decisions.find((d) => d.segment === c.segment) : void 0;
+      const closedSegment = c.phase === "RUNNING" ? c.segment - 1 : c.phase === "PA" ? c.segment - 1 : c.phase === "FINISHED" ? (c.segments ?? 1) - 2 : -1;
+      const sources = {};
+      if (closedSegment >= 0) {
+        const rows = await request(
+          `major_decisions?segment=eq.${closedSegment}&select=source,major_participants!inner(category_id,slot)&major_participants.category_id=eq.${me.category_id}`
+        );
+        for (const row of rows) sources[row.major_participants.slot] = row.source;
+      }
       return {
         category: { idx: c.idx, name: c.name, phase: c.phase, segment: c.segment, segments: c.segments, phaseEndsAt: c.phase_ends_at },
         runners: runners.map((r) => ({
@@ -2459,7 +2491,11 @@ function createSupabaseMajorStore(config2) {
           state: "progress" in r.state ? r.state : null
         })),
         mySlot: me.slot,
-        myDecision: open ? { stop: open.stop, intensity: open.intensity, source: open.source } : null
+        myDecision: open ? { stop: open.stop, intensity: open.intensity, source: open.source } : null,
+        sources,
+        myPlan: me.plan && Object.keys(me.plan).length ? me.plan : null,
+        runningS: events[0]?.running_s ?? 150,
+        windowS: events[0]?.decision_window_s ?? 90
       };
     },
     async decide(eventId, userId, segment, stop, intensity) {
@@ -2551,6 +2587,15 @@ function createSupabaseRaceStore(config2) {
       });
     }
   };
+}
+async function checkTickSecret(config2, secret) {
+  if (!secret || secret.length < 32) return false;
+  const response = await fetch(`${config2.url}/rest/v1/rpc/major_tick_check`, {
+    method: "POST",
+    headers: { apikey: config2.serviceRoleKey, Authorization: `Bearer ${config2.serviceRoleKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_secret: secret })
+  });
+  return response.ok && await response.json() === true;
 }
 
 // src/server/supabaseRest.ts
@@ -2647,8 +2692,8 @@ Deno.serve(async (request) => {
     const result = await handleMajorOp(token, body, {
       store: createSupabaseMajorStore(settings),
       race: createSupabaseRaceStore(settings),
-      // The scheduler (pg_cron + pg_net) sends this secret; it is never in a browser.
-      tickAuthorized: tickSecret(request) !== null && tickSecret(request) === Deno.env.get("MAJOR_TICK_SECRET"),
+      // The scheduler (pg_cron + pg_net) sends the secret kept in Vault; it is never in a browser.
+      tickAuthorized: body?.action === "tick" && await checkTickSecret(settings, tickSecret(request)),
       loadCareer: (userId) => loadServerCareer(createSupabaseCareerOpsStore(settings), userId, Date.now()),
       authenticate: (value) => authenticateWithSupabase(settings, value),
       now: () => Date.now()

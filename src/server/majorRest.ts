@@ -296,12 +296,12 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
     },
 
     async raceView(eventId, userId) {
-      const mine = await request<{ id: string; category_id: string; slot: number }[]>(
-        `major_participants?event_id=eq.${eventId}&user_id=eq.${encodeURIComponent(userId)}&select=id,category_id,slot`,
+      const mine = await request<{ id: string; category_id: string; slot: number; plan: Record<string, unknown> }[]>(
+        `major_participants?event_id=eq.${eventId}&user_id=eq.${encodeURIComponent(userId)}&select=id,category_id,slot,plan`,
       )
       const me = mine[0]
       if (!me) return null
-      const [categories, runners, decisions] = await Promise.all([
+      const [categories, runners, decisions, events] = await Promise.all([
         request<{ idx: number; name: string; phase: RaceView['category']['phase']; segment: number; segments: number | null; phase_ends_at: string | null }[]>(
           `major_categories?id=eq.${me.category_id}&select=idx,name,phase,segment,segments,phase_ends_at`,
         ),
@@ -311,9 +311,19 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
         request<{ segment: number; stop: AidStop; intensity: Intensity; source: 'PLAYER' | 'AUTO' }[]>(
           `major_decisions?participant_id=eq.${me.id}&select=segment,stop,intensity,source`,
         ),
+        request<{ running_s: number; decision_window_s: number }[]>(`major_events?id=eq.${eventId}&select=running_s,decision_window_s`),
       ])
       const c = categories[0]!
       const open = c.phase === 'PA' ? decisions.find((d) => d.segment === c.segment) : undefined
+      // Who raced the last closed aid station on their own decision, and who on their plan.
+      const closedSegment = c.phase === 'RUNNING' ? c.segment - 1 : c.phase === 'PA' ? c.segment - 1 : c.phase === 'FINISHED' ? (c.segments ?? 1) - 2 : -1
+      const sources: RaceView['sources'] = {}
+      if (closedSegment >= 0) {
+        const rows = await request<{ source: 'PLAYER' | 'AUTO'; major_participants: { slot: number } }[]>(
+          `major_decisions?segment=eq.${closedSegment}&select=source,major_participants!inner(category_id,slot)&major_participants.category_id=eq.${me.category_id}`,
+        )
+        for (const row of rows) sources[row.major_participants.slot] = row.source
+      }
       return {
         category: { idx: c.idx, name: c.name, phase: c.phase, segment: c.segment, segments: c.segments, phaseEndsAt: c.phase_ends_at },
         runners: runners.map((r) => ({
@@ -326,6 +336,10 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
         })),
         mySlot: me.slot,
         myDecision: open ? { stop: open.stop, intensity: open.intensity, source: open.source } : null,
+        sources,
+        myPlan: me.plan && Object.keys(me.plan).length ? (me.plan as unknown as MajorPlan) : null,
+        runningS: events[0]?.running_s ?? 150,
+        windowS: events[0]?.decision_window_s ?? 90,
       }
     },
 
@@ -435,4 +449,15 @@ export function createSupabaseRaceStore(config: ServerConfig): RaceStore {
       })
     },
   }
+}
+
+/** Whether the scheduler's secret is the one kept in Vault (`major_tick_check`). */
+export async function checkTickSecret(config: ServerConfig, secret: string | null): Promise<boolean> {
+  if (!secret || secret.length < 32) return false
+  const response = await fetch(`${config.url}/rest/v1/rpc/major_tick_check`, {
+    method: 'POST',
+    headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_secret: secret }),
+  })
+  return response.ok && (await response.json()) === true
 }

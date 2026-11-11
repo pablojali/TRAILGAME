@@ -82,6 +82,10 @@ function fakeStore() {
             ],
             mySlot: 1,
             myDecision: decided,
+            sources: { 1: 'AUTO' as const },
+            myPlan: null,
+            runningS: 150,
+            windowS: 90,
           }
         : null,
     decide: async (_e, _u, _segment, stop, intensity) => {
@@ -234,10 +238,12 @@ describe('major-ops (Sunday Major, phase 1)', () => {
         category: { phase: 'PA', segment: 0 },
         standings: [
           { slot: 2, position: 1, gapS: 0, kind: 'NPC', name: 'Bo', me: false },
-          { slot: 1, position: 2, gapS: 10, kind: 'PLAYER', name: 'Ana', me: true },
+          { slot: 1, position: 2, gapS: 10, kind: 'PLAYER', name: 'Ana', me: true, auto: true },
         ],
         me: { slot: 1, energy: 70, next: 'target' },
         myDecision: null,
+        // Without a decision: the plan (none: Normal stop, Target pace).
+        planned: { stop: 'normal', intensity: 'target' },
       },
     })
     expect((await handleMajorOp(ADMIN, { action: 'race-state', id: ID }, deps(store))).body).toEqual({ ok: false, error: 'not-on-grid' })

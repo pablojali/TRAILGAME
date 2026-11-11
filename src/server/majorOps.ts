@@ -12,7 +12,7 @@ import {
 import { getLevel } from '../domain/athlete/levels'
 import { getRace } from '../domain/races/races'
 import type { GameState } from '../game-engine/gameState'
-import { majorStandings, type MajorRunnerState } from '../game-engine/majorRace'
+import { automaticDecision, majorStandings, type MajorRunnerState } from '../game-engine/majorRace'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
 import { advanceMajorRaces, type RaceStore } from './majorOrchestrator'
 
@@ -144,6 +144,13 @@ export interface RaceView {
   mySlot: number
   /** The player's decision for the open aid station, if any. */
   myDecision: { stop: AidStop; intensity: Intensity; source: 'PLAYER' | 'AUTO' } | null
+  /** By slot: whether the runner's last aid station was their own decision or their plan. */
+  sources: Record<number, 'PLAYER' | 'AUTO'>
+  /** The player's frozen plan. */
+  myPlan: MajorPlan | null
+  /** The event's running phase and decision window, in seconds. */
+  runningS: number
+  windowS: number
 }
 
 export interface MajorOpsDeps {
@@ -468,7 +475,17 @@ export function liveRace(view: RaceView) {
     standings: table.map((row) => {
       const runner = bySlot.get(row.slot)!
       const last = runner.state?.progress.splits.at(-1)
-      return { ...row, kind: runner.kind, name: runner.name, country: runner.country, level: runner.level, me: row.slot === view.mySlot, intensity: last?.intensity ?? null }
+      return {
+        ...row,
+        kind: runner.kind,
+        name: runner.name,
+        country: runner.country,
+        level: runner.level,
+        me: row.slot === view.mySlot,
+        intensity: last?.intensity ?? null,
+        // A player who let the plan decide (away, or chose not to): shown as automatic.
+        auto: runner.kind === 'PLAYER' && view.sources[row.slot] === 'AUTO',
+      }
     }),
     me: me?.state
       ? {
@@ -481,8 +498,25 @@ export function liveRace(view: RaceView) {
         }
       : null,
     myDecision: view.myDecision,
+    runningS: view.runningS,
+    windowS: view.windowS,
+    /** What the plan decides at the open aid station if the player sends nothing. */
+    planned: me?.state && view.category.phase === 'PA' ? plannedDecision(view, me.state) : null,
   }
 }
+
+/** The player's plan for the open aid station (owner specification §5.2: applied without a decision). */
+function plannedDecision(view: RaceView, state: MajorRunnerState) {
+  const me = view.runners.find((r) => r.slot === view.mySlot)!
+  return automaticDecision(
+    { slot: me.slot, kind: me.kind, level: me.level, snapshot: null, plan: view.myPlan },
+    state,
+    view.category.segment,
+    view.category.segments ?? 1,
+  )
+}
+
+export type LiveRace = ReturnType<typeof liveRace>
 
 function cleanInput(input: MajorEventInput): MajorEventInput {
   return {

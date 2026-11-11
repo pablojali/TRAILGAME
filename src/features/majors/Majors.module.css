@@ -282,3 +282,182 @@
   background: rgb(10 12 14 / 0.72);
   backdrop-filter: blur(6px);
 }
+
+/* The live race (phase 4). */
+.live {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.phase {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: rgb(10 12 14 / 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.phaseHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.countdown {
+  color: var(--accent);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.phaseTrack {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.14);
+  overflow: hidden;
+}
+
+.phaseTrack > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 1s linear;
+}
+
+.liveStats {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.liveStats b {
+  font-size: var(--font-size-md);
+}
+
+.liveClip {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: #000;
+}
+
+.gapCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.gapCards div {
+  padding: 6px var(--space-2);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-sm);
+  background: rgb(10 12 14 / 0.66);
+}
+
+.gapCards dt {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gapCards dd {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.gapCards dd.gapAhead {
+  color: var(--brand-text);
+}
+
+.label {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.standings {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.standings li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: rgb(10 12 14 / 0.66);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.standings li[aria-current='true'] {
+  outline: 1px solid var(--accent);
+}
+
+.pos {
+  flex: none;
+  width: 2.2em;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.who {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.who em {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.gap {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.tagNpc,
+.tagAuto {
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tagNpc {
+  border: 1px solid rgb(255 255 255 / 0.3);
+  color: var(--text-muted);
+}
+
+.tagAuto {
+  background: rgb(212 162 60 / 0.25);
+  color: var(--accent-secondary);
+}

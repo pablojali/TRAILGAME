@@ -1349,3 +1349,18 @@ button:disabled {
   border-color: #f07c2a;
   color: #f7a865;
 }
+
+/* Race segments set by hand. */
+.segments {
+  margin: 14px 0;
+}
+
+.segmentGrid input,
+.segmentGrid select {
+  width: 100%;
+  min-width: 64px;
+}
+
+.wideHint {
+  grid-column: 1 / -1;
+}

@@ -15,6 +15,7 @@ import { getRaceSegments, type RaceSegment } from '../../game-engine/raceEngine'
 import { isRaceDayToday } from '../../game-engine/raceSchedule'
 import {
   getEntry,
+  raceOfActive,
   estimateFirstSegment,
   fatigueAtFinishBeforeStart,
   getRaceReport,
@@ -87,7 +88,8 @@ export function RaceRunScreen() {
   const { entryId = '' } = useParams()
   const { state } = useCareer()
   const entry = getEntry(state, entryId)
-  const race = entry && getRace(entry.raceId)
+  // A race in progress keeps the course it started on (Trail Studio may change the race meanwhile).
+  const race = entry && (state.activeRace?.entryId === entry.id ? raceOfActive(state.activeRace) : getRace(entry.raceId))
   const [finished, setFinished] = useState<RaceDayResult | null>(null)
   // A start or step waiting for the server: the screen does not move on by itself meanwhile.
   const [waiting, setWaiting] = useState(false)

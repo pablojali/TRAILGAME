@@ -3,7 +3,7 @@ import { applyAchievementRewards, type AchievementEarned } from './achievements'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import { canEnterAtLevel, getMinimumLevel, getRewardMultiplier } from '../domain/races/access'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_MIN_XP, RACE_XP_BAND_PCT, RACE_XP_BASE } from '../domain/races/categories'
-import { getRace, type Race } from '../domain/races/races'
+import { courseOf, getRace, withCourse, type Race } from '../domain/races/races'
 import { RACE_SIMULATION } from '../domain/races/simulationConfig'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS } from '../domain/training/injury'
 import { roundStat } from '../domain/athlete/athlete'
@@ -184,6 +184,12 @@ export interface RaceStepDecisions {
 
 export type RaceStepOutcome = { finished: false; state: GameState } | { finished: true; value: RaceDayResult }
 
+/** The race in progress with the course it started on. */
+export function raceOfActive(active: ActiveRace): Race | undefined {
+  const race = getRace(active.raceId)
+  return race && withCourse(race, active.course)
+}
+
 /** The rivals of this edition of the race: the runner's entry and start fix their form of the day. */
 function fieldOf(active: ActiveRace, race: Race): RaceField {
   return getEditionField(race, `${active.raceId}|${active.entryId}|${active.startedAt}`)
@@ -248,6 +254,7 @@ export function startRace(
     elapsedS: 0,
     inRaceFatigue: athlete.fatigue,
     splits: [],
+    course: courseOf(race),
   }
   const progress = runSegment(contextOf(base, race), toProgress(base), decisions.intensity)
   return {
@@ -282,7 +289,7 @@ export function stepRace(
 ): { ok: true; value: RaceStepOutcome } | { ok: false; error: RaceStepError } {
   const active = state.activeRace
   if (!active) return { ok: false, error: 'no-race-in-progress' }
-  const race = getRace(active.raceId)
+  const race = raceOfActive(active)
   if (!race) return { ok: false, error: 'no-race-in-progress' }
   if (decisions.segment !== active.splits.length) return { ok: false, error: 'wrong-segment' }
   if (!isAidStop(decisions.stop)) return { ok: false, error: 'unknown-stop' }
@@ -435,7 +442,7 @@ export interface RaceReport {
 
 export function getRaceReport(state: GameState): RaceReport | null {
   const active = state.activeRace
-  const race = active && getRace(active.raceId)
+  const race = active && raceOfActive(active)
   if (!active || !race) return null
   const field = fieldOf(active, race)
   const k = active.splits.length - 1
@@ -480,7 +487,7 @@ export interface StepPreview {
  */
 export function previewStep(state: GameState, stop: AidStop, intensity: Intensity): StepPreview | null {
   const active = state.activeRace
-  const race = active && getRace(active.raceId)
+  const race = active && raceOfActive(active)
   if (!active || !race) return null
   const field = fieldOf(active, race)
   if (active.splits.length >= field.segments.length) return null
@@ -515,7 +522,7 @@ const PROJECTION_MARGIN = 0.01
  */
 export function projectRace(state: GameState, stop: AidStop, intensity: Intensity): RaceProjection | null {
   const active = state.activeRace
-  const race = active && getRace(active.raceId)
+  const race = active && raceOfActive(active)
   if (!active || !race) return null
   const field = fieldOf(active, race)
   if (active.splits.length >= field.segments.length) return null
@@ -586,7 +593,7 @@ export function planRaceAhead(
   fixed: readonly (Intensity | null | undefined)[] = [],
 ): Intensity[] {
   const active = state.activeRace
-  const race = active && getRace(active.raceId)
+  const race = active && raceOfActive(active)
   if (!active || !race) return []
   const field = fieldOf(active, race)
   return planRest(contextOf(active, race, field), toProgress(active), style, fixed)

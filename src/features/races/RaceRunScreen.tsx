@@ -42,6 +42,7 @@ import { coachPortrait } from '../coach/coach'
 import { RACE_STYLES, type RaceStyle } from '../../game-engine/racePlan'
 import { loadRacePlan, saveRacePlan } from './racePlanStore'
 import { prepAdvice } from './prepAdvice'
+import { courseDetail } from './courseText'
 import { RaceClipPlayer } from './RaceClipPlayer'
 import { raceClip } from './raceClips'
 import { durationText, ordinal, raceTimeText } from './raceText'
@@ -395,19 +396,6 @@ function formatKm(metres: number, locale: string): string {
   return (Math.round(metres / 100) / 10).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
 
-/** "+95 m D+ · 2.4% average gradient", "−95 m D− · Technical descent" or "+40 / −60 m". */
-function courseDetail(segment: RaceSegment, t: Translate, locale: string): string {
-  const gain = Math.round(segment.gainM)
-  const loss = Math.round(segment.lossM)
-  const kind = segmentKind(segment)
-  if (kind === 'climb') {
-    const grade = (Math.round((segment.gainM / segment.distanceM) * 1000) / 10).toLocaleString(locale)
-    return t('raceRun.segmentClimb', { gain, grade: `${grade}%` })
-  }
-  if (kind === 'technical-descent') return t('raceRun.segmentTechnical', { loss })
-  if (kind === 'descent') return t('raceRun.segmentDescent', { loss })
-  return t('raceRun.segmentMixed', { gain, loss })
-}
 
 /** The pictures of the equipment worn, each with its name and level; opens Equipment. */
 function WornEquipment() {
@@ -487,7 +475,7 @@ function NutritionToggle({
 }
 
 /** The elevation of the next segment as a small filled line (owner request, 9 November 2026). */
-function SegmentProfile({ segment }: { segment: RaceSegment }) {
+export function SegmentProfile({ segment }: { segment: RaceSegment }) {
   const points: [number, number][] = [[0, 0]]
   let x = 0
   let y = 0

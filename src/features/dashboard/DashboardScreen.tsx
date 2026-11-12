@@ -7,6 +7,7 @@ import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
+import { MajorDashboardCard } from '../majors/MajorDashboardCard'
 import { formatStat, formatFatigue } from '../../components/format'
 import { ATTRIBUTE_IDS, ATTRIBUTE_SCALE, STAT_MAX } from '../../domain/athlete/athlete'
 import { getLevelProgress } from '../../domain/athlete/levels'
@@ -176,7 +177,9 @@ export function DashboardScreen() {
           </section>
         </div>
 
-        {/* Today: what to do next, one tap away (the page does not scroll). */}
+        {/* Today: what to do next, one tap away (the page does not scroll); the next Sunday Major
+            beside it when there is one (owner request, 12 November 2026). */}
+        <div className={styles.todayRow}>
         <section className={styles.today} aria-label={t('dashboard.today')}>
           <div className={styles.todayText}>
             <p className={styles.todayTitle}>
@@ -203,6 +206,8 @@ export function DashboardScreen() {
             {todayRace ? t('dashboard.goToRace') : t('dashboard.train')}
           </Link>
         </section>
+        <MajorDashboardCard />
+        </div>
 
         <ActiveChallenge />
       </div>

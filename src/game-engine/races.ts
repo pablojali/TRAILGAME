@@ -641,3 +641,57 @@ function rankingFields(
   // Standard races only for now: Majors and the World Cup are future events.
   return season >= 1 ? { rankingSeason: season, rankingPoints: rankingPoints(raceId, position, 'standard'), rankingAt: now } : {}
 }
+
+export interface PlannedSegmentPreview {
+  /** Race time and in-race fatigue on leaving the aid station before it (0 and the start's at the first). */
+  startS: number
+  startFatigue: number
+  /** By intensity: the segment's time and the in-race fatigue on arrival. */
+  options: Record<Intensity, { segmentS: number; fatigueAtArrival: number }>
+  /** The stop after the segment (none after the last), by stop: its seconds and the fatigue after it. */
+  stops: Record<AidStop, { stopS: number; fatigueAfter: number }> | null
+  /** The whole race with the plan as it is: finishing time and in-race fatigue at the finish. */
+  finishS: number
+  fatigueAtFinish: number
+}
+
+/**
+ * Before a race (a Sunday Major's plan, owner request of 12 November 2026): what segment `index`
+ * gives at each intensity, and the stop after it, for the runner as they are now (no day form),
+ * after running the segments before it as planned. The same engine as the race; estimates.
+ */
+export function previewPlannedSegment(
+  state: GameState,
+  race: Race,
+  nutrition: Nutrition,
+  plan: readonly { intensity: Intensity; stop: AidStop | null }[],
+  index: number,
+): PlannedSegmentPreview {
+  const ctx = prepContext(state, race, nutrition)
+  let progress: RaceProgress = { elapsedS: 0, fatigue: ctx.runner.fatigue, splits: [] }
+  for (let k = 0; k < index; k++) {
+    progress = runSegment(ctx, progress, plan[k]?.intensity ?? 'target')
+    progress = makeStop(ctx, progress, plan[k]?.stop ?? 'normal')
+  }
+  const options = {} as PlannedSegmentPreview['options']
+  for (const intensity of ['recovery', 'easy', 'target', 'hard'] as const) {
+    const ran = runSegment(ctx, progress, intensity)
+    options[intensity] = { segmentS: ran.elapsedS - progress.elapsedS, fatigueAtArrival: Math.min(100, ran.fatigue) }
+  }
+  const last = index >= ctx.field.segments.length - 1
+  let stops: PlannedSegmentPreview['stops'] = null
+  if (!last) {
+    const arrived = runSegment(ctx, progress, plan[index]?.intensity ?? 'target')
+    stops = {} as NonNullable<PlannedSegmentPreview['stops']>
+    for (const stop of ['quick', 'normal', 'slow'] as const) {
+      const after = makeStop(ctx, arrived, stop)
+      stops[stop] = { stopS: after.splits.at(-1)!.stopS ?? 0, fatigueAfter: Math.min(100, after.fatigue) }
+    }
+  }
+  let whole: RaceProgress = { elapsedS: 0, fatigue: ctx.runner.fatigue, splits: [] }
+  for (let k = 0; k < ctx.field.segments.length; k++) {
+    whole = runSegment(ctx, whole, plan[k]?.intensity ?? 'target')
+    if (k < ctx.field.segments.length - 1) whole = makeStop(ctx, whole, plan[k]?.stop ?? 'normal')
+  }
+  return { startS: progress.elapsedS, startFatigue: progress.fatigue, options, stops, finishS: whole.elapsedS, fatigueAtFinish: Math.min(100, whole.fatigue) }
+}

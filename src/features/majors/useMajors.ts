@@ -7,7 +7,7 @@ let cache: PlayerMajor[] | null = null
 
 /**
  * The published Majors with the player's registration (Sunday Major, phase 2), refreshed every
- * minute while a screen shows them, and the player's actions. Null service: no Supabase (Majors are
+ * 15 seconds while a screen shows them, and the player's actions. Null service: no Supabase (Majors are
  * online only).
  */
 export function useMajors() {
@@ -34,7 +34,8 @@ export function useMajors() {
     if (!service) return
     // Fetching from the server (the last answer shows meanwhile): the state is set when it arrives.
     void refresh()
-    const timer = window.setInterval(() => void refresh(), 60_000)
+    // Every 15 s: a new entrant or a status change shows without reloading (owner request, 12 November 2026).
+    const timer = window.setInterval(() => void refresh(), 15_000)
     return () => window.clearInterval(timer)
   }, [service, refresh])
 

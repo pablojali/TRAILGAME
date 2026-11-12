@@ -8,13 +8,16 @@ import { Chips, Tabs } from '../../components/Tabs'
 import { getLevel } from '../../domain/athlete/levels'
 import { bandOfLevel, defaultPlan, type MajorPlan } from '../../domain/major/major'
 import { getRace } from '../../domain/races/races'
-import type { AidStop, Intensity } from '../../domain/races/strategyConfig'
 import { getRaceSegments } from '../../game-engine/raceEngine'
 import { RACE_STYLES, type RaceStyle } from '../../game-engine/racePlan'
-import { planRaceBeforeStart } from '../../game-engine/races'
+import { planRaceBeforeStart, previewPlannedSegment } from '../../game-engine/races'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 import type { PlayerMajor } from '../../server/majorOps'
+import { formatFatigue } from '../../components/format'
+import { courseDetail } from '../races/courseText'
+import { SegmentProfile } from '../races/RaceRunScreen'
 import { intensityOptions, STOP_IDS, stopKey } from '../races/raceStrategyText'
+import { durationText, raceTimeText } from '../races/raceText'
 import { levelRange, untilText, whenText } from './majorText'
 import { LiveRace } from './LiveRace'
 import { majorPhase, useMajors } from './useMajors'
@@ -99,7 +102,7 @@ export function MajorScreen() {
                 <YourEntry major={major} phase={phase} now={now} />
               </div>
             ) : (
-              <PlanPanel major={major} busy={busy} onSave={(plan) => run({ action: 'save-plan', id: major.id, plan }, t('major.plan.saved'))} />
+              <PlanPanel major={major} onSave={(plan) => run({ action: 'save-plan', id: major.id, plan })} />
             )}
           </Tabs>
         )}
@@ -215,29 +218,48 @@ function Actions({
 }
 
 /**
- * The aid-station plan (owner specification §4.1): a style that fills every segment, then each
- * segment's intensity and the stop after it by hand, and the gel and bar to take. Saved on the
- * server; applied wherever the runner does not decide in time.
+ * The aid-station plan (owner specification §4.1; owner request of 12 November 2026): a style that
+ * fills every segment, the gel and bar, and a tab per segment with what it is (distance, ascent,
+ * descent, technicality, profile) and what each choice gives there, from the runner as they are now
+ * (time, gain or loss against Target pace, fatigue on arrival, and the stop after it). Every change
+ * is saved at once; the plan applies wherever the runner does not decide in time.
  */
-function PlanPanel({ major, busy, onSave }: { major: PlayerMajor; busy: boolean; onSave(plan: MajorPlan): void }) {
+function PlanPanel({ major, onSave }: { major: PlayerMajor; onSave(plan: MajorPlan): Promise<void> }) {
   const { state } = useCareer()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const race = getRace(major.raceId)
-  const segments = race ? getRaceSegments(race).length : 0
+  const raceSegments = race ? getRaceSegments(race) : []
+  const segments = raceSegments.length
   const saved = major.registration?.plan ?? null
   const [plan, setPlan] = useState<MajorPlan>(() => saved ?? defaultPlan(segments))
+  const [open, setOpen] = useState(0)
   const mine = major.registration
-  const editable = mine && (mine.status === 'REGISTERED' || mine.status === 'READY') && (major.status === 'REGISTRATION_OPEN')
+  const editable = mine && (mine.status === 'REGISTERED' || mine.status === 'READY') && major.status === 'REGISTRATION_OPEN'
   if (!race) return null
   if (!mine || mine.status === 'WITHDRAWN') return <p className={styles.hint}>{t('major.plan.registerFirst')}</p>
 
-  const setStyle = (style: RaceStyle) => {
-    const intensities = planRaceBeforeStart(state, race, { gel: plan.gel, bar: plan.bar }, style)
-    setPlan({ ...plan, style, segments: plan.segments.map((s, i) => ({ ...s, intensity: intensities[i] ?? s.intensity })) })
+  // Every change is saved at once (owner feedback, 12 November 2026: a plan left unsaved was lost,
+  // and READY took the old one). READY waits while a save is on its way.
+  const change = (next: MajorPlan) => {
+    setPlan(next)
+    if (editable) void onSave(next)
   }
-  const setSegment = (i: number, change: Partial<MajorPlan['segments'][number]>) =>
-    setPlan({ ...plan, segments: plan.segments.map((s, j) => (j === i ? { ...s, ...change } : s)) })
-  const dirty = JSON.stringify(plan) !== JSON.stringify(saved ?? defaultPlan(segments))
+  const nutrition = { gel: plan.gel && state.consumables.gel > 0, bar: plan.bar && state.consumables.bar > 0 }
+  const setStyle = (style: RaceStyle) => {
+    const intensities = planRaceBeforeStart(state, race, nutrition, style)
+    change({ ...plan, style, segments: plan.segments.map((s, i) => ({ ...s, intensity: intensities[i] ?? s.intensity })) })
+  }
+  const setSegment = (i: number, update: Partial<MajorPlan['segments'][number]>) =>
+    change({ ...plan, segments: plan.segments.map((s, j) => (j === i ? { ...s, ...update } : s)) })
+  const stored = JSON.stringify(plan) === JSON.stringify(saved ?? defaultPlan(segments))
+
+  const index = Math.min(open, segments - 1)
+  const segment = raceSegments[index]!
+  const chosen = plan.segments[index]!
+  const preview = previewPlannedSegment(state, race, nutrition, plan.segments, index)
+  const target = preview.options.target.segmentS
+  const signed = (seconds: number) => (Math.abs(seconds) < 1 ? '±0:00' : `${seconds < 0 ? '−' : '+'}${durationText(Math.abs(seconds))}`)
+  const place = (k: number) => (k === 0 ? t('major.plan.startLine') : k === segments ? t('major.plan.finishLine') : t('major.plan.aid', { n: k }))
 
   return (
     <div className={`${styles.panel} ${styles.planCard}`}>
@@ -250,41 +272,6 @@ function PlanPanel({ major, busy, onSave }: { major: PlayerMajor; busy: boolean;
           onChange={(style) => editable && setStyle(style)}
         />
       </div>
-      <ol className={styles.planRows}>
-        {plan.segments.map((segment, i) => (
-          <li key={i}>
-            <strong>{t('major.plan.segment', { n: i + 1 })}</strong>
-            <select
-              aria-label={t('major.plan.intensity', { n: i + 1 })}
-              value={segment.intensity}
-              disabled={!editable}
-              onChange={(e) => setSegment(i, { intensity: e.target.value as Intensity })}
-            >
-              {intensityOptions(t).map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            {segment.stop === null ? (
-              <span className={styles.finish}>{t('major.plan.finish')}</span>
-            ) : (
-              <select
-                aria-label={t('major.plan.stop', { n: i + 1 })}
-                value={segment.stop}
-                disabled={!editable}
-                onChange={(e) => setSegment(i, { stop: e.target.value as AidStop })}
-              >
-                {STOP_IDS.map((id) => (
-                  <option key={id} value={id}>
-                    {t(stopKey(id))}
-                  </option>
-                ))}
-              </select>
-            )}
-          </li>
-        ))}
-      </ol>
       <div className={styles.nutrition}>
         {(['gel', 'bar'] as const).map((item) => (
           <button
@@ -293,17 +280,105 @@ function PlanPanel({ major, busy, onSave }: { major: PlayerMajor; busy: boolean;
             className={styles.toggle}
             aria-pressed={plan[item]}
             disabled={!editable}
-            onClick={() => setPlan({ ...plan, [item]: !plan[item] })}
+            onClick={() => change({ ...plan, [item]: !plan[item] })}
           >
             {t(item === 'gel' ? 'raceRun.gel' : 'raceRun.bar')} · {state.consumables[item]}
           </button>
         ))}
       </div>
-      {editable && (
-        <button type="button" className={`${button.button} ${button.secondary}`} aria-disabled={busy || !dirty || undefined} onClick={() => !busy && dirty && onSave(plan)}>
-          {t('major.plan.save')}
-        </button>
-      )}
+
+      <div className={styles.segmentTabs} role="tablist" aria-label={t('major.plan.tabs')}>
+        {raceSegments.map((_, k) => (
+          <button key={k} type="button" role="tab" aria-selected={k === index} className={styles.segmentTab} onClick={() => setOpen(k)}>
+            {t('major.plan.segment', { n: k + 1 })}
+          </button>
+        ))}
+      </div>
+
+      <section className={styles.segmentCard} aria-label={t('major.plan.segment', { n: index + 1 })}>
+        <div className={styles.segmentHead}>
+          <strong>
+            {place(index)} → {place(index + 1)}
+          </strong>
+          <span>
+            {(segment.distanceM / 1000).toLocaleString(locale, { maximumFractionDigits: 1 })} km · +{Math.round(segment.gainM)} m · −{Math.round(segment.lossM)} m
+            {segment.technicality > 0 ? ` · ${t('major.plan.technical', { n: segment.technicality })}` : ''}
+          </span>
+        </div>
+        <SegmentProfile segment={segment} />
+        <p className={styles.hint}>{courseDetail(segment, t, locale)}</p>
+        <p className={styles.hint}>
+          {t('major.plan.arrive', { time: raceTimeText(Math.round(preview.startS)), fatigue: formatFatigue(preview.startFatigue) })}
+        </p>
+
+        <table className={styles.choiceTable}>
+          <caption>{t('major.plan.pace')}</caption>
+          <thead>
+            <tr>
+              <th />
+              <th>{t('major.plan.time')}</th>
+              <th>{t('major.plan.vsTarget')}</th>
+              <th>{t('major.plan.fatigueArrival')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {intensityOptions(t).map((option) => {
+              const row = preview.options[option.id]
+              return (
+                <tr key={option.id} aria-selected={chosen.intensity === option.id}>
+                  <th scope="row">
+                    <button type="button" className={styles.choice} aria-pressed={chosen.intensity === option.id} disabled={!editable} onClick={() => setSegment(index, { intensity: option.id })}>
+                      {option.label}
+                    </button>
+                  </th>
+                  <td>{durationText(Math.round(row.segmentS))}</td>
+                  <td className={row.segmentS < target - 0.5 ? styles.gain : row.segmentS > target + 0.5 ? styles.loss : ''}>{signed(row.segmentS - target)}</td>
+                  <td>{formatFatigue(row.fatigueAtArrival)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        {preview.stops && chosen.stop !== null ? (
+          <table className={styles.choiceTable}>
+            <caption>{t('major.plan.stopAfter', { place: place(index + 1) })}</caption>
+            <thead>
+              <tr>
+                <th />
+                <th>{t('major.plan.time')}</th>
+                <th />
+                <th>{t('major.plan.fatigueAfter')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {STOP_IDS.map((id) => {
+                const row = preview.stops![id]
+                return (
+                  <tr key={id} aria-selected={chosen.stop === id}>
+                    <th scope="row">
+                      <button type="button" className={styles.choice} aria-pressed={chosen.stop === id} disabled={!editable} onClick={() => setSegment(index, { stop: id })}>
+                        {t(stopKey(id))}
+                      </button>
+                    </th>
+                    <td>{durationText(row.stopS)}</td>
+                    <td />
+                    <td>{formatFatigue(row.fatigueAfter)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <p className={styles.finish}>{t('major.plan.finish')}</p>
+        )}
+      </section>
+
+      <p className={styles.entry}>
+        {t('major.plan.total', { time: raceTimeText(Math.round(preview.finishS)), fatigue: formatFatigue(preview.fatigueAtFinish) })}
+      </p>
+      <p className={styles.hint}>{t('major.plan.estimates')}</p>
+      {editable && <p className={styles.hint}>{stored ? t('major.plan.autosaved') : t('major.plan.saving')}</p>}
     </div>
   )
 }

@@ -296,6 +296,29 @@
   text-transform: uppercase;
 }
 
+/* Today and, when there is one, the next Major beside it (two columns). */
+.todayRow {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.todayRow:has(> :nth-child(2)) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+/* Beside the Major card, Today stacks its button under the text. */
+.todayRow:has(> :nth-child(2)) .today {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.todayRow:has(> :nth-child(2)) .todayButton {
+  min-width: 0;
+  width: 100%;
+}
+
 /* Today: the next action, under the runner (owner request: the Dashboard fits one screen). */
 .today {
   flex: none;
@@ -461,4 +484,24 @@
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
+}
+
+/* Short phones: Today and the Major card stay low so the runner keeps its room. */
+@media (max-height: 720px) {
+  .todayRow:has(> :nth-child(2)) .today {
+    gap: 6px;
+    padding: 6px var(--space-2);
+  }
+
+  .todayRow:has(> :nth-child(2)) .todayButton {
+    min-height: 34px;
+    padding-block: 4px;
+  }
+}
+
+/* Short phones with a Major coming: it takes the active challenge's place (still in Career). */
+@media (max-height: 720px) {
+  .todayRow:has(> :nth-child(2)) ~ .challenge {
+    display: none;
+  }
 }

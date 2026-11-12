@@ -7,7 +7,7 @@ import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Meter } from '../../components/Card'
-import { formatStat } from '../../components/format'
+import { formatStat, formatFatigue } from '../../components/format'
 import { ATTRIBUTE_IDS, ATTRIBUTE_SCALE, STAT_MAX } from '../../domain/athlete/athlete'
 import { getLevelProgress } from '../../domain/athlete/levels'
 import { getCareerProgress, WEEKS_PER_YEAR } from '../../domain/training/calendar'
@@ -165,7 +165,7 @@ export function DashboardScreen() {
               <div className={`${styles.stat} ${fatigueHigh ? styles.fatigueHigh : ''}`} data-coach="condition">
                 <dt>{t('stat.fatigue')}</dt>
                 <dd className={styles.value}>
-                  {athlete.fatigue}
+                  {formatFatigue(athlete.fatigue)}
                   {fatigueHigh && <span className={styles.highTag}> {t('dashboard.high')}</span>}
                 </dd>
                 <dd>

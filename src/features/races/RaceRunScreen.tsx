@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
-import { formatStat } from '../../components/format'
+import { formatFatigue } from '../../components/format'
 import { Screen } from '../../components/Screen'
 import { Chips, Tabs } from '../../components/Tabs'
 import { getEquipmentItem, getRaceEffect } from '../../domain/equipment/items'
@@ -518,7 +518,7 @@ function Meter({ label, value, tone }: { label: string; value: number; tone: 'en
         <span className={styles.meterTrack} aria-hidden="true">
           <span className={styles[tone]} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
         </span>
-        {formatStat(value)}
+        {formatFatigue(value)}
       </dd>
     </div>
   )

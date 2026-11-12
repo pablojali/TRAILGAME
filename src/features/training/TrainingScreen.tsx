@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
-import { formatDelta, formatStat } from '../../components/format'
+import { formatDelta, formatStat, formatFatigue, formatFatigueDelta } from '../../components/format'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
 import { getRestFatigueDelta, getSessionFatigueDelta, RECOVERY_REST_FITNESS } from '../../domain/training/recovery'
@@ -72,7 +72,7 @@ function effectsText(outcome: DayOutcome, t: Translate) {
   const daily = outcome.consistencyGain
     ? ` · ${t('training.consistencyWeek', { attribute: t('attr.consistency'), delta: formatDelta(outcome.consistencyGain) })}`
     : ''
-  return `${t('stat.xp')} ${formatDelta(outcome.xpGained)} · ${t('stat.fitness')} ${formatDelta(outcome.fitnessChange)} · ${t('stat.fatigue')} ${formatDelta(outcome.fatigueChange)}${trained}${daily}`
+  return `${t('stat.xp')} ${formatDelta(outcome.xpGained)} · ${t('stat.fitness')} ${formatDelta(outcome.fitnessChange)} · ${t('stat.fatigue')} ${formatFatigueDelta(outcome.fatigueChange)}${trained}${daily}`
 }
 
 /**
@@ -419,9 +419,9 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
         <div>
           <dt>{t('stat.fatigue')}</dt>
           <dd>
-            <span className={styles.delta}>{formatDelta(effects.fatigueChange)}</span>
+            <span className={styles.delta}>{formatFatigueDelta(effects.fatigueChange)}</span>
             <span className={styles.result}>
-              {athlete.fatigue} → {athlete.fatigue + effects.fatigueChange}
+              {formatFatigue(athlete.fatigue)} → {formatFatigue(athlete.fatigue + effects.fatigueChange)}
             </span>
           </dd>
         </div>

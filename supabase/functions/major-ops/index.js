@@ -2376,8 +2376,7 @@ function createSupabaseMajorStore(config2) {
       }
       throw refusalOf(message) ?? new Error(`Database request failed (${response.status}): ${message}`);
     }
-    if (response.status === 204) return void 0;
-    return await response.json();
+    return readBody(response);
   }
   const iso = (ms) => new Date(ms).toISOString();
   const rpc = (name, args) => request(`rpc/${name}`, { method: "POST", body: JSON.stringify(args) });
@@ -2640,7 +2639,7 @@ function createSupabaseRaceStore(config2) {
   async function request(path, init = {}) {
     const response = await fetch(`${config2.url}/rest/v1/${path}`, { ...init, headers });
     if (!response.ok) throw new Error(`Database request failed (${response.status}): ${await response.text()}`);
-    return await response.json();
+    return readBody(response);
   }
   const iso = (ms) => encodeURIComponent(new Date(ms).toISOString());
   const SELECT = "select=id,category_id,slot,kind,level,runner_snapshot,plan,state&order=slot";
@@ -2711,6 +2710,10 @@ function createSupabaseRaceStore(config2) {
       });
     }
   };
+}
+async function readBody(response) {
+  const text = await response.text();
+  return text.trim() === "" ? void 0 : JSON.parse(text);
 }
 async function checkTickSecret(config2, secret) {
   if (!secret || secret.length < 32) return false;

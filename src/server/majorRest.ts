@@ -97,8 +97,7 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
       }
       throw refusalOf(message) ?? new Error(`Database request failed (${response.status}): ${message}`)
     }
-    if (response.status === 204) return undefined as T
-    return (await response.json()) as T
+    return readBody<T>(response)
   }
 
   const iso = (ms: number) => new Date(ms).toISOString()
@@ -418,7 +417,7 @@ export function createSupabaseRaceStore(config: ServerConfig): RaceStore {
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const response = await fetch(`${config.url}/rest/v1/${path}`, { ...init, headers })
     if (!response.ok) throw new Error(`Database request failed (${response.status}): ${await response.text()}`)
-    return (await response.json()) as T
+    return readBody<T>(response)
   }
   const iso = (ms: number) => encodeURIComponent(new Date(ms).toISOString())
   type Row = {
@@ -503,6 +502,15 @@ export function createSupabaseRaceStore(config: ServerConfig): RaceStore {
       })
     },
   }
+}
+
+/**
+ * A successful answer's body: JSON, or nothing. Writes with `Prefer: return=minimal` answer 201 or
+ * 204 with an empty body (the log of every admin action, for one), which is not an error.
+ */
+export async function readBody<T>(response: Response): Promise<T> {
+  const text = await response.text()
+  return (text.trim() === '' ? undefined : JSON.parse(text)) as T
 }
 
 /** Whether the scheduler's secret is the one kept in Vault (`major_tick_check`). */

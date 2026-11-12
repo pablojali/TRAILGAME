@@ -37,13 +37,14 @@ describe('Sunday Major rules (owner specification, 10 November 2026)', () => {
     expect(MAJOR_STATUSES.some((s) => canTransition('FINISHED', s) || canTransition('CANCELLED', s))).toBe(false)
   })
 
-  it('checks a draft: name, a catalog race, a future Sunday in UTC', () => {
+  it('checks a draft: name, a catalog race, a future start on any day', () => {
     const now = Date.UTC(2026, 10, 10, 12) // Tuesday
     const event = { name: 'Major', description: '', raceId: 'RACE-002', scheduledStartAt: '2026-11-15T18:00:00Z' }
     expect(validateEventInput(event, now)).toBeNull()
     expect(validateEventInput({ ...event, name: ' ' }, now)).toBe('name')
     expect(validateEventInput({ ...event, raceId: 'RACE-999' }, now)).toBe('race')
-    expect(validateEventInput({ ...event, scheduledStartAt: '2026-11-14T18:00:00Z' }, now)).toBe('not-sunday')
+    // Any day of the week (owner request, 12 November 2026), e.g. a Saturday.
+    expect(validateEventInput({ ...event, scheduledStartAt: '2026-11-14T18:00:00Z' }, now)).toBeNull()
     expect(validateEventInput({ ...event, scheduledStartAt: '2026-11-08T18:00:00Z' }, now)).toBe('past')
     expect(validateEventInput({ ...event, scheduledStartAt: 'soon' }, now)).toBe('start')
   })

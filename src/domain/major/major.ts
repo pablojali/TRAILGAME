@@ -104,9 +104,9 @@ export interface MajorEventInput {
   scheduledStartAt: string
 }
 
-export type EventProblem = 'name' | 'description' | 'race' | 'start' | 'not-sunday' | 'past'
+export type EventProblem = 'name' | 'description' | 'race' | 'start' | 'past'
 
-/** A draft's fields: a catalog race, a Sunday (UTC) start in the future. */
+/** A draft's fields: a catalog race, a start in the future (any day: owner request, 12 November 2026). */
 export function validateEventInput(input: MajorEventInput, now: number): EventProblem | null {
   const name = input.name.trim()
   if (name.length < 1 || name.length > 80) return 'name'
@@ -114,7 +114,6 @@ export function validateEventInput(input: MajorEventInput, now: number): EventPr
   if (!getRace(input.raceId)) return 'race'
   const start = Date.parse(input.scheduledStartAt)
   if (!Number.isFinite(start)) return 'start'
-  if (new Date(start).getUTCDay() !== 0) return 'not-sunday'
   if (start <= now) return 'past'
   return null
 }

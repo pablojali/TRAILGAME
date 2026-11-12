@@ -357,7 +357,8 @@ function EventForm({
   onClose(): void
 }) {
   const start = `${draft.date}T${draft.time}:00Z`
-  const sunday = new Date(start).getUTCDay() === 0
+  const valid = Number.isFinite(Date.parse(start))
+  const past = valid && Date.parse(start) <= Date.now()
   return (
     <div className="majorForm">
       <h4>{draft.id ? 'Editar borrador' : 'Nuevo Major'}</h4>
@@ -381,22 +382,22 @@ function EventForm({
           </select>
         </div>
         <div className="field">
-          <label htmlFor="m-date">Domingo (UTC)</label>
+          <label htmlFor="m-date">Fecha (UTC)</label>
           <input id="m-date" type="date" value={draft.date} onChange={(e) => onChange({ ...draft, date: e.target.value })} />
         </div>
         <div className="field">
           <label htmlFor="m-time">Hora de salida (UTC)</label>
           <input id="m-time" type="time" value={draft.time} onChange={(e) => onChange({ ...draft, time: e.target.value })} />
         </div>
-        <p className={`field wide ${sunday ? 'hint' : 'error'}`}>
-          {Number.isFinite(Date.parse(start)) ? (sunday ? `Sale ${bothTimes(start)}.` : 'Esa fecha no es domingo en UTC.') : 'Fecha no válida.'}
+        <p className={`field wide ${valid && !past ? 'hint' : 'error'}`}>
+          {!valid ? 'Fecha no válida.' : past ? 'Esa salida ya pasó.' : `Sale ${bothTimes(start)}.`}
         </p>
       </div>
       <div className="majorsBar">
         <button type="button" className="ghost" onClick={onClose}>
           Cerrar
         </button>
-        <button type="button" className="primary" disabled={busy || !sunday || !draft.name.trim()} onClick={onSave}>
+        <button type="button" className="primary" disabled={busy || !valid || past || !draft.name.trim()} onClick={onSave}>
           Guardar borrador
         </button>
       </div>

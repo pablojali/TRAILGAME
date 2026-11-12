@@ -125,7 +125,7 @@ request, no code publish.
   magic link that comes back to the Studio. The Edge Function `major-ops` checks that the account
   is in `major_admins`; a non-admin sees their user id to pass on to Claude.
 - **Events:**
-  - create and edit drafts: name, description, a race of the catalog, a Sunday and a time in UTC,
+  - create and edit drafts: name, description, a race of the catalog, any date and a time in UTC,
     also shown in local time;
   - publish: the event copies the configuration and the level bands, and registration opens per the
     configuration;

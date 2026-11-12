@@ -10,7 +10,6 @@ export const ERRORS: Record<string, string> = {
   'event-description': 'La descripción admite hasta 500 caracteres.',
   'event-race': 'Elige una carrera del catálogo.',
   'event-start': 'La fecha de salida no es válida.',
-  'event-not-sunday': 'Los Majors salen en domingo (UTC).',
   'event-past': 'La salida debe ser en el futuro.',
   'cancel-reason': 'Escribe el motivo de la cancelación.',
   'media-closed': 'El banner y los vídeos ya no se pueden cambiar: la carrera está en curso o terminada.',

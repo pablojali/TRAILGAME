@@ -64,6 +64,7 @@ export interface RaceSegment {
 
 /** Number of segments of a race: clamp(round(km / 6), 2, 8). */
 export function getSegmentCount(race: Race): number {
+  if (race.segments) return race.segments.length
   return Math.min(C.maxSegments, Math.max(C.minSegments, Math.round(race.distanceKm / C.kmPerSegment)))
 }
 
@@ -74,7 +75,8 @@ export function getSegmentCount(race: Race): number {
 export function getRaceSegments(race: Race): RaceSegment[] {
   const course = generateCourse(race)
   const totalM = course.reduce((sum, block) => sum + block.lengthM, 0)
-  const lengths = splitEvenly(totalM, getSegmentCount(race))
+  // Segments set by hand cut where the owner put the aid stations; otherwise at equal distances.
+  const lengths = race.segments ? race.segments.map((s) => Math.round(s.distanceKm * 1000)) : splitEvenly(totalM, getSegmentCount(race))
   const bounds = [0]
   for (const length of lengths) bounds.push(bounds[bounds.length - 1]! + length)
 
@@ -113,7 +115,7 @@ export function getRaceSegments(race: Race): RaceSegment[] {
       lossM: sumOf((b) => b.lossM),
       effortKm: sumOf((b) => effortKm(b)),
       terrain: { runnable: ofType('runnable'), climb: ofType('climb'), descent: ofType('descent') },
-      technicality: hasDescent ? race.technicality : 0,
+      technicality: hasDescent ? Math.max(...list.filter((p) => p.block.type === 'descent').map((p) => p.block.technicality)) : 0,
       pieces: list,
     }
   })
@@ -310,7 +312,7 @@ function buildRaceField(race: Race, front: TypicalPlan): RaceField {
         : atLevel
   }
 
-  const stopS = stopSeconds(effort)
+  const stopS = race.stopS ? { ...race.stopS } : stopSeconds(effort)
 
   // The course factor: the winner runs at the owner's winner pace and finishes one rank ahead of
   // the anchor two levels above, at the same gap per rank as down to the recommended level (owner

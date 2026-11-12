@@ -15,7 +15,7 @@ import { isCountryCode } from '../domain/athlete/countries'
 import { STARTING_COINS } from '../domain/economy/coins'
 import { getEquipmentItem, isConsumable, OWNED_FROM_START } from '../domain/equipment/items'
 import { PRIZE_BANDS } from '../domain/races/categories'
-import { getRace, isRaceId } from '../domain/races/races'
+import { formatSegments, getRace, isRaceId, MAX_TECHNICALITY, parseSegments, withCourse, type RaceCourse } from '../domain/races/races'
 import { RACE_SIMULATION } from '../domain/races/simulationConfig'
 import { isAidStop, isIntensity } from '../domain/races/strategyConfig'
 import { getSegmentCount, type Nutrition, type RaceSplit } from '../game-engine/raceEngine'
@@ -229,11 +229,36 @@ function isSplitList(splits: unknown[], fieldSize: number, finished: boolean): b
   })
 }
 
+/** A course kept with a race in progress, or null if it is not a valid one. */
+function parseCourse(value: unknown): RaceCourse | null {
+  if (!isRecord(value)) return null
+  const { distanceKm, elevationGainM, technicality, segments, stopS } = value
+  if (!isFiniteNumber(distanceKm) || distanceKm < 0.5 || !isInt(elevationGainM, 0) || !isInt(technicality, 0, MAX_TECHNICALITY)) return null
+  const course: RaceCourse = { distanceKm, elevationGainM, technicality }
+  if (segments !== undefined) {
+    if (!Array.isArray(segments)) return null
+    try {
+      course.segments = parseSegments(formatSegments(segments as RaceCourse['segments'] & object), 'course')
+    } catch {
+      return null
+    }
+  }
+  if (stopS !== undefined) {
+    if (!isRecord(stopS) || !isInt(stopS.quick, 0) || !isInt(stopS.normal, 0) || !isInt(stopS.slow, 0)) return null
+    course.stopS = { quick: stopS.quick, normal: stopS.normal, slow: stopS.slow }
+  }
+  return course
+}
+
 /** The race in progress: its entry is the scheduled one, on race Sunday, between two segments. */
 function parseActiveRace(value: unknown, entries: readonly RaceEntry[], currentDayIndex: number): ActiveRace | null {
   if (!isRecord(value)) return null
   const entry = entries.find((e) => e.status === 'pending')
-  const race = getRace(typeof value.raceId === 'string' ? value.raceId : '')
+  const course = value.course === undefined ? undefined : parseCourse(value.course)
+  if (course === null) return null
+  const catalog = getRace(typeof value.raceId === 'string' ? value.raceId : '')
+  // The course the race started on (Trail Studio may have changed the race since).
+  const race = catalog && withCourse(catalog, course)
   const attributes = parseAttributes(value.attributes)
   const { equipment, nutrition, splits } = value
   if (
@@ -276,6 +301,7 @@ function parseActiveRace(value: unknown, entries: readonly RaceEntry[], currentD
     elapsedS: value.elapsedS,
     inRaceFatigue: value.inRaceFatigue,
     splits: structuredClone(splits as RaceSplit[]),
+    ...(course ? { course } : {}),
   }
 }
 

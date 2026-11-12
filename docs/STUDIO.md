@@ -7,6 +7,18 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
   (0–5), recommended level, difficulty (I–V), internal category, name and terrain in five
   languages. It previews the race card and its profile, and shows the effort, segments, entry
   levels, reference time and aid-station stops computed by the game's engine.
+  - **Segments and aid stations** (12 November 2026): automatic (the profile generated from the
+    totals, cut every ~6 km), or set by hand ("Definir tramos a mano", starting from the automatic
+    ones). Each segment has its km, ascent, descent and descent technicality; its gradient per km
+    is shown. Adding or removing a segment adds or removes an aid station (2 to 20 segments). The
+    race's distance, ascent and technicality become the segments' sums (and maximum).
+  - **Entry levels and stops**: minimum and maximum level, and the seconds of the quick, normal and
+    slow stops. Empty means automatic (5 levels below and 2 above the recommended one; stops from
+    the race's effort), shown in each field's hint.
+  - Stored in `races.csv`: `min_level`, `max_level`, `stop_quick_s`, `stop_normal_s`,
+    `stop_slow_s` and `segments` (`km:ascent:descent:technicality`, `|` between segments).
+  - A race in progress keeps the course it started on; a change applies to races started after
+    it is published. Do not change a race while a Sunday Major on it is running.
 - **Equipamiento:** every item as its shop card. The editor sets type, level, price, pack, shop
   picture, avatar layer, attribute bonuses, time changes in percent, and texts in five languages.
   It previews the card as the shop shows it in Spanish.

@@ -18,11 +18,13 @@ export const LEVELS_ABOVE_RECOMMENDED = 2
 
 /** The lowest level that may enter a race. */
 export function getMinimumLevel(race: Race): number {
+  if (race.minLevel !== undefined) return race.minLevel
   return Math.max(1, race.recommendedLevel - LEVELS_BELOW_RECOMMENDED)
 }
 
 /** The highest level that may enter a race. */
 export function getMaximumLevel(race: Race): number {
+  if (race.maxLevel !== undefined) return race.maxLevel
   return race.recommendedLevel + LEVELS_ABOVE_RECOMMENDED
 }
 

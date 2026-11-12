@@ -1,6 +1,6 @@
 import { ATTRIBUTE_IDS, type AttributeId, type Attributes } from '../domain/athlete/athlete'
 import { MAX_TECHNICALITY } from '../domain/races/races'
-import type { Race } from '../domain/races/races'
+import type { CourseSpec, Race } from '../domain/races/races'
 import { getRaceEffect } from '../domain/equipment/items'
 import { RACE_SIMULATION as C } from '../domain/races/simulationConfig'
 
@@ -58,6 +58,7 @@ export function splitEvenly(total: number, parts: number): number[] {
  * Lengths and gains are whole metres and sum exactly to the catalog values.
  */
 export function generateCourse(race: Race): CourseSegment[] {
+  if (race.segments) return race.segments.flatMap((spec, i) => specCourse(spec, `${race.id} segment ${i + 1}`))
   const distanceM = Math.round(race.distanceKm * 1000)
   const gainM = race.elevationGainM
   if (!Number.isInteger(gainM) || gainM < 0 || distanceM <= 0) {
@@ -94,6 +95,34 @@ export function generateCourse(race: Race): CourseSegment[] {
     }
   }
   return segments
+}
+
+/** The usual gradient of a climb or descent in a segment set by hand (steeper only when it must fit). */
+export const SPEC_GRADIENT = 0.15
+
+/**
+ * One segment set by hand as course blocks: its climb and descent at about 15% (steeper when the
+ * segment is too short for that, never above the course's limit), and the rest runnable, half
+ * before and half after. Whole metres; lengths add up to the segment's distance exactly.
+ */
+function specCourse(spec: CourseSpec, where: string): CourseSegment[] {
+  const lengthM = Math.round(spec.distanceKm * 1000)
+  const wanted = (spec.gainM + spec.lossM) / SPEC_GRADIENT
+  const scale = wanted > lengthM ? lengthM / wanted : 1
+  const climbM = spec.gainM > 0 ? Math.max(1, Math.round((spec.gainM / SPEC_GRADIENT) * scale)) : 0
+  const descentM = spec.lossM > 0 ? Math.max(1, Math.min(lengthM - climbM, Math.round((spec.lossM / SPEC_GRADIENT) * scale))) : 0
+  const runnableM = lengthM - climbM - descentM
+  const before = Math.floor(runnableM / 2)
+  const blocks: CourseSegment[] = [
+    { type: 'runnable', lengthM: before, gainM: 0, lossM: 0, technicality: 0 },
+    { type: 'climb', lengthM: climbM, gainM: spec.gainM, lossM: 0, technicality: 0 },
+    { type: 'descent', lengthM: descentM, gainM: 0, lossM: spec.lossM, technicality: spec.technicality },
+    { type: 'runnable', lengthM: runnableM - before, gainM: 0, lossM: 0, technicality: 0 },
+  ].filter((b): b is CourseSegment => b.lengthM > 0)
+  for (const b of blocks) {
+    if ((b.gainM + b.lossM) / b.lengthM > C.maxAverageGradient + 1e-9) throw new InvalidCourseError(`${where}: gradient above ${C.maxAverageGradient * 100}%`)
+  }
+  return blocks
 }
 
 /** ITRA-style effort: 1 effort-km per km, plus 1 per 100 m of ascent. */

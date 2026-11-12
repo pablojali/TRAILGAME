@@ -64,24 +64,26 @@ var races_default = `# Race catalog (owner table, 5 November 2026). One row per 
 # technicality: descent technicality 0 (none) to 5 (extreme). terrain: shown on the race (terrain_es, _fr, _it, _de: the same in each language; empty = English).
 # Each race also needs its difficulty (I-V) in ranking_points.csv. Photo (assets/ui/races/RACE-xxx.webp) and clips (assets/race/clips) are optional.
 # After adding a race or changing a recommended level, the NPC rankings need a migration: python3 scripts/ranking_tables_sql.py --points-only.
-id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,terrain_es,terrain_fr,terrain_it,terrain_de
-RACE-001,Forest First Steps,open,5,50,4,0,Non-technical forest paths,Caminos de bosque sin dificultad t\xE9cnica,Chemins forestiers sans difficult\xE9 technique,Sentieri nel bosco senza difficolt\xE0 tecniche,Einfache Waldwege
-RACE-002,Riverside Trail,open,8,95,6,0,"Packed dirt, rolling hills","Tierra compacta, colinas suaves","Terre battue, collines douces","Sterrato compatto, colline dolci","Fester Boden, sanfte H\xFCgel"
-RACE-003,Pine Loop Challenge,open,10,150,8,1,"Forest trail, short climbs","Sendero de bosque, subidas cortas","Sentier forestier, mont\xE9es courtes","Sentiero nel bosco, salite brevi","Waldpfad, kurze Anstiege"
-RACE-004,Ridge Runner,mountain,12,180,11,3,"Rolling ridges, mixed trail","Crestas onduladas, sendero mixto","Cr\xEAtes vallonn\xE9es, sentier mixte","Creste ondulate, sentiero misto","Wellige Grate, gemischte Pfade"
-RACE-005,Stone Path Classic,trail,15,750,14,3,"Rocky sections, moderate technicality","Tramos rocosos, t\xE9cnica moderada","Passages rocheux, technicit\xE9 mod\xE9r\xE9e","Tratti rocciosi, tecnica moderata","Felsige Abschnitte, mittlere Technik"
-RACE-006,Wildwood Ascent,trail,18,950,18,2,"Sustained climbs, forest terrain","Subidas largas, terreno de bosque","Longues mont\xE9es, terrain forestier","Salite lunghe, terreno boschivo","Lange Anstiege, Waldgel\xE4nde"
-RACE-007,Summit Quest,mountain,22,1300,21,3,"Steep climbs, rocky descents","Subidas empinadas, bajadas rocosas","Mont\xE9es raides, descentes rocheuses","Salite ripide, discese rocciose","Steile Anstiege, felsige Abstiege"
-RACE-008,Alpine Traverse,mountain,28,1700,25,5,"Alpine paths, technical descents","Senderos alpinos, bajadas t\xE9cnicas","Sentiers alpins, descentes techniques","Sentieri alpini, discese tecniche","Alpine Pfade, technische Abstiege"
-RACE-009,Sky Ridge Ultra,mountain,35,2200,28,3,"Exposed ridges, sustained elevation","Crestas expuestas, altitud sostenida","Cr\xEAtes expos\xE9es, altitude soutenue","Creste esposte, quota costante","Ausgesetzte Grate, viel H\xF6he"
-RACE-010,High Peaks Challenge,elite,42,2800,31,5,Highly technical mountain terrain,Terreno de monta\xF1a muy t\xE9cnico,Terrain de montagne tr\xE8s technique,Terreno di montagna molto tecnico,Sehr technisches Berggel\xE4nde
-RACE-011,Legends of the Crest,elite,55,3600,40,5,"Long mountain ultra, technical sections","Ultra de monta\xF1a larga, tramos t\xE9cnicos","Long ultra de montagne, passages techniques","Lunga ultra di montagna, tratti tecnici","Langer Bergultra, technische Abschnitte"
-RACE-012,Beyond the Skyline,elite,70,4800,50,5,"Extreme ultra, long climbs and descents","Ultra extrema, subidas y bajadas largas","Ultra extr\xEAme, longues mont\xE9es et descentes","Ultra estrema, lunghe salite e discese","Extremer Ultra, lange Anstiege und Abstiege"
-RACE-013,Granite Spine,elite,44,3000,34,4,"Granite ridges, scrambling near the summit","Crestas de granito, trepadas cerca de la cumbre","Cr\xEAtes de granit, passages d\u2019escalade pr\xE8s du sommet","Creste di granito, passaggi di arrampicata vicino alla vetta","Granitgrate, Kletterpassagen unter dem Gipfel"
-RACE-014,Northern Lakes Ultra,elite,50,3200,37,2,Lake shores and long rolling climbs,Orillas de lagos y subidas largas y onduladas,Bords de lacs et longues mont\xE9es vallonn\xE9es,Rive di laghi e lunghe salite ondulate,"Seeufer und lange, wellige Anstiege"
-RACE-015,Glacier Line,elite,57,3800,43,5,"Glacier moraines, very technical descents","Morrenas glaciares, bajadas muy t\xE9cnicas","Moraines glaciaires, descentes tr\xE8s techniques","Morene glaciali, discese molto tecniche","Gletschermor\xE4nen, sehr technische Abstiege"
-RACE-016,Midnight Traverse,elite,62,4100,45,3,"Night start, long mountain ultra","Salida nocturna, ultra largo de monta\xF1a","D\xE9part de nuit, long ultra en montagne","Partenza notturna, lungo ultra in montagna","Nachtstart, langer Bergultra"
-RACE-017,Crown of the Range,elite,66,4500,47,4,"High mountain ultra, steep rocky passes","Ultra de alta monta\xF1a, collados rocosos empinados","Ultra de haute montagne, cols rocheux raides","Ultra d\u2019alta montagna, valichi rocciosi ripidi","Hochgebirgsultra, steile felsige P\xE4sse"
+# Optional (Trail Studio, 12 November 2026; empty = automatic): min_level and max_level, the entry levels; stop_quick_s, stop_normal_s, stop_slow_s, the seconds of each stop (all three or none);
+# segments: the course by hand, km:ascent:descent:technicality per segment and | between segments (an aid station between two), e.g. 6.5:420:120:2|5:0:300:3. Then distance_km and elevation_gain_m are their sums.
+id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,terrain_es,terrain_fr,terrain_it,terrain_de,min_level,max_level,stop_quick_s,stop_normal_s,stop_slow_s,segments
+RACE-001,Forest First Steps,open,5,50,4,0,Non-technical forest paths,Caminos de bosque sin dificultad t\xE9cnica,Chemins forestiers sans difficult\xE9 technique,Sentieri nel bosco senza difficolt\xE0 tecniche,Einfache Waldwege,,,,,,
+RACE-002,Riverside Trail,open,8,95,6,0,"Packed dirt, rolling hills","Tierra compacta, colinas suaves","Terre battue, collines douces","Sterrato compatto, colline dolci","Fester Boden, sanfte H\xFCgel",,,,,,
+RACE-003,Pine Loop Challenge,open,10,150,8,1,"Forest trail, short climbs","Sendero de bosque, subidas cortas","Sentier forestier, mont\xE9es courtes","Sentiero nel bosco, salite brevi","Waldpfad, kurze Anstiege",,,,,,
+RACE-004,Ridge Runner,mountain,12,180,11,3,"Rolling ridges, mixed trail","Crestas onduladas, sendero mixto","Cr\xEAtes vallonn\xE9es, sentier mixte","Creste ondulate, sentiero misto","Wellige Grate, gemischte Pfade",,,,,,
+RACE-005,Stone Path Classic,trail,15,750,14,3,"Rocky sections, moderate technicality","Tramos rocosos, t\xE9cnica moderada","Passages rocheux, technicit\xE9 mod\xE9r\xE9e","Tratti rocciosi, tecnica moderata","Felsige Abschnitte, mittlere Technik",,,,,,
+RACE-006,Wildwood Ascent,trail,18,950,18,2,"Sustained climbs, forest terrain","Subidas largas, terreno de bosque","Longues mont\xE9es, terrain forestier","Salite lunghe, terreno boschivo","Lange Anstiege, Waldgel\xE4nde",,,,,,
+RACE-007,Summit Quest,mountain,22,1300,21,3,"Steep climbs, rocky descents","Subidas empinadas, bajadas rocosas","Mont\xE9es raides, descentes rocheuses","Salite ripide, discese rocciose","Steile Anstiege, felsige Abstiege",,,,,,
+RACE-008,Alpine Traverse,mountain,28,1700,25,5,"Alpine paths, technical descents","Senderos alpinos, bajadas t\xE9cnicas","Sentiers alpins, descentes techniques","Sentieri alpini, discese tecniche","Alpine Pfade, technische Abstiege",,,,,,
+RACE-009,Sky Ridge Ultra,mountain,35,2200,28,3,"Exposed ridges, sustained elevation","Crestas expuestas, altitud sostenida","Cr\xEAtes expos\xE9es, altitude soutenue","Creste esposte, quota costante","Ausgesetzte Grate, viel H\xF6he",,,,,,
+RACE-010,High Peaks Challenge,elite,42,2800,31,5,Highly technical mountain terrain,Terreno de monta\xF1a muy t\xE9cnico,Terrain de montagne tr\xE8s technique,Terreno di montagna molto tecnico,Sehr technisches Berggel\xE4nde,,,,,,
+RACE-011,Legends of the Crest,elite,55,3600,40,5,"Long mountain ultra, technical sections","Ultra de monta\xF1a larga, tramos t\xE9cnicos","Long ultra de montagne, passages techniques","Lunga ultra di montagna, tratti tecnici","Langer Bergultra, technische Abschnitte",,,,,,
+RACE-012,Beyond the Skyline,elite,70,4800,50,5,"Extreme ultra, long climbs and descents","Ultra extrema, subidas y bajadas largas","Ultra extr\xEAme, longues mont\xE9es et descentes","Ultra estrema, lunghe salite e discese","Extremer Ultra, lange Anstiege und Abstiege",,,,,,
+RACE-013,Granite Spine,elite,44,3000,34,4,"Granite ridges, scrambling near the summit","Crestas de granito, trepadas cerca de la cumbre","Cr\xEAtes de granit, passages d\u2019escalade pr\xE8s du sommet","Creste di granito, passaggi di arrampicata vicino alla vetta","Granitgrate, Kletterpassagen unter dem Gipfel",,,,,,
+RACE-014,Northern Lakes Ultra,elite,50,3200,37,2,Lake shores and long rolling climbs,Orillas de lagos y subidas largas y onduladas,Bords de lacs et longues mont\xE9es vallonn\xE9es,Rive di laghi e lunghe salite ondulate,"Seeufer und lange, wellige Anstiege",,,,,,
+RACE-015,Glacier Line,elite,57,3800,43,5,"Glacier moraines, very technical descents","Morrenas glaciares, bajadas muy t\xE9cnicas","Moraines glaciaires, descentes tr\xE8s techniques","Morene glaciali, discese molto tecniche","Gletschermor\xE4nen, sehr technische Abstiege",,,,,,
+RACE-016,Midnight Traverse,elite,62,4100,45,3,"Night start, long mountain ultra","Salida nocturna, ultra largo de monta\xF1a","D\xE9part de nuit, long ultra en montagne","Partenza notturna, lungo ultra in montagna","Nachtstart, langer Bergultra",,,,,,
+RACE-017,Crown of the Range,elite,66,4500,47,4,"High mountain ultra, steep rocky passes","Ultra de alta monta\xF1a, collados rocosos empinados","Ultra de haute montagne, cols rocheux raides","Ultra d\u2019alta montagna, valichi rocciosi ripidi","Hochgebirgsultra, steile felsige P\xE4sse",,,,,,
 `;
 
 // src/domain/races/categories.ts
@@ -109,6 +111,50 @@ var RACE_XP_BAND_PCT = [100, 70, 50, 25, 10];
 // src/domain/races/races.ts
 var RACE_LANGUAGES = ["es", "fr", "it", "de"];
 var MAX_TECHNICALITY = 5;
+var MIN_SEGMENTS = 2;
+var MAX_SEGMENTS = 20;
+function withCourse(race, course) {
+  if (!course) return race;
+  const { segments, stopS, ...totals } = course;
+  const merged = { ...race, ...totals };
+  delete merged.segments;
+  delete merged.stopS;
+  return { ...merged, ...segments ? { segments } : {}, ...stopS ? { stopS } : {} };
+}
+function formatSegments(segments) {
+  return segments.map((s) => `${s.distanceKm}:${s.gainM}:${s.lossM}:${s.technicality}`).join("|");
+}
+function parseSegments(text, where) {
+  const segments = text.split("|").map((part, i) => {
+    const fields = part.split(":");
+    const at = `${where}, segment ${i + 1}`;
+    if (fields.length !== 4) throw new Error(`${at}: write km:ascent:descent:technicality`);
+    const [km, gain, loss, tech] = fields.map((f) => f.trim());
+    const spec = {
+      distanceKm: csvNumber(km, at),
+      gainM: csvInt(gain, at),
+      lossM: csvInt(loss, at),
+      technicality: csvInt(tech, at)
+    };
+    if (!(spec.distanceKm >= 0.5) || Math.round(spec.distanceKm * 10) !== spec.distanceKm * 10) {
+      throw new Error(`${at}: distance must be at least 0.5 km, with at most 1 decimal`);
+    }
+    if (spec.gainM < 0 || spec.lossM < 0) throw new Error(`${at}: ascent and descent cannot be negative`);
+    if (spec.technicality < 0 || spec.technicality > MAX_TECHNICALITY) throw new Error(`${at}: technicality must be 0 to ${MAX_TECHNICALITY}`);
+    if ((spec.gainM + spec.lossM) / (spec.distanceKm * 1e3) > MAX_SEGMENT_GRADIENT) {
+      throw new Error(`${at}: ${spec.gainM} m up and ${spec.lossM} m down do not fit in ${spec.distanceKm} km`);
+    }
+    return spec;
+  });
+  if (segments.length < MIN_SEGMENTS || segments.length > MAX_SEGMENTS) {
+    throw new Error(`${where}: a race has ${MIN_SEGMENTS} to ${MAX_SEGMENTS} segments`);
+  }
+  return segments;
+}
+var MAX_SEGMENT_GRADIENT = 0.4;
+function segmentsDistanceKm(segments) {
+  return Math.round(segments.reduce((sum, s) => sum + s.distanceKm, 0) * 10) / 10;
+}
 function parseRaces(text) {
   const races = [];
   const seen = /* @__PURE__ */ new Set();
@@ -125,12 +171,37 @@ function parseRaces(text) {
       id,
       name: row.name,
       category: row.category,
-      distanceKm: csvInt(row.distance_km, where),
+      distanceKm: csvNumber(row.distance_km, where),
       elevationGainM: csvInt(row.elevation_gain_m, where),
       terrain: row.terrain,
       recommendedLevel: csvInt(row.recommended_level, where),
       technicality: csvInt(row.technicality, where)
     };
+    if (row.segments) {
+      const segments = parseSegments(row.segments, where);
+      race.segments = segments;
+      const km = segmentsDistanceKm(segments);
+      const gain = segments.reduce((sum, s) => sum + s.gainM, 0);
+      if (Math.abs(km - race.distanceKm) > 0.05 || gain !== race.elevationGainM) {
+        throw new Error(`${where}: distance_km and elevation_gain_m must be the segments' sums (${km} km, ${gain} m)`);
+      }
+      race.technicality = Math.max(...segments.map((s) => s.technicality));
+    }
+    if (row.min_level || row.max_level) {
+      const min = row.min_level ? csvInt(row.min_level, where) : void 0;
+      const max = row.max_level ? csvInt(row.max_level, where) : void 0;
+      if (min !== void 0 && min < 1) throw new Error(`${where}: min_level must be at least 1`);
+      if (min !== void 0 && max !== void 0 && max < min) throw new Error(`${where}: max_level is below min_level`);
+      if (min !== void 0) race.minLevel = min;
+      if (max !== void 0) race.maxLevel = max;
+    }
+    if (row.stop_quick_s || row.stop_normal_s || row.stop_slow_s) {
+      const stopS = { quick: csvInt(row.stop_quick_s, where), normal: csvInt(row.stop_normal_s, where), slow: csvInt(row.stop_slow_s, where) };
+      if (!(stopS.quick >= 0 && stopS.quick <= stopS.normal && stopS.normal <= stopS.slow && stopS.slow <= 3600)) {
+        throw new Error(`${where}: stops must go quick \u2264 normal \u2264 slow, 0 to 3600 seconds (all three, or none)`);
+      }
+      race.stopS = stopS;
+    }
     if (race.distanceKm < 1) throw new Error(`${where}: distance_km must be at least 1`);
     if (race.elevationGainM < 0) throw new Error(`${where}: elevation_gain_m cannot be negative`);
     if (race.recommendedLevel < 1) throw new Error(`${where}: recommended_level must be at least 1`);
@@ -709,6 +780,7 @@ function splitEvenly(total, parts) {
   return Array.from({ length: parts }, (_, i) => base + (i < remainder ? 1 : 0));
 }
 function generateCourse(race) {
+  if (race.segments) return race.segments.flatMap((spec, i) => specCourse(spec, `${race.id} segment ${i + 1}`));
   const distanceM = Math.round(race.distanceKm * 1e3);
   const gainM = race.elevationGainM;
   if (!Number.isInteger(gainM) || gainM < 0 || distanceM <= 0) {
@@ -742,6 +814,26 @@ function generateCourse(race) {
     }
   }
   return segments;
+}
+var SPEC_GRADIENT = 0.15;
+function specCourse(spec, where) {
+  const lengthM = Math.round(spec.distanceKm * 1e3);
+  const wanted = (spec.gainM + spec.lossM) / SPEC_GRADIENT;
+  const scale = wanted > lengthM ? lengthM / wanted : 1;
+  const climbM = spec.gainM > 0 ? Math.max(1, Math.round(spec.gainM / SPEC_GRADIENT * scale)) : 0;
+  const descentM = spec.lossM > 0 ? Math.max(1, Math.min(lengthM - climbM, Math.round(spec.lossM / SPEC_GRADIENT * scale))) : 0;
+  const runnableM = lengthM - climbM - descentM;
+  const before = Math.floor(runnableM / 2);
+  const blocks = [
+    { type: "runnable", lengthM: before, gainM: 0, lossM: 0, technicality: 0 },
+    { type: "climb", lengthM: climbM, gainM: spec.gainM, lossM: 0, technicality: 0 },
+    { type: "descent", lengthM: descentM, gainM: 0, lossM: spec.lossM, technicality: spec.technicality },
+    { type: "runnable", lengthM: runnableM - before, gainM: 0, lossM: 0, technicality: 0 }
+  ].filter((b) => b.lengthM > 0);
+  for (const b of blocks) {
+    if ((b.gainM + b.lossM) / b.lengthM > RACE_SIMULATION.maxAverageGradient + 1e-9) throw new InvalidCourseError(`${where}: gradient above ${RACE_SIMULATION.maxAverageGradient * 100}%`);
+  }
+  return blocks;
 }
 function effortKm(segment) {
   return segment.lengthM / 1e3 + segment.gainM / 100;
@@ -811,12 +903,13 @@ function getDayForm(raceId, entryId, enteredAt, consistency) {
 
 // src/game-engine/raceEngine.ts
 function getSegmentCount(race) {
+  if (race.segments) return race.segments.length;
   return Math.min(RACE_STRATEGY.maxSegments, Math.max(RACE_STRATEGY.minSegments, Math.round(race.distanceKm / RACE_STRATEGY.kmPerSegment)));
 }
 function getRaceSegments(race) {
   const course = generateCourse(race);
   const totalM = course.reduce((sum, block) => sum + block.lengthM, 0);
-  const lengths = splitEvenly(totalM, getSegmentCount(race));
+  const lengths = race.segments ? race.segments.map((s) => Math.round(s.distanceKm * 1e3)) : splitEvenly(totalM, getSegmentCount(race));
   const bounds = [0];
   for (const length of lengths) bounds.push(bounds[bounds.length - 1] + length);
   const pieces = lengths.map(() => []);
@@ -850,7 +943,7 @@ function getRaceSegments(race) {
       lossM: sumOf((b) => b.lossM),
       effortKm: sumOf((b) => effortKm(b)),
       terrain: { runnable: ofType("runnable"), climb: ofType("climb"), descent: ofType("descent") },
-      technicality: hasDescent ? race.technicality : 0,
+      technicality: hasDescent ? Math.max(...list.filter((p) => p.block.type === "descent").map((p) => p.block.technicality)) : 0,
       pieces: list
     };
   });
@@ -934,7 +1027,7 @@ function buildRaceField(race, front) {
     const atLevel = rawTime(0, plan);
     return levels > 0 ? Math.min(raw, atLevel / (1 + RACE_STRATEGY.minLevelGap)) : levels < 0 ? Math.max(raw, atLevel * (1 + RACE_STRATEGY.minLevelGap)) : atLevel;
   };
-  const stopS = stopSeconds(effort);
+  const stopS = race.stopS ? { ...race.stopS } : stopSeconds(effort);
   const [top, middle] = RACE_STRATEGY.levelAnchors;
   const topModel = modelTime(top.levels);
   const middleModel = modelTime(middle.levels);
@@ -2154,10 +2247,32 @@ function isSplitList(splits, fieldSize, finished2) {
     return ok2;
   });
 }
+function parseCourse(value) {
+  if (!isRecord2(value)) return null;
+  const { distanceKm, elevationGainM, technicality, segments, stopS } = value;
+  if (!isFiniteNumber(distanceKm) || distanceKm < 0.5 || !isInt(elevationGainM, 0) || !isInt(technicality, 0, MAX_TECHNICALITY)) return null;
+  const course = { distanceKm, elevationGainM, technicality };
+  if (segments !== void 0) {
+    if (!Array.isArray(segments)) return null;
+    try {
+      course.segments = parseSegments(formatSegments(segments), "course");
+    } catch {
+      return null;
+    }
+  }
+  if (stopS !== void 0) {
+    if (!isRecord2(stopS) || !isInt(stopS.quick, 0) || !isInt(stopS.normal, 0) || !isInt(stopS.slow, 0)) return null;
+    course.stopS = { quick: stopS.quick, normal: stopS.normal, slow: stopS.slow };
+  }
+  return course;
+}
 function parseActiveRace(value, entries, currentDayIndex) {
   if (!isRecord2(value)) return null;
   const entry = entries.find((e) => e.status === "pending");
-  const race = getRace(typeof value.raceId === "string" ? value.raceId : "");
+  const course = value.course === void 0 ? void 0 : parseCourse(value.course);
+  if (course === null) return null;
+  const catalog = getRace(typeof value.raceId === "string" ? value.raceId : "");
+  const race = catalog && withCourse(catalog, course);
   const attributes = parseAttributes(value.attributes);
   const { equipment, nutrition, splits } = value;
   if (!entry || !race || value.entryId !== entry.id || value.raceId !== entry.raceId || currentDayIndex !== DAYS_PER_WEEK - 1 || !isFiniteNumber(value.startedAt) || !isInt(value.levelAtStart, 1) || !attributes || !isStat(value.fitness) || !isStat(value.fatigue) || !Array.isArray(equipment) || !equipment.every((id) => typeof id === "string" && getEquipmentItem(id) && !isConsumable(getEquipmentItem(id))) || !isFiniteNumber(value.dayForm) || Math.abs(value.dayForm) > 1 || !isNutrition(nutrition) || !isFiniteNumber(value.elapsedS) || value.elapsedS <= 0 || !isFiniteNumber(value.inRaceFatigue) || !Array.isArray(splits) || splits.length === 0 || splits.length >= getSegmentCount(race) || !isSplitList(splits, RACE_SIMULATION.fieldSize, false)) {
@@ -2176,7 +2291,8 @@ function parseActiveRace(value, entries, currentDayIndex) {
     nutrition: { gel: nutrition.gel, bar: nutrition.bar },
     elapsedS: value.elapsedS,
     inRaceFatigue: value.inRaceFatigue,
-    splits: structuredClone(splits)
+    splits: structuredClone(splits),
+    ...course ? { course } : {}
   };
 }
 function isRaceEntry(value) {

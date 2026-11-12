@@ -5,6 +5,7 @@ import { PROFILES } from '../domain/athlete/profiles'
 import { STARTING_COINS } from '../domain/economy/coins'
 import { OWNED_FROM_START } from '../domain/equipment/items'
 import type { EntryType } from '../domain/races/access'
+import type { RaceCourse } from '../domain/races/races'
 import type { Nutrition, RaceSplit } from './raceEngine'
 import type { ExplanationFactor } from './raceSimulation'
 import type { SessionType } from '../domain/training/sessions'
@@ -125,6 +126,11 @@ export interface ActiveRace {
   inRaceFatigue: number
   /** Segments run so far (at least one); the last is the aid station the runner is at. */
   splits: RaceSplit[]
+  /**
+   * The course as it was at the start (Trail Studio can change a race later; the race in progress
+   * keeps its course). Missing in races started before it existed: the catalog's.
+   */
+  course?: RaceCourse
 }
 
 export interface Consumables {

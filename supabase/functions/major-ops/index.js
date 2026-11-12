@@ -267,7 +267,6 @@ function validateEventInput(input, now) {
   if (!getRace(input.raceId)) return "race";
   const start = Date.parse(input.scheduledStartAt);
   if (!Number.isFinite(start)) return "start";
-  if (new Date(start).getUTCDay() !== 0) return "not-sunday";
   if (start <= now) return "past";
   return null;
 }

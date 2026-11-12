@@ -156,7 +156,8 @@ describe('major-ops (Sunday Major, phase 1)', () => {
     const { store, logs } = fakeStore()
     const created = await handleMajorOp(ADMIN, { action: 'event-create', event: EVENT }, deps(store))
     expect(created.body).toMatchObject({ ok: true, event: { name: 'Major de noviembre', scheduledStartAt: '2026-11-15T18:00:00.000Z' } })
-    expect((await handleMajorOp(ADMIN, { action: 'event-create', event: { ...EVENT, scheduledStartAt: '2026-11-14T18:00:00Z' } }, deps(store))).body).toEqual({ ok: false, error: 'event-not-sunday' })
+    // Any day of the week (owner request, 12 November 2026); only the past is refused.
+    expect((await handleMajorOp(ADMIN, { action: 'event-create', event: { ...EVENT, scheduledStartAt: '2020-11-14T18:00:00Z' } }, deps(store))).body).toEqual({ ok: false, error: 'event-past' })
     expect((await handleMajorOp(ADMIN, { action: 'event-update', id: ID, event: { ...EVENT, name: 'Otro' } }, deps(store))).body).toMatchObject({ ok: true, event: { name: 'Otro' } })
     expect((await handleMajorOp(ADMIN, { action: 'event-publish', id: ID }, deps(store))).body).toMatchObject({ ok: true, event: { status: 'SCHEDULED' } })
     expect((await handleMajorOp(ADMIN, { action: 'event-update', id: ID, event: EVENT }, deps(store))).body).toEqual({ ok: false, error: 'not-draft' })

@@ -13,3 +13,16 @@ export function formatDelta(value: number): string {
 export function formatStat(value: number): string {
   return value.toFixed(1)
 }
+
+/**
+ * Fatigue (and energy, its complement) is always shown as a whole number, never with decimals
+ * (owner request, 12 November 2026). The engine keeps its hundredths; only the display rounds.
+ */
+export function formatFatigue(value: number): string {
+  return String(Math.round(value) + 0)
+}
+
+/** A Fatigue change as a whole number with a true minus sign, e.g. "+30", "−4" or "0". */
+export function formatFatigueDelta(value: number): string {
+  return formatDelta(Math.round(value))
+}

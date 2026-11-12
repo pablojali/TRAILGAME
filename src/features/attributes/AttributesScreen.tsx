@@ -9,7 +9,7 @@ import { ATTRIBUTE_IDS, ATTRIBUTE_SCALE, type AttributeId } from '../../domain/a
 import { ATTRIBUTE_POINTS_PER_LEVEL } from '../../domain/athlete/levels'
 import { PROFILES } from '../../domain/athlete/profiles'
 import { getRestFatigueDelta, RECOVERY_BONUS_FATIGUE, RECOVERY_BONUS_STEP } from '../../domain/training/recovery'
-import { formatDelta, formatStat } from '../../components/format'
+import { formatStat, formatFatigueDelta } from '../../components/format'
 import { getUnspentAttributePoints, type AllocationError } from '../../game-engine/attributes'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './AttributesScreen.module.css'
@@ -103,7 +103,7 @@ export function AttributesScreen() {
             step: RECOVERY_BONUS_STEP,
             start: startRecovery,
             bonus: RECOVERY_BONUS_FATIGUE,
-            delta: formatDelta(getRestFatigueDelta(athlete)),
+            delta: formatFatigueDelta(getRestFatigueDelta(athlete)),
           })}
         </p>
       </section>

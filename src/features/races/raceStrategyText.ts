@@ -1,3 +1,4 @@
+import { formatFatigueDelta } from '../../components/format'
 import { intensityEffect, type AidStop, type Intensity } from '../../domain/races/strategyConfig'
 import type { MessageKey, Translate } from '../../i18n/i18n'
 import type { RaceSegment } from '../../game-engine/raceEngine'
@@ -57,8 +58,7 @@ export function segmentTerrainText(segment: RaceSegment): string {
   return `${parts.join(', ')}${technical}`
 }
 
-/** A Fatigue change with 1 decimal and a true minus sign, e.g. "+30.1". */
+/** A Fatigue change as a whole number with a true minus sign, e.g. "+30" (never decimals). */
 export function formatChange(value: number): string {
-  const rounded = Math.round(value * 10) / 10
-  return `${rounded > 0 ? '+' : rounded < 0 ? '−' : ''}${Math.abs(rounded).toFixed(1)}`
+  return formatFatigueDelta(value)
 }

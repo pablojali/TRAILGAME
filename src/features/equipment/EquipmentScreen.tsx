@@ -231,7 +231,14 @@ export function EquipmentScreen() {
             <EquippedTab onOpen={(slot) => showEquipped(slot)} />
           )
         ) : openItem ? (
-          <ItemDetail item={openItem} backLabel={t('equipment.backToShop')} onBack={() => show('shop', filter)} onMessage={setMessage} />
+          <ItemDetail
+            item={openItem}
+            backLabel={t('equipment.backToShop')}
+            onBack={() => show('shop', filter)}
+            onMessage={setMessage}
+            // Equipped from the shop: back to Equipped, to see it on the runner (owner request, 12 November 2026).
+            onEquipped={() => show('equipped')}
+          />
         ) : (
           <ShopTab filter={filter} onFilter={(next) => show('shop', next)} onOpen={(id) => show('shop', filter, id)} />
         )}
@@ -459,12 +466,15 @@ function ItemDetail({
   backLabel,
   onBack,
   onMessage,
+  onEquipped,
 }: {
   item: EquipmentItem
   /** Where Back goes: the shop, or the slot's cards in Equipped. */
   backLabel: string
   onBack(): void
   onMessage(text: string): void
+  /** After putting the item on (not taking it off). */
+  onEquipped?(): void
 }) {
   const { state, buyItem, setItemEquipped } = useCareer()
   const { t, locale } = useI18n()
@@ -577,6 +587,7 @@ function ItemDetail({
                 const failure = await setItemEquipped(item.id, !worn)
                 if (failure) return t(EQUIP_ERRORS[failure])
                 onMessage(t(worn ? 'equipment.takenOffMessage' : 'equipment.equippedMessage', { name: itemDisplayName(item, locale, t) }))
+                if (!worn) onEquipped?.()
                 return null
               })
             }

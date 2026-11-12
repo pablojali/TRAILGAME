@@ -131,11 +131,14 @@ describe('Equipment', () => {
     expect(readSave()!.state).toMatchObject({ coins: 0, ownedEquipment: ['starter-shoes', 'poles-2'], equipment: [] })
     expect(screen.getByText('Poles · Lvl 2 bought for 50 coins.')).toBeInTheDocument()
 
-    // Owned: the large card now offers Equip.
+    // Owned: the large card now offers Equip; equipping goes back to Equipped, to see it on the runner.
     await user.click(screen.getByRole('button', { name: 'Equip poles · lvl 2' }))
     await settled()
     expect(readSave()!.state.equipment).toEqual(['poles-2'])
-    await user.click(screen.getByRole('button', { name: '← Back to shop' }))
+    expect(screen.getByRole('tab', { name: 'Equipped' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Poles · Lvl 2 equipped.')).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Shop' }))
+    await user.click(screen.getByRole('button', { name: 'Poles' }))
     expect(within(grid()).getByRole('button', { name: 'Poles · Lvl 2, 50 coins, Equipped' })).toBeInTheDocument()
   })
 

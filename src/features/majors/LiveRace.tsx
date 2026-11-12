@@ -71,6 +71,7 @@ export function LiveRace({ major, mediaUrl }: { major: PlayerMajor; mediaUrl(pat
           <div className={styles.liveStats}>
             <span>
               <b>{ordinal(mine.position, locale)}</b> / {race.standings.length}
+              <PositionChange splits={me.splits} />
             </span>
             <span>{raceTimeText(mine.timeS)}</span>
             <span>
@@ -113,6 +114,29 @@ export function LiveRace({ major, mediaUrl }: { major: PlayerMajor; mediaUrl(pat
         )}
       </Tabs>
     </div>
+  )
+}
+
+/**
+ * Places gained (+, green) or lost (−, red) on the last segment run, big, popping in when it
+ * changes (owner request, 12 November 2026). Nothing before the first segment or when unchanged.
+ */
+function PositionChange({ splits }: { splits: readonly { position: number }[] }) {
+  const { t } = useI18n()
+  if (splits.length < 1) return null
+  // Before the first aid station the runners start together: no change to show.
+  const before = splits.length >= 2 ? splits[splits.length - 2]!.position : null
+  if (before === null) return null
+  const delta = before - splits[splits.length - 1]!.position
+  if (delta === 0) return null
+  return (
+    <span
+      key={splits.length}
+      className={`${styles.positionChange} ${delta > 0 ? styles.positionUp : styles.positionDown}`}
+      aria-label={`${t(delta > 0 ? 'major.live.gained' : 'major.live.lost')}: ${Math.abs(delta)}`}
+    >
+      {delta > 0 ? `+${delta}` : `−${Math.abs(delta)}`}
+    </span>
   )
 }
 

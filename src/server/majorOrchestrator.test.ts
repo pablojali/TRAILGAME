@@ -175,7 +175,7 @@ describe('Major results in the career (phase 5)', () => {
       rankingPoints: rankingPoints('RACE-007', payload.position, 'major'),
       rankingAt: payload.finishedAt,
     })
-    expect(prize.rankingPoints).toBe(Math.round(rankingPoints('RACE-007', payload.position) * 1.5))
+    expect(prize.rankingPoints).toBe(Math.max(10, Math.round(rankingPoints('RACE-007', payload.position) * 1.5)))
     expect(applied.state.coins).toBe(10 + prize.coins)
     expect(applied.state.consumables).toEqual({ gel: 1, bar: 1 })
     expect(applied.state.athlete.fatigue).toBeCloseTo(career.athlete.fatigue + (payload.finishFatigue - payload.fatigue), 2)

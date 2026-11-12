@@ -95,5 +95,15 @@
   "major.plan.stopAfter": "Stopp an {place}",
   "major.plan.fatigueAfter": "Ermüdung beim Verlassen",
   "major.plan.total": "Mit diesem Plan: Ziel nach {time}, mit Ermüdung {fatigue}.",
-  "major.plan.estimates": "Schätzungen mit deinem Level, deiner Ausrüstung und Ermüdung von jetzt; am Renntag zählt auch deine Tagesform."
+  "major.plan.estimates": "Schätzungen mit deinem Level, deiner Ausrüstung und Ermüdung von jetzt; am Renntag zählt auch deine Tagesform.",
+  "major.clock": "Zeit bis zum Start",
+  "major.room.title": "Startbereich",
+  "major.room.starting": "Start läuft…",
+  "major.room.ready": "Du bist READY: Das Rennen öffnet sich hier beim Start von selbst.",
+  "major.room.notReady": "Du bist nicht READY: Melde dich vor dem Start READY, sonst läufst du nicht.",
+  "major.room.category": "{name} · {count} Spieler angemeldet",
+  "major.room.plan": "Meinen Plan ansehen",
+  "major.room.back": "Zurück zum Startbereich",
+  "major.live.gained": "Plätze auf diesem Abschnitt gewonnen",
+  "major.live.lost": "Plätze auf diesem Abschnitt verloren"
 }

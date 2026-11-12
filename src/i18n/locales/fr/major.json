@@ -95,5 +95,15 @@
   "major.plan.stopAfter": "Arrêt au {place}",
   "major.plan.fatigueAfter": "Fatigue au départ",
   "major.plan.total": "Avec ce plan : arrivée en {time}, avec une fatigue de {fatigue}.",
-  "major.plan.estimates": "Estimations avec ton niveau, ton équipement et ta fatigue actuels ; le jour de la course, ta forme du jour compte aussi."
+  "major.plan.estimates": "Estimations avec ton niveau, ton équipement et ta fatigue actuels ; le jour de la course, ta forme du jour compte aussi.",
+  "major.clock": "Temps avant le départ",
+  "major.room.title": "Sas de départ",
+  "major.room.starting": "Départ…",
+  "major.room.ready": "Tu es READY : la course s'ouvre ici toute seule au départ.",
+  "major.room.notReady": "Tu n'es pas READY : passe READY avant le départ, sinon tu ne cours pas.",
+  "major.room.category": "{name} · {count} joueurs inscrits",
+  "major.room.plan": "Revoir mon plan",
+  "major.room.back": "Retour au sas de départ",
+  "major.live.gained": "Places gagnées sur ce tronçon",
+  "major.live.lost": "Places perdues sur ce tronçon"
 }

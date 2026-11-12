@@ -95,5 +95,15 @@
   "major.plan.stopAfter": "Parada en {place}",
   "major.plan.fatigueAfter": "Fatiga al salir",
   "major.plan.total": "Con este plan: meta en {time}, con fatiga {fatigue}.",
-  "major.plan.estimates": "Estimaciones con tu nivel, equipo y fatiga de ahora; el día de la carrera también cuenta tu forma del día."
+  "major.plan.estimates": "Estimaciones con tu nivel, equipo y fatiga de ahora; el día de la carrera también cuenta tu forma del día.",
+  "major.clock": "Tiempo hasta la salida",
+  "major.room.title": "Sala de salida",
+  "major.room.starting": "Saliendo…",
+  "major.room.ready": "Estás READY: la carrera se abre aquí sola a la hora de salida.",
+  "major.room.notReady": "No estás READY: márcalo antes de la salida o no correrás.",
+  "major.room.category": "{name} · {count} jugadores inscritos",
+  "major.room.plan": "Revisar mi plan",
+  "major.room.back": "Volver a la sala de salida",
+  "major.live.gained": "Puestos ganados en este tramo",
+  "major.live.lost": "Puestos perdidos en este tramo"
 }

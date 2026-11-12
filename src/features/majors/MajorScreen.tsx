@@ -18,7 +18,8 @@ import { courseDetail } from '../races/courseText'
 import { SegmentProfile } from '../races/RaceRunScreen'
 import { intensityOptions, STOP_IDS, stopKey } from '../races/raceStrategyText'
 import { durationText, raceTimeText } from '../races/raceText'
-import { levelRange, untilText, whenText } from './majorText'
+import { clockText, levelRange, untilText, whenText } from './majorText'
+import { useSecond } from './useSecond'
 import { LiveRace } from './LiveRace'
 import { majorPhase, useMajors } from './useMajors'
 import styles from './Majors.module.css'
@@ -32,12 +33,21 @@ type Tab = 'event' | 'plan'
  */
 export function MajorScreen() {
   const { majorId = '' } = useParams()
-  const { majors, error, busy, act, mediaUrl, available } = useMajors()
+  const now = useSecond()
+  const [fast, setFast] = useState(false)
+  const { majors, error, busy, act, mediaUrl, available } = useMajors(fast)
   const { t, locale } = useI18n()
   const [tab, setTab] = useState<Tab>('event')
   const [message, setMessage] = useState('')
-  const now = useNow()
+  const [planOpen, setPlanOpen] = useState(false)
   const major = majors?.find((m) => m.id === majorId)
+  // Around the start (the last minute, until the runner is on the grid): ask every 3 seconds.
+  const toStart = major ? Date.parse(major.scheduledStartAt) - now : Infinity
+  const nearStart = !!major && toStart < 60_000 && major.registration?.status !== 'RACING' && !['FINISHED', 'CANCELLED'].includes(major.status)
+  useEffect(() => {
+    // Polling speed follows the clock.
+    setFast(nearStart && toStart > -10 * 60_000)
+  }, [nearStart, toStart])
 
   if (!available) return <Screen title={t('major.eyebrow')} description={t('major.error.offline')} />
   if (!major) {
@@ -47,6 +57,10 @@ export function MajorScreen() {
   const phase = majorPhase(major, now)
   // On the grid: the live race (phase 4) in place of the event and plan.
   const racing = major.registration?.status === 'RACING'
+  // The start room (owner request, 12 November 2026): READY or registered in the last 5 minutes,
+  // the clock until the start; the race opens by itself when the grid is set.
+  const mine = major.registration?.status
+  const waiting = !racing && (mine === 'READY' || mine === 'REGISTERED') && toStart < 5 * 60_000 && !['FINISHED', 'CANCELLED'].includes(major.status)
   const run = async (request: Parameters<typeof act>[0], done = '') => {
     setMessage('')
     const problem = await act(request)
@@ -58,10 +72,20 @@ export function MajorScreen() {
       eyebrow={t('major.eyebrow')}
       title={major.name}
       description={t('major.start', { when: `${whenText(major.scheduledStartAt, locale)} · ${untilText(major.scheduledStartAt, now, locale)}` })}
+      aside={!racing && toStart > 0 ? <span className={styles.clock} role="timer" aria-label={t('major.clock')}>{clockText(toStart / 1000)}</span> : undefined}
     >
       <div className={styles.screen}>
         {racing ? (
           <LiveRace major={major} mediaUrl={mediaUrl} />
+        ) : waiting && !planOpen ? (
+          <StartRoom major={major} toStart={toStart} onPlan={() => setPlanOpen(true)} />
+        ) : waiting ? (
+          <>
+            <button type="button" className={styles.back} onClick={() => setPlanOpen(false)}>
+              ← {t('major.room.back')}
+            </button>
+            <PlanPanel major={major} onSave={(plan) => run({ action: 'save-plan', id: major.id, plan })} />
+          </>
         ) : (
           <Tabs<Tab>
             label={major.name}
@@ -122,13 +146,31 @@ export function MajorScreen() {
 }
 
 /** Re-renders every 15 seconds, for the countdowns and the READY window opening. */
-function useNow(): number {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 15_000)
-    return () => window.clearInterval(timer)
-  }, [])
-  return now
+/**
+ * The start room: the last 5 minutes before the start, a big clock running down to it, then
+ * "starting" until the grid is set and the live race opens by itself.
+ */
+function StartRoom({ major, toStart, onPlan }: { major: PlayerMajor; toStart: number; onPlan(): void }) {
+  const { t } = useI18n()
+  const category = major.categories.find((c) => c.idx === major.registration?.categoryIdx)
+  const entrants = category ? major.entrants[category.idx]?.main ?? 0 : 0
+  const share = Math.min(1, Math.max(0, toStart / (5 * 60_000)))
+  const started = toStart <= 0
+  return (
+    <section className={styles.room} aria-label={t('major.room.title')}>
+      <p className={styles.roomTitle}>{t('major.room.title')}</p>
+      <div className={`${styles.roomClock} ${started ? styles.roomStarting : ''}`} style={{ '--share': share } as React.CSSProperties}>
+        <span role="timer">{started ? t('major.room.starting') : clockText(toStart / 1000)}</span>
+      </div>
+      <p className={styles.roomLine}>
+        {major.registration?.status === 'READY' ? t('major.room.ready') : t('major.room.notReady')}
+      </p>
+      {category && <p className={styles.hint}>{t('major.room.category', { name: category.name, count: entrants })}</p>}
+      <button type="button" className={`${button.button} ${button.secondary}`} onClick={onPlan}>
+        {t('major.room.plan')}
+      </button>
+    </section>
+  )
 }
 
 function Categories({ major }: { major: PlayerMajor }) {

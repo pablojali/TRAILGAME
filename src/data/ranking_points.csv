@@ -5,6 +5,7 @@
 # The runner's level and sex never change the points (Game Design Bible 11.1); level only sets which races a runner may enter.
 # difficulty: base points of each difficulty (I Moderate ... V Extreme). race: the difficulty of each race (distance, climb, technicality and overall demands, not distance alone).
 # position: percent for each finishing position (positions not listed, 31st and later: 0). competition: percent of each competition format (standard races, weekly Majors, the annual World Cup).
+# participation: the least points a finished race gives in a competition, whatever the place (12 November 2026: every Major runner scores). Missing: 0.
 # Reference for choosing each race's difficulty (not read by the game; the race values live in races.csv): id, name, km, D+ m, D+ per km, effort km (km + D+/100), technicality 0-5, recommended level.
 #   RACE-001 Forest First Steps: 5 km, 120 m D+, 24 m/km, effort 6.2 km, technicality 0, level 4
 #   RACE-002 Riverside Trail: 8 km, 220 m D+, 28 m/km, effort 10.2 km, technicality 0, level 6
@@ -82,3 +83,4 @@ position,30,8
 competition,standard,100
 competition,major,150
 competition,world_cup,200
+participation,major,10

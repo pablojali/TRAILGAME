@@ -5,6 +5,8 @@ import { raceCurrentDay } from '../../game-engine/races'
 import { parseGameState } from '../../repositories/gameRepository'
 
 vi.unmock('../../data/ranking_points.csv?raw')
+const { default: rankingCsv } = await import('../../data/ranking_points.csv?raw')
+const rankingCsvWith = (line: string) => rankingCsv.replace('participation,major,10', line)
 
 describe('rankings (owner requests, 5 November 2026)', () => {
   it('has one season per calendar month (UTC), numbered 1–12 in each year, from launch', () => {
@@ -41,13 +43,22 @@ describe('rankings (owner requests, 5 November 2026)', () => {
       PERCENT.forEach((percent, i) => {
         const standard = (base * percent) / 100 // before rounding
         expect(rankingPoints(race, i + 1)).toBe(Math.round(standard))
-        expect(rankingPoints(race, i + 1, 'major')).toBe(Math.round(standard * 1.5))
+        // A Major always gives at least its participation points (10).
+        expect(rankingPoints(race, i + 1, 'major')).toBe(Math.max(10, Math.round(standard * 1.5)))
         expect(rankingPoints(race, i + 1, 'world_cup')).toBe(Math.round(standard * 2))
       })
     }
     // 5th in a Difficulty I Major: 97.5, rounded to 98; 5th in a Difficulty V World Cup: 325.
     expect(rankingPoints('RACE-001', 5, 'major')).toBe(98)
     expect(rankingPoints('RACE-012', 5, 'world_cup')).toBe(325)
+  })
+
+  it('a Major always gives its participation points, whatever the place (owner request, 12 November 2026)', () => {
+    expect(rankingPoints('RACE-008', 50, 'major')).toBe(10)
+    expect(rankingPoints('RACE-008', 50)).toBe(0)
+    const text = rankingCsvWith('participation,major,25')
+    const table = parseRankingTable(text, [...text.matchAll(/^race,(RACE-\d{3}),/gm)].map((m) => m[1]!))
+    expect(rankingPoints('RACE-008', 48, 'major', table)).toBe(25)
   })
 
   it('never depends on the runner: the same race and position give the same points at any level or sex', () => {

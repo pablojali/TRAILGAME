@@ -95,5 +95,15 @@
   "major.plan.stopAfter": "Stop at {place}",
   "major.plan.fatigueAfter": "Fatigue on leaving",
   "major.plan.total": "With this plan: finish in {time}, with fatigue {fatigue}.",
-  "major.plan.estimates": "Estimates for your level, gear and fatigue now; on race day your form of the day counts too."
+  "major.plan.estimates": "Estimates for your level, gear and fatigue now; on race day your form of the day counts too.",
+  "major.clock": "Time to the start",
+  "major.room.title": "Start room",
+  "major.room.starting": "Starting…",
+  "major.room.ready": "You're READY: the race opens here by itself at the start.",
+  "major.room.notReady": "You're not READY: mark READY before the start or you won't run.",
+  "major.room.category": "{name} · {count} players registered",
+  "major.room.plan": "Review my plan",
+  "major.room.back": "Back to the start room",
+  "major.live.gained": "Positions gained on this segment",
+  "major.live.lost": "Positions lost on this segment"
 }

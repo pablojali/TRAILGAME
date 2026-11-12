@@ -34,6 +34,11 @@ export interface RankingTable {
   positionPercent: Record<number, number>
   /** Percent of each competition format (standard 100). */
   competitionPercent: Record<Competition, number>
+  /**
+   * The least a finished race gives in each competition, whatever the place (owner request,
+   * 12 November 2026: a Major always gives points for taking part). Missing: 0.
+   */
+  participationPoints: Partial<Record<Competition, number>>
 }
 
 const isDifficulty = (value: unknown): value is Difficulty => DIFFICULTIES.includes(value as Difficulty)
@@ -49,6 +54,7 @@ export function parseRankingTable(text: string, raceIds: readonly string[] = RAC
     raceDifficulty: {},
     positionPercent: {},
     competitionPercent: {} as Record<Competition, number>,
+    participationPoints: {},
   }
   parseCsv(text).forEach((row, i) => {
     const where = `ranking_points.csv row ${i + 1}`
@@ -73,6 +79,11 @@ export function parseRankingTable(text: string, raceIds: readonly string[] = RAC
     } else if (row.kind === 'competition') {
       if (!isCompetition(row.key)) throw new Error(`${where}: unknown competition "${row.key}"`)
       table.competitionPercent[row.key] = csvInt(row.value, where)
+    } else if (row.kind === 'participation') {
+      if (!isCompetition(row.key)) throw new Error(`${where}: unknown competition "${row.key}"`)
+      const points = csvInt(row.value, where)
+      if (points < 0) throw new Error(`${where}: participation points cannot be negative`)
+      table.participationPoints[row.key] = points
     } else throw new Error(`${where}: unknown row "${row.kind},${row.key}"`)
   })
   if (table.bestResults < 1) throw new Error('ranking_points.csv: best_results must be at least 1')
@@ -132,7 +143,7 @@ export function raceDifficulty(raceId: string, table: RankingTable = RANKING): D
 
 /**
  * Ranking points of a race result: difficulty base × position percent × competition percent,
- * rounded to whole points. Never depends on the runner's level or sex.
+ * rounded to whole points, and at least the competition's participation points. Never depends on the runner's level or sex.
  */
 export function rankingPoints(
   raceId: string,
@@ -142,5 +153,6 @@ export function rankingPoints(
 ): number {
   const base = table.difficultyPoints[raceDifficulty(raceId, table)]
   const percent = table.positionPercent[position] ?? 0
-  return Math.round((base * percent * table.competitionPercent[competition]) / 10000)
+  const earned = Math.round((base * percent * table.competitionPercent[competition]) / 10000)
+  return Math.max(earned, table.participationPoints[competition] ?? 0)
 }

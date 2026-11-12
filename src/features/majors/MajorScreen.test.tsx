@@ -109,6 +109,27 @@ describe('Sunday Major for the player (phase 2)', () => {
     expect(screen.queryByRole('button', { name: "I'm READY" })).not.toBeInTheDocument()
   })
 
+  it('opens the start room in the last 5 minutes: the clock to the start, READY or not, and the plan', async () => {
+    const user = userEvent.setup()
+    seedCareer()
+    const current = major({
+      readyOpenAt: new Date(Date.now() - 60_000).toISOString(),
+      scheduledStartAt: new Date(Date.now() + 3 * 60_000 + 30_000).toISOString(),
+      registration: { categoryIdx: 1, level: 1, list: 'main', status: 'READY', registeredAt: '', readyAt: 'x', plan: null },
+    })
+    call.mockImplementation(async () => ({ ok: true, majors: [current] }))
+    await renderApp(`/majors/${ID}`)
+    const room = await screen.findByRole('region', { name: 'Start room' })
+    expect(within(room).getByRole('timer')).toHaveTextContent(/^00:03:(2|3)\d$/)
+    expect(within(room).getByText("You're READY: the race opens here by itself at the start.")).toBeInTheDocument()
+    // The clock at the top right too.
+    expect(screen.getByRole('timer', { name: 'Time to the start' })).toHaveTextContent(/^00:03:/)
+    await user.click(within(room).getByRole('button', { name: 'Review my plan' }))
+    expect(screen.getByRole('tab', { name: 'Segment 1' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '← Back to the start room' }))
+    expect(screen.getByRole('region', { name: 'Start room' })).toBeInTheDocument()
+  })
+
   it('shows the server’s refusal', async () => {
     const user = userEvent.setup()
     seedCareer()
@@ -133,7 +154,14 @@ describe('Sunday Major for the player (phase 2)', () => {
         race: {
           category: { idx: 1, name: 'Banda 1', phase: 'PA', segment: 0, segments: 2, phaseEndsAt: new Date(Date.now() + 60_000).toISOString() },
           standings: [row(2, 1, 1300), row(1, 2, 1310, { name: 'Demo Runner', me: true }), row(3, 3, 1330, { name: 'Bea' })],
-          me: { slot: 1, elapsedS: 1310, energy: 72, fatigue: 28, next: 'target', splits: [] },
+          me: {
+            slot: 1, elapsedS: 1310, energy: 72, fatigue: 28, next: 'target',
+            // 5th after the first segment, 2nd now: three places gained.
+            splits: [
+              { intensity: 'target', segmentS: 600, arrivalS: 600, fatigue: 20, position: 5, stop: 'normal', stopS: 60, fatigueAfterStop: 18 },
+              { intensity: 'target', segmentS: 650, arrivalS: 1310, fatigue: 28, position: 2 },
+            ],
+          },
           myDecision,
           planned: { stop: 'normal', intensity: 'target' },
           runningS: 150,
@@ -145,6 +173,7 @@ describe('Sunday Major for the player (phase 2)', () => {
     expect(await screen.findByText('Aid station 1 · your decision')).toBeInTheDocument()
     expect(screen.getByText(/left$/)).toBeInTheDocument()
     expect(screen.getByText('Ahead · Rival 2.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Positions gained on this segment: 3')).toHaveTextContent('+3')
     expect(screen.getByText('+0:10')).toBeInTheDocument()
     expect(screen.getByText("If you don't decide: Normal stop · Target pace (your plan).")).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Slow' }))

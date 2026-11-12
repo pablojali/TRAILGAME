@@ -638,3 +638,139 @@
     display: none;
   }
 }
+
+.dashClock {
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* The time to the start, at the top right of the Major screen. */
+.clock {
+  padding: 4px 10px;
+  border: 1px solid rgb(244 196 92 / 0.7);
+  border-radius: 999px;
+  background: rgb(36 18 60 / 0.75);
+  color: #f4c45c;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.back {
+  align-self: flex-start;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+}
+
+/* The start room: the last 5 minutes, a big clock running down. */
+.room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3);
+  border: 1px solid rgb(244 196 92 / 0.6);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgb(244 196 92 / 0.22), transparent 60%),
+    linear-gradient(160deg, rgb(74 32 110 / 0.9), rgb(24 12 40 / 0.92));
+  text-align: center;
+}
+
+.roomTitle {
+  color: #f4c45c;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.roomClock {
+  --share: 1;
+  display: grid;
+  place-items: center;
+  width: min(62vw, 220px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, rgb(20 10 34) 84%, transparent 85% 100%),
+    conic-gradient(#f4c45c calc(var(--share) * 360deg), rgb(255 255 255 / 0.12) 0);
+  box-shadow: 0 0 30px rgb(244 196 92 / 0.25);
+  animation: roomBreath 2s ease-in-out infinite;
+}
+
+.roomClock span {
+  font-size: clamp(28px, 9vw, 40px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.roomStarting span {
+  font-size: var(--font-size-lg);
+}
+
+@keyframes roomBreath {
+  50% {
+    box-shadow: 0 0 46px rgb(244 196 92 / 0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roomClock {
+    animation: none;
+  }
+}
+
+.roomLine {
+  max-width: 32ch;
+  font-weight: 700;
+}
+
+/* Places gained or lost on the last segment, beside the position. */
+.positionChange {
+  display: inline-block;
+  margin-left: var(--space-2);
+  font-size: 1.6em;
+  font-weight: 900;
+  line-height: 1;
+  vertical-align: middle;
+  animation: positionPop 0.6s ease-out;
+}
+
+.positionUp {
+  color: #5fd37f;
+  text-shadow: 0 0 12px rgb(95 211 127 / 0.6);
+}
+
+.positionDown {
+  color: #f06a5a;
+  text-shadow: 0 0 12px rgb(240 106 90 / 0.6);
+}
+
+@keyframes positionPop {
+  0% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(0.9);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .positionChange {
+    animation: none;
+  }
+}

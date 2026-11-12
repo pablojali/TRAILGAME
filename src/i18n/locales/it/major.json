@@ -95,5 +95,15 @@
   "major.plan.stopAfter": "Sosta al {place}",
   "major.plan.fatigueAfter": "Fatica in uscita",
   "major.plan.total": "Con questo piano: arrivo in {time}, con fatica {fatigue}.",
-  "major.plan.estimates": "Stime con il tuo livello, attrezzatura e fatica di adesso; il giorno della gara conta anche la forma del giorno."
+  "major.plan.estimates": "Stime con il tuo livello, attrezzatura e fatica di adesso; il giorno della gara conta anche la forma del giorno.",
+  "major.clock": "Tempo alla partenza",
+  "major.room.title": "Griglia di partenza",
+  "major.room.starting": "In partenza…",
+  "major.room.ready": "Sei READY: la gara si apre qui da sola alla partenza.",
+  "major.room.notReady": "Non sei READY: segnalo prima della partenza o non correrai.",
+  "major.room.category": "{name} · {count} giocatori iscritti",
+  "major.room.plan": "Rivedi il mio piano",
+  "major.room.back": "Torna alla griglia",
+  "major.live.gained": "Posizioni guadagnate in questo tratto",
+  "major.live.lost": "Posizioni perse in questo tratto"
 }

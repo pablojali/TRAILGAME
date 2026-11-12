@@ -10,7 +10,7 @@ let cache: PlayerMajor[] | null = null
  * 15 seconds while a screen shows them, and the player's actions. Null service: no Supabase (Majors are
  * online only).
  */
-export function useMajors() {
+export function useMajors(fast = false) {
   const service = getMajorService()
   const [majors, setMajors] = useState<PlayerMajor[] | null>(cache)
   const [error, setError] = useState('')
@@ -34,10 +34,11 @@ export function useMajors() {
     if (!service) return
     // Fetching from the server (the last answer shows meanwhile): the state is set when it arrives.
     void refresh()
-    // Every 15 s: a new entrant or a status change shows without reloading (owner request, 12 November 2026).
-    const timer = window.setInterval(() => void refresh(), 15_000)
+    // Every 15 s: a new entrant or a status change shows without reloading (owner request, 12 November 2026);
+    // every 3 s around the start, so the race opens as soon as the grid is set.
+    const timer = window.setInterval(() => void refresh(), fast ? 3_000 : 15_000)
     return () => window.clearInterval(timer)
-  }, [service, refresh])
+  }, [service, refresh, fast])
 
   const act = useCallback(
     async (request: MajorAction): Promise<string | null> => {

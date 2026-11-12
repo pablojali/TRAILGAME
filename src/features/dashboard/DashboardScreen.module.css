@@ -499,9 +499,15 @@
   }
 }
 
-/* Short phones with a Major coming: it takes the active challenge's place (still in Career). */
+/* Short phones with a Major coming: the active challenge stays, in one compact block. */
 @media (max-height: 720px) {
   .todayRow:has(> :nth-child(2)) ~ .challenge {
+    gap: 2px;
+    padding: 6px var(--space-2);
+  }
+
+  .todayRow:has(> :nth-child(2)) ~ .challenge .challengeText,
+  .todayRow:has(> :nth-child(2)) ~ .challenge .challengeTag {
     display: none;
   }
 }

@@ -7,7 +7,7 @@
 # Optional (Trail Studio, 12 November 2026; empty = automatic): min_level and max_level, the entry levels; stop_quick_s, stop_normal_s, stop_slow_s, the seconds of each stop (all three or none);
 # segments: the course by hand, km:ascent:descent:technicality per segment and | between segments (an aid station between two), e.g. 6.5:420:120:2|5:0:300:3. Then distance_km and elevation_gain_m are their sums.
 id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,terrain_es,terrain_fr,terrain_it,terrain_de,min_level,max_level,stop_quick_s,stop_normal_s,stop_slow_s,segments
-RACE-001,Forest First Steps,open,5,50,4,0,Non-technical forest paths,Caminos de bosque sin dificultad técnica,Chemins forestiers sans difficulté technique,Sentieri nel bosco senza difficoltà tecniche,Einfache Waldwege,,,,,,
+RACE-001,Forest First Steps,open,5,50,4,0,Non-technical forest paths,Caminos de bosque sin dificultad técnica,Chemins forestiers sans difficulté technique,Sentieri nel bosco senza difficoltà tecniche,Einfache Waldwege,,,5,10,30,2.5:30:20:0|2.5:20:40:0
 RACE-002,Riverside Trail,open,8,95,6,0,"Packed dirt, rolling hills","Tierra compacta, colinas suaves","Terre battue, collines douces","Sterrato compatto, colline dolci","Fester Boden, sanfte Hügel",,,,,,
 RACE-003,Pine Loop Challenge,open,10,150,8,1,"Forest trail, short climbs","Sendero de bosque, subidas cortas","Sentier forestier, montées courtes","Sentiero nel bosco, salite brevi","Waldpfad, kurze Anstiege",,,,,,
 RACE-004,Ridge Runner,mountain,12,180,11,3,"Rolling ridges, mixed trail","Crestas onduladas, sendero mixto","Crêtes vallonnées, sentier mixte","Creste ondulate, sentiero misto","Wellige Grate, gemischte Pfade",,,,,,

@@ -63,15 +63,22 @@ describe('Sunday Major for the player (phase 2)', () => {
     expect(await screen.findByText("You're registered")).toBeInTheDocument()
     expect(screen.getByText(/READY opens/)).toBeInTheDocument()
 
-    // The plan: a style fills the segments, a stop changed by hand, the gel taken.
+    // The plan: a style fills the segments, a segment's tab shows what each choice gives there,
+    // a stop changed by hand, the gel taken; every change is saved at once.
     await user.click(screen.getByRole('tab', { name: 'Plan' }))
     await user.click(screen.getByRole('button', { name: 'Aggressive' }))
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Stop at aid station 1' }), 'quick')
+    expect(screen.getByRole('tab', { name: 'Segment 1' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Start → Aid station 1')).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Pace on this segment' })).toBeInTheDocument()
+    expect(screen.getByText(/^With this plan: finish in/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Quick' }))
     await user.click(screen.getByRole('button', { name: /^Energy gel/ }))
-    await user.click(screen.getByRole('button', { name: 'Save plan' }))
-    const saved = call.mock.calls.find(([r]) => r.action === 'save-plan')![0].plan
-    expect(saved).toMatchObject({ style: 'aggressive', gel: true, bar: false, segments: [{ stop: 'quick' }, { stop: null }] })
-    expect(await screen.findByText('Plan saved.')).toBeInTheDocument()
+    const saves = call.mock.calls.filter(([r]) => r.action === 'save-plan')
+    expect(saves).toHaveLength(3)
+    expect(saves.at(-1)![0].plan).toMatchObject({ style: 'aggressive', gel: true, bar: false, segments: [{ stop: 'quick' }, { stop: null }] })
+    expect(await screen.findByText('Saved: READY and the race use this plan.')).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Segment 2' }))
+    expect(screen.getByText('Aid station 1 → Finish')).toBeInTheDocument()
 
     // Withdrawing is offered until the start.
     expect(screen.getByRole('button', { name: 'Withdraw' })).toBeInTheDocument()

@@ -166,6 +166,36 @@ Migration `20261115090000_major_results.sql`; engine `src/game-engine/majorRewar
   player's result is already in their career.
 - `major-ops` admin action `event-report`.
 
-## Next
+## Phase 6: the pilot
 
-- Phase 6: the pilot.
+### Automated pilot (`src/server/majorPilot.test.ts`)
+
+A staged Major run end to end by the real orchestrator and career-ops, over in-memory stores
+that keep the database's rules (compare-and-swap steps, decisions only in their window, results
+and rewards once). Three test players and 47 NPCs on RACE-007:
+
+- one player decides at every aid station; one loses the connection after the start and never
+  returns (their plan decides everything); one decides too late (refused) and later in time;
+- the function dies twice in the middle of a step: nothing is half applied, the step is taken
+  again at the next call;
+- the scheduler stops for 20 minutes during an aid station; when it comes back, three calls
+  overlap and the race catches up to the finish, each step once;
+- at the finish: the 50 places once, a reward for each player only, the official finish time;
+- into the careers: one player claims twice at once, one saves days later, one trains; each
+  career gets the result once, with its coins and ranking points.
+
+### Pilot in production (with the owner)
+
+1. Setup, once: the Studio's address in Supabase Auth's Redirect URLs, and the owner's user id in
+   `major_admins` (see docs/STUDIO.md).
+2. In Trail Studio › Majors: a draft with a near start (for example in 45 minutes, a short
+   course), then publish. Registration opens at once; READY opens 30 minutes before the start.
+   A published Major is visible to every player.
+3. With two or three test accounts (each its own browser profile or device): register, save a
+   plan, mark READY.
+4. During the race: decide at some aid stations with one account, close the other's tab, reload
+   pages, switch a phone to airplane mode for a window.
+5. After the finish: Studio › Informe (players, NPCs, standings, results in careers), each test
+   account's history, coins and ranking.
+6. What to watch in the database: `major_log` (every step), `net._http_response` (the tick every
+   10 seconds), `major_results`, `major_rewards.claimed_at`.

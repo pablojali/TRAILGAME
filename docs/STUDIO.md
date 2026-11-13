@@ -19,6 +19,11 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     `stop_slow_s` and `segments` (`km:ascent:descent:technicality`, `|` between segments).
   - A race in progress keeps the course it started on; a change applies to races started after
     it is published. Do not change a race while a Sunday Major on it is running.
+- **Avatares** (13 November 2026): upload new bodies and heads as PNG (transparent, on the runner's
+  1024 × 1536 canvas), several at once. They go into the proposal and, once published, to
+  `assets/runner/incoming/{bodies,heads}/`, which the game and the art script never read. The tab
+  also shows what waits there and what the game uses today. Then ask Claude to prepare the batch:
+  naming, moving to `assets/runner/bodies` or `heads`, catalogs (see `assets/runner/incoming/README.md`).
 - **Equipamiento:** every item as its shop card. The editor sets type, level, price, pack, shop
   picture, avatar layer, attribute bonuses, time changes in percent, and texts in five languages.
   It previews the card as the shop shows it in Spanish.

@@ -37,10 +37,11 @@ import {
   type TextValue,
   type Workspace,
 } from './model'
+import { AvatarsPanel } from './AvatarsPanel'
 import { RacesPanel } from './RacesPanel'
 
 const DRAFT_KEY = 'trailgame.studio.draft'
-type Tab = 'races' | 'equipment' | 'coach' | 'notifications' | 'texts' | 'balance' | 'majors' | 'changes'
+type Tab = 'races' | 'equipment' | 'avatars' | 'coach' | 'notifications' | 'texts' | 'balance' | 'majors' | 'changes'
 
 interface Draft {
   base: Record<FileId, string>
@@ -188,6 +189,9 @@ export function App() {
           <button type="button" aria-pressed={tab === 'equipment'} onClick={() => setTab('equipment')}>
             Equipamiento
           </button>
+          <button type="button" aria-pressed={tab === 'avatars'} onClick={() => setTab('avatars')}>
+            Avatares
+          </button>
           <button type="button" aria-pressed={tab === 'coach'} onClick={() => setTab('coach')}>
             Coach
           </button>
@@ -242,6 +246,8 @@ export function App() {
           <RacesPanel token={token} ws={ws} setWs={setWs} selected={raceId} select={setRaceId} />
         ) : tab === 'equipment' ? (
           <EquipmentPanel ws={ws} setWs={setWs} selected={itemId} select={setItemId} />
+        ) : tab === 'avatars' ? (
+          <AvatarsPanel token={token} ws={ws} setWs={setWs} />
         ) : tab === 'coach' ? (
           <CoachPanel ws={ws} setWs={setWs} selected={momentId} select={setMomentId} />
         ) : tab === 'notifications' ? (

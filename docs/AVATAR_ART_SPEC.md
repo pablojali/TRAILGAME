@@ -94,3 +94,8 @@ The owner uploads new bodies and heads in Trail Studio › Avatares; they wait i
 
 First batch: the women's tone 4 body, and men's heads at levels 2, 3, 5 and 8 in all four tones.
 
+
+Second batch (same day): women's heads at levels 2 (tones 1 and 3), 3 and 5 (tones 1–4) and 8 (tone 3),
+the women's level 1 head in tone 4, and new art replacing the women's tone 1 body, the level 1 head in
+tones 1 and 2 and the level 5 head in tone 3. The ids stay the same, so careers keep their choice; the
+labels ("Hairstyle N") are renumbered in unlock order.

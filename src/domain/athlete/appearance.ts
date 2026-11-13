@@ -16,7 +16,7 @@ export type HairStyleId = 'natural' | (string & {})
 
 /**
  * Skin tone, numbered as in the owner's files (tone 1 darkest; owner decision, 30 October 2026).
- * Women have tones 1–3, men 1–4 (one body each).
+ * Women and men have tones 1–4 (one body each; the women's tone 4 since 13 November 2026).
  */
 export type SkinToneId = 'tone-1' | 'tone-2' | 'tone-3' | 'tone-4'
 
@@ -61,7 +61,7 @@ export function hairUnlockLevel(sex: Sex, hair: HairStyleId): number {
 
 /** Skin tones with a body for each sex. */
 export const SKIN_TONES: Record<Sex, readonly SkinToneId[]> = {
-  female: ['tone-1', 'tone-2', 'tone-3'],
+  female: ['tone-1', 'tone-2', 'tone-3', 'tone-4'],
   male: ['tone-1', 'tone-2', 'tone-3', 'tone-4'],
 }
 

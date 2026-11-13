@@ -11,7 +11,7 @@ describe('level rewards', () => {
     // Several levels at once (a race win): points and unlocks of every level gained.
     const many = getLevelRewards(1, 4, 'male', 'tone-1')
     expect(many.attributePoints).toBe(6)
-    expect(many.looks).toEqual(['Navy T-shirt', 'Burgundy T-shirt', 'Green T-shirt'])
+    expect(many.looks).toEqual(['Hairstyle 2', 'Hairstyle 3', 'Navy T-shirt', 'Burgundy T-shirt', 'Green T-shirt'])
     // Pine Loop Challenge opens at Level 3 (5 below its recommended Level 8).
     expect(many.races.map((r) => r.id)).toEqual(['RACE-003'])
   })

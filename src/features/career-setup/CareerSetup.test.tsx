@@ -81,7 +81,7 @@ describe('career creation — appearance step', () => {
   it('shows one body per skin tone for each sex and keeps a valid tone when the sex changes', async () => {
     const user = userEvent.setup()
     await renderApp('/')
-    expect(screen.getAllByRole('radio', { name: /Skin tone/ })).toHaveLength(3)
+    expect(screen.getAllByRole('radio', { name: /Skin tone/ })).toHaveLength(4)
     expect(avatar().querySelector('[data-layer="body"]')!.getAttribute('href')).toMatch(/female-2/)
 
     await user.click(screen.getByRole('radio', { name: 'Male' }))
@@ -89,9 +89,10 @@ describe('career creation — appearance step', () => {
     expect(avatar()).toHaveAccessibleName('Avatar preview: male, basic, skin tone 4, no shirt')
     expect(avatar().querySelector('[data-layer="body"]')!.getAttribute('href')).toMatch(/male-4/)
 
-    // Women have 3 bodies: tone 4 becomes tone 3.
+    // Women have a tone 4 body too (13 November 2026): the tone stays.
     await user.click(screen.getByRole('radio', { name: 'Female' }))
-    expect(avatar()).toHaveAccessibleName('Avatar preview: female, basic, skin tone 3, no shirt')
+    expect(avatar()).toHaveAccessibleName('Avatar preview: female, basic, skin tone 4, no shirt')
+    expect(avatar().querySelector('[data-layer="body"]')!.getAttribute('href')).toMatch(/female-4/)
   })
 
   it('offers the basic head and the Level 1 heads of the skin tone, zoomed in on the face', async () => {

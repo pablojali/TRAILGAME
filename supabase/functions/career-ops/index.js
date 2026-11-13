@@ -123,6 +123,22 @@ var HEAD_FILES = [
   "lvl1_women_head_01_tone3",
   "lvl1_women_head_02_tone1",
   "lvl1_women_head_02_tone2",
+  "lvl2_men_head_01_tone1",
+  "lvl2_men_head_01_tone2",
+  "lvl2_men_head_01_tone3",
+  "lvl2_men_head_01_tone4",
+  "lvl3_men_head_01_tone1",
+  "lvl3_men_head_01_tone2",
+  "lvl3_men_head_01_tone3",
+  "lvl3_men_head_01_tone4",
+  "lvl5_men_head_01_tone1",
+  "lvl5_men_head_01_tone2",
+  "lvl5_men_head_01_tone3",
+  "lvl5_men_head_01_tone4",
+  "lvl8_men_head_01_tone1",
+  "lvl8_men_head_01_tone2",
+  "lvl8_men_head_01_tone3",
+  "lvl8_men_head_01_tone4",
   "lvl5_women_head_01_tone3"
 ];
 var NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/;
@@ -202,7 +218,7 @@ function hairUnlockLevel(sex, hair) {
   return getHead(sex, hair)?.level ?? 1;
 }
 var SKIN_TONES = {
-  female: ["tone-1", "tone-2", "tone-3"],
+  female: ["tone-1", "tone-2", "tone-3", "tone-4"],
   male: ["tone-1", "tone-2", "tone-3", "tone-4"]
 };
 function outfits(sex) {

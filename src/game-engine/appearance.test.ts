@@ -39,8 +39,8 @@ describe('setAppearance', () => {
   })
 
   it('refuses values that do not exist for the runner', () => {
-    // The test runner is female: women have skin tones 1–3.
-    expect(setAppearance(newGame(), look('none', 'tone-4'))).toEqual({ ok: false, error: 'invalid' })
+    // A skin tone with no body is refused (both sexes have tones 1–4).
+    expect(setAppearance(newGame(), look('none', 'tone-5' as never))).toEqual({ ok: false, error: 'invalid' })
     expect(setAppearance(newGame(), { ...look('none'), outfit: 'cape' })).toEqual({ ok: false, error: 'invalid' })
     // Retired T-shirts cannot be chosen any more; a men's-only shirt cannot be worn by a woman.
     expect(setAppearance(newGame(), look('white-tshirt'))).toEqual({ ok: false, error: 'invalid' })

@@ -36,7 +36,7 @@ assets/runner/
 - **Sex:** `men`, `women` or `unisex`, always spelled the same way.
 - **Number:** two digits (01, 02…), one design per number. The same number across tones is the
   same design: `lvl1_men_head_01_tone1.png` … `lvl1_men_head_01_tone4.png`.
-- **Tone:** heads only (`tone1` to `tone3` for women, `tone1` to `tone4` for men, matching the
+- **Tone:** heads only (`tone1` to `tone4` for both sexes since the women's tone 4 body of 13 November 2026, matching the
   bodies `men_body_tone{n}.png` / `women_body_tone{n}.png`). A runner with skin tone 2 is offered every head in `tone2`; a head design missing
   for that tone is not offered.
 
@@ -83,3 +83,14 @@ Poles and backpacks come from `accesories/` (backpacks per body: `lvl{L}_{men|wo
 ## Drawing order (back to front)
 
 poles → body → head → bottoms → footwear → shirt → backpack → accessories.
+
+## New art from Trail Studio (13 November 2026)
+
+The owner uploads new bodies and heads in Trail Studio › Avatares; they wait in
+`assets/runner/incoming/` until Claude prepares the batch: moves them to `assets/runner/bodies` or
+`heads` with the names above, runs `scripts/prepare_avatar_art.py`, adds the heads to `HEAD_FILES`
+(`src/domain/athlete/heads.ts`) and new body tones to `SKIN_TONES`
+(`src/domain/athlete/appearance.ts`).
+
+First batch: the women's tone 4 body, and men's heads at levels 2, 3, 5 and 8 in all four tones.
+

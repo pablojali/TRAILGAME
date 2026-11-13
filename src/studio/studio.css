@@ -1364,3 +1364,60 @@ button:disabled {
 .wideHint {
   grid-column: 1 / -1;
 }
+
+/* Avatar art: uploads waiting to be proposed, art waiting for Claude, and what the game uses. */
+.avatars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.avatars h4 {
+  margin: 12px 0 6px;
+  font-size: 13px;
+}
+
+.artGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.artGrid.small {
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+}
+
+.artGrid li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: repeating-conic-gradient(rgb(255 255 255 / 0.05) 0 25%, transparent 0 50%) 0 0 / 16px 16px;
+  font-size: 11px;
+  word-break: break-all;
+  text-align: center;
+}
+
+.artGrid img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: contain;
+}
+
+/* Heads sit at the top of the runner's canvas: show that part, enlarged. */
+.artGrid.heads img {
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: 50% 0;
+  transform: scale(2.6);
+  transform-origin: 50% 9%;
+}
+
+.artGrid.heads li {
+  overflow: hidden;
+}

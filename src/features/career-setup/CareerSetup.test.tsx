@@ -109,8 +109,8 @@ describe('career creation — appearance step', () => {
       'head-l1-02',
     ])
     expect(screen.getByRole('radio', { name: 'Basic' })).toBeChecked()
-    // The note about hairstyles unlocking later shows only when locked heads exist (none in the current art).
-    expect(screen.queryByText(/New hairstyles unlock as you level up/)).not.toBeInTheDocument()
+    // Hairstyles 4 and 5 (Levels 3 and 5) exist in tone 2: the note says they unlock later.
+    expect(screen.getByText(/New hairstyles unlock as you level up/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('radio', { name: 'Hairstyle 1' }))
     expect(avatar().querySelector('image[data-layer="head"]')!.getAttribute('href')).toMatch(/lvl1_women_head_01_tone2/)

@@ -38,7 +38,7 @@ describe('appearance', () => {
     expect(isAppearanceUnlocked({ hair: 'natural', skin: 'tone-1', outfit: 'shirt-l3-02' }, 2, 'male')).toBe(false)
     expect(isAppearanceUnlocked({ hair: 'natural', skin: 'tone-1', outfit: 'shirt-l3-02' }, 3, 'male')).toBe(true)
     expect(appearanceUnlocks(1, 3, 'male', 'tone-4')).toEqual(['Hairstyle 2', 'Hairstyle 3', 'Navy T-shirt', 'Burgundy T-shirt', 'Green T-shirt'])
-    expect(appearanceUnlocks(1, 2, 'female', 'tone-1')).toEqual(['Coral tank top'])
+    expect(appearanceUnlocks(1, 2, 'female', 'tone-1')).toEqual(['Hairstyle 3', 'Coral tank top'])
     expect(appearanceUnlocks(3, 20, 'male', 'tone-4')).toEqual(['Hairstyle 4', 'Hairstyle 5'])
   })
 
@@ -64,21 +64,27 @@ describe('appearance', () => {
     expect(bodyId('male', 'tone-4')).toBe('male-4')
   })
 
-  it('offers the current head art (owner art, 30 and 31 October 2026)', () => {
-    expect(hairStyles('female', 'tone-1')).toEqual(['natural', 'head-l1-01', 'head-l1-02'])
-    expect(hairStyles('female', 'tone-2')).toEqual(['natural', 'head-l1-01', 'head-l1-02'])
-    expect(hairStyles('female', 'tone-3')).toEqual(['natural', 'head-l1-01', 'head-l5-01'])
+  it('offers the current head art (owner art, October and November 2026)', () => {
+    // The women's heads of 13 November 2026 (second Studio batch): levels 2, 3, 5 and 8, not in every tone.
+    expect(hairStyles('female', 'tone-1')).toEqual(['natural', 'head-l1-01', 'head-l1-02', 'head-l2-01', 'head-l3-01', 'head-l5-01'])
+    expect(hairStyles('female', 'tone-2')).toEqual(['natural', 'head-l1-01', 'head-l1-02', 'head-l3-01', 'head-l5-01'])
+    expect(hairStyles('female', 'tone-3')).toEqual(['natural', 'head-l1-01', 'head-l2-01', 'head-l3-01', 'head-l5-01', 'head-l8-01'])
+    expect(hairStyles('female', 'tone-4')).toEqual(['natural', 'head-l1-01', 'head-l3-01', 'head-l5-01'])
     // The men's heads of 13 November 2026 (levels 2, 3, 5 and 8), in all four tones.
     for (const skin of SKIN_TONES.male) expect(hairStyles('male', skin)).toEqual(['natural', 'head-l1-01', 'head-l2-01', 'head-l3-01', 'head-l5-01', 'head-l8-01'])
     expect(hairStyleLabel('male', 'head-l8-01')).toBe('Hairstyle 5')
     expect(hairUnlockLevel('male', 'head-l8-01')).toBe(8)
     expect(hairStyleLabel('female', 'head-l1-01')).toBe('Hairstyle 1')
-    expect(hairStyleLabel('female', 'head-l5-01')).toBe('Hairstyle 3')
+    expect(hairStyleLabel('female', 'head-l5-01')).toBe('Hairstyle 5')
+    expect(hairStyleLabel('female', 'head-l8-01')).toBe('Hairstyle 6')
     expect(hairUnlockLevel('female', 'head-l5-01')).toBe(5)
     expect(isAppearanceUnlocked({ hair: 'head-l1-01', skin: 'tone-1', outfit: 'none' }, 1, 'female')).toBe(true)
     expect(isAppearanceUnlocked({ hair: 'head-l5-01', skin: 'tone-3', outfit: 'none' }, 4, 'female')).toBe(false)
-    expect(appearanceUnlocks(4, 5, 'female', 'tone-3')).toEqual(['Hairstyle 3'])
-    expect(appearanceUnlocks(4, 5, 'female', 'tone-2')).toEqual([])
+    expect(appearanceUnlocks(4, 5, 'female', 'tone-3')).toEqual(['Hairstyle 5'])
+    expect(appearanceUnlocks(4, 5, 'female', 'tone-2')).toEqual(['Hairstyle 5'])
+    // Hairstyle 6 (Level 8) has tone 3 art only.
+    expect(appearanceUnlocks(7, 8, 'female', 'tone-3')).toEqual(['Hairstyle 6'])
+    expect(appearanceUnlocks(7, 8, 'female', 'tone-2')).toEqual([])
   })
 
   it('loads saves with heads that no longer exist as the basic head', () => {

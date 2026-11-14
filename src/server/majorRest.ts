@@ -291,7 +291,7 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
     },
 
     async setReady(eventId, userId, snapshot, now) {
-      await rpc('major_set_ready', { p_event: eventId, p_user: userId, p_snapshot: snapshot, p_now: iso(now) })
+      await rpc('major_set_ready', { p_event: eventId, p_user: userId, p_snapshot: snapshot, p_now: iso(now), p_level: snapshot.level })
     },
 
     async raceView(eventId, userId) {

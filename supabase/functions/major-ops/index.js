@@ -2156,7 +2156,7 @@ async function playerOp(request, userId, deps) {
       if (!mine || mine.status !== "REGISTERED" && mine.status !== "READY") return refuse(409, "not-registered");
       const { athlete } = career;
       const snapshot = {
-        level: mine.level,
+        level: getLevel(athlete.xp),
         attributes: { ...athlete.attributes },
         fitness: athlete.fitness,
         fatigue: athlete.fatigue,
@@ -2743,7 +2743,7 @@ function createSupabaseMajorStore(config2) {
       await rpc("major_save_plan", { p_event: eventId, p_user: userId, p_plan: plan, p_now: iso(now) });
     },
     async setReady(eventId, userId, snapshot, now) {
-      await rpc("major_set_ready", { p_event: eventId, p_user: userId, p_snapshot: snapshot, p_now: iso(now) });
+      await rpc("major_set_ready", { p_event: eventId, p_user: userId, p_snapshot: snapshot, p_now: iso(now), p_level: snapshot.level });
     },
     async raceView(eventId, userId) {
       const mine = await request(

@@ -99,3 +99,8 @@ Second batch (same day): women's heads at levels 2 (tones 1 and 3), 3 and 5 (ton
 the women's level 1 head in tone 4, and new art replacing the women's tone 1 body, the level 1 head in
 tones 1 and 2 and the level 5 head in tone 3. The ids stay the same, so careers keep their choice; the
 labels ("Hairstyle N") are renumbered in unlock order.
+
+Renamed (owner, 14 November 2026): the women's level 1 head 02 became the level 8 head in tone 1
+(`lvl1_women_head_02_tone1` → `lvl8_women_head_01_tone1`) and the level 2 head in tone 2
+(`lvl1_women_head_02_tone2` → `lvl2_women_head_01_tone2`). No career had chosen `head-l1-02`. A save
+with it loads with the basic head.

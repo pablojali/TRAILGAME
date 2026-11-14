@@ -183,8 +183,8 @@ describe('TrainingScreen — completing sessions', () => {
     await renderApp('/training')
     await completeToday(user)
     expect(feedback()).toHaveTextContent('Level up! Now Level 2. +2 attribute points.')
-    // Women tone 2 (the default runner): the Level 2 tank top (no Level 2 heads in the current art).
-    expect(feedback()).toHaveTextContent('New look unlocked: Coral tank top.')
+    // Women tone 2 (the default runner): the Level 2 hairstyle and tank top.
+    expect(feedback()).toHaveTextContent('New look unlocked: Hairstyle 2, Coral tank top.')
     expect(screen.getByRole('link', { name: 'Change look' })).toHaveAttribute('href', '/appearance')
     await user.click(within(feedback()!).getByRole('link', { name: 'Allocate points' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Attributes' })).toBeInTheDocument()
@@ -201,7 +201,7 @@ describe('TrainingScreen — completing sessions', () => {
     const rewards = within(within(dialog).getByRole('list', { name: 'Rewards' })).getAllByRole('listitem')
     expect(rewards.map((r) => r.textContent)).toEqual([
       '+2 attribute points to spend',
-      '★New look: Coral tank top',
+      '★New look: Hairstyle 2, Coral tank top',
     ])
     await user.click(within(dialog).getByRole('button', { name: 'Continue' }))
     expect(screen.queryByRole('dialog', { name: 'Level up!' })).not.toBeInTheDocument()

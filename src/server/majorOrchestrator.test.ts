@@ -73,7 +73,9 @@ describe('Major race orchestrator (phase 3)', () => {
     const m = memoryStore()
     expect(await advanceMajorRaces(m.store, START - 1000)).toEqual({ started: 0, steps: 0 })
     expect(await advanceMajorRaces(m.store, START)).toEqual({ started: 1, steps: 0 })
-    expect(player(m.rows).progress.splits).toHaveLength(0)
+    // Live tracking: segment 1 is run at the start (hidden until its phase ends), with where it began.
+    expect(player(m.rows).progress.splits).toHaveLength(1)
+    expect(player(m.rows).segmentStart).toEqual({ elapsedS: 0, fatigue: 20 })
     // Segment 1 runs for the 150 s running phase; then aid station 1 is open for 90 s.
     await advanceMajorRaces(m.store, START + 149_000)
     expect(m.state().phase).toBe('RUNNING')
@@ -87,6 +89,10 @@ describe('Major race orchestrator (phase 3)', () => {
     expect(m.state()).toMatchObject({ phase: 'RUNNING', segment: 1 })
     expect(player(m.rows).progress.splits[0]!.stop).toBe('slow')
     expect(player(m.rows).next).toBe('recovery')
+    // Segment 2 is run as soon as it starts, at the intensity chosen, after the slow stop.
+    expect(player(m.rows).progress.splits).toHaveLength(2)
+    expect(player(m.rows).progress.splits[1]!.intensity).toBe('recovery')
+    expect(player(m.rows).segmentStart!.elapsedS).toBeCloseTo(player(m.rows).progress.splits[0]!.arrivalS + player(m.rows).progress.splits[0]!.stopS!, -0.5)
     expect(() => m.decide(0, 'quick', 'hard', START + 241_000)).toThrow('window closed')
 
     // Far later: the call catches up through every phase (no decision: the plan), once each.

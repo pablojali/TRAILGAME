@@ -1269,7 +1269,11 @@ function rankByArrival(states) {
 function runMajorSegment(contexts, runners) {
   const ran = runners.map(({ slot, state }) => ({
     slot,
-    state: { ...state, progress: runSegment(contexts.get(slot), state.progress, state.next) }
+    state: {
+      ...state,
+      segmentStart: { elapsedS: state.progress.elapsedS, fatigue: state.progress.fatigue },
+      progress: runSegment(contexts.get(slot), state.progress, state.next)
+    }
   }));
   const positions2 = rankByArrival(ran);
   return ran.map(({ slot, state }) => {
@@ -1792,7 +1796,12 @@ async function startEvents(store, now) {
     const race = getRace(event.raceId);
     if (!race) continue;
     const contexts = contextsOf(event.raceId, event.id, rows);
-    const states = rows.map((row) => ({ id: row.id, state: initialState(contexts.get(row.slot), runnerOf(row)) }));
+    const ran = runMajorSegment(
+      contexts,
+      rows.map((row) => ({ slot: row.slot, state: initialState(contexts.get(row.slot), runnerOf(row)) }))
+    );
+    const bySlot = new Map(rows.map((row) => [row.slot, row.id]));
+    const states = ran.map(({ slot, state }) => ({ id: bySlot.get(slot), state }));
     if (await store.start(event.id, majorField(race).segments.length, states, now)) started++;
   }
   return started;
@@ -1807,7 +1816,8 @@ async function stepCategory(store, category) {
   });
   const startedAt = category.phaseEndsAt;
   if (category.phase === "RUNNING") {
-    const ran = runMajorSegment(contexts, runners);
+    const alreadyRun = runners.every(({ state }) => state.progress.splits.length > category.segment);
+    const ran = alreadyRun ? runners : runMajorSegment(contexts, runners);
     const last = category.segment >= category.segments - 1;
     const finish = last ? finalResults(category, rows, contexts, ran) : {};
     return store.commitStep({
@@ -1836,7 +1846,7 @@ async function stepCategory(store, category) {
     }
     return { slot, state, decision };
   });
-  const after = applyMajorDecisions(contexts, decided);
+  const after = runMajorSegment(contexts, applyMajorDecisions(contexts, decided));
   return store.commitStep({
     categoryId: category.id,
     version: category.version,
@@ -2168,7 +2178,29 @@ async function advanceQuietly(deps, now) {
     console.error("major advance failed", error instanceof Error ? error.message : error);
   }
 }
-function liveRace(view) {
+function liveRace(source) {
+  const running = source.category.phase === "RUNNING";
+  const hidden = (state) => running && state?.segmentStart && state.progress.splits.length > source.category.segment ? state : null;
+  const view = {
+    ...source,
+    runners: source.runners.map((r) => {
+      const state = hidden(r.state);
+      if (!state) return r;
+      return {
+        ...r,
+        state: {
+          ...state,
+          progress: { elapsedS: state.segmentStart.elapsedS, fatigue: state.segmentStart.fatigue, splits: state.progress.splits.slice(0, source.category.segment) }
+        }
+      };
+    })
+  };
+  const live = running ? source.runners.flatMap((r) => {
+    const state = hidden(r.state);
+    if (!state) return [];
+    const split = state.progress.splits[source.category.segment];
+    return [{ slot: r.slot, name: r.name, country: r.country, me: r.slot === source.mySlot, departS: Math.round(state.segmentStart.elapsedS), arriveS: split.arrivalS }];
+  }) : [];
   const withState = view.runners.filter((r) => r.state !== null);
   const table = majorStandings(withState.map((r) => ({ slot: r.slot, state: r.state })));
   const bySlot = new Map(view.runners.map((r) => [r.slot, r]));
@@ -2202,7 +2234,9 @@ function liveRace(view) {
     /** At the finish: what the place gives (added to the career at the player's next request). */
     prize: view.category.phase === "FINISHED" ? finishPrize(view, table) : null,
     /** What the plan decides at the open aid station if the player sends nothing. */
-    planned: me?.state && view.category.phase === "PA" ? plannedDecision(view, me.state) : null
+    planned: me?.state && view.category.phase === "PA" ? plannedDecision(view, me.state) : null,
+    /** The running segment's live tracking (empty outside a running phase). */
+    live: live.length === source.runners.length ? live : []
   };
 }
 function finishPrize(view, table) {

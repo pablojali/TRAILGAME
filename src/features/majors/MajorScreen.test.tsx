@@ -190,4 +190,33 @@ describe('Sunday Major for the player (phase 2)', () => {
     expect(table.queryByText('NPC')).toBeNull()
     expect(within(table.getByText('Bea').closest('li')!).queryByText('auto')).toBeNull()
   })
+
+  it('follows a running segment live: checkpoints on the profile, the top 5 and the player\'s place', async () => {
+    seedCareer()
+    const racing = major({ status: 'RUNNING', registration: { categoryIdx: 1, level: 1, list: 'main', status: 'RACING', registeredAt: '', readyAt: 'x', plan: null } })
+    call.mockImplementation(async () => ({ ok: true, majors: [racing] }))
+    const live = (slot: number, name: string, departS: number, arriveS: number, me = false) => ({ slot, name, country: 'FR', me, departS, arriveS })
+    race.mockImplementation(async () => ({
+      ok: true,
+      now: new Date().toISOString(),
+      race: {
+        // The running phase is over: the last checkpoint, the official order (by arrival).
+        category: { idx: 1, name: 'Banda 1', phase: 'RUNNING', segment: 0, segments: 2, phaseEndsAt: new Date(Date.now() - 500).toISOString() },
+        standings: [],
+        me: { slot: 1, elapsedS: 0, energy: 80, fatigue: 20, next: 'target', splits: [] },
+        myDecision: null,
+        planned: null,
+        prize: null,
+        runningS: 60,
+        windowS: 60,
+        live: [live(1, 'Demo Runner', 0, 1900, true), live(2, 'Rival 2.', 0, 1800), live(3, 'Bea', 0, 2000), live(4, 'Cris', 0, 2100), live(5, 'Dani', 0, 2200), live(6, 'Eli', 0, 2300)],
+      },
+    }))
+    await renderApp(`/majors/${ID}`)
+    const tracker = await screen.findByRole('region', { name: 'Live · checkpoint 8 of 8' })
+    const top = within(tracker).getAllByRole('listitem')
+    expect(top.map((li) => li.textContent)).toEqual(['1Rival 2.Leader', '2Demo Runner+1:40', '3Bea+3:20', '4Cris+5:00', '5Dani+6:40'])
+    expect(top[1]).toHaveAttribute('aria-current', 'true')
+    expect(within(tracker).getByText('2º')).toBeInTheDocument()
+  })
 })

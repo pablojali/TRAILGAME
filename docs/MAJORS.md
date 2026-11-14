@@ -117,6 +117,27 @@ says what is built, phase by phase.
     itself, and the tick carries no session.
   - The `major-advance` job (every 15 s) keeps starting LOCKED events and filling grids.
 
+### Live tracking of a running segment (owner request, 14 November 2026)
+
+- The orchestrator runs each segment as soon as it starts (at the start of the race, and when an
+  aid-station window closes, right after the decisions). The end of the running phase only moves
+  the category to the aid station (or the finish). A category started by the earlier code still
+  runs its segment at the end. Each runner's state keeps `segmentStart` (race time and in-race
+  fatigue when the segment began).
+- `race-state` keeps the running segment hidden: standings, time and energy are those of its
+  start. `live` lists each runner's departure and arrival for the segment.
+- The game splits the segment into 8 checkpoints (`LIVE_CHECKPOINTS`) at equal distances. The time
+  to each follows the profile's effort: a metre of climb costs as much as ten flat metres
+  (`checkpointShares`). The running phase reveals one checkpoint every running time ÷ 8 (7.5 s with
+  60 s), with no extra request to the server.
+- `liveStandings` gives the order at each checkpoint, which ends in the official one. On screen:
+  - the clip;
+  - the segment profile with its checkpoints, the number of runners at each and the player's pin;
+  - the top 5 with the gap to the leader;
+  - the player's place, with ▲/▼ since the last checkpoint.
+- A player could learn a segment's result up to one running phase early. They cannot act on it:
+  decisions are only taken at the next aid station.
+
 ## Phase 5: results, rewards, ranking and history
 
 Migration `20261115090000_major_results.sql`; engine `src/game-engine/majorRewards.ts`.

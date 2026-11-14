@@ -11,6 +11,7 @@ import type { LiveRace as LiveRaceView, PlayerMajor } from '../../server/majorOp
 import { raceClip } from '../races/raceClips'
 import { intensityKey, intensityOptions, STOP_IDS, stopKey } from '../races/raceStrategyText'
 import { durationText, ordinal, raceTimeText } from '../races/raceText'
+import { LiveTracker } from './LiveTracker'
 import styles from './Majors.module.css'
 
 type Tab = 'race' | 'standings'
@@ -97,7 +98,11 @@ export function LiveRace({ major, mediaUrl }: { major: PlayerMajor; mediaUrl(pat
                 {clip?.mp4 ? (
                   <video className={styles.liveClip} src={clip.mp4} poster={clip.poster} autoPlay muted loop playsInline />
                 ) : null}
-                <p className={styles.entry}>{t('major.live.runningHint')}</p>
+                {race.live.length > 0 && ends ? (
+                  <LiveTracker race={race} raceId={major.raceId} ends={ends} now={now} />
+                ) : (
+                  <p className={styles.entry}>{t('major.live.runningHint')}</p>
+                )}
               </>
             )}
             {mine && <Gaps race={race} />}

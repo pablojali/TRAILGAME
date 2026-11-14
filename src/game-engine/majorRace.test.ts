@@ -4,6 +4,8 @@ import { newGame } from '../test/gameFixtures'
 import {
   applyMajorDecisions,
   automaticDecision,
+  checkpointShares,
+  liveStandings,
   initialState,
   majorContext,
   majorField,
@@ -100,3 +102,41 @@ describe('Sunday Major race engine (phase 3)', () => {
     expect(b.stopS!).toBeGreaterThan(a.stopS!)
   })
 })
+
+describe('Major live tracking (checkpoints)', () => {
+  const flat = [{ block: { lengthM: 4000, gainM: 0 } }]
+  const climbThenFlat = [{ block: { lengthM: 2000, gainM: 200 } }, { block: { lengthM: 2000, gainM: 0 } }]
+
+  it('puts the checkpoints at equal distances, with the time following the climbs', () => {
+    const even = checkpointShares(flat, 4)
+    expect(even.map((c) => c.distanceShare)).toEqual([0.25, 0.5, 0.75, 1])
+    expect(even.map((c) => c.timeShare)).toEqual([0.25, 0.5, 0.75, 1])
+    // 2 km climbing 200 m weigh 4 effort-km, the flat 2 km weigh 2: half the distance is 2/3 of the time.
+    const climb = checkpointShares(climbThenFlat, 2)
+    expect(climb[0]!.timeShare).toBeCloseTo(2 / 3)
+    expect(climb[1]!.timeShare).toBe(1)
+    expect(checkpointShares(getRaceSegmentsOf(0), 8)).toHaveLength(8)
+  })
+
+  it('reveals overtakes checkpoint by checkpoint and ends in the official order', () => {
+    const shares = checkpointShares(flat, 8)
+    // Ana leaves the aid station 60 s after Bo but runs the segment 200 s faster.
+    const runners = [
+      { slot: 1, departS: 1060, arriveS: 1860 },
+      { slot: 2, departS: 1000, arriveS: 2000 },
+    ]
+    expect(liveStandings(runners, shares, 0).map((r) => r.slot)).toEqual([2, 1])
+    expect(liveStandings(runners, shares, 1).map((r) => r.slot)).toEqual([2, 1])
+    const end = liveStandings(runners, shares, 8)
+    expect(end.map((r) => [r.slot, r.position, r.distanceShare])).toEqual([[1, 1, 1], [2, 2, 1]])
+    expect(end[0]).toMatchObject({ checkpoint: 8, passedAtS: 1860 })
+    // Somewhere on the way Ana passes Bo.
+    const order = Array.from({ length: 9 }, (_, step) => liveStandings(runners, shares, step)[0]!.slot)
+    expect(order[0]).toBe(2)
+    expect(order[8]).toBe(1)
+  })
+})
+
+function getRaceSegmentsOf(index: number) {
+  return field.segments[index]!.pieces
+}

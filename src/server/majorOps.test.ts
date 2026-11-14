@@ -5,7 +5,7 @@ import { newGame, withAthlete } from '../test/gameFixtures'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
 import type { MajorRunnerState } from '../game-engine/majorRace'
 import type { RaceStore } from './majorOrchestrator'
-import { careerRunnerRow, handleMajorOp, MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore } from './majorOps'
+import { careerRunnerRow, handleMajorOp, liveRace, MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore } from './majorOps'
 import { refusalOf } from './majorRest'
 
 const NOW = Date.UTC(2026, 10, 10, 12)
@@ -268,6 +268,43 @@ describe('major-ops (Sunday Major, phase 1)', () => {
       createdAt: '2026-11-01T00:00:00Z', lastActiveAt: '2026-11-13T00:00:00Z', strength: null, racesPerWeek: null,
     })
     expect(careerRunnerRow(null, 'a', 'b')).toMatchObject({ name: '—', sex: null, country: null, level: 1, xp: 0, coins: 0, racesFinished: 0 })
+  })
+
+  it('keeps a running segment hidden and sends its live tracking instead', () => {
+    // Segment 2 (index 1) was run when it started: Ana left at 1300 s and arrives at 2500 s.
+    const ran = (left: number, arrival: number, fatigue: number): MajorRunnerState => ({
+      progress: {
+        elapsedS: arrival,
+        fatigue: fatigue + 10,
+        splits: [
+          { intensity: 'target', segmentS: left - 60, arrivalS: left - 60, fatigue, position: 1, stop: 'normal', stopS: 60 },
+          { intensity: 'hard', segmentS: arrival - left, arrivalS: arrival, fatigue: fatigue + 10, position: 1 },
+        ],
+      },
+      next: 'target',
+      segmentStart: { elapsedS: left, fatigue },
+    })
+    const view = {
+      category: { idx: 1, name: 'Banda 1', phase: 'RUNNING' as const, segment: 1, segments: 3, phaseEndsAt: '2026-11-15T18:04:00Z' },
+      runners: [
+        { slot: 1, kind: 'PLAYER' as const, name: 'Ana', country: 'AR', level: 3, state: ran(1300, 2500, 30) },
+        { slot: 2, kind: 'NPC' as const, name: 'Bo', country: 'FR', level: 4, state: ran(1290, 2550, 25) },
+      ],
+      mySlot: 1, myDecision: null, raceId: 'RACE-002', sources: {}, myPlan: null, runningS: 60, windowS: 60,
+    }
+    const live = liveRace(view)
+    // The standings and the player's numbers are those of the segment's start (the last aid station).
+    expect(live.standings.map((r) => [r.slot, r.timeS])).toEqual([[2, 1230], [1, 1240]])
+    expect(live.me).toMatchObject({ elapsedS: 1300, fatigue: 30 })
+    expect(live.me!.splits).toHaveLength(1)
+    expect(live.live).toEqual([
+      { slot: 1, name: 'Ana', country: 'AR', me: true, departS: 1300, arriveS: 2500 },
+      { slot: 2, name: 'Bo', country: 'FR', me: false, departS: 1290, arriveS: 2550 },
+    ])
+    // At the aid station the segment is shown and there is nothing live.
+    const after = liveRace({ ...view, category: { ...view.category, phase: 'PA' } })
+    expect(after.live).toEqual([])
+    expect(after.standings.map((r) => r.slot)).toEqual([1, 2])
   })
 
   it('shows the live race to a runner on the grid: standings with gaps, their energy, and takes their decision', async () => {

@@ -545,7 +545,35 @@ async function advanceQuietly(deps: MajorOpsDeps, now: number): Promise<void> {
 }
 
 /** The live race for a player: the phase, the standings with gaps, and their own runner. */
-export function liveRace(view: RaceView) {
+export function liveRace(source: RaceView) {
+  // While a segment runs, its result is already computed (live tracking) but stays hidden: the
+  // standings, time and energy are those of its start; `live` carries each runner's departure and
+  // arrival so the game reveals the segment checkpoint by checkpoint.
+  const running = source.category.phase === 'RUNNING'
+  const hidden = (state: MajorRunnerState | null) =>
+    running && state?.segmentStart && state.progress.splits.length > source.category.segment ? state : null
+  const view: RaceView = {
+    ...source,
+    runners: source.runners.map((r) => {
+      const state = hidden(r.state)
+      if (!state) return r
+      return {
+        ...r,
+        state: {
+          ...state,
+          progress: { elapsedS: state.segmentStart!.elapsedS, fatigue: state.segmentStart!.fatigue, splits: state.progress.splits.slice(0, source.category.segment) },
+        },
+      }
+    }),
+  }
+  const live = running
+    ? source.runners.flatMap((r) => {
+        const state = hidden(r.state)
+        if (!state) return []
+        const split = state.progress.splits[source.category.segment]!
+        return [{ slot: r.slot, name: r.name, country: r.country, me: r.slot === source.mySlot, departS: Math.round(state.segmentStart!.elapsedS), arriveS: split.arrivalS }]
+      })
+    : []
   const withState = view.runners.filter((r): r is RaceViewRunner & { state: MajorRunnerState } => r.state !== null)
   const table = majorStandings(withState.map((r) => ({ slot: r.slot, state: r.state })))
   const bySlot = new Map(view.runners.map((r) => [r.slot, r]))
@@ -584,6 +612,8 @@ export function liveRace(view: RaceView) {
     prize: view.category.phase === 'FINISHED' ? finishPrize(view, table) : null,
     /** What the plan decides at the open aid station if the player sends nothing. */
     planned: me?.state && view.category.phase === 'PA' ? plannedDecision(view, me.state) : null,
+    /** The running segment's live tracking (empty outside a running phase). */
+    live: live.length === source.runners.length ? live : [],
   }
 }
 

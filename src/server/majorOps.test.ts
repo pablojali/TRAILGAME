@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { MajorConfig, MajorEventInput, MajorRunnerSnapshot } from '../domain/major/major'
 import type { GameState } from '../game-engine/gameState'
 import { newGame, withAthlete } from '../test/gameFixtures'
+import { getLevel } from '../domain/athlete/levels'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
 import type { MajorRunnerState } from '../game-engine/majorRace'
 import type { RaceStore } from './majorOrchestrator'
@@ -210,7 +211,7 @@ describe('major-ops (Sunday Major, phase 1)', () => {
     expect((await handleMajorOp(ADMIN, { action: 'media-upload', id: ID, kind: 'banner' }, deps(store))).body).toEqual({ ok: false, error: 'media-closed' })
   })
 
-  it('lets players register with their level frozen from the server career, plan and confirm READY', async () => {
+  it('lets players register with their level from the server career, plan and confirm READY (level taken again)', async () => {
     const fake = fakeStore()
     const { store, events } = fake
     await handleMajorOp(ADMIN, { action: 'event-create', event: EVENT }, deps(store))
@@ -231,6 +232,11 @@ describe('major-ops (Sunday Major, phase 1)', () => {
     await handleMajorOp(PLAYER, { action: 'ready', id: ID }, deps(store))
     // The runner as the server has them; only the gel is in stock.
     expect(fake.readies).toEqual([{ level: 10, attributes: career.athlete.attributes, fitness: career.athlete.fitness, fatigue: 22, equipment: career.equipment, nutrition: { gel: true, bar: false } }])
+    // Trained since registering: READY again takes the new level (and so the category) and Fatigue.
+    const trained = withAthlete(career, { xp: career.athlete.xp + 20_000, fatigue: 35 })
+    await handleMajorOp(PLAYER, { action: 'ready', id: ID }, deps(store, trained))
+    expect(fake.readies[1]).toMatchObject({ level: getLevel(trained.athlete.xp), fatigue: 35 })
+    expect(fake.readies[1]!.level).toBeGreaterThan(10)
     expect((await handleMajorOp(PLAYER, { action: 'withdraw', id: ID }, deps(store))).body).toMatchObject({ ok: true })
     expect((await handleMajorOp(PLAYER, { action: 'withdraw', id: ID }, deps(store))).body).toEqual({ ok: false, error: 'not-registered' })
     expect((await handleMajorOp(PLAYER, { action: 'ready', id: ID }, deps(store))).body).toEqual({ ok: false, error: 'not-registered' })

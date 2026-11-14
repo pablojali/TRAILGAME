@@ -50,6 +50,14 @@ says what is built, phase by phase.
     NPC or player), never the snapshots or plans;
   - every write goes through the functions, as the service role.
 
+### Everything is taken again at READY (owner decision, 14 November 2026)
+
+A player may register early and keep training all week. At READY the server takes the career
+again: the runner snapshot (attributes, Fitness, Fatigue, equipment, gel and bar in stock) and the
+level, from the XP. The category follows the level (`major_set_ready` with `p_level`): a player who
+moved up a band during the week races in the new one. They join its main list if it has room,
+else its waiting list. Pressing READY again before the start takes everything again.
+
 ## Phase 3: the orchestrator
 
 - **Engine** (`src/game-engine/majorRace.ts`):

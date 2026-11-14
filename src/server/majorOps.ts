@@ -83,7 +83,7 @@ export class MajorStoreError extends Error {
 /** A player's registration to a Major (phase 2). */
 export interface MajorRegistration {
   categoryIdx: number
-  /** Frozen at registration (owner decision 3). */
+  /** The category's level: set at registration, taken again at READY (owner decision, 14 November 2026). */
   level: number
   list: 'main' | 'waitlist'
   status: 'REGISTERED' | 'READY' | 'WITHDRAWN' | 'RACING' | 'ABSENT'
@@ -514,8 +514,10 @@ async function playerOp(request: MajorRequest, userId: string, deps: MajorOpsDep
       const mine = (await deps.store.playerMajors(userId, now)).find((m) => m.id === request.id)?.registration
       if (!mine || (mine.status !== 'REGISTERED' && mine.status !== 'READY')) return refuse(409, 'not-registered')
       const { athlete } = career
+      // Everything is taken again at READY (owner decision, 14 November 2026), the level and so the
+      // category included: a player may register early and keep training all week.
       const snapshot: MajorRunnerSnapshot = {
-        level: mine.level,
+        level: getLevel(athlete.xp),
         attributes: { ...athlete.attributes },
         fitness: athlete.fitness,
         fatigue: athlete.fatigue,

@@ -1912,6 +1912,27 @@ var MajorStoreError = class extends Error {
     this.refusal = refusal;
   }
 };
+var numberOr = (value, fallback) => typeof value === "number" && Number.isFinite(value) ? value : fallback;
+function careerRunnerRow(state, createdAt, updatedAt) {
+  const game = isRecord(state) ? state : {};
+  const athlete = isRecord(game.athlete) ? game.athlete : {};
+  const xp = Math.max(0, Math.floor(numberOr(athlete.xp, 0)));
+  const entries = Array.isArray(game.raceEntries) ? game.raceEntries : [];
+  return {
+    kind: "PLAYER",
+    name: typeof athlete.name === "string" && athlete.name.trim() ? athlete.name.trim() : "\u2014",
+    sex: athlete.sex === "male" || athlete.sex === "female" ? athlete.sex : null,
+    country: typeof athlete.country === "string" && /^[A-Z]{2}$/.test(athlete.country) ? athlete.country : null,
+    level: getLevel(xp),
+    xp,
+    coins: Math.floor(numberOr(game.coins, 0)),
+    racesFinished: entries.filter((e) => isRecord(e) && e.status === "finished").length,
+    createdAt,
+    lastActiveAt: updatedAt,
+    strength: null,
+    racesPerWeek: null
+  };
+}
 var MEDIA_EDITABLE = ["DRAFT", "SCHEDULED", "REGISTRATION_OPEN", "LOCKED", "STARTING"];
 var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 var ok = (body = {}) => ({ status: 200, body: { ok: true, ...body } });
@@ -1960,6 +1981,8 @@ function parseMajorRequest(body) {
       return id ? { action: "event-publish", id } : null;
     case "event-report":
       return id ? { action: "event-report", id } : null;
+    case "runners":
+      return { action: "runners" };
     case "event-cancel":
       return id && typeof body.reason === "string" ? { action: "event-cancel", id, reason: body.reason } : null;
     case "media-upload":
@@ -2062,6 +2085,8 @@ async function handleMajorOp(token, body, deps) {
       }
       case "event-report":
         return ok({ report: await deps.store.report(request.id) });
+      case "runners":
+        return ok({ runners: await deps.store.runners() });
       case "event-cancel": {
         const reason = request.reason.trim();
         if (reason.length < 1 || reason.length > 300) return refuse(422, "cancel-reason");
@@ -2735,6 +2760,38 @@ function createSupabaseMajorStore(config2) {
     },
     async decide(eventId, userId, segment, stop, intensity) {
       await rpc("major_decide", { p_event: eventId, p_user: userId, p_segment: segment, p_stop: stop, p_intensity: intensity });
+    },
+    async runners() {
+      const players = [];
+      for (let offset = 0; ; offset += 500) {
+        const page = await request(
+          `careers?select=game_state,created_at,updated_at&order=created_at&limit=500&offset=${offset}`
+        );
+        for (const row of page) players.push(careerRunnerRow(row.game_state, row.created_at, row.updated_at));
+        if (page.length < 500) break;
+      }
+      const npcs = await request(
+        "ranking_npcs?select=name,country,sex,level,xp,strength,races_per_week&order=list_order"
+      );
+      return [
+        ...players,
+        ...npcs.map(
+          (n) => ({
+            kind: "NPC",
+            name: n.name,
+            sex: n.sex,
+            country: n.country,
+            level: n.level,
+            xp: n.xp,
+            coins: null,
+            racesFinished: null,
+            createdAt: null,
+            lastActiveAt: null,
+            strength: n.strength,
+            racesPerWeek: n.races_per_week
+          })
+        )
+      ];
     },
     async report(eventId) {
       const first = (value) => Array.isArray(value) ? value[0] ?? null : value;

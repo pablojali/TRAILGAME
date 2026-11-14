@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BalancePanel } from './BalancePanel'
 import { MajorsPanel } from './MajorsPanel'
+import { RunnersPanel } from './RunnersPanel'
 import { CoachPanel } from './CoachPanel'
 import { EquipmentPanel } from './EquipmentPanel'
 import { NotificationsPanel } from './NotificationsPanel'
@@ -41,7 +42,7 @@ import { AvatarsPanel } from './AvatarsPanel'
 import { RacesPanel } from './RacesPanel'
 
 const DRAFT_KEY = 'trailgame.studio.draft'
-type Tab = 'races' | 'equipment' | 'avatars' | 'coach' | 'notifications' | 'texts' | 'balance' | 'majors' | 'changes'
+type Tab = 'races' | 'equipment' | 'avatars' | 'coach' | 'notifications' | 'texts' | 'balance' | 'majors' | 'runners' | 'changes'
 
 interface Draft {
   base: Record<FileId, string>
@@ -207,6 +208,9 @@ export function App() {
           <button type="button" aria-pressed={tab === 'majors'} onClick={() => setTab('majors')}>
             Majors
           </button>
+          <button type="button" aria-pressed={tab === 'runners'} onClick={() => setTab('runners')}>
+            Corredores
+          </button>
           <button type="button" aria-pressed={tab === 'changes'} onClick={() => setTab('changes')}>
             Propuestas{pending ? ` (${pending})` : ''}
           </button>
@@ -240,6 +244,8 @@ export function App() {
       <main className="body">
         {tab === 'majors' ? (
           <MajorsPanel />
+        ) : tab === 'runners' ? (
+          <RunnersPanel />
         ) : !ws ? (
           <p className="loading">Leyendo las tablas del juego…</p>
         ) : tab === 'races' ? (

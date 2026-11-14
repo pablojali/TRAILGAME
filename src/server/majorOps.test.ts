@@ -5,7 +5,7 @@ import { newGame, withAthlete } from '../test/gameFixtures'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
 import type { MajorRunnerState } from '../game-engine/majorRace'
 import type { RaceStore } from './majorOrchestrator'
-import { handleMajorOp, MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore } from './majorOps'
+import { careerRunnerRow, handleMajorOp, MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore } from './majorOps'
 import { refusalOf } from './majorRest'
 
 const NOW = Date.UTC(2026, 10, 10, 12)
@@ -40,6 +40,9 @@ function fakeStore() {
         ] },
       ],
     }),
+    runners: async () => [
+      { kind: 'NPC', name: 'Bo.', sex: 'male', country: 'FR', level: 4, xp: 500, coins: null, racesFinished: null, createdAt: null, lastActiveAt: null, strength: 50, racesPerWeek: 2 },
+    ],
     getConfig: async () => config,
     setConfig: async (value) => { config = value },
     listEvents: async () => [...events.values()],
@@ -246,6 +249,25 @@ describe('major-ops (Sunday Major, phase 1)', () => {
       report: { categories: [{ players: 1, npcs: 1 }] },
     })
     expect((await handleMajorOp(PLAYER, { action: 'event-report', id: ID }, deps(store))).status).toBe(403)
+  })
+
+  it('lists every runner for admins only', async () => {
+    const { store } = fakeStore()
+    expect((await handleMajorOp(ADMIN, { action: 'runners' }, deps(store))).body).toMatchObject({ ok: true, runners: [{ kind: 'NPC', name: 'Bo.' }] })
+    expect((await handleMajorOp(PLAYER, { action: 'runners' }, deps(store))).status).toBe(403)
+  })
+
+  it('summarises a career for the runners list, tolerating old saves', () => {
+    const state = {
+      coins: 140,
+      athlete: { name: ' Ana ', sex: 'female', country: 'AR', xp: 760 },
+      raceEntries: [{ status: 'finished' }, { status: 'entered' }, { status: 'finished' }],
+    }
+    expect(careerRunnerRow(state, '2026-11-01T00:00:00Z', '2026-11-13T00:00:00Z')).toEqual({
+      kind: 'PLAYER', name: 'Ana', sex: 'female', country: 'AR', level: 5, xp: 760, coins: 140, racesFinished: 2,
+      createdAt: '2026-11-01T00:00:00Z', lastActiveAt: '2026-11-13T00:00:00Z', strength: null, racesPerWeek: null,
+    })
+    expect(careerRunnerRow(null, 'a', 'b')).toMatchObject({ name: '—', sex: null, country: null, level: 1, xp: 0, coins: 0, racesFinished: 0 })
   })
 
   it('shows the live race to a runner on the grid: standings with gaps, their energy, and takes their decision', async () => {

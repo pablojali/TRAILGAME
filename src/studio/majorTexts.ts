@@ -1,7 +1,7 @@
 /** Spanish messages for the Majors tab (Trail Studio's language). */
 export const ERRORS: Record<string, string> = {
   'not-signed-in': 'Tu sesión caducó: vuelve a entrar.',
-  'not-admin': 'Tu cuenta no es administradora de los Majors.',
+  'not-admin': 'Tu cuenta no es administradora de Trail Studio.',
   'not-draft': 'Solo se puede cambiar un borrador.',
   'too-soon': 'Sale demasiado pronto para publicarlo (antes de que abra el READY).',
   final: 'Ese Major ya está terminado o cancelado.',

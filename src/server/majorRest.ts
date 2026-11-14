@@ -1,7 +1,7 @@
 import type { MajorBand, MajorConfig, MajorEventInput, MajorPlan, MajorStatus } from '../domain/major/major'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
 import type { MajorRunnerState } from '../game-engine/majorRace'
-import { MajorStoreError, type MajorEvent, type MajorRegistration, type MajorStore, type MajorReport, type PlayerMajor, type RaceView } from './majorOps'
+import { careerRunnerRow, MajorStoreError, type MajorEvent, type RunnerRow, type MajorRegistration, type MajorStore, type MajorReport, type PlayerMajor, type RaceView } from './majorOps'
 import type { DueCategory, GridRow, RaceStore, StoredDecision } from './majorOrchestrator'
 import type { ServerConfig } from './supabaseRest'
 
@@ -345,6 +345,40 @@ export function createSupabaseMajorStore(config: ServerConfig): MajorStore {
 
     async decide(eventId, userId, segment, stop, intensity) {
       await rpc('major_decide', { p_event: eventId, p_user: userId, p_segment: segment, p_stop: stop, p_intensity: intensity })
+    },
+
+    async runners() {
+      // Careers are a few kilobytes each: read in pages, summarised here (no account detail kept).
+      const players: RunnerRow[] = []
+      for (let offset = 0; ; offset += 500) {
+        const page = await request<{ game_state: unknown; created_at: string; updated_at: string }[]>(
+          `careers?select=game_state,created_at,updated_at&order=created_at&limit=500&offset=${offset}`,
+        )
+        for (const row of page) players.push(careerRunnerRow(row.game_state, row.created_at, row.updated_at))
+        if (page.length < 500) break
+      }
+      const npcs = await request<{ name: string; country: string; sex: 'male' | 'female'; level: number; xp: number; strength: number; races_per_week: number }[]>(
+        'ranking_npcs?select=name,country,sex,level,xp,strength,races_per_week&order=list_order',
+      )
+      return [
+        ...players,
+        ...npcs.map(
+          (n): RunnerRow => ({
+            kind: 'NPC',
+            name: n.name,
+            sex: n.sex,
+            country: n.country,
+            level: n.level,
+            xp: n.xp,
+            coins: null,
+            racesFinished: null,
+            createdAt: null,
+            lastActiveAt: null,
+            strength: n.strength,
+            racesPerWeek: n.races_per_week,
+          }),
+        ),
+      ]
     },
 
     async report(eventId) {

@@ -1421,3 +1421,99 @@ button:disabled {
 .artGrid.heads li {
   overflow: hidden;
 }
+
+/* Corredores: totals, bar charts and the runners table (owner request, 14 November 2026). */
+.runnerTotals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.runnerTotals > div {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.runnerTotals b {
+  font-size: 24px;
+}
+
+.runnerTotals span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.runnerCharts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin: 10px 0 16px;
+}
+
+.runnerBars h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 56px;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 0;
+  font-size: 12px;
+}
+
+.barTrack {
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--raised);
+}
+
+.barPlayers {
+  background: var(--accent);
+}
+
+.barNpcs {
+  background: #8a8f99;
+}
+
+.barValue {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.legend {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.runnerFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.runnerFilters label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.runners .grid tbody tr {
+  cursor: default;
+}

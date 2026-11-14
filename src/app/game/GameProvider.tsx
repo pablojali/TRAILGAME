@@ -294,6 +294,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
         sync?.refresh(phaseRef.current.kind === 'playing' ? phaseRef.current.state : null)
         return 'cloud-career-exists'
       }
+      if (response.error === 'name-taken') return 'name-taken'
       return response.error === 'offline' ? 'offline' : 'server-error'
     },
     [commit, ops, sync],

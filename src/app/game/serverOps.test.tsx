@@ -19,6 +19,8 @@ function world(initial: GameState | null) {
   const operations = new Map<string, { userId: string; response: unknown }>()
   if (initial) careers.set('ana', { version: 1, schemaVersion: 2, state: JSON.parse(JSON.stringify(initial)) })
   const network = { down: false, dropResponses: false }
+  // Names other players already have (unique runner names, as the database's index).
+  const takenNames = new Set<string>()
   const requests: string[] = []
   const db: CareerOpsStore = {
     load: async (userId) => structuredClone(careers.get(userId) ?? null),
@@ -29,6 +31,7 @@ function world(initial: GameState | null) {
       }
       const current = careers.get(userId)
       if ((current?.version ?? null) !== baseVersion) return { status: 'conflict', version: current?.version ?? null, response: null }
+      if (takenNames.has(state.athlete.name.trim().toLowerCase())) return { status: 'name-taken', version: null, response: null }
       const version = (current?.version ?? 0) + 1
       careers.set(userId, { version, schemaVersion: 2, state: JSON.parse(JSON.stringify(state)) })
       const stored = { ...(response ?? {}), version }
@@ -64,6 +67,7 @@ function world(initial: GameState | null) {
   return {
     ops,
     network,
+    takenNames,
     requests,
     server: () => careers.get('ana')?.state as GameState | undefined,
     version: () => careers.get('ana')?.version,
@@ -302,6 +306,18 @@ describe('server-authoritative training (client and server together)', () => {
     })
     expect(w.server()).toMatchObject({ athlete: { profile: 'all-rounder', xp: 0 } })
     expect(view.playing()).toEqual(w.server())
+  })
+
+  it('cannot start a career with a name another runner has; nothing is created', async () => {
+    const w = world(null)
+    w.takenNames.add(TEST_IDENTITY.name.toLowerCase())
+    const view = renderGame(w)
+    await waitFor(() => expect(view.phase()).toBe('new-career'))
+    await act(async () => {
+      expect(await view.game().startCareer(TEST_IDENTITY)).toBe('name-taken')
+    })
+    expect(view.phase()).toBe('new-career')
+    expect(w.server()).toBeUndefined()
   })
 
   it('cannot start a career offline (nothing is created locally)', async () => {

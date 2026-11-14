@@ -6,6 +6,7 @@
   "setup.error.offline": "Der Server zum Erstellen deiner Karriere ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
   "setup.error.server-error": "Der Server konnte deine Karriere nicht erstellen. Versuche es erneut.",
   "setup.error.cloud-career-exists": "Dein Konto hat schon eine Karriere. Sie wird auf diesem Gerät geladen.",
+  "setup.error.name-taken": "Dieser Name ist schon vergeben. Wähle einen anderen.",
   "setup.nameTitle": "Gib deinem Läufer einen Namen",
   "setup.nameHelp": "Name und Land deines Läufers erscheinen in der Übersicht.",
   "setup.preview": "Dein Läufer: {profile}, {sex}",

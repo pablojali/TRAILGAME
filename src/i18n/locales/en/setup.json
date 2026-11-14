@@ -6,6 +6,7 @@
   "setup.error.offline": "Could not reach the server to create your career. Check your connection and try again.",
   "setup.error.server-error": "The server could not create your career. Try again.",
   "setup.error.cloud-career-exists": "Your account already has a career. It is being loaded on this device.",
+  "setup.error.name-taken": "That name is already taken. Choose another one.",
   "setup.nameTitle": "Name your runner",
   "setup.nameHelp": "Your runner's name and country appear on the Dashboard.",
   "setup.preview": "Your runner: {profile}, {sex}",

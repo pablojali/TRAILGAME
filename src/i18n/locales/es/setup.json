@@ -6,6 +6,7 @@
   "setup.error.offline": "No se pudo conectar con el servidor para crear tu carrera. Revisa tu conexión y vuelve a intentarlo.",
   "setup.error.server-error": "El servidor no pudo crear tu carrera. Vuelve a intentarlo.",
   "setup.error.cloud-career-exists": "Tu cuenta ya tiene una carrera. Se está cargando en este dispositivo.",
+  "setup.error.name-taken": "Ese nombre ya está en uso. Elige otro.",
   "setup.nameTitle": "Ponle nombre a tu corredor",
   "setup.nameHelp": "El nombre y el país de tu corredor aparecen en el inicio.",
   "setup.preview": "Tu corredor: {profile}, {sex}",

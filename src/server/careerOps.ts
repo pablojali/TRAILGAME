@@ -32,7 +32,8 @@ export interface CareerRecord {
   state: unknown
 }
 
-export type CommitStatus = 'saved' | 'conflict' | 'duplicate' | 'foreign-operation'
+/** `name-taken`: the runner's name is used by another player or a ranking NPC (unique names). */
+export type CommitStatus = 'saved' | 'conflict' | 'duplicate' | 'foreign-operation' | 'name-taken'
 
 export interface CareerOpsStore {
   load(userId: string): Promise<CareerRecord | null>
@@ -141,7 +142,7 @@ export function mergeClientFields(server: GameState, client: GameState, now: num
     ...server,
     athlete: {
       ...server.athlete,
-      name: client.athlete.name,
+      // The name is chosen once, at creation (unique names): the server's stays.
       sex: client.athlete.sex,
       ...(client.athlete.country === undefined ? {} : { country: client.athlete.country }),
     },
@@ -369,6 +370,7 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
     }
     if (committed.status === 'duplicate') return replay(userId, { userId, response: committed.response }, deps, now)
     if (committed.status === 'foreign-operation') return fail(403, 'forbidden')
+    if (committed.status === 'name-taken') return fail(409, 'name-taken')
     // conflict: another write landed first; compute again on the new career.
   }
   return fail(409, 'busy')
@@ -399,6 +401,7 @@ async function save(userId: string, request: Extract<CareerOpRequest, { action: 
       if (request.baseVersion !== null) return fail(409, 'conflict', { version: null })
       const created = await deps.store.commit({ userId, baseVersion: null, state: client, operationId: null, kind: 'save', response: null })
       if (created.status === 'saved') return { status: 200, body: { ok: true, state: client, version: created.version! } }
+      if (created.status === 'name-taken') return fail(409, 'name-taken', { version: null })
       continue
     }
     const server = readRecord(record, now)
@@ -410,6 +413,7 @@ async function save(userId: string, request: Extract<CareerOpRequest, { action: 
       await markMajorRewards(deps, rewards)
       return { status: 200, body: { ok: true, state: merged, version: committed.version! } }
     }
+    if (committed.status === 'name-taken') return fail(409, 'name-taken', { state: server, version: record.version })
   }
   return fail(409, 'busy')
 }
@@ -427,6 +431,7 @@ async function newCareer(userId: string, request: Extract<CareerOpRequest, { act
   const baseVersion = record ? record.version : null
   if (request.baseVersion !== baseVersion) return fail(409, 'conflict', { version: baseVersion })
   const committed = await deps.store.commit({ userId, baseVersion, state: fresh, operationId: null, kind: 'new-career', response: null })
+  if (committed.status === 'name-taken') return fail(409, 'name-taken', { version: baseVersion })
   if (committed.status !== 'saved') return fail(409, 'conflict', { version: committed.version })
   return { status: 200, body: { ok: true, state: fresh, version: committed.version! } }
 }

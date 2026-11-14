@@ -6,6 +6,7 @@
   "setup.error.offline": "Impossibile raggiungere il server per creare la tua carriera. Controlla la connessione e riprova.",
   "setup.error.server-error": "Il server non ha potuto creare la tua carriera. Riprova.",
   "setup.error.cloud-career-exists": "Il tuo account ha già una carriera. La stiamo caricando su questo dispositivo.",
+  "setup.error.name-taken": "Questo nome è già in uso. Scegline un altro.",
   "setup.nameTitle": "Dai un nome al tuo corridore",
   "setup.nameHelp": "Nome e paese del tuo corridore compaiono nella home.",
   "setup.preview": "Il tuo corridore: {profile}, {sex}",

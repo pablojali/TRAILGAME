@@ -6,6 +6,7 @@
   "setup.error.offline": "Impossible de joindre le serveur pour créer ta carrière. Vérifie ta connexion et réessaie.",
   "setup.error.server-error": "Le serveur n'a pas pu créer ta carrière. Réessaie.",
   "setup.error.cloud-career-exists": "Ton compte a déjà une carrière. Elle est en cours de chargement sur cet appareil.",
+  "setup.error.name-taken": "Ce nom est déjà pris. Choisis-en un autre.",
   "setup.nameTitle": "Donne un nom à ton coureur",
   "setup.nameHelp": "Le nom et le pays de ton coureur apparaissent sur l'accueil.",
   "setup.preview": "Ton coureur : {profile}, {sex}",

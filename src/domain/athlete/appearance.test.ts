@@ -67,9 +67,9 @@ describe('appearance', () => {
   it('offers the current head art (owner art, October and November 2026)', () => {
     // The women's heads of 13 November 2026 (second Studio batch): levels 2, 3, 5 and 8, not in every tone.
     expect(hairStyles('female', 'tone-1')).toEqual(['natural', 'head-l1-01', 'head-l2-01', 'head-l3-01', 'head-l5-01', 'head-l8-01'])
-    expect(hairStyles('female', 'tone-2')).toEqual(['natural', 'head-l1-01', 'head-l2-01', 'head-l3-01', 'head-l5-01'])
+    expect(hairStyles('female', 'tone-2')).toEqual(['natural', 'head-l1-01', 'head-l2-01', 'head-l3-01', 'head-l5-01', 'head-l8-01'])
     expect(hairStyles('female', 'tone-3')).toEqual(['natural', 'head-l1-01', 'head-l2-01', 'head-l3-01', 'head-l5-01', 'head-l8-01'])
-    expect(hairStyles('female', 'tone-4')).toEqual(['natural', 'head-l1-01', 'head-l3-01', 'head-l5-01'])
+    expect(hairStyles('female', 'tone-4')).toEqual(['natural', 'head-l1-01', 'head-l2-01', 'head-l3-01', 'head-l5-01', 'head-l8-01'])
     // The men's heads of 13 November 2026 (levels 2, 3, 5 and 8), in all four tones.
     for (const skin of SKIN_TONES.male) expect(hairStyles('male', skin)).toEqual(['natural', 'head-l1-01', 'head-l2-01', 'head-l3-01', 'head-l5-01', 'head-l8-01'])
     expect(hairStyleLabel('male', 'head-l8-01')).toBe('Hairstyle 5')
@@ -82,9 +82,9 @@ describe('appearance', () => {
     expect(isAppearanceUnlocked({ hair: 'head-l5-01', skin: 'tone-3', outfit: 'none' }, 4, 'female')).toBe(false)
     expect(appearanceUnlocks(4, 5, 'female', 'tone-3')).toEqual(['Hairstyle 4'])
     expect(appearanceUnlocks(4, 5, 'female', 'tone-2')).toEqual(['Hairstyle 4'])
-    // Hairstyle 5 (Level 8) has tone 1 and 3 art only.
+    // Every women's hairstyle now has art in the four tones (14 November 2026).
     expect(appearanceUnlocks(7, 8, 'female', 'tone-3')).toEqual(['Hairstyle 5'])
-    expect(appearanceUnlocks(7, 8, 'female', 'tone-2')).toEqual([])
+    expect(appearanceUnlocks(7, 8, 'female', 'tone-2')).toEqual(['Hairstyle 5'])
   })
 
   it('loads saves with heads that no longer exist as the basic head', () => {
@@ -96,7 +96,7 @@ describe('appearance', () => {
     // Hairstyle 2 of Level 1 became Levels 2 and 8 art (owner, 14 November 2026): a save keeping it gets the basic head.
     expect(parseAppearance({ hair: 'head-l1-02', skin: 'tone-2', outfit: 'none' }, 'female').hair).toBe('natural')
     expect(parseAppearance({ hair: 'head-l2-01', skin: 'tone-2', outfit: 'none' }, 'female').hair).toBe('head-l2-01')
-    expect(appearanceForSex({ hair: 'head-l2-01', skin: 'tone-4', outfit: 'none' }, 'female').hair).toBe('natural')
+    expect(appearanceForSex({ hair: 'head-l2-01', skin: 'tone-4', outfit: 'none' }, 'female').hair).toBe('head-l2-01')
   })
 
   it('keeps a valid tone when the sex changes', () => {

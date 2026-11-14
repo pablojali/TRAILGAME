@@ -6,7 +6,7 @@ import { translate } from '../i18n/i18n'
 import { insertRow, rows, serializeDoc, updateRow, type CsvDoc } from './csvDoc'
 import { Field, NumberField, SelectField, TextField } from './fields'
 import { Picker } from './MediaPanels'
-import { itemPicture, withUploads } from './uploads'
+import { itemPicture, layerColumn, layerPicture, layerSources, layerStem, withUploads } from './uploads'
 import { thumbnailPath } from './media'
 import type { Workspace } from './model'
 
@@ -96,6 +96,7 @@ export function EquipmentPanel({
 }) {
   const [filter, setFilter] = useState('all')
   const [pictureError, setPictureError] = useState('')
+  const [layerError, setLayerError] = useState('')
   // A picture uploaded in this visit is shown before the published one.
   const pictureFor = (values: Record<string, string>) =>
     values.thumbnail ? (ws.uploads[thumbnailPath(values.thumbnail)]?.previewUrl ?? pictureOf(values.thumbnail)) : undefined
@@ -203,6 +204,45 @@ export function EquipmentPanel({
               )}
             </Field>
             <TextField label="Capa en el corredor" value={v.avatar_layer!} onChange={(x) => setItem({ avatar_layer: x })} hint="Archivo de assets/runner/avatar" wide />
+            {v.type === 'shoes' ? (
+              <p className="hint wide">Las zapatillas en el corredor las prepara Claude (pásale la imagen).</p>
+            ) : (
+              <Field
+                label="Imagen en el corredor"
+                hint="PNG con fondo transparente sobre el lienzo del corredor (1024 × 1536), en su sitio. Se convierte sola al publicar. Con {sex} en el nombre: una para hombres y otra para mujeres."
+                wide
+              >
+                {() => {
+                  const stem = layerStem(v.id!, v.type!, v.level!, v.avatar_layer!)
+                  return (
+                    <>
+                      <div className="inputRow">
+                        {layerSources(stem).map(({ sex, path }) => (
+                          <span key={path} className="layerSource">
+                            {ws.uploads[path]?.previewUrl && <img className="layerPreview" src={ws.uploads[path]!.previewUrl} alt="" />}
+                            <Picker
+                              accept="image/png"
+                              label={sex === 'men' ? 'Subir (hombres)' : sex === 'women' ? 'Subir (mujeres)' : 'Subir imagen'}
+                              onFile={async (file) => {
+                                setLayerError('')
+                                try {
+                                  const upload = await layerPicture(path, file, `Capa en el corredor de ${v.id}${sex ? ` (${sex})` : ''}`)
+                                  const next = withUploads(ws, { [path]: upload })
+                                  setWs({ ...next, docs: { ...next.docs, equipment: updateRow(next.docs.equipment, (r) => r.values.id === v.id, { avatar_layer: layerColumn(stem) }) } })
+                                } catch (e) {
+                                  setLayerError((e as Error).message)
+                                }
+                              }}
+                            />
+                          </span>
+                        ))}
+                      </div>
+                      {layerError && <span className="error">{layerError}</span>}
+                    </>
+                  )
+                }}
+              </Field>
+            )}
           </div>
 
           <h3>Efecto en carrera</h3>

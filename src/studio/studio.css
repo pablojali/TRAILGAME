@@ -1517,3 +1517,19 @@ button:disabled {
 .runners .grid tbody tr {
   cursor: default;
 }
+
+/* Equipment: the art an item wears on the runner (upload). */
+.layerSource {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.layerPreview {
+  width: 32px;
+  height: 48px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--raised);
+}

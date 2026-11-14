@@ -41,6 +41,12 @@ export function isMp4(bytes: Uint8Array): boolean {
   return bytes.length > 20_000 && String.fromCharCode(...bytes.subarray(4, 8)) === 'ftyp'
 }
 
+/** Width and height of an image file, in pixels. */
+export async function imageSize(file: Blob): Promise<{ width: number; height: number }> {
+  const image = await loadImage(file)
+  return { width: image.naturalWidth, height: image.naturalHeight }
+}
+
 async function loadImage(file: Blob): Promise<HTMLImageElement> {
   const url = URL.createObjectURL(file)
   try {

@@ -38,8 +38,8 @@ describe('Appearance', () => {
     seedCareer() // Women, tone 2, Level 1.
     await renderApp('/appearance')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))
-    // Hairstyles 2 to 4 (Levels 2, 3 and 5) show too, locked.
-    expect(screen.getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['natural', 'head-l1-01', 'head-l2-01', 'head-l3-01', 'head-l5-01'])
+    // Hairstyles 2 to 5 (Levels 2, 3, 5 and 8) show too, locked.
+    expect(screen.getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['natural', 'head-l1-01', 'head-l2-01', 'head-l3-01', 'head-l5-01', 'head-l8-01'])
     await user.click(screen.getByRole('radio', { name: 'Hairstyle 1' }))
     await waitFor(() => expect(readSave()?.state.athlete.appearance.hair).toBe('head-l1-01'))
     expect(screen.getByRole('img', { name: /hairstyle 1/ }).querySelector('image[data-layer="head"]')).not.toBeNull()

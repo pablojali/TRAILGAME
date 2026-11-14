@@ -159,3 +159,9 @@ request, no code publish.
   - The Studio's address must be in Supabase → Authentication → URL Configuration → Redirect URLs
     (`https://trailgame-studio.pages.dev/**`).
   - The owner's user id goes into `major_admins` (Claude adds it).
+- **Equipamiento › Imagen en el corredor** (14 November 2026): uploads the art an item wears on the
+  runner. It must be a PNG on the runner's 1024 × 1536 transparent canvas, in its place; anything
+  else is refused. It is saved in `assets/runner/accesories/{name}.png`, and the item's
+  `avatar_layer` becomes `accessories/{name}.webp`. The art script, which CI runs before every
+  build, makes the layer and the shop's cropped picture. A name with `{sex}` asks for two files
+  (men, women). Shoes are not uploaded here; Claude maps them.

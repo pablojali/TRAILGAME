@@ -3,10 +3,10 @@ import { getLevelRewards } from './levelRewards'
 
 describe('level rewards', () => {
   it('lists the attribute points, looks and races of the levels gained', () => {
-    // Women, tone 2: the Coral tank top unlocks at Level 2; no race opens at 2 (the first two open at 1).
+    // Women, tone 2: Hairstyle 2 and the Coral tank top unlock at Level 2; no race opens at 2 (the first two open at 1).
     const two = getLevelRewards(1, 2, 'female', 'tone-2')
     expect(two.attributePoints).toBe(2)
-    expect(two.looks).toEqual(['Coral tank top'])
+    expect(two.looks).toEqual(['Hairstyle 2', 'Coral tank top'])
     expect(two.races).toEqual([])
     // Several levels at once (a race win): points and unlocks of every level gained.
     const many = getLevelRewards(1, 4, 'male', 'tone-1')

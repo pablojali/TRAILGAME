@@ -30,7 +30,7 @@ describe('setAppearance', () => {
 
   it('accepts a women\'s head for women and refuses it for men (no art for their sex)', () => {
     // Level locks and tones without art: src/domain/athlete/appearance.heads.test.ts.
-    expect(setAppearance(newGame(), { hair: 'head-l1-02', skin: 'tone-1', outfit: 'none' }).ok).toBe(true)
+    expect(setAppearance(newGame(), { hair: 'head-l1-01', skin: 'tone-4', outfit: 'none' }).ok).toBe(true)
     const male = newGame('all-rounder', undefined, { name: 'Leo', sex: 'male' })
     expect(setAppearance(male, { hair: 'head-l1-02', skin: 'tone-1', outfit: 'none' })).toEqual({
       ok: false,

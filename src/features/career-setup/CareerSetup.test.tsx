@@ -101,15 +101,11 @@ describe('career creation — appearance step', () => {
     expect(avatar()).not.toHaveAttribute('data-focus')
     await user.click(screen.getByRole('tab', { name: 'Hair' }))
     expect(avatar()).toHaveAttribute('data-focus', 'face')
-    // Women, tone 2 (default): the basic head and Hairstyles 1 and 2.
+    // Women, tone 2 (default): the basic head and Hairstyle 1 (the only Level 1 head).
     const hairPanel = screen.getByRole('tabpanel')
-    expect(within(hairPanel).getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual([
-      'natural',
-      'head-l1-01',
-      'head-l1-02',
-    ])
+    expect(within(hairPanel).getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['natural', 'head-l1-01'])
     expect(screen.getByRole('radio', { name: 'Basic' })).toBeChecked()
-    // Hairstyles 4 and 5 (Levels 3 and 5) exist in tone 2: the note says they unlock later.
+    // Hairstyles 2 to 4 (Levels 2, 3 and 5) exist in tone 2: the note says they unlock later.
     expect(screen.getByText(/New hairstyles unlock as you level up/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('radio', { name: 'Hairstyle 1' }))

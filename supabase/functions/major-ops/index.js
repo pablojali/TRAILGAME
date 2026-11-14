@@ -598,7 +598,7 @@ trail-shoes,Technical trail shoes,shoes,2,70,,,footwear/trail-shoes.webp,,,,4,,,
 trail-shoes-light,Light trail shoes,shoes,2,70,,thumb_lvl2_shoes_02.png,footwear/trail-shoes-light.webp,3,,,,,,,,0.98,1.3,,,"Fast on flats and descents, with less grip on technical ground.",Zapatillas ligeras,,"R\xE1pidas en llano y en bajada, con menos agarre en terreno t\xE9cnico.",Chaussures l\xE9g\xE8res,,"Rapides sur le plat et en descente, moins d'adh\xE9rence en terrain technique.",Scarpe leggere,,"Veloci in pianura e in discesa, con meno grip sul terreno tecnico.",Leichte Trailschuhe,,"Schnell auf flachen St\xFCcken und bergab, mit weniger Grip im technischen Gel\xE4nde."
 trail-shoes-3,Mountain trail shoes,shoes,3,140,,thumb_lvl3_shoes_01.png,footwear/lvl3-shoes-01.webp,2,,,3,,,,,,0.8,,,"Light, grippy shoes for long mountain races.",Zapatillas de monta\xF1a,,Ligeras y con agarre para carreras largas de monta\xF1a.,Chaussures de montagne,,L\xE9g\xE8res et accrocheuses pour les longues courses en montagne.,Scarpe da montagna,,Leggere e con grip per le lunghe gare in montagna.,Bergtrailschuhe,,Leicht und griffig f\xFCr lange Bergrennen.
 poles,Poles,poles,1,25,,thumb_lvl1_poles_01.png,accessories/lvl1_poles_01.webp,,,2,,,,1.01,,,,,,Folding poles that help on climbs.,Bastones,,Bastones plegables que ayudan en las subidas.,B\xE2tons,,B\xE2tons pliables qui aident dans les mont\xE9es.,Bastoncini,,Bastoncini pieghevoli che aiutano in salita.,St\xF6cke,,"Faltbare St\xF6cke, die am Anstieg helfen."
-poles-2,Poles,poles,2,50,,,,,1,3,,,,1.01,,,,,,Light carbon poles.,Bastones,,Bastones ligeros de carbono.,B\xE2tons,,B\xE2tons l\xE9gers en carbone.,Bastoncini,,Bastoncini leggeri in carbonio.,St\xF6cke,,Leichte Carbonst\xF6cke.
+poles-2,Poles,poles,2,50,,thumb_poles-2.png,,,1,3,,,,1.01,,,,,,Light carbon poles.,Bastones,,Bastones ligeros de carbono.,B\xE2tons,,B\xE2tons l\xE9gers en carbone.,Bastoncini,,Bastoncini leggeri in carbonio.,St\xF6cke,,Leichte Carbonst\xF6cke.
 hydration-backpack,Hydration backpack,pack,1,30,,thumb_lvl1_{sex}_back_01.png,accessories/lvl1_{sex}_back_01.webp,,1,,,,,,,,,0.9,,Carries water and food for long races.,Mochila de hidrataci\xF3n,,Lleva agua y comida para carreras largas.,Sac d'hydratation,,Transporte eau et nourriture pour les courses longues.,Zaino idratazione,,Porta acqua e cibo per le gare lunghe.,Trinkrucksack,,Tr\xE4gt Wasser und Essen f\xFCr lange Rennen.
 hydration-backpack-2,Hydration backpack,pack,2,90,,thumb_lvl2_{sex}_back_01.png,accessories/lvl2_{sex}_back_01.webp,,2,,,,,,,,,0.85,,"A larger, better-fitting race vest.",Mochila de hidrataci\xF3n,,Un chaleco de carrera m\xE1s grande y que se ajusta mejor.,Sac d'hydratation,,Un gilet de course plus grand et mieux ajust\xE9.,Zaino idratazione,,Un gilet da gara pi\xF9 grande e pi\xF9 aderente.,Trinkrucksack,,"Eine gr\xF6\xDFere, besser sitzende Laufweste."
 hydration-backpack-3,Race vest,pack,3,180,,thumb_lvl3_{sex}_back_01.png,accessories/lvl3_{sex}_back_01.webp,,3,,,1,,,,,,0.8,,"A light race vest with soft flasks, made for ultras.",Chaleco de carrera,,"Chaleco ligero con bidones blandos, pensado para ultras.",Gilet de course,,"Gilet l\xE9ger avec flasques souples, con\xE7u pour les ultras.",Gilet da gara,,"Gilet leggero con borracce morbide, pensato per gli ultra.",Laufweste,,"Leichte Laufweste mit Softflasks, gemacht f\xFCr Ultras."
@@ -1545,6 +1545,7 @@ var HEAD_FILES = [
   "lvl2_women_head_01_tone1",
   "lvl2_women_head_01_tone2",
   "lvl2_women_head_01_tone3",
+  "lvl2_women_head_01_tone4",
   "lvl3_women_head_01_tone1",
   "lvl3_women_head_01_tone2",
   "lvl3_women_head_01_tone3",
@@ -1554,7 +1555,9 @@ var HEAD_FILES = [
   "lvl5_women_head_01_tone3",
   "lvl5_women_head_01_tone4",
   "lvl8_women_head_01_tone1",
+  "lvl8_women_head_01_tone2",
   "lvl8_women_head_01_tone3",
+  "lvl8_women_head_01_tone4",
   "lvl2_men_head_01_tone1",
   "lvl2_men_head_01_tone2",
   "lvl2_men_head_01_tone3",

@@ -6,18 +6,18 @@ describe('head catalog', () => {
     expect(HEADS.map((h) => `${h.sex} ${h.id} lvl${h.level} ${h.label} tones ${Object.keys(h.files)}`)).toEqual([
       'male head-l1-01 lvl1 Hairstyle 1 tones 1,2,3,4',
       'female head-l1-01 lvl1 Hairstyle 1 tones 1,2,3,4',
-      'female head-l2-01 lvl2 Hairstyle 2 tones 1,2,3',
+      'female head-l2-01 lvl2 Hairstyle 2 tones 1,2,3,4',
       'male head-l2-01 lvl2 Hairstyle 2 tones 1,2,3,4',
       'female head-l3-01 lvl3 Hairstyle 3 tones 1,2,3,4',
       'male head-l3-01 lvl3 Hairstyle 3 tones 1,2,3,4',
       'female head-l5-01 lvl5 Hairstyle 4 tones 1,2,3,4',
       'male head-l5-01 lvl5 Hairstyle 4 tones 1,2,3,4',
-      'female head-l8-01 lvl8 Hairstyle 5 tones 1,3',
+      'female head-l8-01 lvl8 Hairstyle 5 tones 1,2,3,4',
       'male head-l8-01 lvl8 Hairstyle 5 tones 1,2,3,4',
     ])
     expect(headFile('female', 'head-l1-01', 2)).toBe('lvl1_women_head_01_tone2')
     expect(headFile('female', 'head-l1-01', 4)).toBe('lvl1_women_head_01_tone4')
-    expect(headFile('female', 'head-l2-01', 4)).toBeUndefined()
+    expect(headFile('female', 'head-l1-02', 1)).toBeUndefined()
     expect(headFile('male', 'head-l1-01', 4)).toBe('lvl1_men_head_01_tone4')
     expect(getHead('male', 'head-l1-02')).toBeUndefined()
   })

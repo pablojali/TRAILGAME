@@ -159,6 +159,7 @@ const START_ERRORS: Record<StartCareerError, MessageKey> = {
   offline: 'setup.error.offline',
   'server-error': 'setup.error.server-error',
   'cloud-career-exists': 'setup.error.cloud-career-exists',
+  'name-taken': 'setup.error.name-taken',
 }
 
 function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepProps) {

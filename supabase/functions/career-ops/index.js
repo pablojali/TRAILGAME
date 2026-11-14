@@ -2650,7 +2650,7 @@ function mergeClientFields(server, client, now) {
     ...server,
     athlete: {
       ...server.athlete,
-      name: client.athlete.name,
+      // The name is chosen once, at creation (unique names): the server's stays.
       sex: client.athlete.sex,
       ...client.athlete.country === void 0 ? {} : { country: client.athlete.country }
     }
@@ -2827,6 +2827,7 @@ async function handleCareerOp(token, body, deps) {
     }
     if (committed.status === "duplicate") return replay(userId, { userId, response: committed.response }, deps, now);
     if (committed.status === "foreign-operation") return fail(403, "forbidden");
+    if (committed.status === "name-taken") return fail(409, "name-taken");
   }
   return fail(409, "busy");
 }
@@ -2848,6 +2849,7 @@ async function save(userId, request, deps, now) {
       if (request.baseVersion !== null) return fail(409, "conflict", { version: null });
       const created = await deps.store.commit({ userId, baseVersion: null, state: client, operationId: null, kind: "save", response: null });
       if (created.status === "saved") return { status: 200, body: { ok: true, state: client, version: created.version } };
+      if (created.status === "name-taken") return fail(409, "name-taken", { version: null });
       continue;
     }
     const server = readRecord(record, now);
@@ -2859,6 +2861,7 @@ async function save(userId, request, deps, now) {
       await markMajorRewards(deps, rewards);
       return { status: 200, body: { ok: true, state: merged, version: committed.version } };
     }
+    if (committed.status === "name-taken") return fail(409, "name-taken", { state: server, version: record.version });
   }
   return fail(409, "busy");
 }
@@ -2869,6 +2872,7 @@ async function newCareer(userId, request, deps, now) {
   const baseVersion = record ? record.version : null;
   if (request.baseVersion !== baseVersion) return fail(409, "conflict", { version: baseVersion });
   const committed = await deps.store.commit({ userId, baseVersion, state: fresh, operationId: null, kind: "new-career", response: null });
+  if (committed.status === "name-taken") return fail(409, "name-taken", { version: baseVersion });
   if (committed.status !== "saved") return fail(409, "conflict", { version: committed.version });
   return { status: 200, body: { ok: true, state: fresh, version: committed.version } };
 }
@@ -2923,7 +2927,11 @@ function createSupabaseCareerOpsStore(config2) {
           p_response: response
         })
       });
-      if (!result.ok) throw new Error(`Database write failed (${result.status}): ${await result.text()}`);
+      if (!result.ok) {
+        const text = await result.text();
+        if (result.status === 409 && /careers_runner_name_key|runner-name-taken/.test(text)) return { status: "name-taken", version: null, response: null };
+        throw new Error(`Database write failed (${result.status}): ${text}`);
+      }
       const rows = await result.json();
       const row = rows[0];
       if (!row) throw new Error("commit_career returned nothing");

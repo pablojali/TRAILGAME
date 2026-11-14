@@ -2981,7 +2981,11 @@ function createSupabaseCareerOpsStore(config2) {
           p_response: response
         })
       });
-      if (!result.ok) throw new Error(`Database write failed (${result.status}): ${await result.text()}`);
+      if (!result.ok) {
+        const text = await result.text();
+        if (result.status === 409 && /careers_runner_name_key|runner-name-taken/.test(text)) return { status: "name-taken", version: null, response: null };
+        throw new Error(`Database write failed (${result.status}): ${text}`);
+      }
       const rows = await result.json();
       const row = rows[0];
       if (!row) throw new Error("commit_career returned nothing");

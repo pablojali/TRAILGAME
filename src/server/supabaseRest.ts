@@ -70,7 +70,12 @@ export function createSupabaseCareerOpsStore(config: ServerConfig): CareerOpsSto
           p_response: response,
         }),
       })
-      if (!result.ok) throw new Error(`Database write failed (${result.status}): ${await result.text()}`)
+      if (!result.ok) {
+        const text = await result.text()
+        // Unique runner names: the careers' unique index or the NPC-name trigger (23505).
+        if (result.status === 409 && /careers_runner_name_key|runner-name-taken/.test(text)) return { status: 'name-taken' as const, version: null, response: null }
+        throw new Error(`Database write failed (${result.status}): ${text}`)
+      }
       const rows = (await result.json()) as { status: CommitStatus; version: number | null; response: unknown }[]
       const row = rows[0]
       if (!row) throw new Error('commit_career returned nothing')

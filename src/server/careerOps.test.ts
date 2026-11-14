@@ -14,7 +14,7 @@ const NOW = T0 + 60 * 60 * 1000
 const op = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 
 /** In-memory commit_career: one career per user, versions, recorded operation ids. */
-function memoryStore() {
+function memoryStore(uniqueNames = false) {
   const careers = new Map<string, CareerRecord>()
   const operations = new Map<string, { userId: string; kind: OperationKind; response: unknown }>()
   let commits = 0
@@ -37,6 +37,11 @@ function memoryStore() {
       }
       const current = careers.get(userId)
       if ((current?.version ?? null) !== baseVersion) return { status: 'conflict', version: current?.version ?? null, response: null }
+      // Unique runner names, as the database's index (case and spaces ignored).
+      const key = (s: unknown) => ((s as GameState).athlete.name ?? '').trim().toLowerCase()
+      if (uniqueNames && [...careers].some(([other, record]) => other !== userId && key(record.state) === key(state))) {
+        return { status: 'name-taken', version: null, response: null }
+      }
       const version = (current?.version ?? 0) + 1
       careers.set(userId, { version, schemaVersion: 2, state: JSON.parse(JSON.stringify(state)) })
       commits++
@@ -234,7 +239,7 @@ describe('career-ops: race days and attribute points on the server', () => {
 })
 
 describe('career-ops: snapshot saves and new careers', () => {
-  it('a sync save keeps the server\'s progression and economy and takes only the client-owned fields', async () => {
+  it('a sync save keeps the server\'s progression, economy and name and takes only the client-owned fields', async () => {
     const memory = memoryStore()
     const career = withAthlete(newGame(), { xp: 300 })
     memory.seed('ana', career, 4)
@@ -246,7 +251,8 @@ describe('career-ops: snapshot saves and new careers', () => {
     }
     const response = await handleCareerOp('token-ana', { action: 'save', baseVersion: 4, snapshot: forged }, deps(memory))
     if (!response.body.ok) throw new Error(response.body.error)
-    expect(response.body.state.athlete).toMatchObject({ xp: 300, name: 'Anita' })
+    // The name is chosen once, at creation (unique names): a snapshot cannot change it.
+    expect(response.body.state.athlete).toMatchObject({ xp: 300, name: career.athlete.name })
     expect(response.body.state).toMatchObject({ coins: career.coins, ownedEquipment: career.ownedEquipment, equipment: [] })
     expect(memory.stateOf('ana')).toMatchObject({ coins: career.coins, athlete: { xp: 300 } })
   })
@@ -301,6 +307,18 @@ describe('career-ops: snapshot saves and new careers', () => {
     })
     expect(response.body.state.coins).toBe(25)
     expect(response.body.version).toBe(7)
+  })
+
+  it('refuses a runner name another player has, ignoring case and spaces', async () => {
+    const memory = memoryStore(true)
+    memory.seed('ana', withAthlete(newGame(), { name: 'Ana' }), 2)
+    const body = (name: string) => ({ action: 'new-career', baseVersion: null, profile: 'all-rounder', identity: { name, sex: 'female' } })
+    expect((await handleCareerOp('token-bea', body(' aNA '), deps(memory))).body).toMatchObject({ ok: false, error: 'name-taken' })
+    expect(memory.careers.has('bea')).toBe(false)
+    const free = await handleCareerOp('token-bea', body('Bea'), deps(memory))
+    expect(free.body).toMatchObject({ ok: true, version: 1 })
+    // The player keeps their own name when they start again.
+    expect((await handleCareerOp('token-ana', { ...body('Ana'), baseVersion: 2 }, deps(memory))).body).toMatchObject({ ok: true, version: 3 })
   })
 })
 

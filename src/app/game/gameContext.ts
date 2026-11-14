@@ -35,7 +35,8 @@ export type GamePhase =
 export type CloudNotice = 'restored' | 'updated'
 
 /** Why a new career could not be started on the server. */
-export type StartCareerError = ServerError | 'cloud-career-exists'
+/** `name-taken`: another player or a ranking NPC already has the runner's name (unique names). */
+export type StartCareerError = ServerError | 'cloud-career-exists' | 'name-taken'
 
 export interface DecayNotice {
   periods: number

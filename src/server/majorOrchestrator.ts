@@ -101,7 +101,13 @@ async function startEvents(store: RaceStore, now: number): Promise<number> {
     const race = getRace(event.raceId)
     if (!race) continue
     const contexts = contextsOf(event.raceId, event.id, rows)
-    const states = rows.map((row) => ({ id: row.id, state: initialState(contexts.get(row.slot)!, runnerOf(row)) }))
+    // The first segment is run at once (live tracking): it stays hidden until its phase ends.
+    const ran = runMajorSegment(
+      contexts,
+      rows.map((row) => ({ slot: row.slot, state: initialState(contexts.get(row.slot)!, runnerOf(row)) })),
+    )
+    const bySlot = new Map(rows.map((row) => [row.slot, row.id]))
+    const states = ran.map(({ slot, state }) => ({ id: bySlot.get(slot)!, state }))
     if (await store.start(event.id, majorField(race).segments.length, states, now)) started++
   }
   return started
@@ -119,7 +125,10 @@ export async function stepCategory(store: RaceStore, category: DueCategory): Pro
   const startedAt = category.phaseEndsAt
 
   if (category.phase === 'RUNNING') {
-    const ran = runMajorSegment(contexts, runners)
+    // The segment was run when it started (live tracking); a category started before that change
+    // runs it now.
+    const alreadyRun = runners.every(({ state }) => state.progress.splits.length > category.segment)
+    const ran = alreadyRun ? runners : runMajorSegment(contexts, runners)
     const last = category.segment >= category.segments - 1
     const finish = last ? finalResults(category, rows, contexts, ran) : {}
     return store.commitStep({
@@ -150,7 +159,8 @@ export async function stepCategory(store: RaceStore, category: DueCategory): Pro
     }
     return { slot, state, decision }
   })
-  const after = applyMajorDecisions(contexts, decided)
+  // The next segment is run at once (live tracking): hidden until its running phase ends.
+  const after = runMajorSegment(contexts, applyMajorDecisions(contexts, decided))
   return store.commitStep({
     categoryId: category.id,
     version: category.version,

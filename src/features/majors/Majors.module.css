@@ -774,3 +774,138 @@
     animation: none;
   }
 }
+
+/* Live tracking of a running segment (owner request, 14 November 2026). */
+.tracker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-2);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-md);
+  background: rgb(10 12 14 / 0.72);
+}
+
+.trackerHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.trackerHead span {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.trackerProfile {
+  width: 100%;
+  height: 72px;
+}
+
+.trackerProfile polygon {
+  fill: rgb(240 124 42 / 0.22);
+}
+
+.trackerProfile polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.mark,
+.markPassed {
+  stroke: rgb(255 255 255 / 0.22);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.markPassed {
+  stroke: rgb(255 255 255 / 0.55);
+}
+
+.trackerDots {
+  position: absolute;
+  top: calc(var(--space-2) + 22px);
+  right: var(--space-2);
+  left: var(--space-2);
+  height: 72px;
+  pointer-events: none;
+}
+
+.dotGroup {
+  position: absolute;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #3d4650;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  transform: translate(-50%, -110%);
+  transition:
+    left 0.8s ease,
+    top 0.8s ease;
+}
+
+.dotMe {
+  position: absolute;
+  bottom: -4px;
+  padding: 1px 6px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #111;
+  font-size: 10px;
+  font-weight: 800;
+  transform: translateX(-50%);
+  transition: left 0.8s ease;
+}
+
+.trackerBox {
+  display: grid;
+  gap: 6px;
+}
+
+.trackerTop {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+}
+
+.trackerTop li {
+  display: flex;
+  gap: var(--space-2);
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.trackerTop li[aria-current] {
+  background: rgb(240 124 42 / 0.2);
+}
+
+.trackerMe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 6px var(--space-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.trackerMe b {
+  font-size: var(--font-size-lg);
+}

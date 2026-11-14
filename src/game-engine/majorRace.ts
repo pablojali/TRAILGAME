@@ -30,6 +30,12 @@ export interface MajorRunnerState {
   next: Intensity
   /** NPCs: their planned intensities and stops (worked out at the start). */
   npcPlan?: { intensities: Intensity[] }
+  /**
+   * Live tracking (owner request, 14 November 2026): the segment is run as soon as it starts, and
+   * this keeps where the runner was when it started (race time and in-race fatigue) so the segment
+   * stays hidden until its running phase ends.
+   */
+  segmentStart?: { elapsedS: number; fatigue: number }
 }
 
 export interface MajorDecision {
@@ -94,7 +100,11 @@ export function runMajorSegment(
 ): { slot: number; state: MajorRunnerState }[] {
   const ran = runners.map(({ slot, state }) => ({
     slot,
-    state: { ...state, progress: runSegment(contexts.get(slot)!, state.progress, state.next) },
+    state: {
+      ...state,
+      segmentStart: { elapsedS: state.progress.elapsedS, fatigue: state.progress.fatigue },
+      progress: runSegment(contexts.get(slot)!, state.progress, state.next),
+    },
   }))
   const positions = rankByArrival(ran)
   return ran.map(({ slot, state }) => {
@@ -145,4 +155,83 @@ export function majorStandings(runners: readonly { slot: number; state: MajorRun
   arrivals.sort((a, b) => a.timeS - b.timeS || a.slot - b.slot)
   const leader = arrivals[0]?.timeS ?? 0
   return arrivals.map((row, i) => ({ ...row, position: i + 1, gapS: row.timeS - leader }))
+}
+
+/** Checkpoints along each Major segment for the live tracking (owner request, 14 November 2026). */
+export const LIVE_CHECKPOINTS = 8
+
+/**
+ * Where the checkpoints of a segment are and what share of a runner's segment time it takes to
+ * reach each: `count` points at equal distances, the last at the aid station (or the finish). The
+ * time follows the effort of the profile (a metre of climb costs as much as ten flat), so runners
+ * slow down on the climbs. The same for everyone: who passes first is who left earlier or runs
+ * faster, and at the last checkpoint the order is the official one.
+ */
+export function checkpointShares(pieces: readonly { block: { lengthM: number; gainM: number } }[], count = LIVE_CHECKPOINTS): { distanceShare: number; timeShare: number }[] {
+  const lengths = pieces.map((p) => Math.max(0, p.block.lengthM))
+  const total = lengths.reduce((a, b) => a + b, 0)
+  const efforts = pieces.map((p, i) => lengths[i]! + 10 * Math.max(0, p.block.gainM))
+  const effortTotal = efforts.reduce((a, b) => a + b, 0)
+  if (total <= 0 || effortTotal <= 0) return Array.from({ length: count }, (_, i) => ({ distanceShare: (i + 1) / count, timeShare: (i + 1) / count }))
+  return Array.from({ length: count }, (_, i) => {
+    const target = ((i + 1) / count) * total
+    let covered = 0
+    let effort = 0
+    for (let k = 0; k < pieces.length; k++) {
+      const length = lengths[k]!
+      if (covered + length >= target || k === pieces.length - 1) {
+        const part = length > 0 ? Math.min(1, (target - covered) / length) : 1
+        effort += efforts[k]! * part
+        break
+      }
+      covered += length
+      effort += efforts[k]!
+    }
+    return { distanceShare: (i + 1) / count, timeShare: i === count - 1 ? 1 : Math.min(1, effort / effortTotal) }
+  })
+}
+
+/** A runner in the live tracking of a running segment: when they left and when they arrive. */
+export interface LiveRunner {
+  slot: number
+  departS: number
+  arriveS: number
+}
+
+/**
+ * The live standings at checkpoint step `step` (0 = the start of the segment, `shares.length` =
+ * its end): the race clock goes from the first departure to the last arrival in equal steps, and
+ * each runner is where their own pace puts them then. Ranked by distance covered, then by who got
+ * there first (and at the end, by arrival: the official order).
+ */
+export interface LiveStandingRow {
+  slot: number
+  position: number
+  /** The furthest checkpoint passed (0: still before the first). */
+  checkpoint: number
+  distanceShare: number
+  /** Race time when that checkpoint was passed (null before the first). */
+  passedAtS: number | null
+}
+
+export function liveStandings(
+  runners: readonly LiveRunner[],
+  shares: readonly { distanceShare: number; timeShare: number }[],
+  step: number,
+): LiveStandingRow[] {
+  if (runners.length === 0) return []
+  const first = Math.min(...runners.map((r) => r.departS))
+  const last = Math.max(...runners.map((r) => r.arriveS))
+  const clock = first + ((last - first) * Math.max(0, Math.min(step, shares.length))) / shares.length
+  const points = [{ distanceShare: 0, timeShare: 0 }, ...shares]
+  const placed = runners.map((r) => {
+    const span = Math.max(1, r.arriveS - r.departS)
+    // The furthest checkpoint passed by the clock, and when it was passed.
+    let checkpoint = 0
+    for (let i = 1; i < points.length; i++) if (r.departS + points[i]!.timeShare * span <= clock + 1e-9) checkpoint = i
+    const passedAtS = checkpoint === 0 ? null : Math.round(r.departS + points[checkpoint]!.timeShare * span)
+    return { slot: r.slot, checkpoint, distanceShare: points[checkpoint]!.distanceShare, passedAtS, departS: r.departS }
+  })
+  placed.sort((a, b) => b.checkpoint - a.checkpoint || (a.passedAtS ?? a.departS) - (b.passedAtS ?? b.departS) || a.slot - b.slot)
+  return placed.map((p, i) => ({ slot: p.slot, position: i + 1, checkpoint: p.checkpoint, distanceShare: p.distanceShare, passedAtS: p.passedAtS }))
 }

@@ -128,6 +128,54 @@ export interface MajorStore {
   decide(eventId: string, userId: string, segment: number, stop: AidStop, intensity: Intensity): Promise<void>
   /** The post-race report for admins (phase 5): each category's runners with their result. */
   report(eventId: string): Promise<MajorReport>
+  /** Every runner for admins (owner request, 14 November 2026): the players' careers and the NPCs. */
+  runners(): Promise<RunnerRow[]>
+}
+
+/**
+ * A runner in Trail Studio's Corredores tab: a player's career or a ranking NPC. Admins only;
+ * no account detail (email, user id) leaves the server.
+ */
+export interface RunnerRow {
+  kind: 'PLAYER' | 'NPC'
+  name: string
+  sex: 'male' | 'female' | null
+  country: string | null
+  level: number
+  xp: number
+  /** Players: coins and finished races; NPCs: null. */
+  coins: number | null
+  racesFinished: number | null
+  /** Players: career creation and last save (ISO); NPCs: null. */
+  createdAt: string | null
+  lastActiveAt: string | null
+  /** NPCs: strength (5–95) and races per week; players: null. */
+  strength: number | null
+  racesPerWeek: number | null
+}
+
+const numberOr = (value: unknown, fallback: number) => (typeof value === 'number' && Number.isFinite(value) ? value : fallback)
+
+/** A player's row from their stored career (the game's save snapshot); tolerant of old saves. */
+export function careerRunnerRow(state: unknown, createdAt: string, updatedAt: string): RunnerRow {
+  const game = isRecord(state) ? state : {}
+  const athlete = isRecord(game.athlete) ? game.athlete : {}
+  const xp = Math.max(0, Math.floor(numberOr(athlete.xp, 0)))
+  const entries = Array.isArray(game.raceEntries) ? game.raceEntries : []
+  return {
+    kind: 'PLAYER',
+    name: typeof athlete.name === 'string' && athlete.name.trim() ? athlete.name.trim() : '—',
+    sex: athlete.sex === 'male' || athlete.sex === 'female' ? athlete.sex : null,
+    country: typeof athlete.country === 'string' && /^[A-Z]{2}$/.test(athlete.country) ? athlete.country : null,
+    level: getLevel(xp),
+    xp,
+    coins: Math.floor(numberOr(game.coins, 0)),
+    racesFinished: entries.filter((e) => isRecord(e) && e.status === 'finished').length,
+    createdAt,
+    lastActiveAt: updatedAt,
+    strength: null,
+    racesPerWeek: null,
+  }
 }
 
 /** A runner in the admin's post-race report: who was an NPC is shown here only. */
@@ -197,6 +245,7 @@ export type MajorRequest =
   | { action: 'event-publish'; id: string }
   | { action: 'event-cancel'; id: string; reason: string }
   | { action: 'event-report'; id: string }
+  | { action: 'runners' }
   | { action: 'media-upload'; id: string; kind: 'banner' | 'clip'; segment: number | null }
   | { action: 'media-set'; id: string; kind: 'banner' | 'clip'; segment: number | null; path: string | null }
   | { action: 'majors' }
@@ -288,6 +337,8 @@ export function parseMajorRequest(body: unknown): MajorRequest | null {
       return id ? { action: 'event-publish', id } : null
     case 'event-report':
       return id ? { action: 'event-report', id } : null
+    case 'runners':
+      return { action: 'runners' }
     case 'event-cancel':
       return id && typeof body.reason === 'string' ? { action: 'event-cancel', id, reason: body.reason } : null
     case 'media-upload':
@@ -397,6 +448,8 @@ export async function handleMajorOp(token: string | null, body: unknown, deps: M
       }
       case 'event-report':
         return ok({ report: await deps.store.report(request.id) })
+      case 'runners':
+        return ok({ runners: await deps.store.runners() })
       case 'event-cancel': {
         const reason = request.reason.trim()
         if (reason.length < 1 || reason.length > 300) return refuse(422, 'cancel-reason')

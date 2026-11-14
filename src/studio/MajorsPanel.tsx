@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useState, type ChangeEvent, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { nextSundayStart, validateBands, type MajorBand, type MajorConfig, type MajorStatus } from '../domain/major/major'
 import { RACES } from '../domain/races/races'
@@ -28,6 +28,18 @@ const STATUS: Record<MajorStatus, string> = {
 const raceName = (id: string) => RACES.find((r) => r.id === id)?.name ?? id
 
 export function MajorsPanel() {
+  return (
+    <AdminGate title="Majors">
+      <MajorsAdmin />
+    </AdminGate>
+  )
+}
+
+/**
+ * The Studio's Supabase sign-in and admin check (Majors, Corredores): the children show only to an
+ * administrator. The server checks the rights again on every request.
+ */
+export function AdminGate({ title, children }: { title: string; children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [checked, setChecked] = useState(false)
   const [who, setWho] = useState<{ userId: string; admin: boolean } | null>(null)
@@ -51,13 +63,13 @@ export function MajorsPanel() {
   }, [session])
 
   if (!checked) return <p className="loading">Comprobando la sesión…</p>
-  if (!session) return <SignIn />
+  if (!session) return <SignIn title={title} />
   if (!who) return <p className="loading">{error || 'Comprobando tus permisos…'}</p>
   if (!who.admin) {
     return (
       <section className="connect">
-        <h1>Majors</h1>
-        <p>Tu cuenta no es administradora de los Majors todavía.</p>
+        <h1>{title}</h1>
+        <p>Tu cuenta no es administradora de Trail Studio todavía.</p>
         <p>
           Pásale este identificador a Claude para darle permisos: <code>{who.userId}</code>
         </p>
@@ -67,16 +79,16 @@ export function MajorsPanel() {
       </section>
     )
   }
-  return <MajorsAdmin />
+  return <>{children}</>
 }
 
-function SignIn() {
+function SignIn({ title }: { title: string }) {
   const [email, setEmail] = useState('')
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [error, setError] = useState('')
   return (
     <section className="connect">
-      <h1>Majors</h1>
+      <h1>{title}</h1>
       <p>Entra con el correo de tu cuenta del juego (la que vinculaste en Ajustes). Te llega un enlace que te trae de vuelta aquí.</p>
       <label htmlFor="major-email">Correo</label>
       <input id="major-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />

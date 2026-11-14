@@ -24,6 +24,11 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
   `assets/runner/incoming/{bodies,heads}/`, which the game and the art script never read. The tab
   also shows what waits there and what the game uses today. Then ask Claude to prepare the batch:
   naming, moving to `assets/runner/bodies` or `heads`, catalogs (see `assets/runner/incoming/README.md`).
+- **Corredores** (14 November 2026): every runner in the game, the players' careers and the
+  ranking NPCs, read live from the database through `major-ops` (action `runners`, admins only,
+  same sign-in as Majors). Totals and average level, bars by level band, country and sex (players
+  and NPCs apart), player names used more than once, and a table filtered by type, country and
+  name, sorted by level, name, country or last activity. No email or account id reaches the browser.
 - **Equipamiento:** every item as its shop card. The editor sets type, level, price, pack, shop
   picture, avatar layer, attribute bonuses, time changes in percent, and texts in five languages.
   It previews the card as the shop shows it in Spanish.

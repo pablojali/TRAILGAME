@@ -15,6 +15,7 @@ import {
   getEquipmentItem,
   consumableKinds,
   isConsumable,
+  isLookAccessory,
   type EquipmentItem,
   type EquipmentSlot,
 } from '../../domain/equipment/items'
@@ -51,13 +52,17 @@ const ICON_PATHS: Record<EquipmentSlot, string> = {
   bar: 'M3 9h18v6H3zM7 9v6M11 9v6M15 9v6',
   // Gels and bars together (owner decision, 3 November 2026): a gel beside a bar.
   nutrition: 'M5 3h4l-1 3v10a2 2 0 0 1-4 0V6zM12 11h9v5h-9zM15 11v5M18 11v5',
+  // Watch, glasses and cap (owner request, 15 November 2026).
+  watch: 'M9 2h6l1 4H8zM9 22h6l1-4H8zM6 9a6 6 0 1 0 12 0 6 6 0 1 0-12 0M12 9v3l2 1',
+  glasses: 'M2 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0M14 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0M10 12h4',
+  cap: 'M4 15a8 8 0 0 1 16 0zM12 7V5M4 15h18l-2 3H4z',
 }
 
 /**
  * In the owner's order (1 November 2026): gels and bars (one box since 3 November 2026), shoes,
  * backpack, poles.
  */
-const SLOTS: readonly EquipmentSlot[] = ['nutrition', 'shoes', 'pack', 'poles']
+const SLOTS: readonly EquipmentSlot[] = ['nutrition', 'shoes', 'pack', 'poles', 'watch']
 
 const SLOT_LABELS: Record<EquipmentSlot, MessageKey> = {
   nutrition: 'slot.nutrition',
@@ -66,6 +71,9 @@ const SLOT_LABELS: Record<EquipmentSlot, MessageKey> = {
   poles: 'slot.poles',
   gel: 'slot.gel',
   bar: 'slot.bar',
+  watch: 'slot.watch',
+  glasses: 'slot.glasses',
+  cap: 'slot.cap',
 }
 
 /** The box or shop filter an item is under: gel, bar and gels-and-bars packs are all under Gels & bars. */
@@ -78,7 +86,7 @@ function inSlot(item: EquipmentItem, slot: EquipmentSlot): boolean {
 }
 
 /** Shop order (owner request, 4 November 2026): shoes, backpack, poles, then gels and bars. */
-const SHOP_ORDER: readonly EquipmentSlot[] = ['shoes', 'pack', 'poles', 'nutrition']
+const SHOP_ORDER: readonly EquipmentSlot[] = ['shoes', 'pack', 'poles', 'watch', 'nutrition']
 
 function slotOrder(item: EquipmentItem): number {
   return SHOP_ORDER.indexOf(boxOf(item))
@@ -86,10 +94,10 @@ function slotOrder(item: EquipmentItem): number {
 
 type ShopFilter = EquipmentSlot | 'all'
 
-const SHOP_FILTERS: readonly ShopFilter[] = ['all', 'shoes', 'pack', 'poles', 'nutrition']
+const SHOP_FILTERS: readonly ShopFilter[] = ['all', 'shoes', 'pack', 'poles', 'watch', 'nutrition']
 
-/** Items in the shop order, then in catalog order. */
-const ITEMS_IN_ORDER: readonly EquipmentItem[] = [...EQUIPMENT_ITEMS].sort(
+/** Items in the shop order, then in catalog order. Glasses and caps are sold in Appearance. */
+const ITEMS_IN_ORDER: readonly EquipmentItem[] = EQUIPMENT_ITEMS.filter((item) => !isLookAccessory(item)).sort(
   (a, b) => slotOrder(a) - slotOrder(b),
 )
 
@@ -413,7 +421,7 @@ function ShopTab({
 }
 
 /** A collectible-style card: level, type, name, picture, bonuses, price and a status bar. */
-function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string): void }) {
+export function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string): void }) {
   const { state } = useCareer()
   const owned = state.ownedEquipment.includes(item.id)
   const worn = isEquipped(state, item.id)
@@ -461,7 +469,7 @@ function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId: string
 const isRepeatClick = (event: { detail: number }) => event.detail > 1
 
 /** The large card of an item: picture, name, type, level, bonuses, price and its actions. */
-function ItemDetail({
+export function ItemDetail({
   item,
   backLabel,
   onBack,

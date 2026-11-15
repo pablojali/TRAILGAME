@@ -16,13 +16,14 @@ describe('Equipment', () => {
     expect(screen.getByRole('tab', { name: 'Equipped' })).toHaveAttribute('aria-selected', 'true')
     expect(layers(/with the equipment worn/)).toEqual(['body'])
     const boxes = within(screen.getByRole('list', { name: 'Equipped items' })).getAllByRole('button')
-    // Owner's order: gels and bars (one box), shoes, backpack, poles.
+    // Owner's order: gels and bars (one box), shoes, backpack, poles, watch (15 November 2026).
     expect(boxes.map((b) => b.getAttribute('aria-label'))).toEqual([
       // Gels and cereal bars are counted, not worn.
       'Gels & bars: 2 gels, 0 bars in stock. Show gels and bars cards',
       'Shoes: empty. Show shoes cards',
       'Backpack: empty. Show backpack cards',
       'Poles: Poles · Lvl 2. Show poles cards',
+      'Watch: empty. Show watch cards',
     ])
     // Only the slot name, with the level or the stock in the corner (owner request, 4 November 2026).
     expect(boxes[0]).toHaveTextContent('Gels & bars×2 / ×0')

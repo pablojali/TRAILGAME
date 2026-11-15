@@ -15,7 +15,7 @@ import { ATTRIBUTE_IDS, ATTRIBUTE_LABELS, type AttributeId, type Attributes } fr
  * `nutrition`: one pack with gels and cereal bars together (owner decision, 3 November 2026); `gel`
  * and `bar` packs of one kind still work.
  */
-export type EquipmentSlot = 'shoes' | 'pack' | 'poles' | 'gel' | 'bar' | 'nutrition'
+export type EquipmentSlot = 'shoes' | 'pack' | 'poles' | 'gel' | 'bar' | 'nutrition' | 'watch' | 'glasses' | 'cap'
 
 /** Bonuses applied by the race simulation while the item is equipped. */
 export interface RaceEffect {
@@ -82,7 +82,18 @@ const MULTIPLIER_COLUMNS = {
   wear: 'slowdown',
 } as const satisfies Record<string, keyof Omit<RaceEffect, 'attributes'>>
 
-const SLOTS: readonly EquipmentSlot[] = ['shoes', 'pack', 'poles', 'gel', 'bar', 'nutrition']
+const SLOTS: readonly EquipmentSlot[] = ['shoes', 'pack', 'poles', 'gel', 'bar', 'nutrition', 'watch', 'glasses', 'cap']
+
+/**
+ * Accessories for the look (owner request, 15 November 2026): glasses and caps are bought with coins
+ * and worn from Appearance › Accessories, not from the Equipment screen. They are cosmetic: no race
+ * effect. A cap is drawn with its own face (one file per sex and skin tone), in place of the head.
+ */
+export const LOOK_SLOTS: readonly EquipmentSlot[] = ['glasses', 'cap']
+
+export function isLookAccessory(item: EquipmentItem): boolean {
+  return LOOK_SLOTS.includes(item.slot)
+}
 
 /** "10%" or "1.5%". */
 function percentOf(multiplier: number): string {
@@ -149,6 +160,7 @@ export function parseEquipment(text: string): EquipmentItem[] {
     }
     if (row.thumbnail) item.thumbnail = row.thumbnail
     if (row.avatar_layer) item.avatarLayer = row.avatar_layer
+    if (LOOK_SLOTS.includes(slot) && hasEffect) throw new Error(`${where}: glasses and caps are cosmetic, no race bonuses`)
     if (hasEffect) item.raceEffect = effect
     const effectText = row.effect_text ? `Races: ${row.effect_text}` : hasEffect ? describeRaceEffect(effect) : undefined
     if (effectText) item.effectText = effectText

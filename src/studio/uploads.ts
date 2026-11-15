@@ -50,15 +50,33 @@ export function layerStem(itemId: string, type: string, level: string, current: 
   const named = current.trim().replace(/^accessories\//, '').replace(/\.(webp|png)$/i, '')
   if (named && !named.includes('/')) return named
   const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9-]+/g, '_').replace(/^_+|_+$/g, '')
-  return `lvl${Number(level) > 0 ? Number(level) : 1}_${clean(type) || 'item'}_${clean(itemId) || 'new'}`
+  const lvl = `lvl${Number(level) > 0 ? Number(level) : 1}`
+  const id = clean(itemId) || 'new'
+  // Caps come with their face: one per sex and skin tone (owner, 15 November 2026). Glasses and
+  // watches per sex (the men's file serves both while there is no women's one).
+  if (type === 'cap') return `${lvl}_{sex}_cap_${id}_tone{tone}`
+  if (type === 'glasses' || type === 'watch') return `${lvl}_{sex}_${type}_${id}`
+  return `${lvl}_${clean(type) || 'item'}_${id}`
 }
 
-/** The source files a layer needs: one, or one per sex when its name has `{sex}`. */
-export function layerSources(stem: string): { sex: 'men' | 'women' | null; path: string }[] {
+/** The source files a layer needs: one, or one per sex (`{sex}`) and per skin tone (`{tone}`). */
+export function layerSources(stem: string): { sex: 'men' | 'women' | null; tone: number | null; path: string }[] {
   const at = (name: string) => `assets/runner/accesories/${name}.png`
-  return stem.includes('{sex}')
-    ? (['men', 'women'] as const).map((sex) => ({ sex, path: at(stem.replaceAll('{sex}', sex)) }))
-    : [{ sex: null, path: at(stem) }]
+  const sexes = stem.includes('{sex}') ? (['men', 'women'] as const) : [null]
+  const tones = stem.includes('{tone}') ? [1, 2, 3, 4] : [null]
+  return sexes.flatMap((sex) =>
+    tones.map((tone) => ({
+      sex,
+      tone,
+      path: at(stem.replaceAll('{sex}', sex ?? '').replaceAll('{tone}', tone === null ? '' : String(tone))),
+    })),
+  )
+}
+
+/** The button of one source file: "Subir (hombres, tono 2)". */
+export function layerLabel(sex: 'men' | 'women' | null, tone: number | null): string {
+  const parts = [sex === 'men' ? 'hombres' : sex === 'women' ? 'mujeres' : '', tone ? `tono ${tone}` : ''].filter(Boolean)
+  return parts.length ? `Subir (${parts.join(', ')})` : 'Subir imagen'
 }
 
 export const layerColumn = (stem: string) => `accessories/${stem}.webp`

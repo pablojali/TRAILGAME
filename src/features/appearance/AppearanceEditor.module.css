@@ -48,18 +48,25 @@
 }
 
 .tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   border-bottom: 1px solid var(--border);
 }
 
 .tab {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 6px;
   min-height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   border: 0;
   border-bottom: 3px solid transparent;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
+  /* Four tabs in Appearance (Accessories): a little smaller so they fit a phone's width. */
+  font-size: clamp(13px, 3.6vw, 16px);
   font-weight: 700;
   cursor: pointer;
 }

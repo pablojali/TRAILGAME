@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Avatar } from '../../components/avatar/Avatar'
 import {
   appearanceForSex,
@@ -17,9 +17,9 @@ import { useI18n } from '../../i18n/i18n'
 import { lookName } from '../../i18n/looks'
 import styles from './AppearanceEditor.module.css'
 
-type AppearanceTab = 'skin' | 'hair' | 'outfit'
+type AppearanceTab = 'skin' | 'hair' | 'outfit' | 'accessories'
 
-const APPEARANCE_TABS: readonly { id: AppearanceTab }[] = [{ id: 'skin' }, { id: 'hair' }, { id: 'outfit' }]
+const LOOK_TABS: readonly { id: AppearanceTab }[] = [{ id: 'skin' }, { id: 'hair' }, { id: 'outfit' }]
 
 interface Option {
   value: string
@@ -41,6 +41,11 @@ interface AppearanceEditorProps {
   showLocked?: boolean
   /** Equipped item ids, drawn on the preview. */
   equipment?: readonly string[]
+  /**
+   * Appearance only (not when creating a career): the Accessories tab, glasses and caps bought with
+   * coins (owner request, 15 November 2026).
+   */
+  accessories?: ReactNode
   className?: string
 }
 
@@ -55,8 +60,10 @@ export function AppearanceEditor({
   level,
   showLocked = false,
   equipment,
+  accessories,
   className,
 }: AppearanceEditorProps) {
+  const APPEARANCE_TABS: readonly { id: AppearanceTab }[] = accessories ? [...LOOK_TABS, { id: 'accessories' }] : LOOK_TABS
   const [tab, setTab] = useState<AppearanceTab>('skin')
   const tabRefs = useRef<Partial<Record<AppearanceTab, HTMLButtonElement | null>>>({})
   const baseId = useId()
@@ -75,7 +82,9 @@ export function AppearanceEditor({
 
   const hairs = hairStyles(sex, appearance.skin)
   const options: Option[] =
-    tab === 'hair'
+    tab === 'accessories'
+      ? []
+      : tab === 'hair'
       ? hairs
           .filter((hair) => showLocked || hairUnlockLevel(sex, hair) <= level)
           .map((hair) => {
@@ -139,7 +148,7 @@ export function AppearanceEditor({
             appearance={appearance}
             equipment={equipment}
             label={previewLabel}
-            focus={tab === 'hair' ? 'face' : undefined}
+            focus={tab === 'hair' || tab === 'accessories' ? 'face' : undefined}
           />
         </div>
       </div>
@@ -166,6 +175,9 @@ export function AppearanceEditor({
       </div>
 
       <div role="tabpanel" id={`${baseId}-panel`} aria-labelledby={`${baseId}-tab-${tab}`}>
+        {tab === 'accessories' ? (
+          accessories
+        ) : (
         <fieldset className={styles.swatches}>
           <legend className={styles.srOnly}>{tr(`look.tab.${tab}`)}</legend>
           {options.map((option) => {
@@ -204,6 +216,7 @@ export function AppearanceEditor({
             )
           })}
         </fieldset>
+        )}
         {note && <p className={styles.tabNote}>{note}</p>}
       </div>
     </div>

@@ -59,4 +59,12 @@ describe('Equipment art by sex (owner request, 5 November 2026)', () => {
     expect(avatarFile('accessories/lvl1_{sex}_back_01.webp', 'male')).toContain('lvl1_men_back_01')
     expect(avatarFile('accessories/lvl2_{sex}_back_01.webp', 'female')).toContain('lvl2_men_back_01')
   })
+
+  it('fills {tone} with the skin tone, tone 1 as the fallback (caps with their face)', () => {
+    const back = avatarFile('accessories/lvl1_{sex}_back_01.webp', 'female')
+    expect(back).toBeDefined()
+    // A name with {tone}: the runner's tone, else tone 1, else nothing.
+    expect(avatarFile('accessories/lvl1_{sex}_back_0{tone}.webp', 'male', 3)).toBe(avatarFile('accessories/lvl1_men_back_01.webp', 'male'))
+    expect(avatarFile('accessories/missing_{sex}_tone{tone}.webp', 'female', 2)).toBeUndefined()
+  })
 })

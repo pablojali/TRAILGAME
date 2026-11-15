@@ -125,9 +125,9 @@ function Vest({ id }: { id: string }) {
 }
 
 /** The runner layer of an equipped item, from the equipment table (avatar_layer), if it has art. */
-function layerOf(id: string, sex: Sex): string | undefined {
+function layerOf(id: string, sex: Sex, tone = 1): string | undefined {
   const file = getEquipmentItem(id)?.avatarLayer
-  return file ? avatarFile(file, sex) : undefined
+  return file ? avatarFile(file, sex, tone) : undefined
 }
 
 function EquipmentLayer({ id, href }: { id: string; href: string }) {
@@ -143,13 +143,18 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
   const a11y = label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true }
   const bySlot = (slot: string) => equipment.filter((id) => getEquipmentItem(id)?.slot === slot)
   const shirt = getShirt(sex, appearance.outfit)
+  const tone = Number(appearance.skin.slice('tone-'.length))
+  // A cap is drawn with its own face (owner request, 15 November 2026): it replaces the head.
+  const cap = bySlot('cap').map((id) => ({ id, href: layerOf(id, sex, tone) })).find((layer) => layer.href)
   const layers: { id: string; href: string | undefined }[] = [
     { id: 'body', href: art(`bodies/${bodyId(sex, appearance.skin)}`) },
     // The chosen head is drawn over the body's basic head, in the body's skin tone.
-    { id: 'head', href: headArt(sex, appearance.hair, Number(appearance.skin.slice('tone-'.length))) },
+    cap ?? { id: 'head', href: headArt(sex, appearance.hair, tone) },
+    ...bySlot('glasses').map((id) => ({ id, href: layerOf(id, sex, tone) })),
     // Shoes: the art the equipment table names for each item (avatar_layer).
     ...bySlot('shoes').map((id) => ({ id, href: layerOf(id, sex) })),
     ...(shirt ? [{ id: shirt.id, href: art(`clothing/${shirt.file}`) }] : []),
+    ...bySlot('watch').map((id) => ({ id, href: layerOf(id, sex, tone) })),
   ]
   const zoomed = focus === 'face' && crop === 'full'
   const glowId = `avatar-glow-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`

@@ -614,7 +614,8 @@ var MULTIPLIER_COLUMNS = {
   technical_penalty: "technicalPenalty",
   wear: "slowdown"
 };
-var SLOTS = ["shoes", "pack", "poles", "gel", "bar", "nutrition"];
+var SLOTS = ["shoes", "pack", "poles", "gel", "bar", "nutrition", "watch", "glasses", "cap"];
+var LOOK_SLOTS = ["glasses", "cap"];
 function percentOf(multiplier) {
   return `${Math.round(Math.abs(1 - multiplier) * 1e3) / 10}%`;
 }
@@ -673,6 +674,7 @@ function parseEquipment(text) {
     }
     if (row.thumbnail) item.thumbnail = row.thumbnail;
     if (row.avatar_layer) item.avatarLayer = row.avatar_layer;
+    if (LOOK_SLOTS.includes(slot) && hasEffect) throw new Error(`${where}: glasses and caps are cosmetic, no race bonuses`);
     if (hasEffect) item.raceEffect = effect;
     const effectText = row.effect_text ? `Races: ${row.effect_text}` : hasEffect ? describeRaceEffect(effect) : void 0;
     if (effectText) item.effectText = effectText;

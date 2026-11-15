@@ -24,7 +24,8 @@ describe('AppShell', () => {
     const labels = within(nav)
       .getAllByRole('link')
       .map((link) => link.textContent)
-    expect(labels).toEqual(['Dashboard', 'Training', 'Equipment', 'Races', 'Career'])
+    // Base Camp replaced Equipment (owner design, 15 November 2026).
+    expect(labels).toEqual(['Dashboard', 'Training', 'Base Camp', 'Races', 'Career'])
   })
 
   it('shows the Dashboard at the root route and marks it active', async () => {

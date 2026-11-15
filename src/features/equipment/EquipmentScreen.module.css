@@ -535,3 +535,14 @@
     font-size: var(--font-size-xs);
   }
 }
+
+/* Back inside Base Camp (Equipment is its gear zone, owner design 15 November 2026). */
+.campBack {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}

@@ -215,7 +215,16 @@ export function EquipmentScreen() {
   }
 
   return (
-    <Screen title={t('equipment.title')} description={t('equipment.description')}>
+    <Screen
+      title={t('equipment.title')}
+      description={t('equipment.description')}
+      // Equipment is the gear zone of Base Camp (owner design, 15 November 2026): back inside the cabin.
+      aside={
+        <Link to="/base-camp?view=interior" className={styles.campBack}>
+          {t('basecamp.back')}
+        </Link>
+      }
+    >
       <Tabs
         label={t('equipment.tabs')}
         tabs={[

@@ -1,4 +1,4 @@
-export type IconName = 'dashboard' | 'training' | 'equipment' | 'races' | 'career' | 'settings' | 'cloud' | 'bell'
+export type IconName = 'dashboard' | 'training' | 'equipment' | 'basecamp' | 'races' | 'career' | 'settings' | 'cloud' | 'bell'
 
 const PATHS: Record<IconName, string> = {
   // Gauge
@@ -7,6 +7,8 @@ const PATHS: Record<IconName, string> = {
   training: 'M5 6h14v14H5zM5 10h14M9 3v4M15 3v4M9 14h2M13 14h2M9 17h2',
   // Shoe
   equipment: 'M3 17v-4l4-1 3-5 2 1-1 3 5 2 5 1v3zM3 17h18v2H3z',
+  // Cabin under a mountain (Base Camp)
+  basecamp: 'M3 20h18M5 20v-7l7-6 7 6v7M10 20v-5h4v5M14 6l3-3 4 5',
   // Mountain with flag
   races: 'M2 20l7-11 4 6 3-4 6 9zM16 11V4l4 2-4 2',
   // Trophy

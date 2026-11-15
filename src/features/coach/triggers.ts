@@ -51,7 +51,7 @@ export const COACH_TARGETS: Record<string, string> = {
   'go-training': 'Inicio · botón Entrenar',
   'nav-dashboard': 'Menú · Inicio',
   'nav-training': 'Menú · Entreno',
-  'nav-equipment': 'Menú · Equipo',
+  'nav-basecamp': 'Menú · Base Camp',
   'nav-races': 'Menú · Carreras',
   'nav-career': 'Menú · Trayectoria',
   week: 'Entreno · días de la semana',

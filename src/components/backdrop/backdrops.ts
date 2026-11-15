@@ -56,6 +56,7 @@ export function sceneForPath(pathname: string, raceInProgress = false): Backdrop
       return 'dashboard'
     case 'training':
       return 'training'
+    case 'base-camp':
     case 'equipment':
     case 'appearance':
       return 'equipment'

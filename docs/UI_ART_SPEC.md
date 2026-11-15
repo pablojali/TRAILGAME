@@ -52,3 +52,28 @@ list (so: simple, clear landscapes read best).
 `src/components/backdrop/backdrops.ts` finds the images with `import.meta.glob`; `Backdrop.tsx`
 draws the fallback scenes (sunset and morning mountains, cabin, topographic map, starry summit).
 `src/features/races/RacePhoto.tsx` draws a landscape per category when a race has no photo.
+
+## Base Camp: `assets/ui/basecamp/` (owner design, 15 November 2026)
+
+Base Camp replaces Equipment in the main navigation (`/base-camp`). It is the player's cabin, in
+two panoramic scenes the player swipes sideways (no avatar):
+
+| File | Size | Scene |
+| --- | --- | --- |
+| `exterior.webp` | 1079×625 | The cabin from outside. The door opens the living room. |
+| `interior.webp` | 1080×912 | The living room (a horizontal band of the owner's 1080×2340 picture). The gear bench opens Equipment. |
+
+- Each picture fills the screen's height and is wider than it; it scrolls horizontally
+  (`overflow-x`, `touch-action: pan-x`) and opens centred on its focus (door, gear bench). The
+  page never scrolls vertically.
+- Interactive spots and ambient lights are placed in percentages of the picture
+  (`SCENES`, `LANTERNS`, `MOTES` in `src/features/basecamp/BaseCampScreen.tsx`), so a replacement
+  picture with the same framing keeps them aligned; one with a different framing needs those
+  numbers moved.
+- Ambient animations are CSS only (sun glow, fireflies, lantern flicker, dust) and stop with
+  `prefers-reduced-motion`.
+- The view is kept in the URL (`/base-camp?view=interior`), so Equipment's "← Base Camp" link
+  returns to the living room. Equipment (`/equipment`) and Look (`/appearance`) keep the Base Camp
+  tab highlighted.
+- V1 has one interactive zone (gear). Visits, messaging, sponsors, shop, music and cabin
+  evolution are not part of it.

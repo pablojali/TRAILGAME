@@ -1,3 +1,4 @@
+import { BaseCampScreen } from '../features/basecamp/BaseCampScreen'
 import type { RouteObject } from 'react-router'
 import { AppearanceScreen } from '../features/appearance/AppearanceScreen'
 import { AttributesScreen } from '../features/attributes/AttributesScreen'
@@ -29,6 +30,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <DashboardScreen /> },
       { path: 'training', element: <TrainingScreen /> },
+      { path: 'base-camp', element: <BaseCampScreen /> },
       { path: 'equipment', element: <EquipmentScreen /> },
       { path: 'appearance', element: <AppearanceScreen /> },
       { path: 'races', element: <RacesScreen /> },

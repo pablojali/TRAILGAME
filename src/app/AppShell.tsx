@@ -97,7 +97,9 @@ export function AppShell() {
                   end={item.path === '/'}
                   data-coach={`nav-${item.id}`}
                   className={({ isActive }) =>
-                    isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink
+                    isActive || item.also?.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+                      ? `${styles.navLink} ${styles.navLinkActive}`
+                      : styles.navLink
                   }
                 >
                   <Icon name={item.icon} />

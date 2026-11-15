@@ -202,4 +202,23 @@ describe('Major results in the career (phase 5)', () => {
     expect(applied.state.forcedRestDays).toBeGreaterThan(0)
     expect(applied.state.athlete.fitness).toBeLessThan(tired.athlete.fitness)
   })
+
+  it('starts every runner of every category (slots repeat across categories), and recovers a start that missed some', async () => {
+    const m = memoryStore()
+    // A second category with the same slots 1–50 (as in production).
+    const second = m.rows.map((r) => ({ ...r, id: `c2-${r.id}`, categoryId: 'c2', kind: 'NPC' as const, snapshot: null }))
+    m.rows.push(...second)
+    await advanceMajorRaces(m.store, START)
+    expect(m.rows.filter((r) => !r.state)).toEqual([])
+    expect(m.rows.every((r) => (r.state as MajorRunnerState).progress.splits.length === 1)).toBe(true)
+
+    // A start that left runners without a state (the 15 November 2026 Major): the first step of
+    // the category starts it again for everyone instead of failing.
+    const broken = memoryStore()
+    await advanceMajorRaces(broken.store, START)
+    for (const r of broken.rows.slice(10)) r.state = null
+    await advanceMajorRaces(broken.store, START + 150_000)
+    expect(broken.state()).toMatchObject({ phase: 'PA', segment: 0 })
+    expect(broken.rows.every((r) => r.state && (r.state as MajorRunnerState).progress.splits.length === 1)).toBe(true)
+  })
 })

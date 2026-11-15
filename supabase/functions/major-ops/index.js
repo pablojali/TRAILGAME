@@ -1800,19 +1800,30 @@ async function startEvents(store, now) {
     const rows = await store.grid(event.id);
     const race = getRace(event.raceId);
     if (!race) continue;
-    const contexts = contextsOf(event.raceId, event.id, rows);
-    const ran = runMajorSegment(
-      contexts,
-      rows.map((row) => ({ slot: row.slot, state: initialState(contexts.get(row.slot), runnerOf(row)) }))
-    );
-    const bySlot = new Map(rows.map((row) => [row.slot, row.id]));
-    const states = ran.map(({ slot, state }) => ({ id: bySlot.get(slot), state }));
+    const states = [];
+    for (const categoryId of new Set(rows.map((row) => row.categoryId))) {
+      const grid = rows.filter((row) => row.categoryId === categoryId);
+      states.push(...firstSegment(event.raceId, event.id, grid));
+    }
     if (await store.start(event.id, majorField(race).segments.length, states, now)) started++;
   }
   return started;
 }
+function firstSegment(raceId, eventId, grid) {
+  const contexts = contextsOf(raceId, eventId, grid);
+  const ran = runMajorSegment(
+    contexts,
+    grid.map((row) => ({ slot: row.slot, state: initialState(contexts.get(row.slot), runnerOf(row)) }))
+  );
+  const idOf = new Map(grid.map((row) => [row.slot, row.id]));
+  return ran.map(({ slot, state }) => ({ id: idOf.get(slot), state }));
+}
 async function stepCategory(store, category) {
-  const rows = await store.categoryGrid(category.id);
+  let rows = await store.categoryGrid(category.id);
+  if (category.phase === "RUNNING" && category.segment === 0 && rows.some((row) => !row.state)) {
+    const fresh = new Map(firstSegment(category.raceId, category.eventId, rows).map((s) => [s.id, s.state]));
+    rows = rows.map((row) => ({ ...row, state: fresh.get(row.id) }));
+  }
   const contexts = contextsOf(category.raceId, category.eventId, rows);
   const bySlot = new Map(rows.map((row) => [row.slot, row]));
   const runners = rows.map((row) => {

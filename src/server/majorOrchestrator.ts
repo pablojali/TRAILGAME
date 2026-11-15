@@ -100,22 +100,40 @@ async function startEvents(store: RaceStore, now: number): Promise<number> {
     const rows = await store.grid(event.id)
     const race = getRace(event.raceId)
     if (!race) continue
-    const contexts = contextsOf(event.raceId, event.id, rows)
-    // The first segment is run at once (live tracking): it stays hidden until its phase ends.
-    const ran = runMajorSegment(
-      contexts,
-      rows.map((row) => ({ slot: row.slot, state: initialState(contexts.get(row.slot)!, runnerOf(row)) })),
-    )
-    const bySlot = new Map(rows.map((row) => [row.slot, row.id]))
-    const states = ran.map(({ slot, state }) => ({ id: bySlot.get(slot)!, state }))
+    // Per category: slots (1–50) repeat in every category, so nothing is keyed by slot across them.
+    const states: { id: string; state: MajorRunnerState }[] = []
+    for (const categoryId of new Set(rows.map((row) => row.categoryId))) {
+      const grid = rows.filter((row) => row.categoryId === categoryId)
+      states.push(...firstSegment(event.raceId, event.id, grid))
+    }
     if (await store.start(event.id, majorField(race).segments.length, states, now)) started++
   }
   return started
 }
 
+/**
+ * Every runner of one category at the start, with the first segment already run (live tracking: it
+ * stays hidden until its phase ends).
+ */
+function firstSegment(raceId: string, eventId: string, grid: readonly GridRow[]): { id: string; state: MajorRunnerState }[] {
+  const contexts = contextsOf(raceId, eventId, grid)
+  const ran = runMajorSegment(
+    contexts,
+    grid.map((row) => ({ slot: row.slot, state: initialState(contexts.get(row.slot)!, runnerOf(row)) })),
+  )
+  const idOf = new Map(grid.map((row) => [row.slot, row.id]))
+  return ran.map(({ slot, state }) => ({ id: idOf.get(slot)!, state }))
+}
+
 /** One step of one category, computed and committed (false: another call committed first). */
 export async function stepCategory(store: RaceStore, category: DueCategory): Promise<boolean> {
-  const rows = await store.categoryGrid(category.id)
+  let rows = await store.categoryGrid(category.id)
+  // Recovery (15 November 2026): a start that left runners without a state (slots mixed across
+  // categories) is started again for the whole category while its first segment runs.
+  if (category.phase === 'RUNNING' && category.segment === 0 && rows.some((row) => !row.state)) {
+    const fresh = new Map(firstSegment(category.raceId, category.eventId, rows).map((s) => [s.id, s.state]))
+    rows = rows.map((row) => ({ ...row, state: fresh.get(row.id)! }))
+  }
   const contexts = contextsOf(category.raceId, category.eventId, rows)
   const bySlot = new Map(rows.map((row) => [row.slot, row]))
   const runners = rows.map((row) => {

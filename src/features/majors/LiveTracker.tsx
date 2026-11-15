@@ -65,6 +65,15 @@ export function LiveTracker({ race, raceId, ends, now }: { race: LiveRaceView; r
   for (const row of rows) counts.set(row.checkpoint, (counts.get(row.checkpoint) ?? 0) + 1)
   const marks = [0, ...shares.map((c) => c.distanceShare)]
 
+  // Live gaps to the runners just ahead and just behind the player (owner request, 15 November 2026).
+  const between = (front: (typeof rows)[number], back: (typeof rows)[number]) => {
+    if (front.checkpoint === back.checkpoint && front.passedAtS !== null && back.passedAtS !== null) return durationText(back.passedAtS - front.passedAtS)
+    const points = front.checkpoint - back.checkpoint
+    return points === 1 ? t('major.live.tracker.behindOne') : t('major.live.tracker.behind', { n: points })
+  }
+  const ahead = mine && mine.position > 1 ? rows[mine.position - 2] : undefined
+  const behind = mine ? rows[mine.position] : undefined
+
   const gap = (row: (typeof rows)[number]) => {
     if (row.slot === leader.slot) return t('major.live.tracker.leader')
     if (row.checkpoint === leader.checkpoint && row.passedAtS !== null && leader.passedAtS !== null) return `+${durationText(row.passedAtS - leader.passedAtS)}`
@@ -128,6 +137,18 @@ export function LiveTracker({ race, raceId, ends, now }: { race: LiveRaceView; r
             )}
             <span>{t('major.live.tracker.km', { km: km(mine.distanceShare) })}</span>
           </p>
+        )}
+        {mine && (
+          <dl className={styles.gapCards}>
+            <div>
+              <dt>{ahead ? t('major.live.ahead', { name: bySlot.get(ahead.slot)!.name }) : t('major.live.leading')}</dt>
+              <dd className={styles.gapAhead}>{ahead ? `+${between(ahead, mine)}` : '—'}</dd>
+            </div>
+            <div>
+              <dt>{behind ? t('major.live.behind', { name: bySlot.get(behind.slot)!.name }) : t('major.live.last')}</dt>
+              <dd>{behind ? between(mine, behind) : '—'}</dd>
+            </div>
+          </dl>
         )}
       </div>
     </section>

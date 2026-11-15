@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
+import { majorField } from '../../game-engine/majorRace'
+import { formatFatigue } from '../../components/format'
+import { SegmentProfile } from '../races/RaceRunScreen'
 import button from '../../components/Button.module.css'
 import { Chips, Tabs } from '../../components/Tabs'
 import { useBackdropScene } from '../../components/backdrop/sceneOverride'
@@ -62,6 +66,10 @@ export function LiveRace({ major, mediaUrl }: { major: PlayerMajor; mediaUrl(pat
         <div className={styles.phaseHead}>
           <strong>{phaseText}</strong>
           {ends && category.phase !== 'FINISHED' && <span className={styles.countdown}>{t('major.live.left', { time: durationText(left) })}</span>}
+          {/* Immersive screen: the only way out (the app bars are hidden while racing). */}
+          <Link to="/races" className={styles.exit} aria-label={t('major.live.exit')}>
+            ✕
+          </Link>
         </div>
         {ends && category.phase !== 'FINISHED' && (
           <span className={styles.phaseTrack} aria-hidden="true">
@@ -105,7 +113,9 @@ export function LiveRace({ major, mediaUrl }: { major: PlayerMajor; mediaUrl(pat
                 )}
               </>
             )}
-            {mine && <Gaps race={race} />}
+            {/* While a segment runs, the live tracking has the gaps (at the last checkpoint passed). */}
+            {mine && !(category.phase === 'RUNNING' && race.live.length > 0) && <Gaps race={race} />}
+            {category.phase === 'PA' && <NextSegment race={race} raceId={major.raceId} />}
             {category.phase === 'PA' && <Decision major={major} race={race} open={left > 0} onSent={refresh} />}
             {category.phase === 'FINISHED' && mine && (
               <p className={styles.entry}>
@@ -169,6 +179,55 @@ function Gaps({ race }: { race: LiveRaceView }) {
         <dd>{behind ? durationText(behind.timeS - mine.timeS) : '—'}</dd>
       </div>
     </dl>
+  )
+}
+
+/**
+ * At an aid station (owner request, 15 November 2026): what comes next — the next segment's
+ * profile, distance, ascent and descent — and how the runner arrives: Fatigue and energy.
+ */
+export function NextSegment({ race, raceId }: { race: LiveRaceView; raceId: string }) {
+  const { t } = useI18n()
+  const course = getRace(raceId)
+  const segment = course ? majorField(course).segments[race.category.segment + 1] : undefined
+  if (!segment) return null
+  const me = race.me
+  return (
+    <section className={styles.nextSegment} aria-label={t('major.live.next.title', { n: race.category.segment + 2 })}>
+      <div className={styles.nextHead}>
+        <strong>{t('major.live.next.title', { n: race.category.segment + 2 })}</strong>
+        <span>
+          {t('major.live.next.stats', {
+            km: (segment.distanceM / 1000).toFixed(1),
+            up: Math.round(segment.gainM),
+            down: Math.round(segment.lossM),
+          })}
+        </span>
+      </div>
+      <SegmentProfile segment={segment} />
+      {me && (
+        <dl className={styles.nextMeters}>
+          <div>
+            <dt>{t('major.live.fatigue')}</dt>
+            <dd>
+              <span className={styles.meterTrack} aria-hidden="true">
+                <span className={styles.meterFatigue} style={{ width: `${Math.min(100, Math.max(0, me.fatigue))}%` }} />
+              </span>
+              {formatFatigue(me.fatigue)}
+            </dd>
+          </div>
+          <div>
+            <dt>{t('major.live.energy')}</dt>
+            <dd>
+              <span className={styles.meterTrack} aria-hidden="true">
+                <span className={styles.meterEnergy} style={{ width: `${Math.min(100, Math.max(0, me.energy))}%` }} />
+              </span>
+              {formatFatigue(me.energy)}
+            </dd>
+          </div>
+        </dl>
+      )}
+    </section>
   )
 }
 

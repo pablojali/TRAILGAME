@@ -333,3 +333,9 @@
 .scenic .main :global(:is(h1, h2, [role='tab'], header p)) {
   text-shadow: 0 1px 4px rgb(0 0 0 / 0.75);
 }
+
+/* A live Sunday Major: no bars, the race takes the whole screen (owner request, 15 November 2026). */
+.immersive .main {
+  padding-top: calc(var(--space-3) + env(safe-area-inset-top));
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--space-3));
+}

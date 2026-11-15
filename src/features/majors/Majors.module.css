@@ -909,3 +909,103 @@
 .trackerMe b {
   font-size: var(--font-size-lg);
 }
+
+/* Immersive live race: the way out (owner request, 15 November 2026). */
+.exit {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-left: var(--space-2);
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 50%;
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+/* At an aid station: the next segment and how the runner arrives. */
+.nextSegment {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-2);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-md);
+  background: rgb(10 12 14 / 0.72);
+}
+
+.nextSegment svg {
+  width: 100%;
+  height: 56px;
+}
+
+.nextSegment svg polygon {
+  fill: rgb(240 124 42 / 0.22);
+}
+
+.nextSegment svg polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.nextHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.nextHead span {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.nextMeters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.nextMeters dt {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.nextMeters dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.meterTrack {
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.12);
+}
+
+.meterTrack > span {
+  display: block;
+  height: 100%;
+}
+
+.meterFatigue {
+  background: #f06a5a;
+}
+
+.meterEnergy {
+  background: #5fd37f;
+}

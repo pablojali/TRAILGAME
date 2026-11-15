@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { insertRow, updateRow } from './csvDoc'
+import { insertRow, rows, updateRow } from './csvDoc'
 import { changedFiles, jsonText, needsRankingMigration, openWorkspace, proposalFiles, summary, validate, type FileId, type Workspace } from './model'
 
 vi.unmock('../data/ranking_points.csv?raw')
@@ -35,10 +35,19 @@ describe('Studio workspace', () => {
 
   it('describes race and equipment changes in Spanish and adds no migration for course changes', () => {
     let ws = openWorkspace(base)
-    ws = edit(ws, 'races', (v) => v.id === 'RACE-005', { elevation_gain_m: '800', technicality: '4' })
-    ws = edit(ws, 'equipment', (v) => v.id === 'poles', { climbing: '3', price: '30' })
-    expect(summary(ws).races).toEqual(['**RACE-005 Stone Path Classic**: desnivel (m) 750 → 800; técnica 3 → 4'])
-    expect(summary(ws).equipment[0]).toMatch(/^\*\*Bastones \(poles\)\*\*: .*precio 25 → 30.*Subida/)
+    // The current values come from the tables, which the owner edits in Studio: the test must not pin them.
+    const race = rows(ws.docs.races).find((r) => r.values.id === 'RACE-005')!.values
+    const poles = rows(ws.docs.equipment).find((r) => r.values.id === 'poles')!.values
+    const gain = String(Number(race.elevation_gain_m) + 50)
+    const technicality = String((Number(race.technicality) % 5) + 1)
+    const price = String(Number(poles.price || 0) + 7)
+    const climbing = String(Number(poles.climbing || 0) + 1)
+    ws = edit(ws, 'races', (v) => v.id === 'RACE-005', { elevation_gain_m: gain, technicality })
+    ws = edit(ws, 'equipment', (v) => v.id === 'poles', { climbing, price })
+    expect(summary(ws).races).toEqual([
+      `**RACE-005 ${race.name}**: desnivel (m) ${race.elevation_gain_m} → ${gain}; técnica ${race.technicality} → ${technicality}`,
+    ])
+    expect(summary(ws).equipment[0]).toMatch(new RegExp(`^\\*\\*Bastones \\(poles\\)\\*\\*: .*precio ${poles.price || '—'} → ${price}.*Subida`))
     expect(validate(ws)).toEqual([])
     expect(proposalFiles(ws, new Date(0)).map((f) => f.path)).toEqual(['src/data/races.csv', 'src/data/equipment.csv'])
   })

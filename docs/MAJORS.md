@@ -146,6 +146,16 @@ else its waiting list. Pressing READY again before the start takes everything ag
 - A player could learn a segment's result up to one running phase early. They cannot act on it:
   decisions are only taken at the next aid station.
 
+### Immersive live race (owner request, 15 November 2026)
+
+- While the player is on the grid, the Major takes the whole screen: no brand bar, no bottom
+  navigation (`useImmersive`). A ✕ in the phase card leads back to Races.
+- While a segment runs, the live tracking also shows the gaps to the runners just ahead and just
+  behind, at the last checkpoint passed. They are given in checkpoints when the two are not at
+  the same one.
+- At an aid station, before the decision, a card shows what comes next: the next segment's profile,
+  distance, ascent and descent, and the runner's Fatigue and energy.
+
 ## Phase 5: results, rewards, ranking and history
 
 Migration `20261115090000_major_results.sql`; engine `src/game-engine/majorRewards.ts`.

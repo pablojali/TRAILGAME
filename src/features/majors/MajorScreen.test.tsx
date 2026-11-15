@@ -176,6 +176,14 @@ describe('Sunday Major for the player (phase 2)', () => {
     expect(screen.getByLabelText('Positions gained on this segment: 3')).toHaveTextContent('+3')
     expect(screen.getByText('+0:10')).toBeInTheDocument()
     expect(screen.getByText("If you don't decide: Normal stop · Target pace (your plan).")).toBeInTheDocument()
+    // Immersive: no app bars while racing, one way out (owner request, 15 November 2026).
+    expect(screen.queryByRole('navigation', { name: /main/i })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Leave the race screen' })).toHaveAttribute('href', '/races')
+    // What comes next at the aid station: the next segment and Fatigue / energy.
+    const next = screen.getByRole('region', { name: 'Next: segment 2' })
+    expect(next).toHaveTextContent(/km · \+\d+ m · −\d+ m/)
+    expect(next).toHaveTextContent('Fatigue28')
+    expect(next).toHaveTextContent('Energy72')
     await user.click(screen.getByRole('button', { name: 'Slow' }))
     await user.click(screen.getByRole('button', { name: 'Easy' }))
     await user.click(screen.getByRole('button', { name: 'Confirm decision' }))
@@ -218,5 +226,9 @@ describe('Sunday Major for the player (phase 2)', () => {
     expect(top.map((li) => li.textContent)).toEqual(['1Rival 2.Leader', '2Demo Runner+1:40', '3Bea+3:20', '4Cris+5:00', '5Dani+6:40'])
     expect(top[1]).toHaveAttribute('aria-current', 'true')
     expect(within(tracker).getByText('2º')).toBeInTheDocument()
+    // Live gaps to the runners just ahead and just behind (at the last checkpoint passed).
+    expect(within(tracker).getByText('Ahead · Rival 2.')).toBeInTheDocument()
+    expect(within(tracker).getAllByText('+1:40')).toHaveLength(2)
+    expect(within(tracker).getByText('Behind · Bea')).toBeInTheDocument()
   })
 })

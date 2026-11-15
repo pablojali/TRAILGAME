@@ -21,6 +21,7 @@ import { durationText, raceTimeText } from '../races/raceText'
 import { clockText, levelRange, untilText, whenText } from './majorText'
 import { useSecond } from './useSecond'
 import { LiveRace } from './LiveRace'
+import { useImmersive } from '../../app/immersive'
 import { majorPhase, useMajors } from './useMajors'
 import styles from './Majors.module.css'
 
@@ -41,6 +42,8 @@ export function MajorScreen() {
   const [message, setMessage] = useState('')
   const [planOpen, setPlanOpen] = useState(false)
   const major = majors?.find((m) => m.id === majorId)
+  // On the grid the race takes the whole screen: no app bars (owner request, 15 November 2026).
+  useImmersive(major?.registration?.status === 'RACING')
   // Around the start (the last minute, until the runner is on the grid): ask every 3 seconds.
   const toStart = major ? Date.parse(major.scheduledStartAt) - now : Infinity
   const nearStart = !!major && toStart < 60_000 && major.registration?.status !== 'RACING' && !['FINISHED', 'CANCELLED'].includes(major.status)

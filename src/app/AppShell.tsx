@@ -20,6 +20,7 @@ import { GameNotices } from './game/GameNotices'
 import { LevelUpDialog } from './game/LevelUpDialog'
 import { ChallengeDialog } from './game/ChallengeDialog'
 import { NAV_ITEMS } from './navigation'
+import { useImmersiveMode } from './immersive'
 import { useI18n } from '../i18n/i18n'
 import styles from './AppShell.module.css'
 
@@ -29,6 +30,8 @@ export function AppShell() {
   const { pathname } = useLocation()
   const main = useRef<HTMLElement>(null)
   const sceneOverride = useSceneOverride()
+  // A live Sunday Major takes the whole screen: no bars (owner request, 15 November 2026).
+  const immersive = useImmersiveMode()
   const previousPhase = useRef(phase.kind)
 
   // When the setup flow changes (career started, restart, reset), move focus to the new content.
@@ -52,12 +55,13 @@ export function AppShell() {
   }
 
   return (
-    <div className={`${styles.shell} ${inSetup ? styles.setup : styles.scenic}`}>
+    <div className={`${styles.shell} ${inSetup ? styles.setup : styles.scenic} ${immersive && !inSetup ? styles.immersive : ''}`}>
       {!inSetup && <Backdrop scene={sceneOverride ?? sceneForPath(pathname, phase.kind === 'playing' && phase.state.activeRace !== null)} />}
       <a href="#main-content" className={styles.skipLink}>
         {t('shell.skip')}
       </a>
 
+      {!immersive && (
       <header className={styles.brandBar}>
         <img className={styles.brandMark} src={logoUrl} alt="" width="40" height="40" />
         <span className={styles.brandName}>Trail Manager</span>
@@ -81,8 +85,9 @@ export function AppShell() {
           </NavLink>
         )}
       </header>
+      )}
 
-      {!inSetup && (
+      {!inSetup && !immersive && (
         <nav className={styles.nav} aria-label={t('nav.main')}>
           <ul className={styles.navList}>
             {NAV_ITEMS.map((item) => (

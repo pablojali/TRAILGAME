@@ -56,4 +56,12 @@ describe('Appearance', () => {
     await user.click(screen.getByRole('tab', { name: 'Clothing' }))
     expect(preview()).not.toHaveAttribute('data-focus')
   })
+
+  it('sells glasses and caps in an Accessories tab (not in the Equipment shop)', async () => {
+    const user = userEvent.setup()
+    seedCareer()
+    await renderApp('/appearance')
+    await user.click(screen.getByRole('tab', { name: 'Accessories' }))
+    expect(screen.getByText(/Glasses and caps, bought with coins/)).toBeInTheDocument()
+  })
 })

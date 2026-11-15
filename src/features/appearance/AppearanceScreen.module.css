@@ -17,3 +17,31 @@
   color: #f2a48f;
   font-weight: 600;
 }
+
+/* Appearance › Accessories: glasses and caps (owner request, 15 November 2026). */
+.accessories {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+
+.accessoryIntro {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.accessoryMessage {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.accessoryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

@@ -165,3 +165,13 @@ request, no code publish.
   `avatar_layer` becomes `accessories/{name}.webp`. The art script, which CI runs before every
   build, makes the layer and the shop's cropped picture. A name with `{sex}` asks for two files
   (men, women). Shoes are not uploaded here; Claude maps them.
+- **Reloj, gafas y gorras** (owner request, 15 November 2026): three new equipment types.
+  - **Reloj** (`watch`) is equipment like the others. It has its own slot in Equipo › Equipado and
+    a filter in the shop, and its bonuses are set here (the owner's choice: Regularidad).
+  - **Gafas** (`glasses`) and **Gorra** (`cap`) are accessories for the look. They are sold and worn
+    in Apariencia › Accesorios, never in Equipo, and never when creating a runner. They are
+    cosmetic: a race bonus on them is refused.
+  - A cap is drawn with its face, in place of the head and hairstyle. "Imagen en el corredor" asks
+    for 8 files, men and women in tones 1–4; the layer name has `{sex}` and `{tone}`.
+  - Glasses and watches take one file per sex. The men's file serves both while there is no
+    women's one.

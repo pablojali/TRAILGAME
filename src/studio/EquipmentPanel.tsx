@@ -6,7 +6,7 @@ import { translate } from '../i18n/i18n'
 import { insertRow, rows, serializeDoc, updateRow, type CsvDoc } from './csvDoc'
 import { Field, NumberField, SelectField, TextField } from './fields'
 import { Picker } from './MediaPanels'
-import { itemPicture, layerColumn, layerPicture, layerSources, layerStem, withUploads } from './uploads'
+import { itemPicture, layerColumn, layerLabel, layerPicture, layerSources, layerStem, withUploads } from './uploads'
 import { thumbnailPath } from './media'
 import type { Workspace } from './model'
 
@@ -20,6 +20,9 @@ const TYPES: { value: string; label: string }[] = [
   { value: 'nutrition', label: 'Geles y barritas' },
   { value: 'gel', label: 'Geles' },
   { value: 'bar', label: 'Barritas' },
+  { value: 'watch', label: 'Reloj' },
+  { value: 'glasses', label: 'Gafas (Apariencia)' },
+  { value: 'cap', label: 'Gorra (Apariencia)' },
 ]
 const TYPE_LABEL = Object.fromEntries(TYPES.map((t) => [t.value, t.label]))
 const ATTRIBUTE_LABELS: Record<string, string> = {
@@ -209,7 +212,7 @@ export function EquipmentPanel({
             ) : (
               <Field
                 label="Imagen en el corredor"
-                hint="PNG con fondo transparente sobre el lienzo del corredor (1024 × 1536), en su sitio. Se convierte sola al publicar. Con {sex} en el nombre: una para hombres y otra para mujeres."
+                hint="PNG con fondo transparente sobre el lienzo del corredor (1024 × 1536), en su sitio. Se convierte sola al publicar. {sex} en el nombre: una para hombres y otra para mujeres (la de hombres sirve a las dos si falta). {tone}: una por tono de piel (las gorras, con su cara). Gafas y gorras se venden en Apariencia › Accesorios y no llevan bonus de carrera."
                 wide
               >
                 {() => {
@@ -217,16 +220,16 @@ export function EquipmentPanel({
                   return (
                     <>
                       <div className="inputRow">
-                        {layerSources(stem).map(({ sex, path }) => (
+                        {layerSources(stem).map(({ sex, tone, path }) => (
                           <span key={path} className="layerSource">
                             {ws.uploads[path]?.previewUrl && <img className="layerPreview" src={ws.uploads[path]!.previewUrl} alt="" />}
                             <Picker
                               accept="image/png"
-                              label={sex === 'men' ? 'Subir (hombres)' : sex === 'women' ? 'Subir (mujeres)' : 'Subir imagen'}
+                              label={layerLabel(sex, tone)}
                               onFile={async (file) => {
                                 setLayerError('')
                                 try {
-                                  const upload = await layerPicture(path, file, `Capa en el corredor de ${v.id}${sex ? ` (${sex})` : ''}`)
+                                  const upload = await layerPicture(path, file, `Capa en el corredor de ${v.id}${sex || tone ? ` (${[sex, tone ? `tono ${tone}` : ''].filter(Boolean).join(', ')})` : ''}`)
                                   const next = withUploads(ws, { [path]: upload })
                                   setWs({ ...next, docs: { ...next.docs, equipment: updateRow(next.docs.equipment, (r) => r.values.id === v.id, { avatar_layer: layerColumn(stem) }) } })
                                 } catch (e) {

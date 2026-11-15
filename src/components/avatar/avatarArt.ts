@@ -35,8 +35,21 @@ export function filesForSex(file: string, sex: Sex): string[] {
   return own === men ? [men] : [own, men]
 }
 
-/** The bundled URL of a file in assets/runner/avatar named by the equipment table, e.g. `footwear/trail-shoes.webp`. */
-export function avatarFile(file: string, sex: Sex = 'male'): string | undefined {
+/**
+ * The bundled URL of a file in assets/runner/avatar named by the equipment table, e.g.
+ * `footwear/trail-shoes.webp`. `{tone}` stands for the runner's skin tone number (caps are drawn
+ * with their face, owner request 15 November 2026), tone 1 being the fallback.
+ */
+export function avatarFile(file: string, sex: Sex = 'male', tone = 1): string | undefined {
+  const tones = file.includes('{tone}') ? [...new Set([tone, 1])] : [0]
+  for (const t of tones) {
+    const url = sexFile(file.replaceAll('{tone}', String(t)), sex)
+    if (url) return url
+  }
+  return undefined
+}
+
+function sexFile(file: string, sex: Sex): string | undefined {
   for (const candidate of filesForSex(file, sex)) {
     const url = ART[`/assets/runner/avatar/${candidate}`]
     if (url) return url

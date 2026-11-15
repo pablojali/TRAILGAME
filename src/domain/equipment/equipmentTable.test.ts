@@ -24,6 +24,8 @@ describe('equipment table (src/data/equipment.csv, owner request 3 November 2026
   it('refuses broken rows', () => {
     const row = (fields: string) => `${HEADER}\n${fields}\n`
     expect(() => parseEquipment(row('a,A,hat,,1,,,,,,,,,,,,,,,,'))).toThrow(/unknown type/)
+    // Glasses and caps are cosmetic (owner, 15 November 2026): no race bonus.
+    expect(() => parseEquipment(row('a,A,cap,,1,,,,1,,,,,,,,,,,,'))).toThrow(/cosmetic/)
     expect(() => parseEquipment(row('a,A,gel,,1,,,,,,,,,,,,,,,,'))).toThrow(/pack size/)
     expect(() => parseEquipment(row('a,A,shoes,x,1,,,,,,,,,,,,,,,,'))).toThrow(/not a whole number/)
     expect(() => parseEquipment(row('a,A,shoes,,1,,,,,,,,,,0,,,,,,'))).toThrow(/above 0/)
@@ -35,5 +37,16 @@ describe('equipment table (src/data/equipment.csv, owner request 3 November 2026
     expect(describeRaceEffect({ slowdown: 0.85 })).toBe('Races: 15% less wear over distance.')
     expect(describeRaceEffect({ technicalPenalty: 1.3 })).toBe('Races: Technical descents 30% harder.')
     expect(describeRaceEffect({})).toBeUndefined()
+  })
+
+  it('reads watches (with bonuses) and the glasses and caps of the look (sold in Appearance)', async () => {
+    const { isLookAccessory } = await import('./items')
+    const [watch, glasses, cap] = parseEquipment(
+      `${HEADER}\nw,Watch,watch,5,60,,,accessories/lvl5_{sex}_watch_w.webp,,,,,,1,,,,,,,\ng,Glasses,glasses,2,40,,,,,,,,,,,,,,,,\nc,Cap,cap,3,50,,,accessories/lvl3_{sex}_cap_c_tone{tone}.webp,,,,,,,,,,,,,\n`,
+    )
+    expect(watch).toMatchObject({ slot: 'watch', raceEffect: { attributes: { consistency: 1 } } })
+    expect(isLookAccessory(watch!)).toBe(false)
+    expect([glasses, cap].map((item) => isLookAccessory(item!))).toEqual([true, true])
+    expect(cap!.avatarLayer).toBe('accessories/lvl3_{sex}_cap_c_tone{tone}.webp')
   })
 })

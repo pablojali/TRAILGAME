@@ -5,6 +5,7 @@ import { useCareer } from '../../app/game/gameContext'
 import { Screen } from '../../components/Screen'
 import { getLevel } from '../../domain/athlete/levels'
 import { AppearanceEditor } from './AppearanceEditor'
+import { LookAccessories } from './LookAccessories'
 import styles from './AppearanceScreen.module.css'
 
 /**
@@ -34,6 +35,7 @@ export function AppearanceScreen() {
         equipment={state.equipment}
         level={getLevel(athlete.xp)}
         showLocked
+        accessories={<LookAccessories />}
         className={styles.editor}
         onChange={(appearance) => {
           const error = setAppearance(appearance)

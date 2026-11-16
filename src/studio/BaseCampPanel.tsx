@@ -17,11 +17,12 @@ const EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const
 const campSourceFolder = (scene: CampScene) => `assets/ui/basecamp/source/${scene}`
 const campOutputFolder = (scene: CampScene) => `assets/ui/basecamp/${scene}`
 
+/** The house is part of each background (owner, 16 November 2026): cabins only for old rows. */
 const KINDS = [
-  { value: 'background', label: 'Fondo (toda la escena)' },
-  { value: 'cabin', label: 'Cabaña (sobre el fondo)' },
-  { value: 'decor', label: 'Agregado (asientos, banners, banderas…)' },
+  { value: 'background', label: 'Fondo con la casa (toda la escena)' },
+  { value: 'decor', label: 'Agregado (buzón, banners, banderas…)' },
 ]
+const CABIN_KIND = { value: 'cabin', label: 'Cabaña (sobre el fondo)' }
 const KIND_LABEL: Record<string, string> = { background: 'Fondo', cabin: 'Cabaña', decor: 'Agregado' }
 const CURRENCIES = [
   { value: 'coins', label: 'Créditos (monedas)' },
@@ -41,6 +42,7 @@ const ACTIONS = [
   { value: 'career', label: 'Trayectoria' },
 ]
 const ESSENTIAL: Record<CampScene, string> = { exterior: 'Entrar', interior: 'Equipo' }
+const ESSENTIAL_ACTION: Record<CampScene, string> = { exterior: 'enter', interior: 'gear' }
 const isFree = (values: Record<string, string>) => values.level === '0' && values.price === '0'
 
 function useFolder(token: string, path: string): RepoFile[] | null {
@@ -114,7 +116,20 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
       ...ws,
       docs: {
         ...ws.docs,
-        basecamp: insertRow(doc, { id, scene, kind: 'decor', level: '1', price: '50', currency: 'coins', art: id.replace(/-/g, '_'), name: 'New piece', name_es: 'Pieza nueva' }),
+        basecamp: insertRow(doc, {
+          id,
+          scene,
+          kind: 'background',
+          level: '1',
+          price: '50',
+          currency: 'coins',
+          art: id.replace(/-/g, '_'),
+          action: ESSENTIAL_ACTION[scene],
+          spot_x: '0.5',
+          spot_y: '0.5',
+          name: 'New piece',
+          name_es: 'Pieza nueva',
+        }),
       },
     })
     select(id)
@@ -207,13 +222,27 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
 
           <h3>Pieza</h3>
           <div className="form">
-            <SelectField label="Tipo" value={v.kind!} options={KINDS} onChange={(kind) => setPiece({ kind })} />
             <SelectField
-              label="Acción al tocarla"
-              value={v.action ?? ''}
-              options={ACTIONS}
-              onChange={(action) => setPiece(action ? { action, spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5' } : { action, spot_x: '', spot_y: '' })}
+              label="Tipo"
+              value={v.kind!}
+              options={v.kind === 'cabin' ? [...KINDS, CABIN_KIND] : KINDS}
+              onChange={(kind) =>
+                // A background always has the scene's door (or gear bench): its spot shows at once.
+                setPiece(kind === 'background' ? { kind, action: ESSENTIAL_ACTION[scene]!, spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5' } : { kind })
+              }
             />
+            {v.kind === 'background' ? (
+              <Field label="Acción al tocarla" hint="Todo fondo lleva la puerta de su casa: haz clic en la imagen para colocarla.">
+                {() => <p className="fixedValue">{ESSENTIAL[scene]}</p>}
+              </Field>
+            ) : (
+              <SelectField
+                label="Acción al tocarla"
+                value={v.action ?? ''}
+                options={ACTIONS}
+                onChange={(action) => setPiece(action ? { action, spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5' } : { action, spot_x: '', spot_y: '' })}
+              />
+            )}
             <NumberField label="Nivel del jugador" value={v.level!} min={0} onChange={(x) => setPiece({ level: x })} hint="Desde qué nivel se puede comprar" />
             <NumberField label="Precio" value={v.price!} min={0} onChange={(x) => setPiece({ price: x })} hint="0 con nivel 0: la tienen todos" />
             <SelectField label="Moneda" value={v.currency || 'coins'} options={CURRENCIES} onChange={(x) => setPiece({ currency: x })} />
@@ -249,15 +278,35 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
               />
             ))}
           </div>
-          {!baseIds.has(v.id) && (
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => setWs({ ...ws, docs: { ...ws.docs, basecamp: { ...doc, lines: doc.lines.filter((l) => l.kind !== 'row' || l.row.values.id !== v.id) } } })}
-            >
-              Quitar esta pieza nueva
-            </button>
-          )}
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => {
+              const published = baseIds.has(v.id)
+              if (
+                published &&
+                !window.confirm(
+                  `¿Quitar «${v.name_es || v.name}» del juego? Desaparece también de los jugadores que la usan o la compraron, y su imagen se borra al publicar.`,
+                )
+              )
+                return
+              // Its picture goes too (published sources are deleted with the proposal).
+              const pictures: Parameters<typeof withUploads>[1] = {}
+              for (const ext of EXTENSIONS) {
+                const path = `${campSourceFolder(scene)}/${v.art}.${ext}`
+                if (ws.uploads[path]) pictures[path] = undefined
+              }
+              const shared = sceneRows.some((r) => r.values.id !== v.id && r.values.art === v.art)
+              for (const file of shared ? [] : (sources ?? [])) {
+                if (published && file.name.replace(/\.\w+$/, '') === v.art) pictures[file.path] = { base64: null, label: `Base Camp ${scene}: imagen de ${v.id} (quitada)` }
+              }
+              const next = withUploads(ws, pictures)
+              setWs({ ...next, docs: { ...next.docs, basecamp: { ...doc, lines: doc.lines.filter((l) => l.kind !== 'row' || l.row.values.id !== v.id) } } })
+              select(null)
+            }}
+          >
+            {baseIds.has(v.id) ? 'Quitar esta pieza del juego' : 'Quitar esta pieza nueva'}
+          </button>
         </section>
       )}
     </div>

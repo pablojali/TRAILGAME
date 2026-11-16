@@ -70,7 +70,7 @@ describe('Base Camp pieces', () => {
       ['lvl0-exterior', 'enter', 0.36, 0.52],
       ['mailbox', 'mailbox', 0.7, 0.62],
     ])
-    // The lake has no door: the free background lends its own. The log cabin brings a new one.
+    // Each background has its own door; a cabin drawn over it moves the door.
     let state = rich()
     for (const [id, price] of [['lake-exterior', 200], ['log-cabin', 150]] as const) {
       const bought = buyCampItem(state, id, { price, currency: 'coins' })
@@ -79,9 +79,9 @@ describe('Base Camp pieces', () => {
     }
     const lake = setCampItemUsed(state, 'lake-exterior', true)
     if (!lake.ok) throw new Error(lake.error)
-    expect(campSpots(lake.state, 'exterior').map((s) => [s.item.id, s.action])).toEqual([
-      ['mailbox', 'mailbox'],
-      ['lvl0-exterior', 'enter'],
+    expect(campSpots(lake.state, 'exterior').map((s) => [s.item.id, s.action, s.x])).toEqual([
+      ['lake-exterior', 'enter', 0.5],
+      ['mailbox', 'mailbox', 0.7],
     ])
     const cabin = setCampItemUsed(lake.state, 'log-cabin', true)
     if (!cabin.ok) throw new Error(cabin.error)

@@ -1617,3 +1617,9 @@ button:disabled {
   width: 100%;
   height: auto;
 }
+
+.fixedValue {
+  margin: 0;
+  padding: 8px 0;
+  font-weight: 700;
+}

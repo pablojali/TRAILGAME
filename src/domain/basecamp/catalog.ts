@@ -72,6 +72,11 @@ export function parseCampCatalog(text: string): CampItem[] {
       item.action = row.action as CampAction
     }
     if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`)
+    // The house is part of each background (owner, 16 November 2026): every background has the
+    // scene's door (outside) or gear bench (inside).
+    if (kind === 'background' && item.action !== ESSENTIAL_ACTION[scene]) {
+      throw new Error(`${where}: a ${scene} background needs the ${ESSENTIAL_ACTION[scene]} action and its spot`)
+    }
     if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`)
     const names: Partial<Record<ItemLanguage, string>> = {}
     for (const language of ITEM_LANGUAGES) if (row[`name_${language}`]) names[language] = row[`name_${language}`]!

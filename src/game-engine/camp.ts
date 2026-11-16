@@ -70,9 +70,15 @@ export interface CampSpot {
  */
 export function campSpots(state: GameState, scene: CampScene): CampSpot[] {
   const { background, cabin, decor } = campScene(state, scene)
-  const spots = [background, cabin, ...decor]
-    .filter((item): item is CampItem => !!item?.action && !!item.spot)
-    .map((item) => ({ item, action: item.action!, x: item.spot!.x, y: item.spot!.y }))
+  // One button per action: a piece drawn later (a cabin over its background) moves it.
+  const byAction = new Map<CampAction, CampSpot>()
+  for (const item of [background, cabin, ...decor]) {
+    if (item?.action && item.spot) {
+      byAction.delete(item.action)
+      byAction.set(item.action, { item, action: item.action, x: item.spot.x, y: item.spot.y })
+    }
+  }
+  const spots = [...byAction.values()]
   if (!spots.some((s) => s.action === ESSENTIAL_ACTION[scene])) {
     const lender = campItems(scene).find((item) => isFreeFromStart(item) && item.action === ESSENTIAL_ACTION[scene])!
     spots.push({ item: lender, action: lender.action!, x: lender.spot!.x, y: lender.spot!.y })

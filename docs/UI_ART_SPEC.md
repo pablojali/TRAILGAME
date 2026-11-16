@@ -73,10 +73,14 @@ same canvas (16 November 2026):
 - Actions (owner request, 16 November 2026), any kind of piece: `enter` (go inside), `exit` (go
   outside), `gear` (Equipment), `look` (Appearance), `mailbox` (congratulations and visits; for now
   it says they are coming), `training`, `races`, `career`. Every shown piece with an action gets a
-  button at its spot. The free pieces must give the exterior an `enter` and the interior a `gear`;
-  if the player's pieces lack the door (a background without the house, say), the free piece's
-  door is used. A scene can be split freely: a swappable background, the house (cabin), banners, a
-  mailbox… each its own row and picture on the same canvas, drawn in the table's order.
+  button at its spot. The house is part of each background (owner, 16 November 2026: the house
+  changes with the scene), so every exterior background carries `enter` (its door) and every
+  interior background `gear`. Decor (mailbox, banners, flags…) goes over it, each its own row and
+  picture on the same canvas, drawn in the table's order. The first free background in the table
+  is the one a new player sees.
+- The first exterior picture (`lvl0-exterior`) was replaced by the owner's five scenes (beach,
+  desert, lake, mountain, river) on 16 November 2026; careers that had it chosen show the first
+  free background.
 - Sources live in `assets/ui/basecamp/source/{exterior|interior}/{art}.{png|jpg|webp}`;
   `scripts/prepare_basecamp_art.py` (run by CI, which commits the result on main) writes what the
   game loads, `assets/ui/basecamp/{exterior|interior}/{art}.webp` (transparency kept, at most 1600

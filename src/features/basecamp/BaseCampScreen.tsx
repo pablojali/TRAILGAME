@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import type { CampAction, CampItem, CampScene } from '../../domain/basecamp/catalog'
-import { campScene, campSpots, type CampSpot } from '../../game-engine/camp'
+import { campScene, campSpots, type CampSpot, type PlacedDecor } from '../../game-engine/camp'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 import styles from './BaseCamp.module.css'
 import { artRatio, campArt } from './campArt'
@@ -125,7 +125,7 @@ export function BaseCampScreen() {
         </div>
       </header>
 
-      <Panorama key={`${view}:${scene.background.id}`} scene={view} background={scene.background} layers={[scene.cabin, ...scene.decor]} focus={focus.x}>
+      <Panorama key={`${view}:${scene.background.id}`} scene={view} background={scene.background} layers={[scene.cabin]} objects={scene.placed} focus={focus.x}>
         {view === 'exterior' ? (
           <>
             {sun && <div className={styles.sun} style={at(sun)} aria-hidden="true" />}
@@ -209,12 +209,15 @@ function Panorama({
   scene,
   background,
   layers,
+  objects,
   focus,
   children,
 }: {
   scene: CampScene
   background: CampItem
   layers: (CampItem | null)[]
+  /** Decor standing in the background's slots: drawn with its base on the slot's point. */
+  objects: PlacedDecor[]
   focus: number
   children: ReactNode
 }) {
@@ -259,6 +262,19 @@ function Panorama({
         {layers.map((item) => {
           const src = item && campArt(item)
           return src ? <img key={item.id} className={styles.layer} src={src} alt="" draggable={false} /> : null
+        })}
+        {objects.map(({ item, at }) => {
+          const src = campArt(item)
+          return src ? (
+            <img
+              key={item.id}
+              className={styles.object}
+              src={src}
+              alt=""
+              draggable={false}
+              style={{ left: `${at.x * 100}%`, top: `${at.y * 100}%`, height: `${(item.size ?? 0.2) * at.scale * 100}%` }}
+            />
+          ) : null
         })}
         {children}
       </div>

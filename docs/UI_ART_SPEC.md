@@ -112,3 +112,11 @@ same canvas (16 November 2026):
   backgrounds with a picture (and an admin's exclusive ones), shown behind the coach; the welcome
   then happens in the chosen refuge and ends in Base Camp. Skip leaves the default refuge and opens
   the Dashboard.
+- Slots (owner request, 16 November 2026): each background has up to 4 places for objects
+  (`slots`: `x:y:scale|…`, the point an object stands on and its size there), numbered 1 to 4 in
+  every background of the scene. Decor is a cut-out object (PNG, transparent, any size up to 2400
+  px per side) with a `size` (its height as a share of the picture's height at scale 1); the player
+  chooses which slot it stands in (Base Camp › Personalizar), and an object with an action carries
+  its button on itself. Free objects fill the empty slots in table order until the player takes
+  them out. The placement is kept by slot number (`camp.slots`, "scene:n"), so changing background
+  keeps each object in the same numbered place; a background with fewer slots hides the rest.

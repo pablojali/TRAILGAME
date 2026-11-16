@@ -26,6 +26,18 @@ export const CAMP_SCENES: readonly CampScene[] = ['exterior', 'interior']
 export const CAMP_KINDS: readonly CampKind[] = ['background', 'cabin', 'decor']
 export const CURRENCIES: readonly Currency[] = ['coins', 'premium']
 
+/** A place for decor on a background (owner request, 16 November 2026): where an object stands. */
+export interface CampSlot {
+  /** Shares of the picture: the point the object stands on (its bottom centre). */
+  x: number
+  y: number
+  /** The object's size there (1 = normal; smaller far away, bigger close). */
+  scale: number
+}
+
+/** Most decor places a background can have. */
+export const MAX_SLOTS = 4
+
 export interface CampItem {
   id: string
   scene: CampScene
@@ -39,6 +51,10 @@ export interface CampItem {
   /** What tapping the piece does, and where its button sits (shares of the picture). */
   action?: CampAction
   spot?: { x: number; y: number }
+  /** Backgrounds: the places where the player can put decor, numbered 1 to 4 in order. */
+  slots?: CampSlot[]
+  /** Decor: the object's height as a share of the picture's height at scale 1. */
+  size?: number
   /** English name. */
   label: string
   names?: Partial<Record<ItemLanguage, string>>
@@ -78,13 +94,33 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
       if (!CAMP_ACTIONS.includes(row.action as CampAction)) throw new Error(`${where}: unknown action "${row.action}" (${CAMP_ACTIONS.join(', ')})`)
       item.action = row.action as CampAction
     }
-    if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`)
+    // Decor is a cut-out object the player places in a slot: its button sits on the object itself.
+    if (kind === 'decor') {
+      if (item.spot) throw new Error(`${where}: decor has no spot_x and spot_y (its button sits on the object)`)
+      item.size = row.size ? csvNumber(row.size, where) : 0.2
+      if (!(item.size >= 0.02 && item.size <= 0.9)) throw new Error(`${where}: size goes from 0.02 to 0.9 (share of the picture's height)`)
+    } else {
+      if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`)
+      if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`)
+      if (row.size) throw new Error(`${where}: only decor has a size`)
+    }
     // The house is part of each background (owner, 16 November 2026): every background has the
     // scene's door (outside) or gear bench (inside).
     if (kind === 'background' && item.action !== ESSENTIAL_ACTION[scene]) {
       throw new Error(`${where}: a ${scene} background needs the ${ESSENTIAL_ACTION[scene]} action and its spot`)
     }
-    if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`)
+    if (row.slots) {
+      if (kind !== 'background') throw new Error(`${where}: only backgrounds have slots`)
+      const slots = row.slots.split('|').map((part) => {
+        const [x, y, scale] = part.split(':').map(Number)
+        if (![x, y].every((n) => Number.isFinite(n) && n! >= 0 && n! <= 1) || !(Number.isFinite(scale) && scale! >= 0.2 && scale! <= 3)) {
+          throw new Error(`${where}: each slot is x:y:scale (x and y from 0 to 1, scale from 0.2 to 3)`)
+        }
+        return { x: x!, y: y!, scale: scale! }
+      })
+      if (slots.length > MAX_SLOTS) throw new Error(`${where}: at most ${MAX_SLOTS} slots`)
+      item.slots = slots
+    }
     const names: Partial<Record<ItemLanguage, string>> = {}
     for (const language of ITEM_LANGUAGES) if (row[`name_${language}`]) names[language] = row[`name_${language}`]!
     if (Object.keys(names).length) item.names = names

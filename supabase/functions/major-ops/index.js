@@ -2305,10 +2305,10 @@ function applyFitnessDecay(state, now) {
 }
 
 // raw:src/data/basecamp.csv
-var basecamp_default = "# Base Camp (owner design, 16 November 2026). One row per piece of the player's cabin. Keep each id once and never rename it (saves use it).\n# scene: exterior or interior. kind: background (the whole scene behind), cabin (drawn over the background) or decor (seats, banners, flags\u2026, drawn over both).\n# level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.\n# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; every piece of a scene on the same canvas, 3200 x 1600).\n# action: what tapping the piece does (empty: nothing): enter (go inside), exit (go outside), gear (Equipment), look (Appearance), mailbox (congratulations and visits), training, races, career.\n# spot_x, spot_y (0-1 of the picture): where the action's button sits on the piece. Needed with an action, empty without one.\n# Free pieces (level 0, price 0) are shown from the start; the free ones of each scene must give the exterior an enter and the interior a gear action.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de\nlvl0-interior,interior,background,0,0,coins,lvl0_interior,gear,0.73,0.62,Cabin living room,Sal\xF3n de la caba\xF1a,Salon du chalet,Soggiorno della baita,Wohnraum der H\xFCtte\nexterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,Beach Camp,Refugio de Playa,,,\nexterior-2,exterior,background,0,0,coins,exterior_2,enter,0.36,0.56,Desert Camp,Refugio Desierto,,,\nexterior-3,exterior,background,0,0,coins,exterior_3,enter,0.36,0.56,Lake Camp,Refugio Lago,,,\nexterior-4,exterior,background,0,0,coins,exterior_4,enter,0.36,0.56,Mountain Camp,Refugio Monta\xF1a,,,\nexterior-5,exterior,background,1,0,coins,exterior_5,enter,0.36,0.56,River Camp,Refugio Rio,,,\n";
+var basecamp_default = "# Base Camp (owner design, 16 November 2026). One row per piece of the player's cabin. Keep each id once and never rename it (saves use it).\n# scene: exterior or interior. kind: background (the whole scene behind), cabin (drawn over the background) or decor (seats, banners, flags\u2026, drawn over both).\n# level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.\n# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; every piece of a scene on the same canvas, 3200 x 1600).\n# action: what tapping the piece does (empty: nothing): enter (go inside), exit (go outside), gear (Equipment), look (Appearance), mailbox (congratulations and visits), training, races, career.\n# spot_x, spot_y (0-1 of the picture): where the action's button sits (backgrounds and cabins). Decor carries its button on itself.\n# slots (backgrounds): up to 4 places for decor, x:y:scale separated by | (x, y: 0-1 of the picture, where the object stands; scale: its size there, 1 = normal).\n# size (decor): the object's height as a share of the picture's height at scale 1 (e.g. 0.2). Decor is a cut-out PNG the player places in a slot.\n# Free pieces (level 0, price 0) are shown from the start; the free ones of each scene must give the exterior an enter and the interior a gear action.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,name,name_es,name_fr,name_it,name_de\nlvl0-interior,interior,background,0,0,coins,lvl0_interior,gear,0.73,0.62,,,Cabin living room,Sal\xF3n de la caba\xF1a,Salon du chalet,Soggiorno della baita,Wohnraum der H\xFCtte\nexterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,,,Beach Camp,Refugio de Playa,,,\nexterior-2,exterior,background,0,0,coins,exterior_2,enter,0.36,0.56,,,Desert Camp,Refugio Desierto,,,\nexterior-3,exterior,background,0,0,coins,exterior_3,enter,0.36,0.56,,,Lake Camp,Refugio Lago,,,\nexterior-4,exterior,background,0,0,coins,exterior_4,enter,0.36,0.56,,,Mountain Camp,Refugio Monta\xF1a,,,\nexterior-5,exterior,background,1,0,coins,exterior_5,enter,0.36,0.56,,,River Camp,Refugio Rio,,,\n";
 
 // raw:src/data/basecamp_exclusive.csv
-var basecamp_exclusive_default = "# Base Camp pieces never for sale (owner request, 16 November 2026): the admin's own refuge. Same columns as basecamp.csv.\n# Not edited in Trail Studio. The server gives these pieces to the admins (major_admins) when their career is created or saved; nobody else can buy or use them.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de\n";
+var basecamp_exclusive_default = "# Base Camp pieces never for sale (owner request, 16 November 2026): the admin's own refuge. Same columns as basecamp.csv.\n# Not edited in Trail Studio. The server gives these pieces to the admins (major_admins) when their career is created or saved; nobody else can buy or use them.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,name,name_es,name_fr,name_it,name_de\n";
 
 // src/domain/basecamp/catalog.ts
 var CAMP_ACTIONS = ["enter", "exit", "gear", "look", "mailbox", "training", "races", "career"];
@@ -2316,6 +2316,7 @@ var ESSENTIAL_ACTION = { exterior: "enter", interior: "gear" };
 var CAMP_SCENES = ["exterior", "interior"];
 var CAMP_KINDS = ["background", "cabin", "decor"];
 var CURRENCIES = ["coins", "premium"];
+var MAX_SLOTS = 4;
 var ID = /^[a-z0-9][a-z0-9-]*$/;
 var ART = /^[a-z0-9][a-z0-9_-]*$/;
 function parseCampCatalog(text, options = {}) {
@@ -2344,11 +2345,30 @@ function parseCampCatalog(text, options = {}) {
       if (!CAMP_ACTIONS.includes(row.action)) throw new Error(`${where}: unknown action "${row.action}" (${CAMP_ACTIONS.join(", ")})`);
       item.action = row.action;
     }
-    if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`);
+    if (kind === "decor") {
+      if (item.spot) throw new Error(`${where}: decor has no spot_x and spot_y (its button sits on the object)`);
+      item.size = row.size ? csvNumber(row.size, where) : 0.2;
+      if (!(item.size >= 0.02 && item.size <= 0.9)) throw new Error(`${where}: size goes from 0.02 to 0.9 (share of the picture's height)`);
+    } else {
+      if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`);
+      if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`);
+      if (row.size) throw new Error(`${where}: only decor has a size`);
+    }
     if (kind === "background" && item.action !== ESSENTIAL_ACTION[scene]) {
       throw new Error(`${where}: a ${scene} background needs the ${ESSENTIAL_ACTION[scene]} action and its spot`);
     }
-    if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`);
+    if (row.slots) {
+      if (kind !== "background") throw new Error(`${where}: only backgrounds have slots`);
+      const slots = row.slots.split("|").map((part) => {
+        const [x, y, scale] = part.split(":").map(Number);
+        if (![x, y].every((n) => Number.isFinite(n) && n >= 0 && n <= 1) || !(Number.isFinite(scale) && scale >= 0.2 && scale <= 3)) {
+          throw new Error(`${where}: each slot is x:y:scale (x and y from 0 to 1, scale from 0.2 to 3)`);
+        }
+        return { x, y, scale };
+      });
+      if (slots.length > MAX_SLOTS) throw new Error(`${where}: at most ${MAX_SLOTS} slots`);
+      item.slots = slots;
+    }
     const names = {};
     for (const language of ITEM_LANGUAGES) if (row[`name_${language}`]) names[language] = row[`name_${language}`];
     if (Object.keys(names).length) item.names = names;
@@ -2414,8 +2434,21 @@ function parseCampState(value) {
     if (item.kind !== "decor" && using.some((u) => getCampItem(u).scene === item.scene && getCampItem(u).kind === item.kind)) continue;
     using.push(id);
   }
+  const slots = {};
+  if (raw.slots !== void 0 && typeof raw.slots === "object" && raw.slots !== null) {
+    for (const [key, id] of Object.entries(raw.slots)) {
+      const match = /^(exterior|interior):([1-4])$/.exec(key);
+      const item = typeof id === "string" ? getCampItem(id) : void 0;
+      if (!match || !item || item.kind !== "decor" || item.scene !== match[1] || Object.values(slots).includes(item.id)) continue;
+      if (!owned.includes(item.id) && !isFreeFromStart(item)) continue;
+      slots[key] = item.id;
+    }
+  }
   const off = Array.isArray(raw.off) ? [...new Set(raw.off.filter((id) => typeof id === "string" && !!getCampItem(id) && isFreeFromStart(getCampItem(id)) && getCampItem(id).kind !== "background"))] : [];
-  return off.length ? { owned, using, off } : { owned, using };
+  const parsed = { owned, using };
+  if (off.length) parsed.off = off;
+  if (Object.keys(slots).length) parsed.slots = slots;
+  return parsed;
 }
 
 // src/repositories/gameRepository.ts

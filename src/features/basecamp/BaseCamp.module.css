@@ -595,3 +595,53 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* Decor objects (16 November 2026): cut-out pictures standing on a slot's point. */
+.object {
+  position: absolute;
+  z-index: 1;
+  width: auto;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 6px 6px rgb(0 0 0 / 0.35));
+}
+
+/* An object's places: one chip per slot of the refuge. */
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.slotChip,
+.slotRemove {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.slotChip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #15100b;
+}
+
+.slotChip:focus-visible,
+.slotRemove:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* An object's card shows it whole (it is a cut-out, not a scene). */
+.piece img.objectThumb {
+  object-fit: contain;
+  padding: 6px;
+}

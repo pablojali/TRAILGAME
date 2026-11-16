@@ -1623,3 +1623,23 @@ button:disabled {
   padding: 8px 0;
   font-weight: 700;
 }
+
+/* Slots and objects in the Base Camp preview (16 November 2026). */
+.campPreview .campObject {
+  inset: auto;
+  width: auto;
+  transform: translate(-50%, -100%);
+}
+
+.campSpot {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-shadow: 0 1px 2px #000;
+}
+
+.campSpot.on {
+  background: rgb(240 124 42 / 0.45);
+}

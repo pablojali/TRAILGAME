@@ -1,5 +1,5 @@
 import { getLevel } from '../domain/athlete/levels'
-import { campItems, defaultBackground, ESSENTIAL_ACTION, EXCLUSIVE_IDS, getCampItem, isFreeFromStart, type CampAction, type CampItem, type CampScene, type Currency } from '../domain/basecamp/catalog'
+import { campItems, defaultBackground, ESSENTIAL_ACTION, EXCLUSIVE_IDS, getCampItem, isFreeFromStart, MAX_SLOTS, type CampAction, type CampItem, type CampScene, type CampSlot, type Currency } from '../domain/basecamp/catalog'
 import { COINS_PER_PREMIUM, MAX_EXCHANGE } from '../domain/economy/premium'
 import type { CampState, GameState } from './gameState'
 
@@ -19,7 +19,8 @@ export type CampBuyError =
   /** An exclusive piece (the admin's refuge): never sold. */
   | 'not-for-sale'
 
-export type CampUseError = 'unknown-item' | 'not-owned'
+/** `no-slot`: the background has no free place for the object; `bad-slot`: not one of its places. */
+export type CampUseError = 'unknown-item' | 'not-owned' | 'no-slot' | 'bad-slot'
 
 export type ExchangeError = 'bad-amount' | 'rate-changed' | 'insufficient-coins'
 
@@ -37,25 +38,63 @@ export function ownsCampItem(state: GameState, item: CampItem): boolean {
   return isFreeFromStart(item) || campOf(state).owned.includes(item.id)
 }
 
+/** Decor standing in a slot of the background shown. */
+export interface PlacedDecor {
+  item: CampItem
+  /** 1 to 4. */
+  slot: number
+  at: CampSlot
+}
+
+const slotKey = (scene: CampScene, slot: number) => `${scene}:${slot}`
+
+/**
+ * Where each decor object stands in the scene: the slots the player chose, then the free decor
+ * (not taken out) in the empty slots, in the table's order. Only the background's slots show.
+ */
+export function campPlacements(state: GameState, scene: CampScene, background: CampItem): PlacedDecor[] {
+  const camp = campOf(state)
+  const slots = background.slots ?? []
+  const taken = new Map<number, CampItem>()
+  const placed = new Set<string>()
+  for (let n = 1; n <= MAX_SLOTS; n++) {
+    const item = getCampItem(camp.slots?.[slotKey(scene, n)] ?? '')
+    if (item && item.scene === scene && item.kind === 'decor' && ownsCampItem(state, item)) {
+      placed.add(item.id)
+      if (n <= slots.length) taken.set(n, item)
+    }
+  }
+  const off = new Set(camp.off ?? [])
+  for (const item of campItems(scene, 'decor')) {
+    if (!isFreeFromStart(item) || off.has(item.id) || placed.has(item.id)) continue
+    const empty = slots.findIndex((_, i) => !taken.has(i + 1))
+    if (empty === -1) break
+    taken.set(empty + 1, item)
+  }
+  return [...taken.entries()].sort(([a], [b]) => a - b).map(([slot, item]) => ({ item, slot, at: slots[slot - 1]! }))
+}
+
 /**
  * What the scene shows: the background and cabin in use (else the free ones), and the decor in
- * use plus the free decor not taken out.
+ * its slots.
  */
-export function campScene(state: GameState, scene: CampScene): { background: CampItem; cabin: CampItem | null; decor: CampItem[] } {
+export function campScene(state: GameState, scene: CampScene): { background: CampItem; cabin: CampItem | null; decor: CampItem[]; placed: PlacedDecor[] } {
   const camp = campOf(state)
   const using = new Set(camp.using)
   const off = new Set(camp.off ?? [])
   const items = campItems(scene)
-  const shown = (item: CampItem) => (using.has(item.id) && ownsCampItem(state, item)) || (isFreeFromStart(item) && !off.has(item.id))
   const pick = (kind: 'background' | 'cabin') => {
     const all = items.filter((item) => item.kind === kind)
     return all.find((item) => using.has(item.id) && ownsCampItem(state, item)) ?? all.find((item) => isFreeFromStart(item) && !off.has(item.id)) ?? null
   }
-  return {
-    background: pick('background') ?? defaultBackground(scene),
-    cabin: pick('cabin'),
-    decor: items.filter((item) => item.kind === 'decor' && shown(item)),
-  }
+  const background = pick('background') ?? defaultBackground(scene)
+  const placed = campPlacements(state, scene, background)
+  return { background, cabin: pick('cabin'), decor: placed.map((p) => p.item), placed }
+}
+
+/** The slot an object stands in, in the background shown (null: not placed). */
+export function campSlotOf(state: GameState, item: CampItem): number | null {
+  return campScene(state, item.scene).placed.find((p) => p.item.id === item.id)?.slot ?? null
 }
 
 export interface CampSpot {
@@ -71,14 +110,19 @@ export interface CampSpot {
  * has it lends its spot.
  */
 export function campSpots(state: GameState, scene: CampScene): CampSpot[] {
-  const { background, cabin, decor } = campScene(state, scene)
+  const { background, cabin, placed } = campScene(state, scene)
   // One button per action: a piece drawn later (a cabin over its background) moves it.
   const byAction = new Map<CampAction, CampSpot>()
-  for (const item of [background, cabin, ...decor]) {
-    if (item?.action && item.spot) {
-      byAction.delete(item.action)
-      byAction.set(item.action, { item, action: item.action, x: item.spot.x, y: item.spot.y })
-    }
+  const add = (spot: CampSpot) => {
+    byAction.delete(spot.action)
+    byAction.set(spot.action, spot)
+  }
+  for (const item of [background, cabin]) {
+    if (item?.action && item.spot) add({ item, action: item.action, x: item.spot.x, y: item.spot.y })
+  }
+  // An object's button sits on the object, halfway up.
+  for (const { item, at } of placed) {
+    if (item.action) add({ item, action: item.action, x: at.x, y: at.y - ((item.size ?? 0.2) * at.scale) / 2 })
   }
   const spots = [...byAction.values()]
   if (!spots.some((s) => s.action === ESSENTIAL_ACTION[scene])) {
@@ -105,7 +149,7 @@ export function buyCampItem(
   if (getLevel(state.athlete.xp) < item.level) return { ok: false, error: 'level-locked' }
   if (item.price !== confirmed.price || item.currency !== confirmed.currency) return { ok: false, error: 'price-changed' }
   const camp = campOf(state)
-  const next: GameState = { ...state, camp: { owned: [...camp.owned, item.id], using: [...camp.using] } }
+  const next: GameState = { ...state, camp: { ...camp, owned: [...camp.owned, item.id], using: [...camp.using] } }
   if (item.currency === 'coins') {
     if (item.price > state.coins) return { ok: false, error: 'insufficient-coins' }
     next.coins = state.coins - item.price
@@ -118,28 +162,52 @@ export function buyCampItem(
 
 /**
  * Puts an owned piece in its scene or takes it out. A background or cabin replaces the one in use
- * in the same scene. A free piece taken out stays out until put back; the background cannot be
- * taken out (another one replaces it).
+ * in the same scene; the background cannot be taken out (another one replaces it). Decor goes to
+ * a slot of the background shown: `slot` (1 to 4), else the first empty one; the object already
+ * there makes room. A free piece taken out stays out until put back.
  */
-export function setCampItemUsed(state: GameState, itemId: string, used: boolean): { ok: true; state: GameState } | { ok: false; error: CampUseError } {
+export function setCampItemUsed(
+  state: GameState,
+  itemId: string,
+  used: boolean,
+  slot?: number,
+): { ok: true; state: GameState } | { ok: false; error: CampUseError } {
   const item = getCampItem(itemId)
   if (!item) return { ok: false, error: 'unknown-item' }
   if (!ownsCampItem(state, item)) return { ok: false, error: 'not-owned' }
   const camp = campOf(state)
+  let off = (camp.off ?? []).filter((id) => id !== item.id)
+  if (!used && isFreeFromStart(item) && item.kind !== 'background') off = [...off, item.id]
+  const finish = (next: CampState) => {
+    const result: CampState = { owned: [...next.owned], using: [...next.using] }
+    if (off.length) result.off = off
+    if (next.slots && Object.keys(next.slots).length) result.slots = { ...next.slots }
+    return { ok: true as const, state: { ...state, camp: result } }
+  }
+
+  if (item.kind === 'decor') {
+    const slots = Object.fromEntries(Object.entries(camp.slots ?? {}).filter(([, id]) => id !== item.id))
+    if (!used) return finish({ ...camp, slots })
+    const shown = campScene(state, item.scene)
+    const count = shown.background.slots?.length ?? 0
+    let target = slot
+    if (target === undefined) {
+      const busy = new Set(shown.placed.filter((p) => p.item.id !== item.id).map((p) => p.slot))
+      target = Array.from({ length: count }, (_, i) => i + 1).find((n) => !busy.has(n))
+      if (target === undefined) return { ok: false, error: 'no-slot' }
+    }
+    if (!Number.isInteger(target) || target < 1 || target > count) return { ok: false, error: 'bad-slot' }
+    slots[slotKey(item.scene, target)] = item.id
+    return finish({ ...camp, slots })
+  }
+
   const replaces = (id: string) => {
     const other = getCampItem(id)
-    return item.kind !== 'decor' && !!other && other.scene === item.scene && other.kind === item.kind
+    return !!other && other.scene === item.scene && other.kind === item.kind
   }
   const using = camp.using.filter((id) => id !== item.id && !(used && replaces(id)))
-  let off = (camp.off ?? []).filter((id) => id !== item.id)
-  if (used) {
-    using.push(item.id)
-  } else if (isFreeFromStart(item) && item.kind !== 'background') {
-    off = [...off, item.id]
-  }
-  const next: CampState = { owned: [...camp.owned], using }
-  if (off.length) next.off = off
-  return { ok: true, state: { ...state, camp: next } }
+  if (used) using.push(item.id)
+  return finish({ ...camp, using })
 }
 
 /**
@@ -177,10 +245,23 @@ export function parseCampState(value: unknown): CampState | null {
     if (item.kind !== 'decor' && using.some((u) => getCampItem(u)!.scene === item.scene && getCampItem(u)!.kind === item.kind)) continue
     using.push(id)
   }
+  const slots: Record<string, string> = {}
+  if (raw.slots !== undefined && typeof raw.slots === 'object' && raw.slots !== null) {
+    for (const [key, id] of Object.entries(raw.slots as Record<string, unknown>)) {
+      const match = /^(exterior|interior):([1-4])$/.exec(key)
+      const item = typeof id === 'string' ? getCampItem(id) : undefined
+      if (!match || !item || item.kind !== 'decor' || item.scene !== match[1] || Object.values(slots).includes(item.id)) continue
+      if (!owned.includes(item.id) && !isFreeFromStart(item)) continue
+      slots[key] = item.id
+    }
+  }
   const off = Array.isArray(raw.off)
     ? [...new Set(raw.off.filter((id): id is string => typeof id === 'string' && !!getCampItem(id) && isFreeFromStart(getCampItem(id)!) && getCampItem(id)!.kind !== 'background'))]
     : []
-  return off.length ? { owned, using, off } : { owned, using }
+  const parsed: CampState = { owned, using }
+  if (off.length) parsed.off = off
+  if (Object.keys(slots).length) parsed.slots = slots
+  return parsed
 }
 
 /**

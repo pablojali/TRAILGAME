@@ -298,7 +298,7 @@ export function summary(ws: Workspace): Summary {
     texts,
     basecamp: describe(
       diffDocs(before.basecamp, ws.docs.basecamp, (v) => v.id!),
-      { scene: 'escena', kind: 'tipo', level: 'nivel', price: 'precio', currency: 'moneda', art: 'imagen', action: 'acción', spot_x: 'punto (x)', spot_y: 'punto (y)', name: 'nombre (EN)' },
+      { scene: 'escena', kind: 'tipo', level: 'nivel', price: 'precio', currency: 'moneda', art: 'imagen', action: 'acción', slots: 'huecos', size: 'altura', spot_x: 'punto (x)', spot_y: 'punto (y)', name: 'nombre (EN)' },
       (k) => `Base Camp · ${rows(ws.docs.basecamp).find((r) => r.values.id === k)?.values.name_es || k} (${k})`,
     ),
   }

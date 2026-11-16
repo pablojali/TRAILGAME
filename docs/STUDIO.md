@@ -39,7 +39,10 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
   - «Quitar esta pieza del juego» removes a published piece and its picture with the next
     proposal; players who used or bought it lose it. The preview draws the piece with the
     scene's free pieces. The free pieces must include «Entrar» outside and «Equipo» inside.
-  - Decor is drawn in the table's order (later rows on top).
+  - A background has up to 4 slots for objects: choose «Hueco 1–4» and click the preview to
+    place each one (where the object stands), with its size there; «Quitar» removes one.
+  - Objects (buzón, banderas…) are cut-out PNGs with a height in the scene (%); the preview shows
+    one in slot 1 of the free background. Each player chooses the slot in the game.
   - The Premium Coin exchange rate (`coins_per_premium` in `src/data/economy.csv`) is in Balance ›
     Economía.
 - **Avatares** (13 November 2026): upload new bodies and heads as PNG (transparent, on the runner's

@@ -369,6 +369,23 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     expect(memory.commits()).toBe(2)
   })
 
+  it('exchanges coins for Premium Coins and buys Base Camp pieces, never trusting the snapshot', async () => {
+    const memory = memoryStore()
+    memory.seed('ana', rich(250))
+    const forged = { ...rich(5_000), premiumCoins: 99, camp: { owned: ['banner'], using: ['banner'] } }
+    const exchanged = await call(memory, { action: 'premium-exchange', operationId: op(1), amount: 2, rate: 100, snapshot: forged })
+    expect(exchanged.body).toMatchObject({ ok: true, state: { coins: 50, premiumCoins: 2 } })
+    expect((await call(memory, { action: 'premium-exchange', operationId: op(2), amount: 1, rate: 50, baseVersion: 2 })).body).toMatchObject({ ok: false, error: 'rate-changed' })
+    // Level 1 runner: the bench (level 1) is for sale, the banner (level 4) is not yet.
+    expect((await call(memory, { action: 'camp-buy', operationId: op(3), itemId: 'banner', price: 3, currency: 'premium', baseVersion: 2 })).body).toMatchObject({ ok: false, error: 'level-locked' })
+    const bench = await call(memory, { action: 'camp-buy', operationId: op(4), itemId: 'bench', price: 20, currency: 'coins', baseVersion: 2 })
+    expect(bench.body).toMatchObject({ ok: true, state: { coins: 30, camp: { owned: ['bench'], using: [] } } })
+    const used = await call(memory, { action: 'camp-use', operationId: op(5), itemId: 'bench', used: true, baseVersion: 3 })
+    expect(used.body).toMatchObject({ ok: true, state: { camp: { owned: ['bench'], using: ['bench'] } } })
+    expect((await call(memory, { action: 'camp-buy', operationId: op(6), itemId: 'bench', price: 20, currency: 'gold', baseVersion: 4 })).status).toBe(400)
+    expect(memory.commits()).toBe(3)
+  })
+
   it('ignores coins and items in the snapshot sent with a purchase', async () => {
     const memory = memoryStore()
     memory.seed('ana', rich(10))

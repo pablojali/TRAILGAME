@@ -24,3 +24,27 @@ export function Coins({ amount, className }: { amount: number; className?: strin
     </span>
   )
 }
+
+/** Premium Coin symbol (owner decision, 16 November 2026): a violet gem. Decorative. */
+export function PremiumIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`${styles.icon} ${className ?? ''}`} aria-hidden="true" focusable="false">
+      <path d="M12 2.5 21 9l-9 12.5L3 9z" fill="#7c4dff" />
+      <path d="M12 2.5 21 9h-9z" fill="#b39dff" />
+      <path d="M3 9h9v12.5z" fill="#5a2fd6" />
+      <path d="M7.5 5.6 12 2.5" stroke="#efe7ff" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** An amount of Premium Coins: the gem and the number; screen readers hear "N Premium Coins". */
+export function Premium({ amount, className }: { amount: number; className?: string }) {
+  const { t, locale } = useI18n()
+  return (
+    <span className={`${styles.coins} ${className ?? ''}`}>
+      <PremiumIcon />
+      <span>{amount.toLocaleString(locale)}</span>
+      <span className={styles.srOnly}> {t('common.premiumWord', { count: amount })}</span>
+    </span>
+  )
+}

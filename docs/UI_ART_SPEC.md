@@ -53,27 +53,42 @@ list (so: simple, clear landscapes read best).
 draws the fallback scenes (sunset and morning mountains, cabin, topographic map, starry summit).
 `src/features/races/RacePhoto.tsx` draws a landscape per category when a race has no photo.
 
-## Base Camp: `assets/ui/basecamp/` (owner design, 15 November 2026)
+## Base Camp: `assets/ui/basecamp/` (owner design, 15–16 November 2026)
 
 Base Camp replaces Equipment in the main navigation (`/base-camp`). It is the player's cabin, in
-two panoramic scenes the player swipes sideways (no avatar):
+two panoramic scenes the player swipes sideways (no avatar). Each scene is built from layers on the
+same canvas (16 November 2026):
 
-| File | Size | Scene |
+| Kind | What | File |
 | --- | --- | --- |
-| `exterior.webp` | 1079×625 | The cabin from outside. The door opens the living room. |
-| `interior.webp` | 1080×912 | The living room (a horizontal band of the owner's 1080×2340 picture). The gear bench opens Equipment. |
+| background | the whole scene behind | JPG or PNG, 3200 × 1600 |
+| cabin | the cabin, over the background | PNG with transparency, 3200 × 1600 |
+| decor | seats, banners, flags…, over both | PNG with transparency, 3200 × 1600 |
 
+- The pieces are listed in `src/data/basecamp.csv` (edited in Trail Studio › Multimedia › Base
+  Camp): scene, kind, player level that unlocks it, price, currency (coins or Premium Coins), the
+  picture's name and, for backgrounds and cabins, the spot (door outside, gear bench inside) as
+  shares of the picture. Level 0 and price 0 = everyone's from the start.
+- Sources live in `assets/ui/basecamp/source/{exterior|interior}/{art}.{png|jpg|webp}`;
+  `scripts/prepare_basecamp_art.py` (run by CI, which commits the result on main) writes what the
+  game loads, `assets/ui/basecamp/{exterior|interior}/{art}.webp` (transparency kept, at most 1600
+  px tall). A piece whose WebP is not there yet is not drawn, and its shop card says the picture is
+  on its way.
+- The first pictures (`lvl0_exterior`, 1079 × 625, and `lvl0_interior`, a 1080 × 912 band of the
+  owner's interior) predate the canvas; the scene takes the background's own shape, and the
+  pieces are stretched over it, so new pieces should go with 3200 × 1600 backgrounds.
+- The player buys pieces in Base Camp › Personalizar (server-decided, career-ops `camp-buy`), then
+  puts them in the scene or takes them out (`camp-use`): one background and one cabin per scene,
+  any decor. Coins are exchanged for Premium Coins there (`premium-exchange`, one way, at
+  `coins_per_premium` in `src/data/economy.csv`). Premium Coins for real money are not part of it
+  yet.
 - Each picture fills the screen's height and is wider than it; it scrolls horizontally
-  (`overflow-x`, `touch-action: pan-x`) and opens centred on its focus (door, gear bench). The
-  page never scrolls vertically.
-- Interactive spots and ambient lights are placed in percentages of the picture
-  (`SCENES`, `LANTERNS`, `MOTES` in `src/features/basecamp/BaseCampScreen.tsx`), so a replacement
-  picture with the same framing keeps them aligned; one with a different framing needs those
-  numbers moved.
-- Ambient animations are CSS only (sun glow, fireflies, lantern flicker, dust) and stop with
-  `prefers-reduced-motion`.
+  (`overflow-x`, `touch-action: pan-x`) and opens centred on the spot. The page never scrolls
+  vertically.
+- Ambient animations are CSS only (fireflies, dust; the lvl0 sun and lanterns follow those
+  pictures) and stop with `prefers-reduced-motion`.
 - The view is kept in the URL (`/base-camp?view=interior`), so Equipment's "← Base Camp" link
   returns to the living room. Equipment (`/equipment`) and Look (`/appearance`) keep the Base Camp
   tab highlighted.
-- V1 has one interactive zone (gear). Visits, messaging, sponsors, shop, music and cabin
-  evolution are not part of it.
+- A piece removed from the table disappears from the careers that bought it (saves drop unknown
+  ids), so pieces should be retired by raising their level or price instead.

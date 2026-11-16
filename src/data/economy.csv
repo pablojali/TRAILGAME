@@ -1,0 +1,4 @@
+# Economy (owner decision, 16 November 2026). One row per value.
+# coins_per_premium: credits (coins) a player pays for 1 Premium Coin. The exchange goes one way only, coins to Premium.
+key,value
+coins_per_premium,100

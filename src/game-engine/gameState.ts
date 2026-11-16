@@ -88,6 +88,23 @@ export interface GameState {
    * Missing: a career from before the coach existed, so its welcome counts as already seen.
    */
   coach?: CoachProgress
+  /**
+   * Premium Coins (owner decision, 16 November 2026), whole, never negative. Server-owned like the
+   * coins. Missing: none.
+   */
+  premiumCoins?: number
+  /** The player's Base Camp pieces (owner design, 16 November 2026). Server-owned. Missing: none bought. */
+  camp?: CampState
+}
+
+/**
+ * Base Camp pieces bought and the ones in use. The level 0 free backgrounds are everyone's and are
+ * not listed. At most one background and one cabin per scene are in use; a scene with no
+ * background in use shows its free one.
+ */
+export interface CampState {
+  owned: string[]
+  using: string[]
 }
 
 /** What the Trail Coach has already shown the player. Later coach features add fields here. */

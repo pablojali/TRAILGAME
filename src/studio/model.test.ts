@@ -9,6 +9,8 @@ vi.unmock('../data/levels.csv?raw')
 vi.unmock('../data/achievements.csv?raw')
 vi.unmock('../data/race_field.csv?raw')
 vi.unmock('../data/ranking_npcs.csv?raw')
+vi.unmock('../data/basecamp.csv?raw')
+vi.unmock('../data/economy.csv?raw')
 const base = {
   races: (await import('../data/races.csv?raw')).default,
   points: (await import('../data/ranking_points.csv?raw')).default,
@@ -19,6 +21,8 @@ const base = {
   raceField: (await import('../data/race_field.csv?raw')).default,
   npcs: (await import('../data/ranking_npcs.csv?raw')).default,
   announcements: (await import('../data/announcements.csv?raw')).default,
+  basecamp: (await import('../data/basecamp.csv?raw')).default,
+  economy: (await import('../data/economy.csv?raw')).default,
 }
 
 function edit(ws: Workspace, id: FileId, key: (v: Record<string, string>) => boolean, changes: Record<string, string>): Workspace {
@@ -108,5 +112,16 @@ describe('Studio workspace', () => {
     expect(summary(added).announcements).toEqual(['**Aviso · hello** (nueva)'])
     const wrong = { ...ws, docs: { ...ws.docs, announcements: insertRow(ws.docs.announcements, { id: 'hello', from: 'mañana', title: 'Hi', text: 'All' }) } }
     expect(validate(wrong)[0]).toMatch(/^Avisos: .*UTC date/)
+  })
+})
+
+describe('Base Camp in the Studio', () => {
+  it('asks for the picture of a new piece before proposing it', () => {
+    const ws = openWorkspace(base)
+    const added = { ...ws, docs: { ...ws.docs, basecamp: insertRow(ws.docs.basecamp, { id: 'flag', scene: 'exterior', kind: 'decor', level: '2', price: '40', currency: 'coins', art: 'lvl2_flag', name: 'Flag' }) } }
+    expect(validate(added)).toEqual(['Base Camp: «Flag» necesita su imagen (súbela en Multimedia)'])
+    const withPicture = { ...added, uploads: { 'assets/ui/basecamp/source/exterior/lvl2_flag.png': { base64: 'AAAA', label: 'flag' } } }
+    expect(validate(withPicture)).toEqual([])
+    expect(summary(withPicture).basecamp).toEqual(['**Base Camp · flag (flag)** (nueva)'])
   })
 })

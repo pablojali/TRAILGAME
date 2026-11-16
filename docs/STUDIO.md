@@ -19,6 +19,23 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     `stop_slow_s` and `segments` (`km:ascent:descent:technicality`, `|` between segments).
   - A race in progress keeps the course it started on; a change applies to races started after
     it is published. Do not change a race while a Sunday Major on it is running.
+- **Multimedia** (16 November 2026): the game's art in sub-tabs, so the top bar stays short:
+  Equipamiento, Avatares, Base Camp (ext) and Base Camp (int) (each described below).
+- **Base Camp (ext) / (int)** (16 November 2026): the pieces of the player's cabin, one sub-tab per
+  scene, from `src/data/basecamp.csv`.
+  - Kinds: background (the whole scene), cabin (drawn over the background) and decor (seats,
+    banners, flags…, drawn over both). Each has the player level that unlocks it, a price and a
+    currency (coins or Premium Coins). Level 0 and price 0: every player has it from the start;
+    every scene needs one such background.
+  - Every picture is on the same 3200 × 1600 canvas: backgrounds as JPG or PNG, cabins and decor
+    as PNG with a transparent background, in their place. Uploads go to
+    `assets/ui/basecamp/source/{exterior|interior}/`; CI turns them into the game's WebP
+    (`scripts/prepare_basecamp_art.py`) when the proposal is published. A new piece cannot be
+    proposed without its picture.
+  - Clicking the preview marks the scene's spot: the door ("Entrar") outside, the gear bench
+    ("Equipo") inside. A background needs one; a cabin may move the door.
+  - The Premium Coin exchange rate (`coins_per_premium` in `src/data/economy.csv`) is in Balance ›
+    Economía.
 - **Avatares** (13 November 2026): upload new bodies and heads as PNG (transparent, on the runner's
   1024 × 1536 canvas), several at once. They go into the proposal and, once published, to
   `assets/runner/incoming/{bodies,heads}/`, which the game and the art script never read. The tab

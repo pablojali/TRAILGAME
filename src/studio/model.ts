@@ -3,6 +3,8 @@ import { parseAnnouncements } from '../domain/announcements/announcements'
 import { isCountryCode } from '../domain/athlete/countries'
 import { parseLevels } from '../domain/athlete/levels'
 import { parseEquipment } from '../domain/equipment/items'
+import { parseCampCatalog } from '../domain/basecamp/catalog'
+import { parseEconomy } from '../domain/economy/premium'
 import { parseRaceField } from '../domain/races/raceField'
 import { parseRaces } from '../domain/races/races'
 import { parseRankingTable } from '../domain/ranking/ranking'
@@ -23,6 +25,8 @@ export const FILES = {
   raceField: 'src/data/race_field.csv',
   npcs: 'src/data/ranking_npcs.csv',
   announcements: 'src/data/announcements.csv',
+  basecamp: 'src/data/basecamp.csv',
+  economy: 'src/data/economy.csv',
 } as const
 export type FileId = keyof typeof FILES
 export const FILE_IDS = Object.keys(FILES) as FileId[]
@@ -89,6 +93,15 @@ export function validate(ws: Workspace): string[] {
   check('Equipamiento', () => parseEquipment(textOf(ws, 'equipment')))
   check('Coach', () => parseCoachMoments(textOf(ws, 'coach')))
   check('Avisos', () => parseAnnouncements(textOf(ws, 'announcements')))
+  check('Base Camp', () => parseCampCatalog(textOf(ws, 'basecamp')))
+  check('Economía', () => parseEconomy(textOf(ws, 'economy')))
+  // A new Base Camp piece (or a new picture name) needs its picture in the same proposal.
+  const publishedArt = new Set(rows(ws.docsBase.basecamp).map((r) => `${r.values.scene}/${r.values.art}`))
+  for (const row of rows(ws.docs.basecamp)) {
+    const art = `${row.values.scene}/${row.values.art}`
+    const uploaded = Object.entries(ws.uploads).some(([path, upload]) => upload.base64 && path.replace(/\.\w+$/, '') === `assets/ui/basecamp/source/${art}`)
+    if (!publishedArt.has(art) && !uploaded) errors.push(`Base Camp: «${row.values.name_es || row.values.name || row.values.id}» necesita su imagen (súbela en Multimedia)`)
+  }
   // The English text is the one every empty language shows.
   for (const [label, id] of [['Avisos', 'announcements'], ['Coach', 'coach']] as const) {
     for (const row of rows(ws.docs[id])) {
@@ -222,6 +235,7 @@ export const BALANCE: { id: FileId; title: string; key: (v: Record<string, strin
   { id: 'points', title: 'Puntos de ranking', key: (v) => `${v.kind} ${v.key}`, canAdd: true },
   { id: 'raceField', title: 'Rivales por categoría', key: (v) => v.category!, canAdd: false },
   { id: 'npcs', title: 'Rivales NPC del ranking', key: (v) => `${v.id} ${v.name}`, canAdd: false },
+  { id: 'economy', title: 'Economía', key: (v) => v.key!, canAdd: false },
 ]
 
 export interface Summary {
@@ -231,6 +245,7 @@ export interface Summary {
   announcements: string[]
   balance: string[]
   texts: string[]
+  basecamp: string[]
 }
 
 /** The changes in words, one line per race, item, moment step, table row or text. */
@@ -281,6 +296,11 @@ export function summary(ws: Workspace): Summary {
     announcements: describe(diffDocs(before.announcements, ws.docs.announcements, (v) => v.id!), { from: 'desde', until: 'hasta', link: 'enlace', title: 'título (EN)', text: 'texto (EN)' }, (k) => `Aviso · ${k}`),
     balance,
     texts,
+    basecamp: describe(
+      diffDocs(before.basecamp, ws.docs.basecamp, (v) => v.id!),
+      { scene: 'escena', kind: 'tipo', level: 'nivel', price: 'precio', currency: 'moneda', art: 'imagen', spot_x: 'punto (x)', spot_y: 'punto (y)', name: 'nombre (EN)' },
+      (k) => `Base Camp · ${rows(ws.docs.basecamp).find((r) => r.values.id === k)?.values.name_es || k} (${k})`,
+    ),
   }
 }
 

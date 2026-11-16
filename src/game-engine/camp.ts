@@ -1,0 +1,129 @@
+import { getLevel } from '../domain/athlete/levels'
+import { campItems, defaultBackground, getCampItem, isFreeFromStart, type CampItem, type CampScene, type Currency } from '../domain/basecamp/catalog'
+import { COINS_PER_PREMIUM, MAX_EXCHANGE } from '../domain/economy/premium'
+import type { CampState, GameState } from './gameState'
+
+/**
+ * Base Camp pieces (owner design, 16 November 2026): bought once with coins or Premium Coins once
+ * the player's level unlocks them, then put in the scene or taken out. Server-authoritative like
+ * the rest of the economy (career-ops `camp-buy`, `camp-use`, `premium-exchange`).
+ */
+export type CampBuyError =
+  | 'unknown-item'
+  | 'already-owned'
+  | 'level-locked'
+  /** The price or currency the player confirmed is not the current one. */
+  | 'price-changed'
+  | 'insufficient-coins'
+  | 'insufficient-premium'
+
+export type CampUseError = 'unknown-item' | 'not-owned'
+
+export type ExchangeError = 'bad-amount' | 'rate-changed' | 'insufficient-coins'
+
+const EMPTY: CampState = { owned: [], using: [] }
+
+export function campOf(state: GameState): CampState {
+  return state.camp ?? EMPTY
+}
+
+export function premiumOf(state: GameState): number {
+  return state.premiumCoins ?? 0
+}
+
+export function ownsCampItem(state: GameState, item: CampItem): boolean {
+  return isFreeFromStart(item) || campOf(state).owned.includes(item.id)
+}
+
+/** What the scene shows: the background (the free one if none chosen), the cabin, the decor on. */
+export function campScene(state: GameState, scene: CampScene): { background: CampItem; cabin: CampItem | null; decor: CampItem[] } {
+  const using = new Set(campOf(state).using)
+  const inUse = campItems(scene).filter((item) => using.has(item.id) && ownsCampItem(state, item))
+  return {
+    background: inUse.find((item) => item.kind === 'background') ?? defaultBackground(scene),
+    cabin: inUse.find((item) => item.kind === 'cabin') ?? null,
+    decor: inUse.filter((item) => item.kind === 'decor'),
+  }
+}
+
+export function isCampItemUsed(state: GameState, item: CampItem): boolean {
+  const shown = campScene(state, item.scene)
+  return shown.background.id === item.id || shown.cabin?.id === item.id || shown.decor.some((d) => d.id === item.id)
+}
+
+export function buyCampItem(
+  state: GameState,
+  itemId: string,
+  confirmed: { price: number; currency: Currency },
+): { ok: true; state: GameState } | { ok: false; error: CampBuyError } {
+  const item = getCampItem(itemId)
+  if (!item) return { ok: false, error: 'unknown-item' }
+  if (ownsCampItem(state, item)) return { ok: false, error: 'already-owned' }
+  if (getLevel(state.athlete.xp) < item.level) return { ok: false, error: 'level-locked' }
+  if (item.price !== confirmed.price || item.currency !== confirmed.currency) return { ok: false, error: 'price-changed' }
+  const camp = campOf(state)
+  const next: GameState = { ...state, camp: { owned: [...camp.owned, item.id], using: [...camp.using] } }
+  if (item.currency === 'coins') {
+    if (item.price > state.coins) return { ok: false, error: 'insufficient-coins' }
+    next.coins = state.coins - item.price
+  } else {
+    if (item.price > premiumOf(state)) return { ok: false, error: 'insufficient-premium' }
+    next.premiumCoins = premiumOf(state) - item.price
+  }
+  return { ok: true, state: next }
+}
+
+/**
+ * Puts an owned piece in its scene or takes it out. A background or cabin replaces the one in use
+ * in the same scene; taking the background out brings back the free one.
+ */
+export function setCampItemUsed(state: GameState, itemId: string, used: boolean): { ok: true; state: GameState } | { ok: false; error: CampUseError } {
+  const item = getCampItem(itemId)
+  if (!item) return { ok: false, error: 'unknown-item' }
+  if (!ownsCampItem(state, item)) return { ok: false, error: 'not-owned' }
+  const camp = campOf(state)
+  const others = camp.using.filter((id) => {
+    if (id === item.id) return false
+    const other = getCampItem(id)
+    return !(item.kind !== 'decor' && other && other.scene === item.scene && other.kind === item.kind)
+  })
+  return { ok: true, state: { ...state, camp: { owned: [...camp.owned], using: used ? [...others, item.id] : others } } }
+}
+
+/**
+ * Exchanges coins for Premium Coins (one way), at the rate the player saw. `amount`: Premium
+ * Coins wanted (1 to MAX_EXCHANGE).
+ */
+export function exchangePremium(
+  state: GameState,
+  amount: number,
+  confirmedRate: number,
+): { ok: true; state: GameState } | { ok: false; error: ExchangeError } {
+  if (!Number.isInteger(amount) || amount < 1 || amount > MAX_EXCHANGE) return { ok: false, error: 'bad-amount' }
+  if (confirmedRate !== COINS_PER_PREMIUM) return { ok: false, error: 'rate-changed' }
+  const cost = amount * COINS_PER_PREMIUM
+  if (cost > state.coins) return { ok: false, error: 'insufficient-coins' }
+  return { ok: true, state: { ...state, coins: state.coins - cost, premiumCoins: premiumOf(state) + amount } }
+}
+
+/**
+ * A saved Base Camp, cleaned: pieces no longer in the catalog are dropped (the owner can remove
+ * one), and at most one background and one cabin per scene stay in use. Null if it is not a Base
+ * Camp at all.
+ */
+export function parseCampState(value: unknown): CampState | null {
+  if (typeof value !== 'object' || value === null) return null
+  const raw = value as Record<string, unknown>
+  if (!Array.isArray(raw.owned) || !Array.isArray(raw.using)) return null
+  if (![...raw.owned, ...raw.using].every((id) => typeof id === 'string')) return null
+  const owned = [...new Set(raw.owned as string[])].filter((id) => getCampItem(id) && !isFreeFromStart(getCampItem(id)!))
+  const has = (id: string) => owned.includes(id) || isFreeFromStart(getCampItem(id)!)
+  const using: string[] = []
+  for (const id of raw.using as string[]) {
+    const item = getCampItem(id)
+    if (!item || !has(id) || using.includes(id)) continue
+    if (item.kind !== 'decor' && using.some((u) => getCampItem(u)!.scene === item.scene && getCampItem(u)!.kind === item.kind)) continue
+    using.push(id)
+  }
+  return { owned, using }
+}

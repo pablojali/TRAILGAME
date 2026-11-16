@@ -6,6 +6,8 @@ import { parseRankingTable } from '../domain/ranking/ranking'
 import { parseRaces } from '../domain/races/races'
 import { ACHIEVEMENT_IDS, parseAchievementTable } from '../game-engine/achievements'
 import { consumableKinds, parseEquipment } from '../domain/equipment/items'
+import { parseCampCatalog } from '../domain/basecamp/catalog'
+import { parseEconomy } from '../domain/economy/premium'
 
 // The real tables, not the test copies other tests use (src/test/setup.ts).
 vi.unmock('./equipment.csv?raw')
@@ -14,12 +16,17 @@ vi.unmock('./race_field.csv?raw')
 vi.unmock('./achievements.csv?raw')
 vi.unmock('./ranking_points.csv?raw')
 vi.unmock('./races.csv?raw')
+vi.unmock('./basecamp.csv?raw')
+vi.unmock('./economy.csv?raw')
 const { default: equipmentCsv } = await import('./equipment.csv?raw')
 const { default: levelsCsv } = await import('./levels.csv?raw')
 const { default: raceFieldCsv } = await import('./race_field.csv?raw')
 const { default: achievementsCsv } = await import('./achievements.csv?raw')
 const { default: rankingCsv } = await import('./ranking_points.csv?raw')
 const { default: racesCsv } = await import('./races.csv?raw')
+const { default: basecampCsv } = await import('./basecamp.csv?raw')
+const { default: economyCsv } = await import('./economy.csv?raw')
+const CAMP_SOURCES = import.meta.glob('/assets/ui/basecamp/source/*/*.{png,jpg,jpeg,webp}')
 
 const THUMBNAILS = import.meta.glob('/assets/ui/{thumbnails,equipment}/*.{webp,png,jpg,jpeg}')
 const hasThumbnail = (file: string, sex: 'male' | 'female') =>
@@ -32,6 +39,17 @@ const hasThumbnail = (file: string, sex: 'male' | 'female') =>
 describe("owner's tables", () => {
   it('levels.csv is a valid levels table', () => {
     expect(parseLevels(levelsCsv).length).toBeGreaterThan(1)
+  })
+
+  it('basecamp.csv is a valid Base Camp catalog with every picture uploaded', () => {
+    const missing = parseCampCatalog(basecampCsv).filter(
+      (item) => !['png', 'jpg', 'jpeg', 'webp'].some((ext) => `/assets/ui/basecamp/source/${item.scene}/${item.art}.${ext}` in CAMP_SOURCES),
+    )
+    expect(missing.map((item) => item.id)).toEqual([])
+  })
+
+  it('economy.csv sets the Premium Coin rate', () => {
+    expect(parseEconomy(economyCsv).coinsPerPremium).toBeGreaterThan(0)
   })
 
   it('races.csv is a valid race catalog', () => {

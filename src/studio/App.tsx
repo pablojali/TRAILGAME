@@ -40,9 +40,19 @@ import {
 } from './model'
 import { AvatarsPanel } from './AvatarsPanel'
 import { RacesPanel } from './RacesPanel'
+import { BaseCampPanel } from './BaseCampPanel'
+
+/** Multimedia (owner request, 16 November 2026): the art of the game, in sub-tabs. */
+type MediaTab = 'equipment' | 'avatars' | 'camp-exterior' | 'camp-interior'
+const MEDIA_TABS: { id: MediaTab; label: string }[] = [
+  { id: 'equipment', label: 'Equipamiento' },
+  { id: 'avatars', label: 'Avatares' },
+  { id: 'camp-exterior', label: 'Base Camp (ext)' },
+  { id: 'camp-interior', label: 'Base Camp (int)' },
+]
 
 const DRAFT_KEY = 'trailgame.studio.draft'
-type Tab = 'races' | 'equipment' | 'avatars' | 'coach' | 'notifications' | 'texts' | 'balance' | 'majors' | 'runners' | 'changes'
+type Tab = 'races' | 'media' | 'coach' | 'notifications' | 'texts' | 'balance' | 'majors' | 'runners' | 'changes'
 
 interface Draft {
   base: Record<FileId, string>
@@ -91,6 +101,7 @@ export function App() {
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [tab, setTab] = useState<Tab>('races')
+  const [mediaTab, setMediaTab] = useState<MediaTab>('equipment')
   const [raceId, setRaceId] = useState<string | null>(null)
   const [itemId, setItemId] = useState<string | null>(null)
   const [momentId, setMomentId] = useState<string | null>(null)
@@ -187,11 +198,8 @@ export function App() {
           <button type="button" aria-pressed={tab === 'races'} onClick={() => setTab('races')}>
             Carreras
           </button>
-          <button type="button" aria-pressed={tab === 'equipment'} onClick={() => setTab('equipment')}>
-            Equipamiento
-          </button>
-          <button type="button" aria-pressed={tab === 'avatars'} onClick={() => setTab('avatars')}>
-            Avatares
+          <button type="button" aria-pressed={tab === 'media'} onClick={() => setTab('media')}>
+            Multimedia
           </button>
           <button type="button" aria-pressed={tab === 'coach'} onClick={() => setTab('coach')}>
             Coach
@@ -250,10 +258,23 @@ export function App() {
           <p className="loading">Leyendo las tablas del juego…</p>
         ) : tab === 'races' ? (
           <RacesPanel token={token} ws={ws} setWs={setWs} selected={raceId} select={setRaceId} />
-        ) : tab === 'equipment' ? (
-          <EquipmentPanel ws={ws} setWs={setWs} selected={itemId} select={setItemId} />
-        ) : tab === 'avatars' ? (
-          <AvatarsPanel token={token} ws={ws} setWs={setWs} />
+        ) : tab === 'media' ? (
+          <>
+            <nav className="subtabs" aria-label="Multimedia">
+              {MEDIA_TABS.map((m) => (
+                <button key={m.id} type="button" aria-pressed={mediaTab === m.id} onClick={() => setMediaTab(m.id)}>
+                  {m.label}
+                </button>
+              ))}
+            </nav>
+            {mediaTab === 'equipment' ? (
+              <EquipmentPanel ws={ws} setWs={setWs} selected={itemId} select={setItemId} />
+            ) : mediaTab === 'avatars' ? (
+              <AvatarsPanel token={token} ws={ws} setWs={setWs} />
+            ) : (
+              <BaseCampPanel key={mediaTab} token={token} ws={ws} setWs={setWs} scene={mediaTab === 'camp-exterior' ? 'exterior' : 'interior'} />
+            )}
+          </>
         ) : tab === 'coach' ? (
           <CoachPanel ws={ws} setWs={setWs} selected={momentId} select={setMomentId} />
         ) : tab === 'notifications' ? (
@@ -388,7 +409,7 @@ function Review({
   onCreated(p: Proposal): void
 }) {
   const errors = validate(ws)
-  const { races, equipment, coach, announcements, balance, texts } = summary(ws)
+  const { races, equipment, coach, announcements, balance, texts, basecamp } = summary(ws)
   const media = Object.values(ws.uploads).map((u) => (u.base64 === null ? u.label : `${u.label}${u.bytes ? ` (${megabytes(u.bytes)})` : ''}`))
   const migration = needsRankingMigration(ws)
   const [title, setTitle] = useState(() => {
@@ -398,6 +419,7 @@ function Review({
       coach.length && 'coach',
       announcements.length && `${announcements.length} aviso${announcements.length > 1 ? 's' : ''}`,
       balance.length && 'balance',
+      basecamp.length && `${basecamp.length} pieza${basecamp.length > 1 ? 's' : ''} de Base Camp`,
       texts.length && `${texts.length} texto${texts.length > 1 ? 's' : ''}`,
       media.length && `${media.length} archivo${media.length > 1 ? 's' : ''}`,
     ].filter(Boolean)
@@ -417,6 +439,7 @@ function Review({
       ...(coach.length ? ['### Coach', ...coach.map((l) => `- ${l}`), ''] : []),
       ...(announcements.length ? ['### Avisos a todos los jugadores', ...announcements.map((l) => `- ${l}`), ''] : []),
       ...(balance.length ? ['### Balance', ...balance.map((l) => `- ${l}`), ''] : []),
+      ...(basecamp.length ? ['### Base Camp', ...basecamp.map((l) => `- ${l}`), ''] : []),
       ...(texts.length ? ['### Textos', ...texts.map((l) => `- ${l}`), ''] : []),
       ...(media.length ? ['### Fotos y vídeos', ...media.map((l) => `- ${l}`), ''] : []),
       ...(migration
@@ -465,6 +488,7 @@ function Review({
             ['Coach', coach],
             ['Avisos a todos', announcements],
             ['Balance', balance],
+            ['Base Camp', basecamp],
             ['Textos', texts],
           ] as const
         ).map(([title, lines]) =>

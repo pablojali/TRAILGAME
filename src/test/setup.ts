@@ -33,6 +33,8 @@ vi.mock('../data/achievements.csv?raw', async () => ({ default: (await import('.
 vi.mock('../data/ranking_points.csv?raw', async () => ({ default: (await import('./fixtures/ranking_points.csv?raw')).default }))
 vi.mock('../data/races.csv?raw', async () => ({ default: (await import('./fixtures/races.csv?raw')).default }))
 vi.mock('../data/levels.csv?raw', async () => ({ default: (await import('./fixtures/levels.csv?raw')).default }))
+vi.mock('../data/basecamp.csv?raw', async () => ({ default: (await import('./fixtures/basecamp.csv?raw')).default }))
+vi.mock('../data/economy.csv?raw', async () => ({ default: (await import('./fixtures/economy.csv?raw')).default }))
 vi.mock('../domain/athlete/shirtFiles', () => import('./fixtures/shirtFiles'))
 // The owner uploads race clips (assets/race/clips): game tests run without them, so an upload never
 // changes a race flow under test; the player itself is tested with files it is given.

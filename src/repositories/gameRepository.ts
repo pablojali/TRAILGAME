@@ -10,6 +10,7 @@ import {
   type Attributes,
   type Sex,
 } from '../domain/athlete/athlete'
+import { parseCampState } from '../game-engine/camp'
 import { parseAppearance } from '../domain/athlete/appearance'
 import { isCountryCode } from '../domain/athlete/countries'
 import { STARTING_COINS } from '../domain/economy/coins'
@@ -488,6 +489,16 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     consumables: { gel: rawConsumables.gel as number, bar: rawConsumables.bar as number },
     activeRace,
     achievementLevelsRewarded: {},
+  }
+  // Missing: a career from before Premium Coins and Base Camp pieces (16 November 2026).
+  if (value.premiumCoins !== undefined) {
+    if (!isInt(value.premiumCoins, 0)) return null
+    parsed.premiumCoins = value.premiumCoins
+  }
+  if (value.camp !== undefined) {
+    const camp = parseCampState(value.camp)
+    if (!camp) return null
+    parsed.camp = camp
   }
   // Missing: a career saved before achievement rewards existed. Levels already reached count as
   // rewarded, so nothing is given for them afterwards.

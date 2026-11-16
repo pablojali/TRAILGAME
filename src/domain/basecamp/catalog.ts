@@ -12,6 +12,15 @@ export type CampScene = 'exterior' | 'interior'
 export type CampKind = 'background' | 'cabin' | 'decor'
 export type Currency = 'coins' | 'premium'
 
+/**
+ * What tapping a piece does (owner request, 16 November 2026: the door, the gear bench, the
+ * mailbox…). Each piece has at most one action, with its button at the piece's spot.
+ */
+export type CampAction = 'enter' | 'exit' | 'gear' | 'look' | 'mailbox' | 'training' | 'races' | 'career'
+export const CAMP_ACTIONS: readonly CampAction[] = ['enter', 'exit', 'gear', 'look', 'mailbox', 'training', 'races', 'career']
+/** The action every scene must offer with its free pieces: the door outside, the gear inside. */
+export const ESSENTIAL_ACTION: Record<CampScene, CampAction> = { exterior: 'enter', interior: 'gear' }
+
 export const CAMP_SCENES: readonly CampScene[] = ['exterior', 'interior']
 export const CAMP_KINDS: readonly CampKind[] = ['background', 'cabin', 'decor']
 export const CURRENCIES: readonly Currency[] = ['coins', 'premium']
@@ -26,7 +35,8 @@ export interface CampItem {
   currency: Currency
   /** The picture's name in assets/ui/basecamp/{scene}/, without extension. */
   art: string
-  /** The door (exterior) or the gear bench (interior), as shares of the picture. */
+  /** What tapping the piece does, and where its button sits (shares of the picture). */
+  action?: CampAction
   spot?: { x: number; y: number }
   /** English name. */
   label: string
@@ -57,8 +67,12 @@ export function parseCampCatalog(text: string): CampItem[] {
       if (x < 0 || x > 1 || y < 0 || y > 1) throw new Error(`${where}: spot_x and spot_y go from 0 to 1`)
       item.spot = { x, y }
     }
-    if (kind === 'background' && !item.spot) throw new Error(`${where}: a background needs spot_x and spot_y`)
-    if (kind === 'decor' && item.spot) throw new Error(`${where}: decor has no spot`)
+    if (row.action) {
+      if (!CAMP_ACTIONS.includes(row.action as CampAction)) throw new Error(`${where}: unknown action "${row.action}" (${CAMP_ACTIONS.join(', ')})`)
+      item.action = row.action as CampAction
+    }
+    if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`)
+    if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`)
     const names: Partial<Record<ItemLanguage, string>> = {}
     for (const language of ITEM_LANGUAGES) if (row[`name_${language}`]) names[language] = row[`name_${language}`]!
     if (Object.keys(names).length) item.names = names
@@ -72,6 +86,10 @@ export function parseCampCatalog(text: string): CampItem[] {
   for (const scene of CAMP_SCENES) {
     if (!items.some((item) => item.scene === scene && item.kind === 'background' && isFreeFromStart(item))) {
       throw new Error(`basecamp.csv: the ${scene} needs a background with level 0 and price 0 (everyone's from the start)`)
+    }
+    const free = items.filter((item) => item.scene === scene && isFreeFromStart(item))
+    if (!free.some((item) => item.action === ESSENTIAL_ACTION[scene])) {
+      throw new Error(`basecamp.csv: a free piece of the ${scene} must have the ${ESSENTIAL_ACTION[scene]} action`)
     }
   }
   return items

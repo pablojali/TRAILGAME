@@ -1,5 +1,5 @@
 import { getLevel } from '../domain/athlete/levels'
-import { campItems, defaultBackground, getCampItem, isFreeFromStart, type CampItem, type CampScene, type Currency } from '../domain/basecamp/catalog'
+import { campItems, defaultBackground, ESSENTIAL_ACTION, getCampItem, isFreeFromStart, type CampAction, type CampItem, type CampScene, type Currency } from '../domain/basecamp/catalog'
 import { COINS_PER_PREMIUM, MAX_EXCHANGE } from '../domain/economy/premium'
 import type { CampState, GameState } from './gameState'
 
@@ -35,15 +35,49 @@ export function ownsCampItem(state: GameState, item: CampItem): boolean {
   return isFreeFromStart(item) || campOf(state).owned.includes(item.id)
 }
 
-/** What the scene shows: the background (the free one if none chosen), the cabin, the decor on. */
+/**
+ * What the scene shows: the background and cabin in use (else the free ones), and the decor in
+ * use plus the free decor not taken out.
+ */
 export function campScene(state: GameState, scene: CampScene): { background: CampItem; cabin: CampItem | null; decor: CampItem[] } {
-  const using = new Set(campOf(state).using)
-  const inUse = campItems(scene).filter((item) => using.has(item.id) && ownsCampItem(state, item))
-  return {
-    background: inUse.find((item) => item.kind === 'background') ?? defaultBackground(scene),
-    cabin: inUse.find((item) => item.kind === 'cabin') ?? null,
-    decor: inUse.filter((item) => item.kind === 'decor'),
+  const camp = campOf(state)
+  const using = new Set(camp.using)
+  const off = new Set(camp.off ?? [])
+  const items = campItems(scene)
+  const shown = (item: CampItem) => (using.has(item.id) && ownsCampItem(state, item)) || (isFreeFromStart(item) && !off.has(item.id))
+  const pick = (kind: 'background' | 'cabin') => {
+    const all = items.filter((item) => item.kind === kind)
+    return all.find((item) => using.has(item.id) && ownsCampItem(state, item)) ?? all.find((item) => isFreeFromStart(item) && !off.has(item.id)) ?? null
   }
+  return {
+    background: pick('background') ?? defaultBackground(scene),
+    cabin: pick('cabin'),
+    decor: items.filter((item) => item.kind === 'decor' && shown(item)),
+  }
+}
+
+export interface CampSpot {
+  item: CampItem
+  action: CampAction
+  x: number
+  y: number
+}
+
+/**
+ * The buttons of the scene: every shown piece with an action. The scene's essential action (the
+ * door outside, the gear inside) is always there: if the shown pieces lack it, the free piece that
+ * has it lends its spot.
+ */
+export function campSpots(state: GameState, scene: CampScene): CampSpot[] {
+  const { background, cabin, decor } = campScene(state, scene)
+  const spots = [background, cabin, ...decor]
+    .filter((item): item is CampItem => !!item?.action && !!item.spot)
+    .map((item) => ({ item, action: item.action!, x: item.spot!.x, y: item.spot!.y }))
+  if (!spots.some((s) => s.action === ESSENTIAL_ACTION[scene])) {
+    const lender = campItems(scene).find((item) => isFreeFromStart(item) && item.action === ESSENTIAL_ACTION[scene])!
+    spots.push({ item: lender, action: lender.action!, x: lender.spot!.x, y: lender.spot!.y })
+  }
+  return spots
 }
 
 export function isCampItemUsed(state: GameState, item: CampItem): boolean {
@@ -75,19 +109,28 @@ export function buyCampItem(
 
 /**
  * Puts an owned piece in its scene or takes it out. A background or cabin replaces the one in use
- * in the same scene; taking the background out brings back the free one.
+ * in the same scene. A free piece taken out stays out until put back; the background cannot be
+ * taken out (another one replaces it).
  */
 export function setCampItemUsed(state: GameState, itemId: string, used: boolean): { ok: true; state: GameState } | { ok: false; error: CampUseError } {
   const item = getCampItem(itemId)
   if (!item) return { ok: false, error: 'unknown-item' }
   if (!ownsCampItem(state, item)) return { ok: false, error: 'not-owned' }
   const camp = campOf(state)
-  const others = camp.using.filter((id) => {
-    if (id === item.id) return false
+  const replaces = (id: string) => {
     const other = getCampItem(id)
-    return !(item.kind !== 'decor' && other && other.scene === item.scene && other.kind === item.kind)
-  })
-  return { ok: true, state: { ...state, camp: { owned: [...camp.owned], using: used ? [...others, item.id] : others } } }
+    return item.kind !== 'decor' && !!other && other.scene === item.scene && other.kind === item.kind
+  }
+  const using = camp.using.filter((id) => id !== item.id && !(used && replaces(id)))
+  let off = (camp.off ?? []).filter((id) => id !== item.id)
+  if (used) {
+    using.push(item.id)
+  } else if (isFreeFromStart(item) && item.kind !== 'background') {
+    off = [...off, item.id]
+  }
+  const next: CampState = { owned: [...camp.owned], using }
+  if (off.length) next.off = off
+  return { ok: true, state: { ...state, camp: next } }
 }
 
 /**
@@ -125,5 +168,8 @@ export function parseCampState(value: unknown): CampState | null {
     if (item.kind !== 'decor' && using.some((u) => getCampItem(u)!.scene === item.scene && getCampItem(u)!.kind === item.kind)) continue
     using.push(id)
   }
-  return { owned, using }
+  const off = Array.isArray(raw.off)
+    ? [...new Set(raw.off.filter((id): id is string => typeof id === 'string' && !!getCampItem(id) && isFreeFromStart(getCampItem(id)!) && getCampItem(id)!.kind !== 'background'))]
+    : []
+  return off.length ? { owned, using, off } : { owned, using }
 }

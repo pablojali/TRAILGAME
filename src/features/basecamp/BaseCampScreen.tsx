@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
-import type { CampItem, CampScene } from '../../domain/basecamp/catalog'
-import { campScene } from '../../game-engine/camp'
-import { useI18n } from '../../i18n/i18n'
+import type { CampAction, CampItem, CampScene } from '../../domain/basecamp/catalog'
+import { campScene, campSpots, type CampSpot } from '../../game-engine/camp'
+import { useI18n, type MessageKey } from '../../i18n/i18n'
 import styles from './BaseCamp.module.css'
 import { artRatio, campArt } from './campArt'
 import { CampShop } from './CampShop'
@@ -54,6 +54,27 @@ const FIREFLIES: readonly (Spot & { delay: number })[] = [
 
 const at = ({ x, y }: Spot) => ({ left: `${x * 100}%`, top: `${y * 100}%` })
 
+/** The button's words for each action. */
+const ACTION_LABELS: Record<CampAction, MessageKey> = {
+  enter: 'basecamp.enter',
+  exit: 'basecamp.action.exit',
+  gear: 'basecamp.gear',
+  look: 'basecamp.action.look',
+  mailbox: 'basecamp.action.mailbox',
+  training: 'basecamp.action.training',
+  races: 'basecamp.action.races',
+  career: 'basecamp.action.career',
+}
+
+/** The screens an action opens. */
+const ACTION_PATHS: Partial<Record<CampAction, string>> = {
+  gear: '/equipment',
+  look: '/appearance',
+  training: '/training',
+  races: '/races',
+  career: '/career',
+}
+
 /**
  * Base Camp (owner design, 15 November 2026): the player's refuge, a cabin in the mountains.
  * Outside, the cabin; inside, one living room wider than the screen, scrolled sideways. The bench
@@ -66,10 +87,18 @@ export function BaseCampScreen() {
   const { state } = useCareer()
   const [params, setParams] = useSearchParams()
   const [shopOpen, setShopOpen] = useState(false)
+  const [mailOpen, setMailOpen] = useState(false)
   const view: CampScene = params.get('view') === 'interior' ? 'interior' : 'exterior'
   const show = (next: CampScene) => setParams(next === 'interior' ? { view: 'interior' } : {}, { replace: true })
   const scene = campScene(state, view)
-  const spot = scene.cabin?.spot ?? scene.background.spot!
+  const spots = campSpots(state, view)
+  // The scene opens on its essential spot (the door outside, the gear bench inside).
+  const focus = spots.find((s) => s.action === (view === 'exterior' ? 'enter' : 'gear')) ?? spots[0]!
+  const act = (action: CampAction) => {
+    if (action === 'enter') show('interior')
+    else if (action === 'exit') show('exterior')
+    else if (action === 'mailbox') setMailOpen(true)
+  }
   const sun = SUNS[scene.background.id]
 
   return (
@@ -93,17 +122,13 @@ export function BaseCampScreen() {
         </div>
       </header>
 
-      <Panorama key={`${view}:${scene.background.id}`} scene={view} background={scene.background} layers={[scene.cabin, ...scene.decor]} focus={spot.x}>
+      <Panorama key={`${view}:${scene.background.id}`} scene={view} background={scene.background} layers={[scene.cabin, ...scene.decor]} focus={focus.x}>
         {view === 'exterior' ? (
           <>
             {sun && <div className={styles.sun} style={at(sun)} aria-hidden="true" />}
             {FIREFLIES.map((f, i) => (
               <span key={i} className={styles.firefly} style={{ ...at(f), animationDelay: `${f.delay}s` }} aria-hidden="true" />
             ))}
-            <button type="button" className={styles.spot} style={at(spot)} onClick={() => show('interior')}>
-              <span className={styles.ring} aria-hidden="true" />
-              <span className={styles.spotLabel}>{t('basecamp.enter')}</span>
-            </button>
           </>
         ) : (
           <>
@@ -113,19 +138,62 @@ export function BaseCampScreen() {
             {MOTES.map((m, i) => (
               <span key={i} className={styles.mote} style={{ ...at(m), animationDelay: `${m.delay}s` }} aria-hidden="true" />
             ))}
-            {/* The gear zone: the bench with the shoes and the pack opens Equipment. */}
-            <Link to="/equipment" className={styles.spot} style={at(spot)}>
-              <span className={styles.ring} aria-hidden="true" />
-              <span className={styles.spotLabel}>{t('basecamp.gear')}</span>
-            </Link>
           </>
         )}
+        {spots.map((spot) => (
+          <SpotButton key={spot.item.id} spot={spot} onAct={act} />
+        ))}
       </Panorama>
       <p className={styles.hint} aria-hidden="true">
         {t('basecamp.swipe')}
       </p>
       {shopOpen && <CampShop scene={view} onClose={() => setShopOpen(false)} />}
+      {mailOpen && <Mailbox onClose={() => setMailOpen(false)} />}
     </section>
+  )
+}
+
+/** A piece's action: a pulsing ring and its words; screens open as links, the rest as buttons. */
+function SpotButton({ spot, onAct }: { spot: CampSpot; onAct(action: CampAction): void }) {
+  const { t } = useI18n()
+  const path = ACTION_PATHS[spot.action]
+  const content = (
+    <>
+      <span className={styles.ring} aria-hidden="true" />
+      <span className={styles.spotLabel}>{t(ACTION_LABELS[spot.action])}</span>
+    </>
+  )
+  return path ? (
+    <Link to={path} className={styles.spot} style={at(spot)}>
+      {content}
+    </Link>
+  ) : (
+    <button type="button" className={styles.spot} style={at(spot)} onClick={() => onAct(spot.action)}>
+      {content}
+    </button>
+  )
+}
+
+/**
+ * The mailbox (owner idea, 16 November 2026): where congratulations and visits from other runners
+ * will arrive. Neither exists yet, so it says so.
+ */
+function Mailbox({ onClose }: { onClose(): void }) {
+  const { t } = useI18n()
+  return (
+    <div className={styles.shopBack} role="presentation" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <section className={styles.shop} role="dialog" aria-modal="true" aria-labelledby="camp-mailbox-title">
+        <header className={styles.shopHead}>
+          <h2 id="camp-mailbox-title">{t('basecamp.mailbox.title')}</h2>
+          <button type="button" className={styles.close} onClick={onClose}>
+            {t('basecamp.shop.close')}
+          </button>
+        </header>
+        <div className={styles.shopBody}>
+          <p>{t('basecamp.mailbox.soon')}</p>
+        </div>
+      </section>
+    </div>
   )
 }
 

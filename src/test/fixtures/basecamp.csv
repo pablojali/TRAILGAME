@@ -2,7 +2,7 @@
 id,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de
 lvl0-exterior,exterior,background,0,0,coins,lvl0_exterior,enter,0.36,0.52,Mountain cabin,Cabaña de montaña,,,
 lvl0-interior,interior,background,0,0,coins,lvl0_interior,gear,0.73,0.62,Cabin living room,Salón de la cabaña,,,
-lake-exterior,exterior,background,5,200,coins,lvl5_lake,,,,Lake view,Vista al lago,,,
+lake-exterior,exterior,background,5,200,coins,lvl5_lake,enter,0.5,0.55,Lake view,Vista al lago,,,
 log-cabin,exterior,cabin,3,150,coins,lvl3_cabin,enter,0.45,0.5,Log cabin,Cabaña de troncos,,,
 flag,exterior,decor,2,40,coins,lvl2_flag,,,,Flag,Bandera,,,
 banner,interior,decor,4,3,premium,lvl4_banner,,,,Banner,Banner,,,

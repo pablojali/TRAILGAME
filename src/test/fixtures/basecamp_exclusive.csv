@@ -1,0 +1,2 @@
+id,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de
+admin-refuge,exterior,background,0,0,coins,admin_refuge,enter,0.4,0.5,Admin refuge,Refugio del admin,,,

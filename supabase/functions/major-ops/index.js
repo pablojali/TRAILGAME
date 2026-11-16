@@ -2305,7 +2305,10 @@ function applyFitnessDecay(state, now) {
 }
 
 // raw:src/data/basecamp.csv
-var basecamp_default = "# Base Camp (owner design, 16 November 2026). One row per piece of the player's cabin. Keep each id once and never rename it (saves use it).\n# scene: exterior or interior. kind: background (the whole scene behind), cabin (drawn over the background) or decor (seats, banners, flags\u2026, drawn over both).\n# level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.\n# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; every piece of a scene on the same canvas, 3200 x 1600).\n# action: what tapping the piece does (empty: nothing): enter (go inside), exit (go outside), gear (Equipment), look (Appearance), mailbox (congratulations and visits), training, races, career.\n# spot_x, spot_y (0-1 of the picture): where the action's button sits on the piece. Needed with an action, empty without one.\n# Free pieces (level 0, price 0) are shown from the start; the free ones of each scene must give the exterior an enter and the interior a gear action.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de\nlvl0-exterior,exterior,background,0,0,coins,lvl0_exterior,enter,0.36,0.52,Mountain cabin,Caba\xF1a de monta\xF1a,Chalet de montagne,Baita di montagna,Bergh\xFCtte\nlvl0-interior,interior,background,0,0,coins,lvl0_interior,gear,0.73,0.62,Cabin living room,Sal\xF3n de la caba\xF1a,Salon du chalet,Soggiorno della baita,Wohnraum der H\xFCtte\nexterior-1,exterior,background,0,0,coins,exterior_1,,,,Beach Camp,Refugio de Playa,,,\nexterior-2,exterior,background,0,0,coins,exterior_2,,,,Desert Camp,Refugio Desierto,,,\nexterior-3,exterior,background,0,0,coins,exterior_3,,,,Lake Camp,Refugio Lago,,,\nexterior-4,exterior,background,0,0,coins,exterior_4,,,,Mountain Camp,Refugio Monta\xF1a,,,\nexterior-5,exterior,background,1,0,coins,exterior_5,,,,River Camp,Refugio Rio,,,\n";
+var basecamp_default = "# Base Camp (owner design, 16 November 2026). One row per piece of the player's cabin. Keep each id once and never rename it (saves use it).\n# scene: exterior or interior. kind: background (the whole scene behind), cabin (drawn over the background) or decor (seats, banners, flags\u2026, drawn over both).\n# level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.\n# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; every piece of a scene on the same canvas, 3200 x 1600).\n# action: what tapping the piece does (empty: nothing): enter (go inside), exit (go outside), gear (Equipment), look (Appearance), mailbox (congratulations and visits), training, races, career.\n# spot_x, spot_y (0-1 of the picture): where the action's button sits on the piece. Needed with an action, empty without one.\n# Free pieces (level 0, price 0) are shown from the start; the free ones of each scene must give the exterior an enter and the interior a gear action.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de\nlvl0-interior,interior,background,0,0,coins,lvl0_interior,gear,0.73,0.62,Cabin living room,Sal\xF3n de la caba\xF1a,Salon du chalet,Soggiorno della baita,Wohnraum der H\xFCtte\nexterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,Beach Camp,Refugio de Playa,,,\nexterior-2,exterior,background,0,0,coins,exterior_2,enter,0.36,0.56,Desert Camp,Refugio Desierto,,,\nexterior-3,exterior,background,0,0,coins,exterior_3,enter,0.36,0.56,Lake Camp,Refugio Lago,,,\nexterior-4,exterior,background,0,0,coins,exterior_4,enter,0.36,0.56,Mountain Camp,Refugio Monta\xF1a,,,\nexterior-5,exterior,background,1,0,coins,exterior_5,enter,0.36,0.56,River Camp,Refugio Rio,,,\n";
+
+// raw:src/data/basecamp_exclusive.csv
+var basecamp_exclusive_default = "# Base Camp pieces never for sale (owner request, 16 November 2026): the admin's own refuge. Same columns as basecamp.csv.\n# Not edited in Trail Studio. The server gives these pieces to the admins (major_admins) when their career is created or saved; nobody else can buy or use them.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de\n";
 
 // src/domain/basecamp/catalog.ts
 var CAMP_ACTIONS = ["enter", "exit", "gear", "look", "mailbox", "training", "races", "career"];
@@ -2315,9 +2318,10 @@ var CAMP_KINDS = ["background", "cabin", "decor"];
 var CURRENCIES = ["coins", "premium"];
 var ID = /^[a-z0-9][a-z0-9-]*$/;
 var ART = /^[a-z0-9][a-z0-9_-]*$/;
-function parseCampCatalog(text) {
+function parseCampCatalog(text, options = {}) {
+  const file = options.exclusive ? "basecamp_exclusive.csv" : "basecamp.csv";
   const items = parseCsv(text).map((row, i) => {
-    const where = `basecamp.csv row ${i + 1} (${row.id || "no id"})`;
+    const where = `${file} row ${i + 1} (${row.id || "no id"})`;
     if (!row.id || !ID.test(row.id)) throw new Error(`${where}: the id must be lower case letters, digits and -`);
     const scene = row.scene;
     if (!CAMP_SCENES.includes(scene)) throw new Error(`${where}: scene must be exterior or interior`);
@@ -2341,17 +2345,22 @@ function parseCampCatalog(text) {
       item.action = row.action;
     }
     if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`);
+    if (kind === "background" && item.action !== ESSENTIAL_ACTION[scene]) {
+      throw new Error(`${where}: a ${scene} background needs the ${ESSENTIAL_ACTION[scene]} action and its spot`);
+    }
     if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`);
     const names = {};
     for (const language of ITEM_LANGUAGES) if (row[`name_${language}`]) names[language] = row[`name_${language}`];
     if (Object.keys(names).length) item.names = names;
+    if (options.exclusive) item.exclusive = true;
     return item;
   });
   const ids = /* @__PURE__ */ new Set();
   for (const item of items) {
-    if (ids.has(item.id)) throw new Error(`basecamp.csv: id ${item.id} is repeated`);
+    if (ids.has(item.id)) throw new Error(`${file}: id ${item.id} is repeated`);
     ids.add(item.id);
   }
+  if (options.exclusive) return items;
   for (const scene of CAMP_SCENES) {
     if (!items.some((item) => item.scene === scene && item.kind === "background" && isFreeFromStart(item))) {
       throw new Error(`basecamp.csv: the ${scene} needs a background with level 0 and price 0 (everyone's from the start)`);
@@ -2364,9 +2373,15 @@ function parseCampCatalog(text) {
   return items;
 }
 function isFreeFromStart(item) {
-  return item.level === 0 && item.price === 0;
+  return item.level === 0 && item.price === 0 && !item.exclusive;
 }
-var CAMP_ITEMS = parseCampCatalog(basecamp_default);
+function joinCatalogs(main, exclusive) {
+  const ids = new Set(main.map((item) => item.id));
+  for (const item of exclusive) if (ids.has(item.id)) throw new Error(`basecamp_exclusive.csv: id ${item.id} is also in basecamp.csv`);
+  return [...main, ...exclusive];
+}
+var CAMP_ITEMS = joinCatalogs(parseCampCatalog(basecamp_default), parseCampCatalog(basecamp_exclusive_default, { exclusive: true }));
+var EXCLUSIVE_IDS = CAMP_ITEMS.filter((item) => item.exclusive).map((item) => item.id);
 var BY_ID2 = new Map(CAMP_ITEMS.map((item) => [item.id, item]));
 function getCampItem(id) {
   return BY_ID2.get(id);
@@ -3153,6 +3168,10 @@ function createSupabaseCareerOpsStore(config2) {
       return get(
         `major_rewards?user_id=eq.${encodeURIComponent(userId)}&claimed_at=is.null&select=id,payload&order=created_at`
       );
+    },
+    async isAdmin(userId) {
+      const rows = await get(`major_admins?user_id=eq.${encodeURIComponent(userId)}&select=user_id`);
+      return rows.length > 0;
     },
     async markMajorRewards(ids) {
       const list = ids.map((id) => encodeURIComponent(id)).join(",");

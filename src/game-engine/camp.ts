@@ -1,5 +1,5 @@
 import { getLevel } from '../domain/athlete/levels'
-import { campItems, defaultBackground, ESSENTIAL_ACTION, getCampItem, isFreeFromStart, type CampAction, type CampItem, type CampScene, type Currency } from '../domain/basecamp/catalog'
+import { campItems, defaultBackground, ESSENTIAL_ACTION, EXCLUSIVE_IDS, getCampItem, isFreeFromStart, type CampAction, type CampItem, type CampScene, type Currency } from '../domain/basecamp/catalog'
 import { COINS_PER_PREMIUM, MAX_EXCHANGE } from '../domain/economy/premium'
 import type { CampState, GameState } from './gameState'
 
@@ -16,6 +16,8 @@ export type CampBuyError =
   | 'price-changed'
   | 'insufficient-coins'
   | 'insufficient-premium'
+  /** An exclusive piece (the admin's refuge): never sold. */
+  | 'not-for-sale'
 
 export type CampUseError = 'unknown-item' | 'not-owned'
 
@@ -70,9 +72,15 @@ export interface CampSpot {
  */
 export function campSpots(state: GameState, scene: CampScene): CampSpot[] {
   const { background, cabin, decor } = campScene(state, scene)
-  const spots = [background, cabin, ...decor]
-    .filter((item): item is CampItem => !!item?.action && !!item.spot)
-    .map((item) => ({ item, action: item.action!, x: item.spot!.x, y: item.spot!.y }))
+  // One button per action: a piece drawn later (a cabin over its background) moves it.
+  const byAction = new Map<CampAction, CampSpot>()
+  for (const item of [background, cabin, ...decor]) {
+    if (item?.action && item.spot) {
+      byAction.delete(item.action)
+      byAction.set(item.action, { item, action: item.action, x: item.spot.x, y: item.spot.y })
+    }
+  }
+  const spots = [...byAction.values()]
   if (!spots.some((s) => s.action === ESSENTIAL_ACTION[scene])) {
     const lender = campItems(scene).find((item) => isFreeFromStart(item) && item.action === ESSENTIAL_ACTION[scene])!
     spots.push({ item: lender, action: lender.action!, x: lender.spot!.x, y: lender.spot!.y })
@@ -93,6 +101,7 @@ export function buyCampItem(
   const item = getCampItem(itemId)
   if (!item) return { ok: false, error: 'unknown-item' }
   if (ownsCampItem(state, item)) return { ok: false, error: 'already-owned' }
+  if (item.exclusive) return { ok: false, error: 'not-for-sale' }
   if (getLevel(state.athlete.xp) < item.level) return { ok: false, error: 'level-locked' }
   if (item.price !== confirmed.price || item.currency !== confirmed.currency) return { ok: false, error: 'price-changed' }
   const camp = campOf(state)
@@ -172,4 +181,15 @@ export function parseCampState(value: unknown): CampState | null {
     ? [...new Set(raw.off.filter((id): id is string => typeof id === 'string' && !!getCampItem(id) && isFreeFromStart(getCampItem(id)!) && getCampItem(id)!.kind !== 'background'))]
     : []
   return off.length ? { owned, using, off } : { owned, using }
+}
+
+/**
+ * Gives the exclusive pieces (the admin's refuge) to a career, once: the server calls it for the
+ * admins only. Nothing changes if they are already owned.
+ */
+export function withExclusivePieces(state: GameState): GameState {
+  const camp = campOf(state)
+  const missing = EXCLUSIVE_IDS.filter((id) => !camp.owned.includes(id))
+  if (missing.length === 0) return state
+  return { ...state, camp: { ...camp, owned: [...camp.owned, ...missing], using: [...camp.using] } }
 }

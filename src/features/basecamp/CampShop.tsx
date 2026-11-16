@@ -96,7 +96,8 @@ export function CampShop({ scene, onClose }: { scene: CampScene; onClose(): void
           )}
 
           {CAMP_KINDS.map((kind) => {
-            const items = campItems(scene, kind)
+            // An exclusive piece (the admin's refuge) is only listed for whoever has it.
+            const items = campItems(scene, kind).filter((item) => !item.exclusive || ownsCampItem(state, item))
             if (kind === 'background' && items.length <= 1) return null
             return (
               <section key={kind} aria-labelledby={`camp-kind-${kind}`}>

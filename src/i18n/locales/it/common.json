@@ -48,6 +48,7 @@
   "basecamp.error.price-changed": "Il prezzo è cambiato. Controllalo e riprova.",
   "basecamp.error.insufficient-coins": "Monete insufficienti.",
   "basecamp.error.insufficient-premium": "Premium Coins insufficienti.",
+  "basecamp.error.not-for-sale": "Questo pezzo non è in vendita.",
   "basecamp.error.not-owned": "Compralo prima.",
   "basecamp.error.bad-amount": "Scegli quante Premium Coins vuoi.",
   "basecamp.error.rate-changed": "Il tasso è cambiato. Controllalo e riprova.",

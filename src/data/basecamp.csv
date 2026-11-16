@@ -8,3 +8,8 @@
 id,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de
 lvl0-exterior,exterior,background,0,0,coins,lvl0_exterior,enter,0.36,0.52,Mountain cabin,Cabaña de montaña,Chalet de montagne,Baita di montagna,Berghütte
 lvl0-interior,interior,background,0,0,coins,lvl0_interior,gear,0.73,0.62,Cabin living room,Salón de la cabaña,Salon du chalet,Soggiorno della baita,Wohnraum der Hütte
+exterior-1,exterior,background,0,0,coins,exterior_1,,,,Beach Camp,Refugio de Playa,,,
+exterior-2,exterior,background,0,0,coins,exterior_2,,,,Desert Camp,Refugio Desierto,,,
+exterior-3,exterior,background,0,0,coins,exterior_3,,,,Lake Camp,Refugio Lago,,,
+exterior-4,exterior,background,0,0,coins,exterior_4,,,,Mountain Camp,Refugio Montaña,,,
+exterior-5,exterior,background,1,0,coins,exterior_5,,,,River Camp,Refugio Rio,,,

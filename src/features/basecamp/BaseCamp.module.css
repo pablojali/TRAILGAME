@@ -1,14 +1,27 @@
 /* Base Camp V1 (owner design, 15 November 2026): a full-height scene that scrolls sideways. */
 .camp {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  height: 100%;
+  /* The refuge is the screen's background (owner request, 16 November 2026): edge to edge between
+     the top bar and the bottom navigation, no card around it. */
+  position: absolute;
+  inset: 0 0 calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)) 0;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.12);
-  border-radius: var(--radius-md);
   background: #0b0d0e;
-  box-shadow: 0 18px 40px rgb(0 0 0 / 0.45);
+}
+
+/* The refuge blurred and dimmed, behind the scene: fills what the scene leaves above and below. */
+.blur {
+  position: absolute;
+  inset: -40px;
+  background-position: center;
+  background-size: cover;
+  filter: blur(22px) brightness(0.55) saturate(1.1);
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .camp {
+    inset: 0;
+  }
 }
 
 .bar {
@@ -67,6 +80,9 @@
 
 /* The picture is as tall as the scene and wider than the screen: it scrolls sideways only. */
 .scroller {
+  position: relative;
+  display: flex;
+  align-items: center;
   height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
@@ -87,7 +103,10 @@
 
 .scene {
   position: relative;
+  flex: none;
   height: 100%;
+  /* Its top and bottom fade into the blurred refuge behind it. */
+  mask-image: linear-gradient(to bottom, transparent 0, #000 9%, #000 91%, transparent 100%);
   animation: settle 0.6s ease-out both;
 }
 

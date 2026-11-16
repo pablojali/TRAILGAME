@@ -52,6 +52,9 @@ const FIREFLIES: readonly (Spot & { delay: number })[] = [
   { x: 0.9, y: 0.6, delay: 5.6 },
 ]
 
+/** How many screens wide the scene is at most (the rest is swiped). */
+const SCREENS_WIDE = 2.2
+
 const at = ({ x, y }: Spot) => ({ left: `${x * 100}%`, top: `${y * 100}%` })
 
 /** The button's words for each action. */
@@ -218,17 +221,34 @@ function Panorama({
   const { t } = useI18n()
   const [ratio, setRatio] = useState(() => artRatio(background))
   const scroller = useRef<HTMLDivElement>(null)
+  // The scene is about two screens wide (owner request, 16 November 2026: less to swipe); it never
+  // grows past the screen's height. What is left above and below shows the refuge blurred.
+  const [box, setBox] = useState<{ width: number; height: number } | null>(null)
   useLayoutEffect(() => {
     const el = scroller.current
     if (!el) return
-    el.scrollLeft = Math.max(0, el.clientHeight * ratio * focus - el.clientWidth / 2)
-  }, [ratio, focus])
+    const measure = () => setBox({ width: el.clientWidth, height: el.clientHeight })
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  const height = box ? Math.min(box.height, (box.width * SCREENS_WIDE) / ratio) : null
+  useLayoutEffect(() => {
+    const el = scroller.current
+    if (!el || height === null) return
+    el.scrollLeft = Math.max(0, height * ratio * focus - el.clientWidth / 2)
+  }, [ratio, focus, height])
+  const art = campArt(background)
   return (
+    <>
+      {art && <div className={styles.blur} style={{ backgroundImage: `url(${art})` }} aria-hidden="true" />}
     <div ref={scroller} className={styles.scroller} tabIndex={0} aria-label={t(LABELS[scene])}>
-      <div className={styles.scene} style={{ aspectRatio: String(ratio) }}>
+      <div className={styles.scene} style={height === null ? { aspectRatio: String(ratio) } : { height, width: height * ratio }}>
         <img
           className={styles.picture}
-          src={campArt(background)}
+          src={art}
           alt=""
           draggable={false}
           onLoad={(e) => {
@@ -243,5 +263,6 @@ function Panorama({
         {children}
       </div>
     </div>
+    </>
   )
 }

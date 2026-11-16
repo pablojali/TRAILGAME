@@ -107,6 +107,11 @@ export interface CampState {
   using: string[]
   /** Free pieces the player took out of the scene. Missing: none. */
   off?: string[]
+  /**
+   * Decor placed in the backgrounds' slots (owner request, 16 November 2026), by "scene:slot"
+   * (slot 1 to 4): the same slot number in every background of the scene. Missing: none.
+   */
+  slots?: Record<string, string>
 }
 
 /** What the Trail Coach has already shown the player. Later coach features add fields here. */

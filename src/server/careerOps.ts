@@ -116,7 +116,8 @@ export type CareerOpRequest =
   | ({ action: 'claim'; operationId: string } & WithSnapshot)
   /** Base Camp (16 November 2026): a piece bought at the price and currency the player saw. */
   | ({ action: 'camp-buy'; operationId: string; itemId: string; price: number; currency: Currency } & WithSnapshot)
-  | ({ action: 'camp-use'; operationId: string; itemId: string; used: boolean } & WithSnapshot)
+  /** `slot` (decor): which of the background's places (1 to 4); without it, the first empty one. */
+  | ({ action: 'camp-use'; operationId: string; itemId: string; used: boolean; slot?: number } & WithSnapshot)
   /** `amount` Premium Coins for coins, at the rate (coins per Premium Coin) the player saw. */
   | ({ action: 'premium-exchange'; operationId: string; amount: number; rate: number } & WithSnapshot)
   | { action: 'new-career'; baseVersion: number | null; profile: ProfileId; identity: AthleteIdentity }
@@ -284,7 +285,7 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       return { ok: true, state: bought.state }
     }
     case 'camp-use': {
-      const changed = setCampItemUsed(career, request.itemId, request.used)
+      const changed = setCampItemUsed(career, request.itemId, request.used, request.slot)
       if (!changed.ok) return { ok: false, error: changed.error }
       return { ok: true, state: changed.state }
     }
@@ -352,7 +353,14 @@ function validRequest(body: unknown): body is CareerOpRequest {
         (request.currency === 'coins' || request.currency === 'premium')
       )
     case 'camp-use':
-      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.itemId === 'string' && typeof request.used === 'boolean'
+      return (
+        base &&
+        typeof request.operationId === 'string' &&
+        UUID.test(request.operationId) &&
+        typeof request.itemId === 'string' &&
+        typeof request.used === 'boolean' &&
+        (request.slot === undefined || (Number.isInteger(request.slot) && (request.slot as number) >= 1 && (request.slot as number) <= 4))
+      )
     case 'premium-exchange':
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && Number.isInteger(request.amount) && Number.isInteger(request.rate)
     case 'save':

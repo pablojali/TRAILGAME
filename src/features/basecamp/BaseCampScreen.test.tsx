@@ -50,8 +50,10 @@ describe('Base Camp (V1)', () => {
     expect(screen.getByText('Level 3')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Buy Bench' }))
     expect(within(shop).getByRole('status')).toHaveTextContent('Bench is yours.')
-    await user.click(screen.getByRole('button', { name: 'Place Bench' }))
-    expect(screen.getByRole('button', { name: 'Remove Bench' })).toHaveAttribute('aria-pressed', 'true')
+    // The bench goes to place 2 of the refuge (the free mailbox stands in place 1).
+    const places = within(shop).getByRole('group', { name: 'Where Bench goes' })
+    await user.click(within(places).getByRole('button', { name: 'Place 2' }))
+    expect(within(places).getByRole('button', { name: 'Place 2' })).toHaveAttribute('aria-pressed', 'true')
 
     // Coins for Premium Coins: 2 × 100.
     const amount = screen.getByLabelText('Premium Coins to get')
@@ -60,7 +62,7 @@ describe('Base Camp (V1)', () => {
     expect(screen.getByText('Costs 200 coins')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Exchange' }))
     expect(within(shop).getByRole('status')).toHaveTextContent('You got 2 Premium Coins.')
-    expect(readSave()?.state).toMatchObject({ coins: 80, premiumCoins: 2, camp: { owned: ['bench'], using: ['bench'] } })
+    expect(readSave()?.state).toMatchObject({ coins: 80, premiumCoins: 2, camp: { owned: ['bench'], using: [], slots: { 'exterior:2': 'bench' } } })
 
     await user.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()

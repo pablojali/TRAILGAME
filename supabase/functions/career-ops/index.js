@@ -641,10 +641,10 @@ function buyItem(state, itemId, confirmedPrice) {
 }
 
 // raw:src/data/basecamp.csv
-var basecamp_default = "# Base Camp (owner design, 16 November 2026). One row per piece of the player's cabin. Keep each id once and never rename it (saves use it).\n# scene: exterior or interior. kind: background (the whole scene behind), cabin (drawn over the background) or decor (seats, banners, flags\u2026, drawn over both).\n# level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.\n# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; every piece of a scene on the same canvas, 3200 x 1600).\n# action: what tapping the piece does (empty: nothing): enter (go inside), exit (go outside), gear (Equipment), look (Appearance), mailbox (congratulations and visits), training, races, career.\n# spot_x, spot_y (0-1 of the picture): where the action's button sits on the piece. Needed with an action, empty without one.\n# Free pieces (level 0, price 0) are shown from the start; the free ones of each scene must give the exterior an enter and the interior a gear action.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de\nlvl0-interior,interior,background,0,0,coins,lvl0_interior,gear,0.73,0.62,Cabin living room,Sal\xF3n de la caba\xF1a,Salon du chalet,Soggiorno della baita,Wohnraum der H\xFCtte\nexterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,Beach Camp,Refugio de Playa,,,\nexterior-2,exterior,background,0,0,coins,exterior_2,enter,0.36,0.56,Desert Camp,Refugio Desierto,,,\nexterior-3,exterior,background,0,0,coins,exterior_3,enter,0.36,0.56,Lake Camp,Refugio Lago,,,\nexterior-4,exterior,background,0,0,coins,exterior_4,enter,0.36,0.56,Mountain Camp,Refugio Monta\xF1a,,,\nexterior-5,exterior,background,1,0,coins,exterior_5,enter,0.36,0.56,River Camp,Refugio Rio,,,\n";
+var basecamp_default = "# Base Camp (owner design, 16 November 2026). One row per piece of the player's cabin. Keep each id once and never rename it (saves use it).\n# scene: exterior or interior. kind: background (the whole scene behind), cabin (drawn over the background) or decor (seats, banners, flags\u2026, drawn over both).\n# level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.\n# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; every piece of a scene on the same canvas, 3200 x 1600).\n# action: what tapping the piece does (empty: nothing): enter (go inside), exit (go outside), gear (Equipment), look (Appearance), mailbox (congratulations and visits), training, races, career.\n# spot_x, spot_y (0-1 of the picture): where the action's button sits (backgrounds and cabins). Decor carries its button on itself.\n# slots (backgrounds): up to 4 places for decor, x:y:scale separated by | (x, y: 0-1 of the picture, where the object stands; scale: its size there, 1 = normal).\n# size (decor): the object's height as a share of the picture's height at scale 1 (e.g. 0.2). Decor is a cut-out PNG the player places in a slot.\n# Free pieces (level 0, price 0) are shown from the start; the free ones of each scene must give the exterior an enter and the interior a gear action.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,name,name_es,name_fr,name_it,name_de\nlvl0-interior,interior,background,0,0,coins,lvl0_interior,gear,0.73,0.62,,,Cabin living room,Sal\xF3n de la caba\xF1a,Salon du chalet,Soggiorno della baita,Wohnraum der H\xFCtte\nexterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,,,Beach Camp,Refugio de Playa,,,\nexterior-2,exterior,background,0,0,coins,exterior_2,enter,0.36,0.56,,,Desert Camp,Refugio Desierto,,,\nexterior-3,exterior,background,0,0,coins,exterior_3,enter,0.36,0.56,,,Lake Camp,Refugio Lago,,,\nexterior-4,exterior,background,0,0,coins,exterior_4,enter,0.36,0.56,,,Mountain Camp,Refugio Monta\xF1a,,,\nexterior-5,exterior,background,1,0,coins,exterior_5,enter,0.36,0.56,,,River Camp,Refugio Rio,,,\n";
 
 // raw:src/data/basecamp_exclusive.csv
-var basecamp_exclusive_default = "# Base Camp pieces never for sale (owner request, 16 November 2026): the admin's own refuge. Same columns as basecamp.csv.\n# Not edited in Trail Studio. The server gives these pieces to the admins (major_admins) when their career is created or saved; nobody else can buy or use them.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de\n";
+var basecamp_exclusive_default = "# Base Camp pieces never for sale (owner request, 16 November 2026): the admin's own refuge. Same columns as basecamp.csv.\n# Not edited in Trail Studio. The server gives these pieces to the admins (major_admins) when their career is created or saved; nobody else can buy or use them.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,name,name_es,name_fr,name_it,name_de\n";
 
 // src/domain/basecamp/catalog.ts
 var CAMP_ACTIONS = ["enter", "exit", "gear", "look", "mailbox", "training", "races", "career"];
@@ -652,6 +652,7 @@ var ESSENTIAL_ACTION = { exterior: "enter", interior: "gear" };
 var CAMP_SCENES = ["exterior", "interior"];
 var CAMP_KINDS = ["background", "cabin", "decor"];
 var CURRENCIES = ["coins", "premium"];
+var MAX_SLOTS = 4;
 var ID = /^[a-z0-9][a-z0-9-]*$/;
 var ART = /^[a-z0-9][a-z0-9_-]*$/;
 function parseCampCatalog(text, options = {}) {
@@ -680,11 +681,30 @@ function parseCampCatalog(text, options = {}) {
       if (!CAMP_ACTIONS.includes(row.action)) throw new Error(`${where}: unknown action "${row.action}" (${CAMP_ACTIONS.join(", ")})`);
       item.action = row.action;
     }
-    if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`);
+    if (kind === "decor") {
+      if (item.spot) throw new Error(`${where}: decor has no spot_x and spot_y (its button sits on the object)`);
+      item.size = row.size ? csvNumber(row.size, where) : 0.2;
+      if (!(item.size >= 0.02 && item.size <= 0.9)) throw new Error(`${where}: size goes from 0.02 to 0.9 (share of the picture's height)`);
+    } else {
+      if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`);
+      if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`);
+      if (row.size) throw new Error(`${where}: only decor has a size`);
+    }
     if (kind === "background" && item.action !== ESSENTIAL_ACTION[scene]) {
       throw new Error(`${where}: a ${scene} background needs the ${ESSENTIAL_ACTION[scene]} action and its spot`);
     }
-    if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`);
+    if (row.slots) {
+      if (kind !== "background") throw new Error(`${where}: only backgrounds have slots`);
+      const slots = row.slots.split("|").map((part) => {
+        const [x, y, scale] = part.split(":").map(Number);
+        if (![x, y].every((n) => Number.isFinite(n) && n >= 0 && n <= 1) || !(Number.isFinite(scale) && scale >= 0.2 && scale <= 3)) {
+          throw new Error(`${where}: each slot is x:y:scale (x and y from 0 to 1, scale from 0.2 to 3)`);
+        }
+        return { x, y, scale };
+      });
+      if (slots.length > MAX_SLOTS) throw new Error(`${where}: at most ${MAX_SLOTS} slots`);
+      item.slots = slots;
+    }
     const names = {};
     for (const language of ITEM_LANGUAGES) if (row[`name_${language}`]) names[language] = row[`name_${language}`];
     if (Object.keys(names).length) item.names = names;
@@ -722,6 +742,12 @@ var BY_ID = new Map(CAMP_ITEMS.map((item) => [item.id, item]));
 function getCampItem(id) {
   return BY_ID.get(id);
 }
+function campItems(scene, kind) {
+  return CAMP_ITEMS.filter((item) => item.scene === scene && (kind === void 0 || item.kind === kind));
+}
+function defaultBackground(scene) {
+  return campItems(scene, "background").find(isFreeFromStart);
+}
 
 // raw:src/data/economy.csv
 var economy_default = "# Economy (owner decision, 16 November 2026). One row per value.\n# coins_per_premium: credits (coins) a player pays for 1 Premium Coin. The exchange goes one way only, coins to Premium.\nkey,value\ncoins_per_premium,100\n";
@@ -747,6 +773,41 @@ function premiumOf(state) {
 function ownsCampItem(state, item) {
   return isFreeFromStart(item) || campOf(state).owned.includes(item.id);
 }
+var slotKey = (scene, slot) => `${scene}:${slot}`;
+function campPlacements(state, scene, background) {
+  const camp = campOf(state);
+  const slots = background.slots ?? [];
+  const taken = /* @__PURE__ */ new Map();
+  const placed = /* @__PURE__ */ new Set();
+  for (let n = 1; n <= MAX_SLOTS; n++) {
+    const item = getCampItem(camp.slots?.[slotKey(scene, n)] ?? "");
+    if (item && item.scene === scene && item.kind === "decor" && ownsCampItem(state, item)) {
+      placed.add(item.id);
+      if (n <= slots.length) taken.set(n, item);
+    }
+  }
+  const off = new Set(camp.off ?? []);
+  for (const item of campItems(scene, "decor")) {
+    if (!isFreeFromStart(item) || off.has(item.id) || placed.has(item.id)) continue;
+    const empty = slots.findIndex((_, i) => !taken.has(i + 1));
+    if (empty === -1) break;
+    taken.set(empty + 1, item);
+  }
+  return [...taken.entries()].sort(([a], [b]) => a - b).map(([slot, item]) => ({ item, slot, at: slots[slot - 1] }));
+}
+function campScene(state, scene) {
+  const camp = campOf(state);
+  const using = new Set(camp.using);
+  const off = new Set(camp.off ?? []);
+  const items = campItems(scene);
+  const pick = (kind) => {
+    const all = items.filter((item) => item.kind === kind);
+    return all.find((item) => using.has(item.id) && ownsCampItem(state, item)) ?? all.find((item) => isFreeFromStart(item) && !off.has(item.id)) ?? null;
+  };
+  const background = pick("background") ?? defaultBackground(scene);
+  const placed = campPlacements(state, scene, background);
+  return { background, cabin: pick("cabin"), decor: placed.map((p) => p.item), placed };
+}
 function buyCampItem(state, itemId, confirmed) {
   const item = getCampItem(itemId);
   if (!item) return { ok: false, error: "unknown-item" };
@@ -755,7 +816,7 @@ function buyCampItem(state, itemId, confirmed) {
   if (getLevel(state.athlete.xp) < item.level) return { ok: false, error: "level-locked" };
   if (item.price !== confirmed.price || item.currency !== confirmed.currency) return { ok: false, error: "price-changed" };
   const camp = campOf(state);
-  const next = { ...state, camp: { owned: [...camp.owned, item.id], using: [...camp.using] } };
+  const next = { ...state, camp: { ...camp, owned: [...camp.owned, item.id], using: [...camp.using] } };
   if (item.currency === "coins") {
     if (item.price > state.coins) return { ok: false, error: "insufficient-coins" };
     next.coins = state.coins - item.price;
@@ -765,25 +826,41 @@ function buyCampItem(state, itemId, confirmed) {
   }
   return { ok: true, state: next };
 }
-function setCampItemUsed(state, itemId, used) {
+function setCampItemUsed(state, itemId, used, slot) {
   const item = getCampItem(itemId);
   if (!item) return { ok: false, error: "unknown-item" };
   if (!ownsCampItem(state, item)) return { ok: false, error: "not-owned" };
   const camp = campOf(state);
+  let off = (camp.off ?? []).filter((id) => id !== item.id);
+  if (!used && isFreeFromStart(item) && item.kind !== "background") off = [...off, item.id];
+  const finish = (next) => {
+    const result = { owned: [...next.owned], using: [...next.using] };
+    if (off.length) result.off = off;
+    if (next.slots && Object.keys(next.slots).length) result.slots = { ...next.slots };
+    return { ok: true, state: { ...state, camp: result } };
+  };
+  if (item.kind === "decor") {
+    const slots = Object.fromEntries(Object.entries(camp.slots ?? {}).filter(([, id]) => id !== item.id));
+    if (!used) return finish({ ...camp, slots });
+    const shown = campScene(state, item.scene);
+    const count = shown.background.slots?.length ?? 0;
+    let target = slot;
+    if (target === void 0) {
+      const busy = new Set(shown.placed.filter((p) => p.item.id !== item.id).map((p) => p.slot));
+      target = Array.from({ length: count }, (_, i) => i + 1).find((n) => !busy.has(n));
+      if (target === void 0) return { ok: false, error: "no-slot" };
+    }
+    if (!Number.isInteger(target) || target < 1 || target > count) return { ok: false, error: "bad-slot" };
+    slots[slotKey(item.scene, target)] = item.id;
+    return finish({ ...camp, slots });
+  }
   const replaces = (id) => {
     const other = getCampItem(id);
-    return item.kind !== "decor" && !!other && other.scene === item.scene && other.kind === item.kind;
+    return !!other && other.scene === item.scene && other.kind === item.kind;
   };
   const using = camp.using.filter((id) => id !== item.id && !(used && replaces(id)));
-  let off = (camp.off ?? []).filter((id) => id !== item.id);
-  if (used) {
-    using.push(item.id);
-  } else if (isFreeFromStart(item) && item.kind !== "background") {
-    off = [...off, item.id];
-  }
-  const next = { owned: [...camp.owned], using };
-  if (off.length) next.off = off;
-  return { ok: true, state: { ...state, camp: next } };
+  if (used) using.push(item.id);
+  return finish({ ...camp, using });
 }
 function exchangePremium(state, amount, confirmedRate) {
   if (!Number.isInteger(amount) || amount < 1 || amount > MAX_EXCHANGE) return { ok: false, error: "bad-amount" };
@@ -806,8 +883,21 @@ function parseCampState(value) {
     if (item.kind !== "decor" && using.some((u) => getCampItem(u).scene === item.scene && getCampItem(u).kind === item.kind)) continue;
     using.push(id);
   }
+  const slots = {};
+  if (raw.slots !== void 0 && typeof raw.slots === "object" && raw.slots !== null) {
+    for (const [key, id] of Object.entries(raw.slots)) {
+      const match = /^(exterior|interior):([1-4])$/.exec(key);
+      const item = typeof id === "string" ? getCampItem(id) : void 0;
+      if (!match || !item || item.kind !== "decor" || item.scene !== match[1] || Object.values(slots).includes(item.id)) continue;
+      if (!owned.includes(item.id) && !isFreeFromStart(item)) continue;
+      slots[key] = item.id;
+    }
+  }
   const off = Array.isArray(raw.off) ? [...new Set(raw.off.filter((id) => typeof id === "string" && !!getCampItem(id) && isFreeFromStart(getCampItem(id)) && getCampItem(id).kind !== "background"))] : [];
-  return off.length ? { owned, using, off } : { owned, using };
+  const parsed = { owned, using };
+  if (off.length) parsed.off = off;
+  if (Object.keys(slots).length) parsed.slots = slots;
+  return parsed;
 }
 function withExclusivePieces(state) {
   const camp = campOf(state);
@@ -2948,7 +3038,7 @@ function compute(request, career, now) {
       return { ok: true, state: bought.state };
     }
     case "camp-use": {
-      const changed = setCampItemUsed(career, request.itemId, request.used);
+      const changed = setCampItemUsed(career, request.itemId, request.used, request.slot);
       if (!changed.ok) return { ok: false, error: changed.error };
       return { ok: true, state: changed.state };
     }
@@ -2989,7 +3079,7 @@ function validRequest(body) {
     case "camp-buy":
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.itemId === "string" && Number.isInteger(request.price) && (request.currency === "coins" || request.currency === "premium");
     case "camp-use":
-      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.itemId === "string" && typeof request.used === "boolean";
+      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.itemId === "string" && typeof request.used === "boolean" && (request.slot === void 0 || Number.isInteger(request.slot) && request.slot >= 1 && request.slot <= 4);
     case "premium-exchange":
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && Number.isInteger(request.amount) && Number.isInteger(request.rate);
     case "save":

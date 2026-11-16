@@ -20,10 +20,23 @@ const campOutputFolder = (scene: CampScene) => `assets/ui/basecamp/${scene}`
 /** The house is part of each background (owner, 16 November 2026): cabins only for old rows. */
 const KINDS = [
   { value: 'background', label: 'Fondo con la casa (toda la escena)' },
-  { value: 'decor', label: 'Agregado (buzón, banners, banderas…)' },
+  { value: 'decor', label: 'Objeto (buzón, banderas…): el jugador lo pone en un hueco' },
 ]
+/** Most objects' pictures are cut-outs, not on the canvas: their biggest side. */
+const MAX_OBJECT_SIDE = 2400
+
+type Slot = { x: number; y: number; scale: number }
+const readSlots = (text: string | undefined): Slot[] =>
+  (text ?? '')
+    .split('|')
+    .filter(Boolean)
+    .map((part) => {
+      const [x, y, scale] = part.split(':').map(Number)
+      return { x: x ?? 0.5, y: y ?? 0.8, scale: scale ?? 1 }
+    })
+const writeSlots = (slots: Slot[]) => slots.map((sl) => `${+sl.x.toFixed(3)}:${+sl.y.toFixed(3)}:${+sl.scale.toFixed(2)}`).join('|')
 const CABIN_KIND = { value: 'cabin', label: 'Cabaña (sobre el fondo)' }
-const KIND_LABEL: Record<string, string> = { background: 'Fondo', cabin: 'Cabaña', decor: 'Agregado' }
+const KIND_LABEL: Record<string, string> = { background: 'Fondo', cabin: 'Cabaña', decor: 'Objeto' }
 const CURRENCIES = [
   { value: 'coins', label: 'Créditos (monedas)' },
   { value: 'premium', label: 'Premium Coins' },
@@ -85,6 +98,8 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
   const sceneRows = rows(doc).filter((r) => r.values.scene === scene)
   const [selected, select] = useState<string | null>(null)
   const [error, setError] = useState('')
+  /** What a click on a background's preview places: its door (0) or slot 1 to 4. */
+  const [target, setTarget] = useState(0)
   const sources = useFolder(token, campSourceFolder(scene))
   const outputs = useFolder(token, campOutputFolder(scene))
   const current = sceneRows.find((r) => r.values.id === selected) ?? sceneRows[0]
@@ -101,7 +116,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
   /** The free pieces drawn with the one being edited, so it is seen in its place. */
   const freeLayers = (values: Record<string, string>) =>
     sceneRows
-      .filter((r) => r.values.kind !== 'background' && isFree(r.values) && r.values.id !== values.id && !(values.kind === 'cabin' && r.values.kind === 'cabin'))
+      .filter((r) => r.values.kind === 'cabin' && isFree(r.values) && r.values.id !== values.id && values.kind !== 'cabin')
       .map((r) => pictureOf(r.values))
       .filter((url): url is string => !!url)
 
@@ -141,10 +156,16 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
     if (!(EXTENSIONS as readonly string[]).includes(ext)) return setError('Tiene que ser PNG, JPG o WebP (PNG con transparencia para cabañas y agregados).')
     if (file.size > MAX_BYTES) return setError(`${megabytes(file.size)} es demasiado (máximo ${megabytes(MAX_BYTES)}).`)
     const { width, height } = await imageSize(file)
-    if (width !== CAMP_CANVAS.width || height !== CAMP_CANVAS.height) {
-      return setError(`Tiene que medir ${CAMP_CANVAS.width} × ${CAMP_CANVAS.height} px (esta mide ${width} × ${height}).`)
+    if (values.kind === 'decor') {
+      // An object is a cut-out: any size up to MAX_OBJECT_SIDE, transparent.
+      if (ext !== 'png' && ext !== 'webp') return setError('Un objeto va en PNG con fondo transparente, recortado.')
+      if (Math.max(width, height) > MAX_OBJECT_SIDE) return setError(`Como mucho ${MAX_OBJECT_SIDE} px por lado (esta mide ${width} × ${height}).`)
+    } else {
+      if (width !== CAMP_CANVAS.width || height !== CAMP_CANVAS.height) {
+        return setError(`Tiene que medir ${CAMP_CANVAS.width} × ${CAMP_CANVAS.height} px (esta mide ${width} × ${height}).`)
+      }
+      if (values.kind !== 'background' && ext !== 'png' && ext !== 'webp') return setError('Las cabañas van en PNG con fondo transparente.')
     }
-    if (values.kind !== 'background' && ext !== 'png' && ext !== 'webp') return setError('Cabañas y agregados van en PNG con fondo transparente.')
     const extension = ext === 'jpeg' ? 'jpg' : ext
     const path = `${campSourceFolder(scene)}/${values.art}.${extension}`
     // The same picture with another extension is replaced, so only one source remains.
@@ -204,20 +225,73 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
             </div>
           </div>
 
-          <CampPreview
-            background={v.kind === 'background' ? pictureOf(v) : backgroundRow && pictureOf(backgroundRow.values)}
-            layers={[...(v.kind === 'background' ? [] : freeLayers(v)), ...(v.kind === 'background' ? freeLayers(v) : []), ...(v.kind === 'background' ? [] : [pictureOf(v)])].filter(
-              (url): url is string => !!url,
-            )}
-            spot={v.action && v.spot_x !== '' && v.spot_y !== '' ? { x: Number(v.spot_x), y: Number(v.spot_y) } : null}
-            onPick={v.action ? ({ x, y }) => setPiece({ spot_x: x.toFixed(3), spot_y: y.toFixed(3) }) : undefined}
-          />
-          <p className="hint">
-            {v.action
-              ? 'Haz clic en la imagen para colocar el botón de la acción.'
-              : 'Sin acción: la pieza solo decora. Elige una acción para que al tocarla haga algo.'}{' '}
-            Las piezas gratis de la escena tienen que incluir «{ESSENTIAL[scene]}».
-          </p>
+          {v.kind === 'decor' ? (
+            <CampPreview
+              background={backgroundRow && pictureOf(backgroundRow.values)}
+              layers={[]}
+              objects={(() => {
+                // The object in slot 1 of the scene's free background (or low in the middle).
+                const at = readSlots(backgroundRow?.values.slots)[0] ?? { x: 0.5, y: 0.9, scale: 1 }
+                const url = pictureOf(v)
+                return url ? [{ url, ...at, height: (Number(v.size) || 0.2) * at.scale }] : []
+              })()}
+              marks={[]}
+            />
+          ) : (
+            <CampPreview
+              background={v.kind === 'background' ? pictureOf(v) : backgroundRow && pictureOf(backgroundRow.values)}
+              layers={[...freeLayers(v), ...(v.kind === 'background' ? [] : [pictureOf(v)])].filter((url): url is string => !!url)}
+              objects={(() => {
+                // The free objects fill the slots in order, as a new player sees them.
+                if (v.kind !== 'background') return []
+                const slots = readSlots(v.slots)
+                const free = sceneRows.filter((r) => r.values.kind === 'decor' && isFree(r.values))
+                return free.slice(0, slots.length).flatMap((r, i) => {
+                  const url = pictureOf(r.values)
+                  const at = slots[i]!
+                  return url ? [{ url, x: at.x, y: at.y, height: (Number(r.values.size) || 0.2) * at.scale }] : []
+                })
+              })()}
+              marks={[
+                ...(v.action && v.spot_x !== '' && v.spot_y !== '' ? [{ label: '🚪', x: Number(v.spot_x), y: Number(v.spot_y), on: target === 0 }] : []),
+                ...(v.kind === 'background' ? readSlots(v.slots).map((sl, i) => ({ label: String(i + 1), x: sl.x, y: sl.y, on: target === i + 1 })) : []),
+              ]}
+              onPick={({ x, y }) => {
+                if (v.kind === 'background' && target > 0) {
+                  const slots = readSlots(v.slots)
+                  slots[target - 1] = { x, y, scale: slots[target - 1]?.scale ?? 1 }
+                  setPiece({ slots: writeSlots(slots) })
+                } else if (v.action) {
+                  setPiece({ spot_x: x.toFixed(3), spot_y: y.toFixed(3) })
+                }
+              }}
+            />
+          )}
+          {v.kind === 'background' ? (
+            <>
+              <div className="chips" role="group" aria-label="Qué colocas con un clic">
+                {[0, 1, 2, 3, 4].map((n) => (
+                  <button key={n} type="button" aria-pressed={target === n} onClick={() => setTarget(n)} disabled={n > readSlots(v.slots).length + 1}>
+                    {n === 0 ? `Puerta («${ESSENTIAL[scene]}»)` : `Hueco ${n}`}
+                  </button>
+                ))}
+              </div>
+              <p className="hint">
+                Elige qué colocas y haz clic en la imagen: la puerta, o un hueco donde el jugador puede poner objetos (buzón, banderas…). Cada hueco es el punto
+                donde el objeto se apoya (su base) y tiene un tamaño: más pequeño lejos, más grande cerca. Hasta 4 huecos, numerados igual en todos los
+                fondos.
+              </p>
+            </>
+          ) : (
+            <p className="hint">
+              {v.kind === 'decor'
+                ? 'El objeto se ve en el hueco 1 del fondo gratis. En el juego, cada jugador elige en qué hueco lo pone; si tiene acción, su botón va sobre el objeto.'
+                : v.action
+                  ? 'Haz clic en la imagen para colocar el botón de la acción.'
+                  : 'Sin acción: la pieza solo decora.'}{' '}
+              Las piezas gratis de la escena tienen que incluir «{ESSENTIAL[scene]}».
+            </p>
+          )}
           {rowError(doc, v) && <p className="error">El juego no aceptaría esta pieza: {rowError(doc, v)}</p>}
 
           <h3>Pieza</h3>
@@ -228,7 +302,13 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
               options={v.kind === 'cabin' ? [...KINDS, CABIN_KIND] : KINDS}
               onChange={(kind) =>
                 // A background always has the scene's door (or gear bench): its spot shows at once.
-                setPiece(kind === 'background' ? { kind, action: ESSENTIAL_ACTION[scene]!, spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5' } : { kind })
+                setPiece(
+                  kind === 'background'
+                    ? { kind, action: ESSENTIAL_ACTION[scene]!, spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5', size: '' }
+                    : kind === 'decor'
+                      ? { kind, spot_x: '', spot_y: '', slots: '', size: v.size || '0.2' }
+                      : { kind, slots: '', size: '' },
+                )
               }
             />
             {v.kind === 'background' ? (
@@ -240,19 +320,74 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
                 label="Acción al tocarla"
                 value={v.action ?? ''}
                 options={ACTIONS}
-                onChange={(action) => setPiece(action ? { action, spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5' } : { action, spot_x: '', spot_y: '' })}
+                onChange={(action) =>
+                  // An object carries its button on itself; a cabin's button is placed on the picture.
+                  setPiece(v.kind === 'decor' || !action ? { action, spot_x: '', spot_y: '' } : { action, spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5' })
+                }
               />
             )}
             <NumberField label="Nivel del jugador" value={v.level!} min={0} onChange={(x) => setPiece({ level: x })} hint="Desde qué nivel se puede comprar" />
             <NumberField label="Precio" value={v.price!} min={0} onChange={(x) => setPiece({ price: x })} hint="0 con nivel 0: la tienen todos" />
             <SelectField label="Moneda" value={v.currency || 'coins'} options={CURRENCIES} onChange={(x) => setPiece({ currency: x })} />
-            {v.action && (
+            {v.kind === 'decor' && (
+              <NumberField
+                label="Altura en la escena (%)"
+                value={v.size ? String(Math.round(Number(v.size) * 1000) / 10) : ''}
+                step={1}
+                min={2}
+                max={90}
+                onChange={(x) => setPiece({ size: x === '' ? '' : String(Math.round(Number(x) * 10) / 1000) })}
+                hint="Alto del objeto respecto del alto de la imagen, en un hueco de tamaño 1"
+              />
+            )}
+            {v.kind === 'background' &&
+              readSlots(v.slots).map((sl, i) => (
+                <Field key={i} label={`Hueco ${i + 1}`} hint={`x ${sl.x.toFixed(2)} · y ${sl.y.toFixed(2)}`}>
+                  {(id) => (
+                    <div className="inputRow">
+                      <input
+                        id={id}
+                        type="number"
+                        step={0.1}
+                        min={0.2}
+                        max={3}
+                        value={sl.scale}
+                        aria-label={`Tamaño del hueco ${i + 1}`}
+                        onChange={(e) => {
+                          const slots = readSlots(v.slots)
+                          slots[i] = { ...slots[i]!, scale: Number(e.target.value) || 1 }
+                          setPiece({ slots: writeSlots(slots) })
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="ghost small"
+                        onClick={() => {
+                          setPiece({ slots: writeSlots(readSlots(v.slots).filter((_, j) => j !== i)) })
+                          setTarget(0)
+                        }}
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  )}
+                </Field>
+              ))}
+            {v.action && v.kind !== 'decor' && (
               <>
                 <NumberField label="Punto: x (0–1)" value={v.spot_x ?? ''} step={0.01} min={0} max={1} onChange={(x) => setPiece({ spot_x: x })} />
                 <NumberField label="Punto: y (0–1)" value={v.spot_y ?? ''} step={0.01} min={0} max={1} onChange={(x) => setPiece({ spot_y: x })} />
               </>
             )}
-            <Field label="Imagen" hint={`${CAMP_CANVAS.width} × ${CAMP_CANVAS.height} px. Se convierte sola al publicar la propuesta.`} wide>
+            <Field
+              label="Imagen"
+              hint={
+                v.kind === 'decor'
+                  ? `PNG recortado con fondo transparente, hasta ${MAX_OBJECT_SIDE} px por lado. Se convierte solo al publicar la propuesta.`
+                  : `${CAMP_CANVAS.width} × ${CAMP_CANVAS.height} px. Se convierte sola al publicar la propuesta.`
+              }
+              wide
+            >
               {() => (
                 <>
                   <div className="inputRow">
@@ -313,16 +448,19 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
   )
 }
 
-/** The scene as a new player sees it, with the piece in its place and its action's button. */
+/** The scene as a new player sees it: the piece in its place, its door and slots marked. */
 function CampPreview({
   background,
   layers,
-  spot,
+  objects,
+  marks,
   onPick,
 }: {
   background?: string
   layers: string[]
-  spot: { x: number; y: number } | null
+  /** Objects standing on a point (their base), `height` as a share of the picture's height. */
+  objects: { url: string; x: number; y: number; height: number }[]
+  marks: { label: string; x: number; y: number; on: boolean }[]
   onPick?(spot: { x: number; y: number }): void
 }) {
   return (
@@ -338,7 +476,14 @@ function CampPreview({
       {layers.map((url) => (
         <img key={url} src={url} alt="" />
       ))}
-      {spot && <span className="campSpot" style={{ left: `${spot.x * 100}%`, top: `${spot.y * 100}%` }} />}
+      {objects.map((o) => (
+        <img key={o.url} className="campObject" src={o.url} alt="" style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, height: `${o.height * 100}%` }} />
+      ))}
+      {marks.map((m) => (
+        <span key={m.label} className={`campSpot${m.on ? ' on' : ''}`} style={{ left: `${m.x * 100}%`, top: `${m.y * 100}%` }}>
+          {m.label}
+        </span>
+      ))}
     </div>
   )
 }

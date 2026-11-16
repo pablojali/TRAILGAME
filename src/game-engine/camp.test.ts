@@ -3,7 +3,7 @@ import { LEVEL_THRESHOLDS } from '../domain/athlete/levels'
 import { campItems, getCampItem } from '../domain/basecamp/catalog'
 import { parseGameState } from '../repositories/gameRepository'
 import { newGame, T0, withAthlete } from '../test/gameFixtures'
-import { buyCampItem, campScene, campSpots, exchangePremium, parseCampState, setCampItemUsed } from './camp'
+import { buyCampItem, campScene, campSlotOf, campSpots, exchangePremium, parseCampState, setCampItemUsed } from './camp'
 import type { GameState } from './gameState'
 
 const atLevel = (state: GameState, level: number) => withAthlete(state, { xp: LEVEL_THRESHOLDS.find((t) => t.level === level)!.minXp })
@@ -12,7 +12,9 @@ const rich = (level = 6): GameState => ({ ...atLevel(newGame(), level), coins: 1
 describe('Base Camp pieces', () => {
   it('shows the free background of each scene to a new career', () => {
     const state = newGame()
-    expect(campScene(state, 'exterior')).toEqual({ background: getCampItem('lvl0-exterior'), cabin: null, decor: [getCampItem('mailbox')] })
+    expect(campScene(state, 'exterior')).toMatchObject({ background: getCampItem('lvl0-exterior'), cabin: null, decor: [getCampItem('mailbox')] })
+    // The free mailbox stands in the first empty slot.
+    expect(campScene(state, 'exterior').placed.map((p) => [p.item.id, p.slot])).toEqual([['mailbox', 1]])
     expect(campScene(state, 'interior').background.id).toBe('lvl0-interior')
   })
 
@@ -40,35 +42,48 @@ describe('Base Camp pieces', () => {
     expect(bought.state.coins).toBe(1000)
   })
 
-  it('puts pieces in the scene: one background and one cabin, any decor', () => {
+  it('puts the background and cabin in use, and objects in the slots the player chooses', () => {
     let state = rich()
     for (const [id, price] of [['log-cabin', 150], ['lake-exterior', 200], ['flag', 40], ['bench', 20]] as const) {
       const bought = buyCampItem(state, id, { price, currency: 'coins' })
       if (!bought.ok) throw new Error(bought.error)
       state = bought.state
     }
-    for (const id of ['log-cabin', 'lake-exterior', 'flag', 'bench']) {
-      const used = setCampItemUsed(state, id, true)
-      if (!used.ok) throw new Error(used.error)
-      state = used.state
+    const step = (id: string, used: boolean, slot?: number) => {
+      const next = setCampItemUsed(state, id, used, slot)
+      if (!next.ok) throw new Error(next.error)
+      state = next.state
     }
-    const scene = campScene(state, 'exterior')
-    expect([scene.background.id, scene.cabin?.id, scene.decor.map((d) => d.id)]).toEqual(['lake-exterior', 'log-cabin', ['flag', 'bench', 'mailbox']])
-    // The free background replaces the bought one; taking the flag out leaves the bench.
-    const back = setCampItemUsed(state, 'lvl0-exterior', true)
-    const noFlag = back.ok && setCampItemUsed(back.state, 'flag', false)
-    if (!noFlag || !noFlag.ok) throw new Error('refused')
-    const after = campScene(noFlag.state, 'exterior')
-    expect([after.background.id, after.cabin?.id, after.decor.map((d) => d.id)]).toEqual(['lvl0-exterior', 'log-cabin', ['bench', 'mailbox']])
+    const slotsOf = () => campScene(state, 'exterior').placed.map((p) => [p.item.id, p.slot])
+    // The mountain background has three slots; the free mailbox stands in the first.
+    step('flag', true)
+    expect(slotsOf()).toEqual([['mailbox', 1], ['flag', 2]])
+    step('bench', true, 1)
+    // The bench takes slot 1; the free mailbox moves to the empty slot 3.
+    expect(slotsOf()).toEqual([['bench', 1], ['flag', 2], ['mailbox', 3]])
+    step('flag', true, 3)
+    expect(slotsOf()).toEqual([['bench', 1], ['mailbox', 2], ['flag', 3]])
+    expect(setCampItemUsed(state, 'bench', true, 4)).toEqual({ ok: false, error: 'bad-slot' })
+    step('mailbox', false)
+    expect(slotsOf()).toEqual([['bench', 1], ['flag', 3]])
+    expect(campSlotOf(state, getCampItem('flag')!)).toBe(3)
+    // A background without slots shows no objects; the slots come back with the mountain one.
+    step('log-cabin', true)
+    step('lake-exterior', true)
+    expect(campScene(state, 'exterior')).toMatchObject({ background: { id: 'lake-exterior' }, cabin: { id: 'log-cabin' }, placed: [] })
+    expect(setCampItemUsed(state, 'bench', true)).toEqual({ ok: false, error: 'no-slot' })
+    step('lvl0-exterior', true)
+    expect(slotsOf()).toEqual([['bench', 1], ['flag', 3]])
     expect(setCampItemUsed(rich(), 'flag', true)).toEqual({ ok: false, error: 'not-owned' })
     expect(setCampItemUsed(rich(), 'nope', true)).toEqual({ ok: false, error: 'unknown-item' })
   })
 
   it('gives every shown piece with an action its button, the door always there', () => {
-    const fresh = campSpots(newGame(), 'exterior').map((s) => [s.item.id, s.action, s.x, s.y])
+    // The mailbox's button sits on the object: slot 1 (0.6, 0.8), halfway up its 0.18 height.
+    const fresh = campSpots(newGame(), 'exterior').map((s) => [s.item.id, s.action, s.x, Number(s.y.toFixed(2))])
     expect(fresh).toEqual([
       ['lvl0-exterior', 'enter', 0.36, 0.52],
-      ['mailbox', 'mailbox', 0.7, 0.62],
+      ['mailbox', 'mailbox', 0.6, 0.71],
     ])
     // Each background has its own door; a cabin drawn over it moves the door.
     let state = rich()
@@ -79,16 +94,11 @@ describe('Base Camp pieces', () => {
     }
     const lake = setCampItemUsed(state, 'lake-exterior', true)
     if (!lake.ok) throw new Error(lake.error)
-    expect(campSpots(lake.state, 'exterior').map((s) => [s.item.id, s.action, s.x])).toEqual([
-      ['lake-exterior', 'enter', 0.5],
-      ['mailbox', 'mailbox', 0.7],
-    ])
+    // The lake has no slots: no mailbox there.
+    expect(campSpots(lake.state, 'exterior').map((s) => [s.item.id, s.action, s.x])).toEqual([['lake-exterior', 'enter', 0.5]])
     const cabin = setCampItemUsed(lake.state, 'log-cabin', true)
     if (!cabin.ok) throw new Error(cabin.error)
-    expect(campSpots(cabin.state, 'exterior').map((s) => [s.item.id, s.action])).toEqual([
-      ['log-cabin', 'enter'],
-      ['mailbox', 'mailbox'],
-    ])
+    expect(campSpots(cabin.state, 'exterior').map((s) => [s.item.id, s.action])).toEqual([['log-cabin', 'enter']])
     expect(campSpots(newGame(), 'interior').map((s) => s.action)).toEqual(['gear'])
   })
 
@@ -97,10 +107,9 @@ describe('Base Camp pieces', () => {
     if (!out.ok) throw new Error(out.error)
     expect(out.state.camp).toEqual({ owned: [], using: [], off: ['mailbox'] })
     expect(campScene(out.state, 'exterior').decor).toEqual([])
-    const back = setCampItemUsed(out.state, 'mailbox', true)
+    const back = setCampItemUsed(out.state, 'mailbox', true, 2)
     if (!back.ok) throw new Error(back.error)
-    expect(campScene(back.state, 'exterior').decor.map((d) => d.id)).toEqual(['mailbox'])
-    expect(parseCampState({ owned: [], using: [], off: ['mailbox', 'lvl0-exterior', 'flag', 'gone'] })).toEqual({ owned: [], using: [], off: ['mailbox'] })
+    expect(campScene(back.state, 'exterior').placed.map((p) => [p.item.id, p.slot])).toEqual([['mailbox', 2]])
   })
 
   it('exchanges coins for Premium Coins at the confirmed rate, one way', () => {
@@ -119,6 +128,11 @@ describe('Base Camp pieces', () => {
       using: ['log-cabin', 'lvl0-exterior'],
     })
     expect(parseCampState({ owned: 'x' })).toBeNull()
+    expect(parseCampState({ owned: [], using: [], off: ['mailbox', 'lvl0-exterior', 'flag', 'gone'] })).toEqual({ owned: [], using: [], off: ['mailbox'] })
+    // Saved slots: known decor of that scene, owned or free, once each.
+    expect(
+      parseCampState({ owned: ['flag'], using: [], slots: { 'exterior:1': 'flag', 'exterior:2': 'flag', 'exterior:3': 'bench', 'interior:1': 'mailbox', 'exterior:9': 'mailbox', 'exterior:4': 'mailbox' } }),
+    ).toEqual({ owned: ['flag'], using: [], slots: { 'exterior:1': 'flag', 'exterior:4': 'mailbox' } })
     const saved = JSON.parse(JSON.stringify({ ...rich(), camp: { owned: ['flag'], using: ['flag'] } }))
     expect(parseGameState(saved, T0)?.camp).toEqual({ owned: ['flag'], using: ['flag'] })
     expect(parseGameState(saved, T0)?.premiumCoins).toBe(10)

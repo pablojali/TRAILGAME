@@ -4,7 +4,7 @@ import { Coins, Premium } from '../../components/Coins'
 import { getLevel } from '../../domain/athlete/levels'
 import { CAMP_KINDS, campItemName, campItems, type CampItem, type CampScene } from '../../domain/basecamp/catalog'
 import { COINS_PER_PREMIUM, MAX_EXCHANGE } from '../../domain/economy/premium'
-import { isCampItemUsed, ownsCampItem, premiumOf, type CampBuyError, type CampUseError, type ExchangeError } from '../../game-engine/camp'
+import { campScene, campSlotOf, isCampItemUsed, ownsCampItem, premiumOf, type CampBuyError, type CampUseError, type ExchangeError } from '../../game-engine/camp'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './BaseCamp.module.css'
@@ -142,9 +142,11 @@ function Piece({
 
   return (
     <li className={styles.piece}>
-      {src ? <img src={src} alt="" loading="lazy" /> : <span className={styles.noArt}>{t('basecamp.shop.noArt')}</span>}
+      {src ? <img src={src} alt="" loading="lazy" className={item.kind === 'decor' ? styles.objectThumb : undefined} /> : <span className={styles.noArt}>{t('basecamp.shop.noArt')}</span>}
       <strong>{name}</strong>
-      {owned ? (
+      {owned && item.kind === 'decor' ? (
+        <SlotPicker item={item} name={name} busy={busy} run={run} />
+      ) : owned ? (
         <button
           type="button"
           className={styles.action}
@@ -179,5 +181,55 @@ function Piece({
         </>
       )}
     </li>
+  )
+}
+
+/**
+ * An object's places (owner request, 16 November 2026): the slots of the refuge shown, to put it
+ * in one, move it or take it out. The object already in a slot makes room.
+ */
+function SlotPicker({
+  item,
+  name,
+  busy,
+  run,
+}: {
+  item: CampItem
+  name: string
+  busy: string | null
+  run(key: string, action: () => Promise<string | CampError | null>, done: string): Promise<void>
+}) {
+  const { t } = useI18n()
+  const { state, setCampItemUsed } = useCareer()
+  const count = campScene(state, item.scene).background.slots?.length ?? 0
+  const current = campSlotOf(state, item)
+  if (count === 0) return <span className={styles.locked}>{t('basecamp.shop.noSlots')}</span>
+  return (
+    <div className={styles.slots} role="group" aria-label={t('basecamp.shop.where', { name })}>
+      {Array.from({ length: count }, (_, i) => i + 1).map((n) => (
+        <button
+          key={n}
+          type="button"
+          className={styles.slotChip}
+          aria-pressed={current === n}
+          aria-label={t('basecamp.shop.slot', { n })}
+          aria-disabled={busy !== null || undefined}
+          onClick={() => busy === null && current !== n && void run(item.id, () => setCampItemUsed(item.id, true, n), '')}
+        >
+          {n}
+        </button>
+      ))}
+      {current !== null && (
+        <button
+          type="button"
+          className={styles.slotRemove}
+          aria-disabled={busy !== null || undefined}
+          onClick={() => busy === null && void run(item.id, () => setCampItemUsed(item.id, false), '')}
+        >
+          {t('basecamp.shop.remove')}
+          <span className={styles.srOnly}> {name}</span>
+        </button>
+      )}
+    </div>
   )
 }

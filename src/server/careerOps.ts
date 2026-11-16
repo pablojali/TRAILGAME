@@ -5,6 +5,8 @@ import { setAppearance } from '../game-engine/appearance'
 import { allocateAttributePoint } from '../game-engine/attributes'
 import { applyFitnessDecay } from '../game-engine/fitnessDecay'
 import { buyItem, setItemEquipped } from '../game-engine/equipment'
+import { buyCampItem, exchangePremium, setCampItemUsed } from '../game-engine/camp'
+import type { Currency } from '../domain/basecamp/catalog'
 import { createInitialGameState, type AthleteIdentity, type GameState } from '../game-engine/gameState'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
 import { enterRace, startRace, stepRace } from '../game-engine/races'
@@ -72,6 +74,9 @@ export type OperationKind =
   | 'save'
   | 'new-career'
   | 'claim'
+  | 'camp-buy'
+  | 'camp-use'
+  | 'premium-exchange'
 
 interface WithSnapshot {
   /** The cloud version the client's snapshot is based on. */
@@ -106,6 +111,11 @@ export type CareerOpRequest =
   | ({ action: 'save'; snapshot: unknown } & WithSnapshot)
   /** Adds the Sunday Major results waiting for the player now (phase 5); nothing else changes. */
   | ({ action: 'claim'; operationId: string } & WithSnapshot)
+  /** Base Camp (16 November 2026): a piece bought at the price and currency the player saw. */
+  | ({ action: 'camp-buy'; operationId: string; itemId: string; price: number; currency: Currency } & WithSnapshot)
+  | ({ action: 'camp-use'; operationId: string; itemId: string; used: boolean } & WithSnapshot)
+  /** `amount` Premium Coins for coins, at the rate (coins per Premium Coin) the player saw. */
+  | ({ action: 'premium-exchange'; operationId: string; amount: number; rate: number } & WithSnapshot)
   | { action: 'new-career'; baseVersion: number | null; profile: ProfileId; identity: AthleteIdentity }
 
 export type CareerOpResponse =
@@ -253,6 +263,21 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       if (!entered.ok) return { ok: false, error: entered.error }
       return { ok: true, state: entered.state, result: { entry: entered.entry } }
     }
+    case 'camp-buy': {
+      const bought = buyCampItem(career, request.itemId, { price: request.price, currency: request.currency })
+      if (!bought.ok) return { ok: false, error: bought.error }
+      return { ok: true, state: bought.state }
+    }
+    case 'camp-use': {
+      const changed = setCampItemUsed(career, request.itemId, request.used)
+      if (!changed.ok) return { ok: false, error: changed.error }
+      return { ok: true, state: changed.state }
+    }
+    case 'premium-exchange': {
+      const exchanged = exchangePremium(career, request.amount, request.rate)
+      if (!exchanged.ok) return { ok: false, error: exchanged.error }
+      return { ok: true, state: exchanged.state }
+    }
     case 'claim':
       // The waiting Major results were already added to `career` (withMajorRewards).
       return { ok: true, state: career }
@@ -302,6 +327,19 @@ function validRequest(body: unknown): body is CareerOpRequest {
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.itemId === 'string' && typeof request.equipped === 'boolean'
     case 'enter-race':
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.raceId === 'string'
+    case 'camp-buy':
+      return (
+        base &&
+        typeof request.operationId === 'string' &&
+        UUID.test(request.operationId) &&
+        typeof request.itemId === 'string' &&
+        Number.isInteger(request.price) &&
+        (request.currency === 'coins' || request.currency === 'premium')
+      )
+    case 'camp-use':
+      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.itemId === 'string' && typeof request.used === 'boolean'
+    case 'premium-exchange':
+      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && Number.isInteger(request.amount) && Number.isInteger(request.rate)
     case 'save':
       return base && request.snapshot !== undefined
     case 'claim':

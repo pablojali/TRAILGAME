@@ -10,6 +10,8 @@ import { createInitialGameState, type AthleteIdentity, type CoachProgress, type 
 import type { Appearance } from '../../domain/athlete/appearance'
 import { setAppearance } from '../../game-engine/appearance'
 import { buyItem, setItemEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
+import { buyCampItem, exchangePremium, setCampItemUsed, type CampBuyError, type CampUseError, type ExchangeError } from '../../game-engine/camp'
+import type { Currency } from '../../domain/basecamp/catalog'
 import {
   enterRace,
   startRace,
@@ -551,6 +553,76 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
     [commit, currentState, ops, runServerOp, sync],
   )
 
+  const campBuy = useCallback(
+    async (itemId: string, confirmed: { price: number; currency: Currency }): Promise<CampBuyError | ServerError | null> => {
+      const state = currentState()
+      if (!state) return 'unknown-item'
+      if (ops) {
+        const response = await runServerOp(`camp-buy:${itemId}`, (operationId) => ({
+          action: 'camp-buy',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          itemId,
+          price: confirmed.price,
+          currency: confirmed.currency,
+        }))
+        return response.ok ? null : serverError<CampBuyError>(response.error)
+      }
+      const result = buyCampItem(state, itemId, confirmed)
+      if (!result.ok) return result.error
+      commit({ kind: 'playing', state: result.state })
+      return null
+    },
+    [commit, currentState, ops, runServerOp, sync],
+  )
+
+  const campUse = useCallback(
+    async (itemId: string, used: boolean): Promise<CampUseError | ServerError | null> => {
+      const state = currentState()
+      if (!state) return 'unknown-item'
+      if (ops) {
+        const response = await runServerOp(`camp-use:${itemId}:${used}`, (operationId) => ({
+          action: 'camp-use',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          itemId,
+          used,
+        }))
+        return response.ok ? null : serverError<CampUseError>(response.error)
+      }
+      const result = setCampItemUsed(state, itemId, used)
+      if (!result.ok) return result.error
+      commit({ kind: 'playing', state: result.state })
+      return null
+    },
+    [commit, currentState, ops, runServerOp, sync],
+  )
+
+  const exchange = useCallback(
+    async (amount: number, rate: number): Promise<ExchangeError | ServerError | null> => {
+      const state = currentState()
+      if (!state) return 'bad-amount'
+      if (ops) {
+        const response = await runServerOp(`premium-exchange:${amount}`, (operationId) => ({
+          action: 'premium-exchange',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          amount,
+          rate,
+        }))
+        return response.ok ? null : serverError<ExchangeError>(response.error)
+      }
+      const result = exchangePremium(state, amount, rate)
+      if (!result.ok) return result.error
+      commit({ kind: 'playing', state: result.state })
+      return null
+    },
+    [commit, currentState, ops, runServerOp, sync],
+  )
+
   const changeAppearance = useCallback(
     (appearance: Appearance) => {
       const state = currentState()
@@ -614,6 +686,9 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       stepRace: continueRace,
       setItemEquipped: equip,
       buyItem: buy,
+      buyCampItem: campBuy,
+      setCampItemUsed: campUse,
+      exchangePremium: exchange,
       setAppearance: changeAppearance,
       setCountry: changeCountry,
       setCoachProgress: changeCoachProgress,
@@ -643,6 +718,9 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       continueRace,
       equip,
       buy,
+      campBuy,
+      campUse,
+      exchange,
       changeAppearance,
       changeCountry,
       changeCoachProgress,

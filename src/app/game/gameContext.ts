@@ -1,3 +1,5 @@
+import type { Currency } from '../../domain/basecamp/catalog'
+import type { CampBuyError, CampUseError, ExchangeError } from '../../game-engine/camp'
 import type { AchievementEarned } from '../../game-engine/achievements'
 import { createContext, useContext } from 'react'
 import type { Appearance } from '../../domain/athlete/appearance'
@@ -93,6 +95,12 @@ export interface GameContextValue {
   buyItem(itemId: string, confirmedPrice: number): Promise<BuyError | ServerError | null>
   /** Puts an owned item on (replacing the same slot) or takes it off. Server-decided with Supabase. */
   setItemEquipped(itemId: string, equipped: boolean): Promise<EquipError | ServerError | null>
+  /** Buys a Base Camp piece at the price and currency the player saw. Server-decided with Supabase. */
+  buyCampItem(itemId: string, confirmed: { price: number; currency: Currency }): Promise<CampBuyError | ServerError | null>
+  /** Puts an owned Base Camp piece in its scene or takes it out. Server-decided with Supabase. */
+  setCampItemUsed(itemId: string, used: boolean): Promise<CampUseError | ServerError | null>
+  /** Exchanges coins for `amount` Premium Coins at `rate` coins each. Server-decided with Supabase. */
+  exchangePremium(amount: number, rate: number): Promise<ExchangeError | ServerError | null>
   /** Changes the runner's look. Options above the runner's level are refused. */
   setAppearance(appearance: Appearance): AppearanceError | null
   /** Changes the runner's country (ISO 3166-1 alpha-2). Unknown codes are refused. */

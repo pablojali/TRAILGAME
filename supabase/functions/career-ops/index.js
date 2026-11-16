@@ -640,6 +640,141 @@ function buyItem(state, itemId, confirmedPrice) {
   };
 }
 
+// raw:src/data/basecamp.csv
+var basecamp_default = "# Base Camp (owner design, 16 November 2026). One row per piece of the player's cabin. Keep each id once and never rename it (saves use it).\n# scene: exterior or interior. kind: background (the whole scene behind), cabin (drawn over the background) or decor (seats, banners, flags\u2026, drawn over both).\n# level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.\n# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; every piece of a scene on the same canvas, 3200 x 1600).\n# spot_x, spot_y (0-1 of the picture): where the door (exterior) or the gear bench (interior) is. Every background needs it; a cabin may move the door.\nid,scene,kind,level,price,currency,art,spot_x,spot_y,name,name_es,name_fr,name_it,name_de\nlvl0-exterior,exterior,background,0,0,coins,lvl0_exterior,0.36,0.52,Mountain cabin,Caba\xF1a de monta\xF1a,Chalet de montagne,Baita di montagna,Bergh\xFCtte\nlvl0-interior,interior,background,0,0,coins,lvl0_interior,0.73,0.62,Cabin living room,Sal\xF3n de la caba\xF1a,Salon du chalet,Soggiorno della baita,Wohnraum der H\xFCtte\n";
+
+// src/domain/basecamp/catalog.ts
+var CAMP_SCENES = ["exterior", "interior"];
+var CAMP_KINDS = ["background", "cabin", "decor"];
+var CURRENCIES = ["coins", "premium"];
+var ID = /^[a-z0-9][a-z0-9-]*$/;
+var ART = /^[a-z0-9][a-z0-9_-]*$/;
+function parseCampCatalog(text) {
+  const items = parseCsv(text).map((row, i) => {
+    const where = `basecamp.csv row ${i + 1} (${row.id || "no id"})`;
+    if (!row.id || !ID.test(row.id)) throw new Error(`${where}: the id must be lower case letters, digits and -`);
+    const scene = row.scene;
+    if (!CAMP_SCENES.includes(scene)) throw new Error(`${where}: scene must be exterior or interior`);
+    const kind = row.kind;
+    if (!CAMP_KINDS.includes(kind)) throw new Error(`${where}: kind must be background, cabin or decor`);
+    const currency = row.currency || "coins";
+    if (!CURRENCIES.includes(currency)) throw new Error(`${where}: currency must be coins or premium`);
+    const level = csvInt(row.level, where);
+    const price = csvInt(row.price, where);
+    if (level < 0 || price < 0) throw new Error(`${where}: level and price cannot be negative`);
+    if (!row.art || !ART.test(row.art)) throw new Error(`${where}: art must be a file name (lower case letters, digits, - and _)`);
+    const item = { id: row.id, scene, kind, level, price, currency, art: row.art, label: row.name || row.id };
+    if (row.spot_x || row.spot_y) {
+      const x = csvNumber(row.spot_x, where);
+      const y = csvNumber(row.spot_y, where);
+      if (x < 0 || x > 1 || y < 0 || y > 1) throw new Error(`${where}: spot_x and spot_y go from 0 to 1`);
+      item.spot = { x, y };
+    }
+    if (kind === "background" && !item.spot) throw new Error(`${where}: a background needs spot_x and spot_y`);
+    if (kind === "decor" && item.spot) throw new Error(`${where}: decor has no spot`);
+    const names = {};
+    for (const language of ITEM_LANGUAGES) if (row[`name_${language}`]) names[language] = row[`name_${language}`];
+    if (Object.keys(names).length) item.names = names;
+    return item;
+  });
+  const ids = /* @__PURE__ */ new Set();
+  for (const item of items) {
+    if (ids.has(item.id)) throw new Error(`basecamp.csv: id ${item.id} is repeated`);
+    ids.add(item.id);
+  }
+  for (const scene of CAMP_SCENES) {
+    if (!items.some((item) => item.scene === scene && item.kind === "background" && isFreeFromStart(item))) {
+      throw new Error(`basecamp.csv: the ${scene} needs a background with level 0 and price 0 (everyone's from the start)`);
+    }
+  }
+  return items;
+}
+function isFreeFromStart(item) {
+  return item.level === 0 && item.price === 0;
+}
+var CAMP_ITEMS = parseCampCatalog(basecamp_default);
+var BY_ID = new Map(CAMP_ITEMS.map((item) => [item.id, item]));
+function getCampItem(id) {
+  return BY_ID.get(id);
+}
+
+// raw:src/data/economy.csv
+var economy_default = "# Economy (owner decision, 16 November 2026). One row per value.\n# coins_per_premium: credits (coins) a player pays for 1 Premium Coin. The exchange goes one way only, coins to Premium.\nkey,value\ncoins_per_premium,100\n";
+
+// src/domain/economy/premium.ts
+function parseEconomy(text) {
+  const values = new Map(parseCsv(text).map((row) => [row.key, row.value]));
+  const coinsPerPremium = csvInt(values.get("coins_per_premium"), "economy.csv coins_per_premium");
+  if (coinsPerPremium < 1) throw new Error("economy.csv: coins_per_premium must be 1 or more");
+  return { coinsPerPremium };
+}
+var COINS_PER_PREMIUM = parseEconomy(economy_default).coinsPerPremium;
+var MAX_EXCHANGE = 1e3;
+
+// src/game-engine/camp.ts
+var EMPTY = { owned: [], using: [] };
+function campOf(state) {
+  return state.camp ?? EMPTY;
+}
+function premiumOf(state) {
+  return state.premiumCoins ?? 0;
+}
+function ownsCampItem(state, item) {
+  return isFreeFromStart(item) || campOf(state).owned.includes(item.id);
+}
+function buyCampItem(state, itemId, confirmed) {
+  const item = getCampItem(itemId);
+  if (!item) return { ok: false, error: "unknown-item" };
+  if (ownsCampItem(state, item)) return { ok: false, error: "already-owned" };
+  if (getLevel(state.athlete.xp) < item.level) return { ok: false, error: "level-locked" };
+  if (item.price !== confirmed.price || item.currency !== confirmed.currency) return { ok: false, error: "price-changed" };
+  const camp = campOf(state);
+  const next = { ...state, camp: { owned: [...camp.owned, item.id], using: [...camp.using] } };
+  if (item.currency === "coins") {
+    if (item.price > state.coins) return { ok: false, error: "insufficient-coins" };
+    next.coins = state.coins - item.price;
+  } else {
+    if (item.price > premiumOf(state)) return { ok: false, error: "insufficient-premium" };
+    next.premiumCoins = premiumOf(state) - item.price;
+  }
+  return { ok: true, state: next };
+}
+function setCampItemUsed(state, itemId, used) {
+  const item = getCampItem(itemId);
+  if (!item) return { ok: false, error: "unknown-item" };
+  if (!ownsCampItem(state, item)) return { ok: false, error: "not-owned" };
+  const camp = campOf(state);
+  const others = camp.using.filter((id) => {
+    if (id === item.id) return false;
+    const other = getCampItem(id);
+    return !(item.kind !== "decor" && other && other.scene === item.scene && other.kind === item.kind);
+  });
+  return { ok: true, state: { ...state, camp: { owned: [...camp.owned], using: used ? [...others, item.id] : others } } };
+}
+function exchangePremium(state, amount, confirmedRate) {
+  if (!Number.isInteger(amount) || amount < 1 || amount > MAX_EXCHANGE) return { ok: false, error: "bad-amount" };
+  if (confirmedRate !== COINS_PER_PREMIUM) return { ok: false, error: "rate-changed" };
+  const cost = amount * COINS_PER_PREMIUM;
+  if (cost > state.coins) return { ok: false, error: "insufficient-coins" };
+  return { ok: true, state: { ...state, coins: state.coins - cost, premiumCoins: premiumOf(state) + amount } };
+}
+function parseCampState(value) {
+  if (typeof value !== "object" || value === null) return null;
+  const raw = value;
+  if (!Array.isArray(raw.owned) || !Array.isArray(raw.using)) return null;
+  if (![...raw.owned, ...raw.using].every((id) => typeof id === "string")) return null;
+  const owned = [...new Set(raw.owned)].filter((id) => getCampItem(id) && !isFreeFromStart(getCampItem(id)));
+  const has = (id) => owned.includes(id) || isFreeFromStart(getCampItem(id));
+  const using = [];
+  for (const id of raw.using) {
+    const item = getCampItem(id);
+    if (!item || !has(id) || using.includes(id)) continue;
+    if (item.kind !== "decor" && using.some((u) => getCampItem(u).scene === item.scene && getCampItem(u).kind === item.kind)) continue;
+    using.push(id);
+  }
+  return { owned, using };
+}
+
 // src/domain/athlete/countries.ts
 var COUNTRY_CODES = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" ");
 var CODES = new Set(COUNTRY_CODES);
@@ -885,12 +1020,12 @@ function parseRaces(text) {
   return races.sort((x, y) => x.recommendedLevel - y.recommendedLevel || x.id.localeCompare(y.id));
 }
 var RACES = parseRaces(races_default);
-var BY_ID = new Map(RACES.map((race) => [race.id, race]));
+var BY_ID2 = new Map(RACES.map((race) => [race.id, race]));
 function getRace(id) {
-  return BY_ID.get(id);
+  return BY_ID2.get(id);
 }
 function isRaceId(value) {
-  return typeof value === "string" && BY_ID.has(value);
+  return typeof value === "string" && BY_ID2.has(value);
 }
 
 // src/domain/ranking/ranking.ts
@@ -2527,6 +2662,15 @@ function parseGameState(value, now) {
     activeRace,
     achievementLevelsRewarded: {}
   };
+  if (value.premiumCoins !== void 0) {
+    if (!isInt(value.premiumCoins, 0)) return null;
+    parsed.premiumCoins = value.premiumCoins;
+  }
+  if (value.camp !== void 0) {
+    const camp = parseCampState(value.camp);
+    if (!camp) return null;
+    parsed.camp = camp;
+  }
   parsed.achievementLevelsRewarded = rewarded === void 0 ? getReachedLevels(parsed) : { ...rewarded };
   const coach = parseCoachProgress(value.coach);
   if (coach) parsed.coach = coach;
@@ -2748,6 +2892,21 @@ function compute(request, career, now) {
       if (!entered.ok) return { ok: false, error: entered.error };
       return { ok: true, state: entered.state, result: { entry: entered.entry } };
     }
+    case "camp-buy": {
+      const bought = buyCampItem(career, request.itemId, { price: request.price, currency: request.currency });
+      if (!bought.ok) return { ok: false, error: bought.error };
+      return { ok: true, state: bought.state };
+    }
+    case "camp-use": {
+      const changed = setCampItemUsed(career, request.itemId, request.used);
+      if (!changed.ok) return { ok: false, error: changed.error };
+      return { ok: true, state: changed.state };
+    }
+    case "premium-exchange": {
+      const exchanged = exchangePremium(career, request.amount, request.rate);
+      if (!exchanged.ok) return { ok: false, error: exchanged.error };
+      return { ok: true, state: exchanged.state };
+    }
     case "claim":
       return { ok: true, state: career };
     default:
@@ -2777,6 +2936,12 @@ function validRequest(body) {
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.itemId === "string" && typeof request.equipped === "boolean";
     case "enter-race":
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.raceId === "string";
+    case "camp-buy":
+      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.itemId === "string" && Number.isInteger(request.price) && (request.currency === "coins" || request.currency === "premium");
+    case "camp-use":
+      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.itemId === "string" && typeof request.used === "boolean";
+    case "premium-exchange":
+      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && Number.isInteger(request.amount) && Number.isInteger(request.rate);
     case "save":
       return base && request.snapshot !== void 0;
     case "claim":

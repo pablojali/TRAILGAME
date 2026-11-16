@@ -5,7 +5,8 @@ import { setAppearance } from '../game-engine/appearance'
 import { allocateAttributePoint } from '../game-engine/attributes'
 import { applyFitnessDecay } from '../game-engine/fitnessDecay'
 import { buyItem, setItemEquipped } from '../game-engine/equipment'
-import { buyCampItem, exchangePremium, setCampItemUsed } from '../game-engine/camp'
+import { buyCampItem, exchangePremium, setCampItemUsed, withExclusivePieces } from '../game-engine/camp'
+import { EXCLUSIVE_IDS } from '../domain/basecamp/catalog'
 import type { Currency } from '../domain/basecamp/catalog'
 import { createInitialGameState, type AthleteIdentity, type GameState } from '../game-engine/gameState'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
@@ -54,6 +55,8 @@ export interface CareerOpsStore {
   majorRewards?(userId: string): Promise<{ id: string; payload: MajorRewardPayload }[]>
   /** Marks rewards as applied, once the career that holds them is saved. */
   markMajorRewards?(ids: string[]): Promise<void>
+  /** Whether the user is an admin (major_admins): admins get the exclusive Base Camp pieces. */
+  isAdmin?(userId: string): Promise<boolean>
 }
 
 export interface CareerOpsDeps {
@@ -199,6 +202,18 @@ async function pendingMajorRewards(deps: CareerOpsDeps, userId: string) {
     return []
   }
 }
+
+/** Whether the career gets the exclusive pieces (the admin's refuge): admins only, never on error. */
+async function isAdmin(deps: CareerOpsDeps, userId: string): Promise<boolean> {
+  if (EXCLUSIVE_IDS.length === 0) return false
+  try {
+    return (await deps.store.isAdmin?.(userId)) ?? false
+  } catch {
+    return false
+  }
+}
+
+const withAdminPieces = (state: GameState, admin: boolean) => (admin ? withExclusivePieces(state) : state)
 
 async function markMajorRewards(deps: CareerOpsDeps, rewards: readonly { id: string }[]) {
   if (rewards.length === 0) return
@@ -379,6 +394,7 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
   if (previous) return replay(userId, previous, deps, now)
 
   const rewards = await pendingMajorRewards(deps, userId)
+  const admin = await isAdmin(deps, userId)
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const record = await deps.store.load(userId)
     if (!record) return fail(409, 'no-career')
@@ -386,7 +402,7 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
     if (!server) return fail(409, 'cloud-unreadable')
     const client = request.baseVersion === record.version && request.snapshot !== undefined ? parseGameState(request.snapshot, now) : null
     const merged = client ? mergeClientFields(server, client, now) : server
-    const career = withMajorRewards(applyFitnessDecay(merged, now).state, rewards)
+    const career = withAdminPieces(withMajorRewards(applyFitnessDecay(merged, now).state, rewards), admin)
     // Nothing waiting: nothing to save.
     if (request.action === 'claim' && career.raceEntries.length === server.raceEntries.length) {
       await markMajorRewards(deps, rewards)
@@ -433,6 +449,7 @@ async function save(userId: string, request: Extract<CareerOpRequest, { action: 
   const client = parseGameState(request.snapshot, now)
   if (!client) return fail(400, 'malformed-snapshot')
   const rewards = await pendingMajorRewards(deps, userId)
+  const admin = await isAdmin(deps, userId)
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const record = await deps.store.load(userId)
     if (!record) {
@@ -445,7 +462,7 @@ async function save(userId: string, request: Extract<CareerOpRequest, { action: 
     const server = readRecord(record, now)
     if (!server) return fail(409, 'cloud-unreadable', { version: record.version })
     if (request.baseVersion !== record.version) return fail(409, 'conflict', { state: server, version: record.version })
-    const merged = withMajorRewards(mergeClientFields(applyFitnessDecay(server, now).state, client, now), rewards)
+    const merged = withAdminPieces(withMajorRewards(mergeClientFields(applyFitnessDecay(server, now).state, client, now), rewards), admin)
     const committed = await deps.store.commit({ userId, baseVersion: record.version, state: merged, operationId: null, kind: 'save', response: null })
     if (committed.status === 'saved') {
       await markMajorRewards(deps, rewards)
@@ -463,8 +480,9 @@ async function save(userId: string, request: Extract<CareerOpRequest, { action: 
 async function newCareer(userId: string, request: Extract<CareerOpRequest, { action: 'new-career' }>, deps: CareerOpsDeps, now: number): Promise<HttpResult> {
   // Every new career starts as an All-rounder (owner decision, 1 November 2026), whatever profile
   // an older client asks for.
-  const fresh = parseGameState(JSON.parse(JSON.stringify(createInitialGameState(STARTING_PROFILE, now, request.identity))), now)
-  if (!fresh) return fail(400, 'bad-request')
+  const created = parseGameState(JSON.parse(JSON.stringify(createInitialGameState(STARTING_PROFILE, now, request.identity))), now)
+  if (!created) return fail(400, 'bad-request')
+  const fresh = withAdminPieces(created, await isAdmin(deps, userId))
   const record = await deps.store.load(userId)
   const baseVersion = record ? record.version : null
   if (request.baseVersion !== baseVersion) return fail(409, 'conflict', { version: baseVersion })

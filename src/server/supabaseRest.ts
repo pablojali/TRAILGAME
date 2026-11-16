@@ -88,6 +88,11 @@ export function createSupabaseCareerOpsStore(config: ServerConfig): CareerOpsSto
       )
     },
 
+    async isAdmin(userId) {
+      const rows = await get<{ user_id: string }>(`major_admins?user_id=eq.${encodeURIComponent(userId)}&select=user_id`)
+      return rows.length > 0
+    },
+
     async markMajorRewards(ids) {
       const list = ids.map((id) => encodeURIComponent(id)).join(',')
       const response = await fetch(`${config.url}/rest/v1/major_rewards?id=in.(${list})&claimed_at=is.null`, {

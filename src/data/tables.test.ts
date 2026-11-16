@@ -17,6 +17,7 @@ vi.unmock('./achievements.csv?raw')
 vi.unmock('./ranking_points.csv?raw')
 vi.unmock('./races.csv?raw')
 vi.unmock('./basecamp.csv?raw')
+vi.unmock('./basecamp_exclusive.csv?raw')
 vi.unmock('./economy.csv?raw')
 const { default: equipmentCsv } = await import('./equipment.csv?raw')
 const { default: levelsCsv } = await import('./levels.csv?raw')
@@ -25,6 +26,7 @@ const { default: achievementsCsv } = await import('./achievements.csv?raw')
 const { default: rankingCsv } = await import('./ranking_points.csv?raw')
 const { default: racesCsv } = await import('./races.csv?raw')
 const { default: basecampCsv } = await import('./basecamp.csv?raw')
+const { default: exclusiveCsv } = await import('./basecamp_exclusive.csv?raw')
 const { default: economyCsv } = await import('./economy.csv?raw')
 const CAMP_SOURCES = import.meta.glob('/assets/ui/basecamp/source/*/*.{png,jpg,jpeg,webp}')
 
@@ -42,7 +44,7 @@ describe("owner's tables", () => {
   })
 
   it('basecamp.csv is a valid Base Camp catalog with every picture uploaded', () => {
-    const missing = parseCampCatalog(basecampCsv).filter(
+    const missing = [...parseCampCatalog(basecampCsv), ...parseCampCatalog(exclusiveCsv, { exclusive: true })].filter(
       (item) => !['png', 'jpg', 'jpeg', 'webp'].some((ext) => `/assets/ui/basecamp/source/${item.scene}/${item.art}.${ext}` in CAMP_SOURCES),
     )
     expect(missing.map((item) => item.id)).toEqual([])

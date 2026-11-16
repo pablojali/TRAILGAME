@@ -1,5 +1,6 @@
 import { csvInt, csvNumber, parseCsv } from '../../data/csv'
 import basecampCsv from '../../data/basecamp.csv?raw'
+import exclusiveCsv from '../../data/basecamp_exclusive.csv?raw'
 import { ITEM_LANGUAGES, type ItemLanguage } from '../equipment/items'
 
 /**
@@ -41,14 +42,20 @@ export interface CampItem {
   /** English name. */
   label: string
   names?: Partial<Record<ItemLanguage, string>>
+  /**
+   * Never for sale (owner request, 16 November 2026: the admin's own refuge). Listed in
+   * src/data/basecamp_exclusive.csv, out of Trail Studio; the server gives it to the admins.
+   */
+  exclusive?: true
 }
 
 const ID = /^[a-z0-9][a-z0-9-]*$/
 const ART = /^[a-z0-9][a-z0-9_-]*$/
 
-export function parseCampCatalog(text: string): CampItem[] {
+export function parseCampCatalog(text: string, options: { exclusive?: boolean } = {}): CampItem[] {
+  const file = options.exclusive ? 'basecamp_exclusive.csv' : 'basecamp.csv'
   const items = parseCsv(text).map((row, i): CampItem => {
-    const where = `basecamp.csv row ${i + 1} (${row.id || 'no id'})`
+    const where = `${file} row ${i + 1} (${row.id || 'no id'})`
     if (!row.id || !ID.test(row.id)) throw new Error(`${where}: the id must be lower case letters, digits and -`)
     const scene = row.scene as CampScene
     if (!CAMP_SCENES.includes(scene)) throw new Error(`${where}: scene must be exterior or interior`)
@@ -81,13 +88,15 @@ export function parseCampCatalog(text: string): CampItem[] {
     const names: Partial<Record<ItemLanguage, string>> = {}
     for (const language of ITEM_LANGUAGES) if (row[`name_${language}`]) names[language] = row[`name_${language}`]!
     if (Object.keys(names).length) item.names = names
+    if (options.exclusive) item.exclusive = true
     return item
   })
   const ids = new Set<string>()
   for (const item of items) {
-    if (ids.has(item.id)) throw new Error(`basecamp.csv: id ${item.id} is repeated`)
+    if (ids.has(item.id)) throw new Error(`${file}: id ${item.id} is repeated`)
     ids.add(item.id)
   }
+  if (options.exclusive) return items
   for (const scene of CAMP_SCENES) {
     if (!items.some((item) => item.scene === scene && item.kind === 'background' && isFreeFromStart(item))) {
       throw new Error(`basecamp.csv: the ${scene} needs a background with level 0 and price 0 (everyone's from the start)`)
@@ -100,12 +109,19 @@ export function parseCampCatalog(text: string): CampItem[] {
   return items
 }
 
-/** Level 0 and free: every player has it from the start. */
+/** Level 0 and free: every player has it from the start (an exclusive piece never is). */
 export function isFreeFromStart(item: CampItem): boolean {
-  return item.level === 0 && item.price === 0
+  return item.level === 0 && item.price === 0 && !item.exclusive
 }
 
-export const CAMP_ITEMS: readonly CampItem[] = parseCampCatalog(basecampCsv)
+function joinCatalogs(main: CampItem[], exclusive: CampItem[]): CampItem[] {
+  const ids = new Set(main.map((item) => item.id))
+  for (const item of exclusive) if (ids.has(item.id)) throw new Error(`basecamp_exclusive.csv: id ${item.id} is also in basecamp.csv`)
+  return [...main, ...exclusive]
+}
+
+export const CAMP_ITEMS: readonly CampItem[] = joinCatalogs(parseCampCatalog(basecampCsv), parseCampCatalog(exclusiveCsv, { exclusive: true }))
+export const EXCLUSIVE_IDS: readonly string[] = CAMP_ITEMS.filter((item) => item.exclusive).map((item) => item.id)
 const BY_ID = new Map(CAMP_ITEMS.map((item) => [item.id, item]))
 
 export function getCampItem(id: string): CampItem | undefined {

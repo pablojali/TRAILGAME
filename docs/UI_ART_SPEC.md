@@ -104,3 +104,11 @@ same canvas (16 November 2026):
   tab highlighted.
 - A piece removed from the table disappears from the careers that bought it (saves drop unknown
   ids), so pieces should be retired by raising their level or price instead.
+- Exclusive pieces (owner request, 16 November 2026: the admin's own refuge) are listed in
+  `src/data/basecamp_exclusive.csv`, same columns, out of Trail Studio. They are never sold or
+  shown in the shop to anyone without them; career-ops gives them to the admins (`major_admins`)
+  when their career is created, saved or changed. Their pictures go in the same source folder.
+- A new career chooses its refuge first (coach welcome, 16 November 2026): the free exterior
+  backgrounds with a picture (and an admin's exclusive ones), shown behind the coach; the welcome
+  then happens in the chosen refuge and ends in Base Camp. Skip leaves the default refuge and opens
+  the Dashboard.

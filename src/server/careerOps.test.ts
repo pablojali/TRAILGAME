@@ -386,6 +386,30 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     expect(memory.commits()).toBe(3)
   })
 
+  it('gives the exclusive refuge to admins only, and never sells it', async () => {
+    const memory = memoryStore()
+    memory.store.isAdmin = async (userId) => userId === 'boss'
+    const create = (user: string, name: string) =>
+      handleCareerOp(`token-${user}`, { action: 'new-career', baseVersion: null, profile: 'all-rounder', identity: { name, sex: 'female' } }, deps(memory))
+    const boss = await create('boss', 'Boss')
+    expect(boss.body).toMatchObject({ ok: true, state: { camp: { owned: ['admin-refuge'] } } })
+    const ana = await create('ana', 'Ana')
+    if (!ana.body.ok) throw new Error(ana.body.error)
+    expect(ana.body.state.camp).toBeUndefined()
+    expect((await call(memory, { action: 'camp-buy', operationId: op(1), itemId: 'admin-refuge', price: 0, currency: 'coins' })).body).toMatchObject({ ok: false, error: 'not-for-sale' })
+    expect((await call(memory, { action: 'camp-use', operationId: op(2), itemId: 'admin-refuge', used: true })).body).toMatchObject({ ok: false, error: 'not-owned' })
+    const used = await call(memory, { action: 'camp-use', operationId: op(3), itemId: 'admin-refuge', used: true }, 'boss')
+    expect(used.body).toMatchObject({ ok: true, state: { camp: { owned: ['admin-refuge'], using: ['admin-refuge'] } } })
+  })
+
+  it('gives an admin\'s existing career the exclusive refuge at its next operation', async () => {
+    const memory = memoryStore()
+    memory.store.isAdmin = async () => true
+    memory.seed('boss', rich(50))
+    const trained = await call(memory, { action: 'camp-use', operationId: op(1), itemId: 'mailbox', used: false }, 'boss')
+    expect(trained.body).toMatchObject({ ok: true, state: { camp: { owned: ['admin-refuge'], off: ['mailbox'] } } })
+  })
+
   it('ignores coins and items in the snapshot sent with a purchase', async () => {
     const memory = memoryStore()
     memory.seed('ana', rich(10))

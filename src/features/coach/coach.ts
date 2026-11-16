@@ -27,5 +27,8 @@ export function coachPortrait(sex: Sex, skin: SkinToneId): string | null {
   return PORTRAITS[`/assets/coach/portraits/${sex === 'male' ? 'men' : 'women'}_${coachLook(skin)}.webp`] ?? null
 }
 
-/** Screens of the first welcome, in order. */
-export const WELCOME_STEPS = ['welcome', 'start'] as const
+/**
+ * Screens of the first welcome, in order. `camp`: the player chooses their refuge (owner request,
+ * 16 November 2026); the coach then welcomes them in it.
+ */
+export const WELCOME_STEPS = ['camp', 'welcome', 'start'] as const

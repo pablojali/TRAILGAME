@@ -23,32 +23,38 @@ function freshCareer(): GameState {
 const savedCoach = () => readSave()?.state.coach
 
 describe('Trail Coach welcome', () => {
-  it('greets a new career full screen, without navigation, and goes to the Dashboard in two screens', async () => {
+  it('greets a new career full screen: the refuge first, then the coach in it, ending in Base Camp', async () => {
     const user = userEvent.setup()
     seedCareer(freshCareer())
     const { router } = await renderApp('/training')
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Welcome to Trail Manager!' })).toBeInTheDocument()
+    // The player chooses a refuge: the free exterior backgrounds that have a picture.
+    expect(screen.getByRole('heading', { level: 1, name: 'Choose your refuge' })).toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Your coach' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'This is my refuge' }))
 
+    expect(screen.getByRole('heading', { level: 1, name: 'Welcome to Trail Manager!' })).toBeInTheDocument()
+    expect(screen.getByText(/This is your refuge/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Skip' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: "Let's go" }))
     expect(screen.getByText(/You don't need to learn everything today/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Skip' })).not.toBeInTheDocument()
-    await waitFor(() => expect(savedCoach()).toEqual({ welcomeStep: 1, welcomeDone: false }))
+    await waitFor(() => expect(savedCoach()).toEqual({ welcomeStep: 2, welcomeDone: false }))
 
     await user.click(screen.getByRole('button', { name: 'Start my career' }))
-    expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/')
-    await waitFor(() => expect(savedCoach()).toEqual({ welcomeStep: 1, welcomeDone: true }))
+    expect(screen.getByRole('heading', { level: 1, name: 'Base Camp' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/base-camp')
+    await waitFor(() => expect(savedCoach()).toEqual({ welcomeStep: 2, welcomeDone: true }))
   })
 
   it('resumes at the screen the player left after a reload', async () => {
     const user = userEvent.setup()
     seedCareer(freshCareer())
     const first = await renderApp('/')
+    await user.click(screen.getByRole('button', { name: 'This is my refuge' }))
     await user.click(screen.getByRole('button', { name: "Let's go" }))
-    await waitFor(() => expect(savedCoach()?.welcomeStep).toBe(1))
+    await waitFor(() => expect(savedCoach()?.welcomeStep).toBe(2))
     first.unmount()
 
     await renderApp('/')

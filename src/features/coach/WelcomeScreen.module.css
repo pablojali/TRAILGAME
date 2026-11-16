@@ -183,3 +183,61 @@
     margin-top: var(--space-3);
   }
 }
+
+/* Choosing the refuge (16 November 2026): the refuges side by side, swiped sideways. */
+.refuges {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0 0 4px;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.refuges::-webkit-scrollbar {
+  display: none;
+}
+
+.refuges li {
+  flex: none;
+  width: 132px;
+}
+
+.refuges button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 4px;
+  border: 2px solid rgb(255 255 255 / 0.15);
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.35);
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.refuges button[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgb(240 124 42 / 0.35);
+}
+
+.refuges button:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.refuges img {
+  width: 100%;
+  aspect-ratio: 2;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.error {
+  margin: var(--space-2) 0 0;
+  color: #ffb4a8;
+  font-size: var(--font-size-sm);
+}

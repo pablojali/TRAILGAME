@@ -2,7 +2,9 @@
 # scene: exterior or interior. kind: background (the whole scene behind), cabin (drawn over the background) or decor (seats, banners, flags…, drawn over both).
 # level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.
 # art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; every piece of a scene on the same canvas, 3200 x 1600).
-# spot_x, spot_y (0-1 of the picture): where the door (exterior) or the gear bench (interior) is. Every background needs it; a cabin may move the door.
-id,scene,kind,level,price,currency,art,spot_x,spot_y,name,name_es,name_fr,name_it,name_de
-lvl0-exterior,exterior,background,0,0,coins,lvl0_exterior,0.36,0.52,Mountain cabin,Cabaña de montaña,Chalet de montagne,Baita di montagna,Berghütte
-lvl0-interior,interior,background,0,0,coins,lvl0_interior,0.73,0.62,Cabin living room,Salón de la cabaña,Salon du chalet,Soggiorno della baita,Wohnraum der Hütte
+# action: what tapping the piece does (empty: nothing): enter (go inside), exit (go outside), gear (Equipment), look (Appearance), mailbox (congratulations and visits), training, races, career.
+# spot_x, spot_y (0-1 of the picture): where the action's button sits on the piece. Needed with an action, empty without one.
+# Free pieces (level 0, price 0) are shown from the start; the free ones of each scene must give the exterior an enter and the interior a gear action.
+id,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,name_es,name_fr,name_it,name_de
+lvl0-exterior,exterior,background,0,0,coins,lvl0_exterior,enter,0.36,0.52,Mountain cabin,Cabaña de montaña,Chalet de montagne,Baita di montagna,Berghütte
+lvl0-interior,interior,background,0,0,coins,lvl0_interior,gear,0.73,0.62,Cabin living room,Salón de la cabaña,Salon du chalet,Soggiorno della baita,Wohnraum der Hütte

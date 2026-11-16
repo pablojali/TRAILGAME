@@ -29,7 +29,19 @@ const CURRENCIES = [
 ]
 const LANGUAGE_LABELS: Record<ItemLanguage, string> = { es: 'Español', fr: 'Français', it: 'Italiano', de: 'Deutsch' }
 const SCENE_TITLE: Record<CampScene, string> = { exterior: 'Base Camp (exterior)', interior: 'Base Camp (interior)' }
-const SPOT_NAME: Record<CampScene, string> = { exterior: 'la puerta («Entrar»)', interior: 'el banco del equipo («Equipo»)' }
+const ACTIONS = [
+  { value: '', label: 'Ninguna' },
+  { value: 'enter', label: 'Entrar (ir al interior)' },
+  { value: 'exit', label: 'Salir (ir al exterior)' },
+  { value: 'gear', label: 'Equipo' },
+  { value: 'look', label: 'Look (apariencia)' },
+  { value: 'mailbox', label: 'Buzón (felicitaciones y visitas)' },
+  { value: 'training', label: 'Entreno' },
+  { value: 'races', label: 'Carreras' },
+  { value: 'career', label: 'Trayectoria' },
+]
+const ESSENTIAL: Record<CampScene, string> = { exterior: 'Entrar', interior: 'Equipo' }
+const isFree = (values: Record<string, string>) => values.level === '0' && values.price === '0'
 
 function useFolder(token: string, path: string): RepoFile[] | null {
   const [files, setFiles] = useState<{ path: string; files: RepoFile[] } | null>(null)
@@ -46,8 +58,8 @@ function useFolder(token: string, path: string): RepoFile[] | null {
 
 /** The game's check on one row, in words (empty: valid). */
 function rowError(doc: CsvDoc, values: Record<string, string>): string {
-  // A row alone is checked with the free backgrounds every scene needs.
-  const free = rows(doc).filter((r) => r.values.kind === 'background' && r.values.level === '0' && r.values.price === '0' && r.values.id !== values.id)
+  // A row is checked with the table's free pieces, which every scene needs.
+  const free = rows(doc).filter((r) => isFree(r.values) && r.values.id !== values.id)
   const text = serializeDoc({
     header: doc.header,
     lines: [{ kind: 'header', text: `${doc.header.join(',')}\n` }, ...[...free, { raw: null, values }].map((row) => ({ kind: 'row' as const, row: { raw: null, values: row.values } }))],
@@ -83,7 +95,13 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
     if (pending) return pending.previewUrl
     return outputs?.find((f) => f.name === `${values.art}.webp`)?.url ?? sources?.find((f) => f.name.replace(/\.\w+$/, '') === values.art)?.url
   }
-  const backgroundRow = sceneRows.find((r) => r.values.kind === 'background' && r.values.level === '0' && r.values.price === '0')
+  const backgroundRow = sceneRows.find((r) => r.values.kind === 'background' && isFree(r.values))
+  /** The free pieces drawn with the one being edited, so it is seen in its place. */
+  const freeLayers = (values: Record<string, string>) =>
+    sceneRows
+      .filter((r) => r.values.kind !== 'background' && isFree(r.values) && r.values.id !== values.id && !(values.kind === 'cabin' && r.values.kind === 'cabin'))
+      .map((r) => pictureOf(r.values))
+      .filter((url): url is string => !!url)
 
   const setPiece = (changes: Record<string, string>) =>
     current && setWs({ ...ws, docs: { ...ws.docs, basecamp: updateRow(doc, (r) => r.values.id === current.values.id, changes) } })
@@ -173,29 +191,33 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
 
           <CampPreview
             background={v.kind === 'background' ? pictureOf(v) : backgroundRow && pictureOf(backgroundRow.values)}
-            layer={v.kind === 'background' ? undefined : pictureOf(v)}
-            spot={v.kind !== 'decor' && v.spot_x !== '' && v.spot_y !== '' ? { x: Number(v.spot_x), y: Number(v.spot_y) } : null}
-            onPick={v.kind === 'decor' ? undefined : ({ x, y }) => setPiece({ spot_x: x.toFixed(3), spot_y: y.toFixed(3) })}
+            layers={[...(v.kind === 'background' ? [] : freeLayers(v)), ...(v.kind === 'background' ? freeLayers(v) : []), ...(v.kind === 'background' ? [] : [pictureOf(v)])].filter(
+              (url): url is string => !!url,
+            )}
+            spot={v.action && v.spot_x !== '' && v.spot_y !== '' ? { x: Number(v.spot_x), y: Number(v.spot_y) } : null}
+            onPick={v.action ? ({ x, y }) => setPiece({ spot_x: x.toFixed(3), spot_y: y.toFixed(3) }) : undefined}
           />
-          {v.kind !== 'decor' && (
-            <p className="hint">
-              Haz clic en la imagen para marcar {SPOT_NAME[scene]}.{v.kind === 'cabin' ? ' En una cabaña es opcional: si lo dejas vacío se usa el del fondo.' : ''}
-            </p>
-          )}
+          <p className="hint">
+            {v.action
+              ? 'Haz clic en la imagen para colocar el botón de la acción.'
+              : 'Sin acción: la pieza solo decora. Elige una acción para que al tocarla haga algo.'}{' '}
+            Las piezas gratis de la escena tienen que incluir «{ESSENTIAL[scene]}».
+          </p>
           {rowError(doc, v) && <p className="error">El juego no aceptaría esta pieza: {rowError(doc, v)}</p>}
 
           <h3>Pieza</h3>
           <div className="form">
+            <SelectField label="Tipo" value={v.kind!} options={KINDS} onChange={(kind) => setPiece({ kind })} />
             <SelectField
-              label="Tipo"
-              value={v.kind!}
-              options={KINDS}
-              onChange={(kind) => setPiece(kind === 'decor' ? { kind, spot_x: '', spot_y: '' } : { kind })}
+              label="Acción al tocarla"
+              value={v.action ?? ''}
+              options={ACTIONS}
+              onChange={(action) => setPiece(action ? { action, spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5' } : { action, spot_x: '', spot_y: '' })}
             />
             <NumberField label="Nivel del jugador" value={v.level!} min={0} onChange={(x) => setPiece({ level: x })} hint="Desde qué nivel se puede comprar" />
             <NumberField label="Precio" value={v.price!} min={0} onChange={(x) => setPiece({ price: x })} hint="0 con nivel 0: la tienen todos" />
             <SelectField label="Moneda" value={v.currency || 'coins'} options={CURRENCIES} onChange={(x) => setPiece({ currency: x })} />
-            {v.kind !== 'decor' && (
+            {v.action && (
               <>
                 <NumberField label="Punto: x (0–1)" value={v.spot_x ?? ''} step={0.01} min={0} max={1} onChange={(x) => setPiece({ spot_x: x })} />
                 <NumberField label="Punto: y (0–1)" value={v.spot_y ?? ''} step={0.01} min={0} max={1} onChange={(x) => setPiece({ spot_y: x })} />
@@ -242,15 +264,15 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
   )
 }
 
-/** The scene as the player sees it: the background, the piece over it and the spot. */
+/** The scene as a new player sees it, with the piece in its place and its action's button. */
 function CampPreview({
   background,
-  layer,
+  layers,
   spot,
   onPick,
 }: {
   background?: string
-  layer?: string
+  layers: string[]
   spot: { x: number; y: number } | null
   onPick?(spot: { x: number; y: number }): void
 }) {
@@ -264,7 +286,9 @@ function CampPreview({
       }}
     >
       {background ? <img src={background} alt="" /> : <span className="noArt">sin fondo</span>}
-      {layer && <img src={layer} alt="" />}
+      {layers.map((url) => (
+        <img key={url} src={url} alt="" />
+      ))}
       {spot && <span className="campSpot" style={{ left: `${spot.x * 100}%`, top: `${spot.y * 100}%` }} />}
     </div>
   )

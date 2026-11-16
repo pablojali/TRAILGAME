@@ -98,13 +98,15 @@ export interface GameState {
 }
 
 /**
- * Base Camp pieces bought and the ones in use. The level 0 free backgrounds are everyone's and are
- * not listed. At most one background and one cabin per scene are in use; a scene with no
- * background in use shows its free one.
+ * Base Camp pieces bought and the ones in use. The free pieces (level 0, price 0) are everyone's
+ * and are not listed in `owned`; they are shown unless taken out (`off`) or replaced. At most one
+ * background and one cabin per scene are in use.
  */
 export interface CampState {
   owned: string[]
   using: string[]
+  /** Free pieces the player took out of the scene. Missing: none. */
+  off?: string[]
 }
 
 /** What the Trail Coach has already shown the player. Later coach features add fields here. */

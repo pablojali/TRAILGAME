@@ -16,6 +16,11 @@ describe('Base Camp (V1)', () => {
     expect(screen.getByRole('button', { name: 'Outside' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByLabelText('Your cabin, outside')).toBeInTheDocument()
 
+    // The mailbox (a free piece with its own action) says what will arrive there.
+    await user.click(screen.getByRole('button', { name: 'Mailbox' }))
+    expect(screen.getByRole('dialog', { name: 'Mailbox' })).toHaveTextContent('Congratulations and visits from other runners will arrive here.')
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+
     // The door takes the player inside; the switch shows where they are.
     await user.click(screen.getByRole('button', { name: 'Go in' }))
     expect(screen.getByRole('button', { name: 'Inside' })).toHaveAttribute('aria-pressed', 'true')

@@ -67,8 +67,16 @@ same canvas (16 November 2026):
 
 - The pieces are listed in `src/data/basecamp.csv` (edited in Trail Studio › Multimedia › Base
   Camp): scene, kind, player level that unlocks it, price, currency (coins or Premium Coins), the
-  picture's name and, for backgrounds and cabins, the spot (door outside, gear bench inside) as
-  shares of the picture. Level 0 and price 0 = everyone's from the start.
+  picture's name and an optional action with its spot (shares of the picture). Level 0 and price
+  0 = everyone's from the start, shown until the player takes it out (a free cabin or decor) or
+  replaces it (a background or cabin).
+- Actions (owner request, 16 November 2026), any kind of piece: `enter` (go inside), `exit` (go
+  outside), `gear` (Equipment), `look` (Appearance), `mailbox` (congratulations and visits; for now
+  it says they are coming), `training`, `races`, `career`. Every shown piece with an action gets a
+  button at its spot. The free pieces must give the exterior an `enter` and the interior a `gear`;
+  if the player's pieces lack the door (a background without the house, say), the free piece's
+  door is used. A scene can be split freely: a swappable background, the house (cabin), banners, a
+  mailbox… each its own row and picture on the same canvas, drawn in the table's order.
 - Sources live in `assets/ui/basecamp/source/{exterior|interior}/{art}.{png|jpg|webp}`;
   `scripts/prepare_basecamp_art.py` (run by CI, which commits the result on main) writes what the
   game loads, `assets/ui/basecamp/{exterior|interior}/{art}.webp` (transparency kept, at most 1600

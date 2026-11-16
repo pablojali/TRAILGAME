@@ -32,8 +32,10 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     `assets/ui/basecamp/source/{exterior|interior}/`; CI turns them into the game's WebP
     (`scripts/prepare_basecamp_art.py`) when the proposal is published. A new piece cannot be
     proposed without its picture.
-  - Clicking the preview marks the scene's spot: the door ("Entrar") outside, the gear bench
-    ("Equipo") inside. A background needs one; a cabin may move the door.
+  - Any piece can have an action (Entrar, Salir, Equipo, Look, Buzón, Entreno, Carreras,
+    Trayectoria); clicking the preview places its button. The preview draws the piece with the
+    scene's free pieces. The free pieces must include «Entrar» outside and «Equipo» inside.
+  - Decor is drawn in the table's order (later rows on top).
   - The Premium Coin exchange rate (`coins_per_premium` in `src/data/economy.csv`) is in Balance ›
     Economía.
 - **Avatares** (13 November 2026): upload new bodies and heads as PNG (transparent, on the runner's

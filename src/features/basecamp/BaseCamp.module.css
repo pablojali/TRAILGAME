@@ -784,3 +784,34 @@
   font-size: var(--font-size-sm);
   pointer-events: auto;
 }
+
+/* A friend's message in the mailbox (owner design, 17 November 2026). */
+.letterText {
+  display: block;
+  margin: 2px 0;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.messageBox {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.messageBox textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: var(--space-2);
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.35);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.messageCount {
+  justify-self: end;
+  color: var(--text-muted);
+  font-size: 12px;
+}

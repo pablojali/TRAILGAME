@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { campScene, campSpots } from '../../game-engine/camp'
 import { useI18n } from '../../i18n/i18n'
-import { getCampService, type CampService, type PublicCamp } from '../../repositories/supabase/campClient'
+import { getCampService, MESSAGE_MAX, type CampService, type MessageError, type PublicCamp } from '../../repositories/supabase/campClient'
 import styles from './BaseCamp.module.css'
-import { ExteriorAmbience, Panorama } from './BaseCampScreen'
+import { ExteriorAmbience, InteriorAmbience, Panorama } from './BaseCampScreen'
 import { FriendButton } from './Friends'
 import { defaultRefuge } from './visits'
 
 /**
  * Another runner's refuge (owner design, 17 November 2026): their Base Camp outside, as they have
  * it, opened from the rankings, the Majors and the mailbox. Opening it records the visit for its
- * owner; the visitor can congratulate them once a day. Nothing in it can be used: no buttons.
+ * owner; the visitor can congratulate them once a day. A friend can go in and leave a message.
+ * Nothing else in it can be used.
  */
 export function CampVisitScreen({ service = getCampService() }: { service?: CampService | null }) {
   const { t } = useI18n()
@@ -21,6 +22,8 @@ export function CampVisitScreen({ service = getCampService() }: { service?: Camp
   const [attempt, setAttempt] = useState(0)
   const [congratulated, setCongratulated] = useState(false)
   const [sending, setSending] = useState(false)
+  const [inside, setInside] = useState(false)
+  const [writing, setWriting] = useState(false)
 
   useEffect(() => {
     if (!service) return
@@ -81,18 +84,33 @@ export function CampVisitScreen({ service = getCampService() }: { service?: Camp
   }
 
   const holder = { camp: shown.camp ?? defaultRefuge(shown.name) }
-  const scene = campScene(holder, 'exterior')
-  const door = campSpots(holder, 'exterior').find((spot) => spot.action === 'enter')
+  // Friends can go in (owner design, 17 November 2026); everyone else sees the outside.
+  const view = inside && shown.friend ? 'interior' : 'exterior'
+  const scene = campScene(holder, view)
+  const spots = campSpots(holder, view)
+  const door = spots.find((spot) => spot.action === 'enter')
+  const focus = view === 'exterior' ? (door?.x ?? 0.5) : (spots.find((spot) => spot.action === 'gear')?.x ?? 0)
 
   return (
     <section className={styles.camp} aria-labelledby="camp-visit-title">
       <header className={styles.bar}>
-        <button type="button" className={styles.customize} onClick={back}>
-          {t('basecamp.visit.back')}
-        </button>
+        {view === 'interior' ? (
+          <button type="button" className={styles.customize} onClick={() => setInside(false)}>
+            {t('basecamp.goOut')}
+          </button>
+        ) : (
+          <button type="button" className={styles.customize} onClick={back}>
+            {t('basecamp.visit.back')}
+          </button>
+        )}
         <h1 id="camp-visit-title" className={styles.title}>
           {t('basecamp.visit.title', { name: shown.name })}
         </h1>
+        {view === 'interior' && (
+          <button type="button" className={styles.customize} onClick={() => setWriting(true)}>
+            {t('basecamp.visit.leaveMessage')}
+          </button>
+        )}
         <button
           type="button"
           className={styles.customize}
@@ -104,12 +122,77 @@ export function CampVisitScreen({ service = getCampService() }: { service?: Camp
         </button>
         <FriendButton name={shown.name} service={service} />
       </header>
-      <Panorama key={scene.picture.id} scene="exterior" background={scene.picture} layers={[scene.cabin]} objects={scene.placed} focus={door?.x ?? 0.5}>
-        <ExteriorAmbience picture={scene.picture} />
+      <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.picture} layers={[scene.cabin]} objects={scene.placed} focus={focus}>
+        {view === 'exterior' ? <ExteriorAmbience picture={scene.picture} /> : <InteriorAmbience picture={scene.picture} />}
+        {/* A friend finds the door open. */}
+        {view === 'exterior' && shown.friend && door && (
+          <button type="button" className={styles.spot} style={{ left: `${door.x * 100}%`, top: `${door.y * 100}%` }} onClick={() => setInside(true)}>
+            <span className={styles.ring} aria-hidden="true" />
+            <span className={styles.spotLabel}>{t('basecamp.enter')}</span>
+          </button>
+        )}
       </Panorama>
       <p className={styles.hint} aria-hidden="true">
         {t('basecamp.swipe')}
       </p>
+      {writing && service && <MessageDialog name={shown.name} service={service} onClose={() => setWriting(false)} />}
     </section>
+  )
+}
+
+/** A message for a friend's mailbox (owner idea, 17 November 2026): up to 140 characters. */
+function MessageDialog({ name, service, onClose }: { name: string; service: CampService; onClose(): void }) {
+  const { t } = useI18n()
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [state, setState] = useState<'sent' | MessageError | null>(null)
+  const clean = text.trim()
+
+  async function send() {
+    if (busy || !clean) return
+    setBusy(true)
+    const answer = await service.leaveMessage(name, clean)
+    setBusy(false)
+    setState(answer === true ? 'sent' : answer)
+    if (answer === true) setText('')
+  }
+
+  return (
+    <div className={styles.shopBack} role="presentation" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <section className={styles.shop} role="dialog" aria-modal="true" aria-labelledby="camp-message-title">
+        <header className={styles.shopHead}>
+          <h2 id="camp-message-title">{t('basecamp.visit.messageTitle', { name })}</h2>
+          <button type="button" className={styles.close} onClick={onClose}>
+            {t('basecamp.shop.close')}
+          </button>
+        </header>
+        <div className={`${styles.shopBody} ${styles.messageBox}`}>
+          {state && (
+            <p role={state === 'sent' ? 'status' : 'alert'} className={state === 'sent' ? styles.shopNote : styles.shopError}>
+              {t(`basecamp.visit.message.${state}`)}
+            </p>
+          )}
+          <label className={styles.srOnly} htmlFor="camp-message-text">
+            {t('basecamp.visit.messageLabel')}
+          </label>
+          <textarea
+            id="camp-message-text"
+            maxLength={MESSAGE_MAX}
+            value={text}
+            placeholder={t('basecamp.visit.messagePlaceholder')}
+            onChange={(e) => {
+              setText(e.target.value)
+              if (state === 'sent') setState(null)
+            }}
+          />
+          <span className={styles.messageCount} aria-live="polite">
+            {text.length}/{MESSAGE_MAX}
+          </span>
+          <button type="button" className={styles.action} aria-disabled={busy || !clean || undefined} onClick={() => void send()}>
+            {t('basecamp.visit.send')}
+          </button>
+        </div>
+      </section>
+    </div>
   )
 }

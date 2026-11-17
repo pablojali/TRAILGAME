@@ -16,6 +16,8 @@ const fake = (overrides: Partial<CampService>): CampService => ({
   requestFriend: async () => 'pending',
   answerFriend: async () => 'friends',
   removeFriend: async () => true,
+  leaveMessage: async () => true,
+  deleteMessage: async () => true,
   ...overrides,
 })
 
@@ -40,7 +42,7 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
     const visit = vi.fn(async (_name: string, congratulate: boolean) => ({ congratulated: congratulate }))
     open(
       fake({
-        refuge: async () => ({ name: 'Ana', me: false, camp: { owned: ['lake-exterior'], using: ['lake-exterior'] } }),
+        refuge: async () => ({ name: 'Ana', me: false, friend: false, camp: { owned: ['lake-exterior'], using: ['lake-exterior'] } }),
         visit,
       }),
     )
@@ -55,7 +57,7 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
   })
 
   it('sends the player to their own Base Camp, and says when it cannot be reached', async () => {
-    open(fake({ refuge: async () => ({ name: 'Me', me: true, camp: null }) }), 'Me')
+    open(fake({ refuge: async () => ({ name: 'Me', me: true, friend: false, camp: null }) }), 'Me')
     expect(await screen.findByText('Own Base Camp')).toBeInTheDocument()
   })
 
@@ -67,7 +69,7 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
   it('sends a friend request from the refuge, and accepts theirs', async () => {
     const user = userEvent.setup()
     const requestFriend = vi.fn(async () => 'pending' as const)
-    open(fake({ refuge: async () => ({ name: 'Ana', me: false, camp: null }), requestFriend }))
+    open(fake({ refuge: async () => ({ name: 'Ana', me: false, friend: false, camp: null }), requestFriend }))
     await user.click(await screen.findByRole('button', { name: '➕ Add friend' }))
     expect(requestFriend).toHaveBeenCalledWith('Ana')
     expect(await screen.findByText('Request sent')).toBeInTheDocument()
@@ -82,7 +84,7 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
     })
     open(
       fake({
-        refuge: async () => ({ name: 'Ana', me: false, camp: null }),
+        refuge: async () => ({ name: 'Ana', me: false, friend: false, camp: null }),
         friends: async () => [{ name: 'Ana', country: 'AR', xp: 0, relation, since: 1, mine: false }],
         answerFriend,
       }),
@@ -90,6 +92,26 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
     await user.click(await screen.findByRole('button', { name: 'Accept friend request' }))
     expect(answerFriend).toHaveBeenCalledWith('Ana', true)
     expect(await screen.findByText('✓ Friends')).toBeInTheDocument()
+  })
+
+  it('lets a friend go in and leave a message', async () => {
+    const user = userEvent.setup()
+    const leaveMessage = vi.fn(async () => true as const)
+    open(fake({ refuge: async () => ({ name: 'Ana', me: false, friend: true, camp: null }), leaveMessage }))
+    await user.click(await screen.findByRole('button', { name: 'Go in' }))
+    expect(screen.getByLabelText('Your cabin\'s living room')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '✉️ Leave a message' }))
+    await user.type(screen.getByLabelText('Your message'), '  Nice refuge!  ')
+    expect(screen.getByText('16/140')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+    expect(leaveMessage).toHaveBeenCalledWith('Ana', 'Nice refuge!')
+    expect(await screen.findByRole('status')).toHaveTextContent('Sent. It is waiting in their mailbox.')
+  })
+
+  it('keeps the door closed to someone who is not a friend', async () => {
+    open(fake({ refuge: async () => ({ name: 'Ana', me: false, friend: false, camp: null }) }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Ana’s refuge' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Go in' })).not.toBeInTheDocument()
   })
 
   it('gives a runner without pieces a free refuge, always the same', () => {

@@ -109,6 +109,12 @@ same canvas (16 November 2026):
   acceptances reach the Inbox. At most 200 friends and 50 requests waiting per runner (database
   functions `friend_request`, `friend_respond`, `friend_remove`, `friend_list`, migration
   `20261118090000_friends.sql`). Requests to NPCs answer like any request and record nothing.
+- Friends inside (17 November 2026): a friend visiting a refuge finds the door open («Entrar») and
+  can leave the owner a message from inside («Dejar mensaje», 1 to 140 characters, at most 5 a
+  day per refuge). Messages reach the owner's Inbox and mailbox (`?mailbox=1` opens it from the
+  Inbox), where the owner can delete them. Database functions `camp_message`,
+  `camp_message_delete`, and `camp_public` now says `friend` (migration
+  `20261118100000_friend_refuge.sql`).
 - Each picture fills the screen's height and is wider than it; it scrolls horizontally
   (`overflow-x`, `touch-action: pan-x`) and opens centred on the spot. The page never scrolls
   vertically.

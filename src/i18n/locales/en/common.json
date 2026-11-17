@@ -213,5 +213,19 @@
   "inbox.friendRequest.title": "{name} wants to be your friend",
   "inbox.friendRequest.body": "Answer in Base Camp › Friends.",
   "inbox.friendAccepted.title": "{name} accepted your friend request",
-  "inbox.friendAccepted.body": "Visit their refuge."
+  "inbox.friendAccepted.body": "Visit their refuge.",
+  "basecamp.mailbox.message": "{name} left you a message",
+  "basecamp.mailbox.delete": "Delete",
+  "basecamp.mailbox.deleteConfirm": "Delete this message?",
+  "basecamp.visit.leaveMessage": "✉️ Leave a message",
+  "basecamp.visit.messageTitle": "A message for {name}",
+  "basecamp.visit.messageLabel": "Your message",
+  "basecamp.visit.messagePlaceholder": "Nice refuge! See you at the next race…",
+  "basecamp.visit.send": "Send",
+  "basecamp.visit.message.sent": "Sent. It is waiting in their mailbox.",
+  "basecamp.visit.message.offline": "It could not be sent. Check your connection.",
+  "basecamp.visit.message.not-friends": "Only friends can leave messages.",
+  "basecamp.visit.message.bad-message": "Write between 1 and 140 characters.",
+  "basecamp.visit.message.too-many-messages": "That is 5 messages today. Try again tomorrow.",
+  "inbox.message.title": "{name} left you a message"
 }

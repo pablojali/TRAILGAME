@@ -20,11 +20,11 @@ insert into public.careers (user_id, game_state, schema_version) values
 -- c3 has no career yet.
 
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000c2');
-select pg_temp.expect(public.camp_public(' ana ') = jsonb_build_object('name', 'Ana', 'me', false, 'camp', jsonb_build_object(
+select pg_temp.expect(public.camp_public(' ana ') = jsonb_build_object('name', 'Ana', 'me', false, 'friend', false, 'camp', jsonb_build_object(
   'owned', jsonb_build_array('exterior-5', 'flag'), 'using', jsonb_build_array('exterior-5'), 'slots', jsonb_build_object('exterior:2', 'flag'))),
   'a visitor sees the pieces in use and placed, by name in any case, and nothing else of the career');
-select pg_temp.expect(public.camp_public('Bo') = '{"name":"Bo","me":true,"camp":null}'::jsonb, 'their own refuge, without a saved camp');
-select pg_temp.expect(public.camp_public('Ghost Runner') = '{"name":"Ghost Runner","me":false,"camp":null}'::jsonb, 'an NPC name gets an empty refuge');
+select pg_temp.expect(public.camp_public('Bo') = '{"name":"Bo","me":true,"friend":false,"camp":null}'::jsonb, 'their own refuge, without a saved camp');
+select pg_temp.expect(public.camp_public('Ghost Runner') = '{"name":"Ghost Runner","me":false,"friend":false,"camp":null}'::jsonb, 'an NPC name gets an empty refuge');
 select pg_temp.expect_error($$select public.camp_public('')$$, 'no name');
 
 select pg_temp.expect(public.camp_visit('Ana') = '{"congratulated":false}'::jsonb, 'a visit, not congratulated yet');

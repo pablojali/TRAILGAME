@@ -27,6 +27,7 @@ const ICON: Record<InboxItem['kind'], string> = {
   congrats: '👏',
   'friend-request': '🤝',
   'friend-accepted': '🤝',
+  message: '✉️',
 }
 
 function texts(item: InboxItem, t: Translate, locale: string, announcements: readonly Announcement[]): { title: string; body: string } {
@@ -70,6 +71,8 @@ function texts(item: InboxItem, t: Translate, locale: string, announcements: rea
       return { title: t('inbox.visit.title', { name: String(v.name) }), body: t('inbox.visit.body') }
     case 'congrats':
       return { title: t('inbox.congrats.title', { name: String(v.name) }), body: t('inbox.congrats.body') }
+    case 'message':
+      return { title: t('inbox.message.title', { name: String(v.name) }), body: `«${String(v.message)}»` }
     case 'friend-request':
       return { title: t('inbox.friendRequest.title', { name: String(v.name) }), body: t('inbox.friendRequest.body') }
     case 'friend-accepted':

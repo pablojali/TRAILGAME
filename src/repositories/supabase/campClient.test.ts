@@ -24,7 +24,7 @@ describe('the refuge service', () => {
       },
       calls,
     )
-    expect(await camp.refuge('ana')).toEqual({ name: 'Ana', me: false, camp: { owned: ['lake-exterior'], using: ['lake-exterior'] } })
+    expect(await camp.refuge('ana')).toEqual({ name: 'Ana', me: false, friend: false, camp: { owned: ['lake-exterior'], using: ['lake-exterior'] } })
     expect(await camp.visit('Ana', true)).toEqual({ congratulated: true })
     const mailbox = await camp.mailbox()
     expect(mailbox).toEqual([{ id: 3, kind: 'congrats', name: 'Bo', at: Date.parse('2026-11-17T10:00:00Z') }])

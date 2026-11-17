@@ -25,6 +25,8 @@ describe('the friends list (owner design, 17 November 2026)', () => {
       requestFriend: async () => 'pending',
       answerFriend,
       removeFriend,
+      leaveMessage: async () => true,
+      deleteMessage: async () => true,
     }
     render(
       <I18nProvider>

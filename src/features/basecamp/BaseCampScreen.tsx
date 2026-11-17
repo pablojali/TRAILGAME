@@ -7,6 +7,7 @@ import { useI18n, type MessageKey } from '../../i18n/i18n'
 import styles from './BaseCamp.module.css'
 import { artRatio, campArt } from './campArt'
 import { CampShop } from './CampShop'
+import { getCampService } from '../../repositories/supabase/campClient'
 import { FriendsSheet } from './Friends'
 import { useFriends, useMailbox, visitPath } from './visits'
 
@@ -103,11 +104,13 @@ export function BaseCampScreen() {
   // The friends list opens from its button, or from the Inbox (`?friends=1`).
   const [friendsOpen, setFriendsOpen] = useState(false)
   const friendsWanted = params.get('friends') === '1'
+  const mailboxWanted = params.get('mailbox') === '1'
   useEffect(() => {
-    if (!friendsWanted) return
-    setFriendsOpen(true)
+    if (!friendsWanted && !mailboxWanted) return
+    if (friendsWanted) setFriendsOpen(true)
+    if (mailboxWanted) setMailOpen(true)
     setParams({}, { replace: true })
-  }, [friendsWanted, setParams])
+  }, [friendsWanted, mailboxWanted, setParams])
   const { list: friends } = useFriends()
   const requests = Array.isArray(friends) ? friends.filter((f) => f.relation === 'incoming').length : 0
   const view: CampScene = params.get('view') === 'interior' ? 'interior' : 'exterior'
@@ -156,14 +159,7 @@ export function BaseCampScreen() {
         {view === 'exterior' ? (
           <ExteriorAmbience picture={scene.picture} />
         ) : (
-          <>
-            {(LANTERNS[scene.picture.id] ?? []).map((l, i) => (
-              <span key={i} className={styles.lantern} style={{ ...at(l), animationDelay: `${i * 0.7}s` }} aria-hidden="true" />
-            ))}
-            {MOTES.map((m, i) => (
-              <span key={i} className={styles.mote} style={{ ...at(m), animationDelay: `${m.delay}s` }} aria-hidden="true" />
-            ))}
-          </>
+          <InteriorAmbience picture={scene.picture} />
         )}
         {spots.map((spot) => (
           <SpotButton key={spot.item.id} spot={spot} onAct={act} />
@@ -208,6 +204,20 @@ function SpotButton({ spot, onAct }: { spot: CampSpot; onAct(action: CampAction)
   )
 }
 
+/** Inside: the lanterns of the first living room and dust in the light. */
+export function InteriorAmbience({ picture }: { picture: CampItem }) {
+  return (
+    <>
+      {(LANTERNS[picture.id] ?? []).map((l, i) => (
+        <span key={i} className={styles.lantern} style={{ ...at(l), animationDelay: `${i * 0.7}s` }} aria-hidden="true" />
+      ))}
+      {MOTES.map((m, i) => (
+        <span key={i} className={styles.mote} style={{ ...at(m), animationDelay: `${m.delay}s` }} aria-hidden="true" />
+      ))}
+    </>
+  )
+}
+
 /** Outside: the sun of the first exterior and fireflies. */
 export function ExteriorAmbience({ picture }: { picture: CampItem }) {
   const sun = SUNS[picture.id]
@@ -227,7 +237,15 @@ export function ExteriorAmbience({ picture }: { picture: CampItem }) {
  */
 function Mailbox({ onClose }: { onClose(): void }) {
   const { t, locale } = useI18n()
-  const entries = useMailbox()
+  const service = getCampService()
+  const loaded = useMailbox(service)
+  // Messages the player deleted here.
+  const [deleted, setDeleted] = useState<ReadonlySet<number>>(new Set())
+  const entries = Array.isArray(loaded) ? loaded.filter((entry) => !deleted.has(entry.id)) : loaded
+  async function remove(id: number) {
+    if (!service || !window.confirm(t('basecamp.mailbox.deleteConfirm'))) return
+    if ((await service.deleteMessage(id)) === true) setDeleted((ids) => new Set([...ids, id]))
+  }
   return (
     <div className={styles.shopBack} role="presentation" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <section className={styles.shop} role="dialog" aria-modal="true" aria-labelledby="camp-mailbox-title">
@@ -248,14 +266,24 @@ function Mailbox({ onClose }: { onClose(): void }) {
             <ul className={styles.letters}>
               {entries.map((entry) => (
                 <li key={entry.id}>
-                  <span aria-hidden="true">{entry.kind === 'congrats' ? '👏' : '👣'}</span>
+                  <span aria-hidden="true">{entry.kind === 'congrats' ? '👏' : entry.kind === 'message' ? '✉️' : '👣'}</span>
                   <span>
-                    {t(entry.kind === 'congrats' ? 'basecamp.mailbox.congrats' : 'basecamp.mailbox.visit', { name: entry.name })}
+                    {t(entry.kind === 'congrats' ? 'basecamp.mailbox.congrats' : entry.kind === 'message' ? 'basecamp.mailbox.message' : 'basecamp.mailbox.visit', {
+                      name: entry.name,
+                    })}
+                    {entry.kind === 'message' && <q className={styles.letterText}>{entry.message}</q>}
                     <small>{new Date(entry.at).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</small>
                   </span>
-                  <Link to={visitPath(entry.name)} className={styles.customize}>
-                    {t('basecamp.mailbox.visitBack')}
-                  </Link>
+                  <span className={styles.friendActions}>
+                    <Link to={visitPath(entry.name)} className={styles.customize}>
+                      {t('basecamp.mailbox.visitBack')}
+                    </Link>
+                    {entry.kind === 'message' && (
+                      <button type="button" className={styles.slotRemove} onClick={() => void remove(entry.id)}>
+                        {t('basecamp.mailbox.delete')}
+                      </button>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>

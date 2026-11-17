@@ -13,18 +13,27 @@ export interface PublicCamp {
   name: string
   /** The caller's own refuge. */
   me: boolean
+  /** The caller is the owner's friend: they may go inside and leave a message. */
+  friend: boolean
   /** Null: no pieces saved (the game shows a free refuge). */
   camp: CampState | null
 }
 
 export interface MailboxEntry {
   id: number
-  kind: 'visit' | 'congrats'
+  kind: 'visit' | 'congrats' | 'message'
   /** The visitor's runner name. */
   name: string
   /** Epoch ms. */
   at: number
+  /** A friend's message (kind message). */
+  message?: string
 }
+
+export type MessageError = 'offline' | 'not-friends' | 'bad-message' | 'too-many-messages'
+
+/** Most characters of a message (the database's limit). */
+export const MESSAGE_MAX = 140
 
 /** A friend or a friend request (owner design, 17 November 2026: requests and acceptance). */
 export interface FriendEntry {
@@ -54,6 +63,10 @@ export interface CampService {
   answerFriend(name: string, accept: boolean): Promise<'friends' | 'declined' | 'none' | FriendError>
   /** Ends a friendship, or withdraws the player's own request. */
   removeFriend(name: string): Promise<boolean | 'offline'>
+  /** Leaves a friend a message in their mailbox. */
+  leaveMessage(name: string, text: string): Promise<true | MessageError>
+  /** Deletes a message from the player's mailbox. */
+  deleteMessage(id: number): Promise<boolean | 'offline'>
 }
 
 interface RpcClient {
@@ -64,7 +77,8 @@ function toEntry(value: unknown): MailboxEntry | null {
   if (typeof value !== 'object' || value === null) return null
   const v = value as Record<string, unknown>
   const at = typeof v.at === 'string' ? Date.parse(v.at) : NaN
-  if (typeof v.id !== 'number' || (v.kind !== 'visit' && v.kind !== 'congrats') || typeof v.name !== 'string' || !Number.isFinite(at)) return null
+  if (typeof v.id !== 'number' || (v.kind !== 'visit' && v.kind !== 'congrats' && v.kind !== 'message') || typeof v.name !== 'string' || !Number.isFinite(at)) return null
+  if (v.kind === 'message') return typeof v.message === 'string' ? { id: v.id, kind: v.kind, name: v.name, at, message: v.message } : null
   return { id: v.id, kind: v.kind, name: v.name, at }
 }
 
@@ -107,7 +121,7 @@ export function createCampService(client: () => Promise<RpcClient>, ensureSessio
       const data = await call('camp_public', { p_name: name })
       if (typeof data !== 'object' || data === null) return 'offline'
       const v = data as Record<string, unknown>
-      return { name: typeof v.name === 'string' ? v.name : name, me: v.me === true, camp: parseCampState(v.camp) }
+      return { name: typeof v.name === 'string' ? v.name : name, me: v.me === true, friend: v.friend === true, camp: parseCampState(v.camp) }
     },
     async visit(name, congratulate) {
       const data = await call('camp_visit', { p_name: name, p_congrats: congratulate })
@@ -136,6 +150,16 @@ export function createCampService(client: () => Promise<RpcClient>, ensureSessio
     },
     async removeFriend(name) {
       const data = await call('friend_remove', { p_name: name })
+      return data === 'offline' ? 'offline' : data === true
+    },
+    async leaveMessage(name, text) {
+      const { error } = await rpc('camp_message', { p_name: name, p_text: text })
+      if (!error) return true
+      const message = typeof error === 'object' && error !== null ? String((error as { message?: unknown }).message ?? '') : ''
+      return (['not-friends', 'bad-message', 'too-many-messages'] as const).find((code) => message.includes(code)) ?? 'offline'
+    },
+    async deleteMessage(id) {
+      const data = await call('camp_message_delete', { p_id: id })
       return data === 'offline' ? 'offline' : data === true
     },
   }

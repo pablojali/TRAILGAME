@@ -7,6 +7,7 @@ import { useI18n, type MessageKey } from '../../i18n/i18n'
 import styles from './BaseCamp.module.css'
 import { artRatio, campArt } from './campArt'
 import { CampShop } from './CampShop'
+import { useMailbox, visitPath } from './visits'
 
 /** A point on a scene, in fractions of its picture (0–1 across, 0–1 down). */
 interface Spot {
@@ -109,7 +110,6 @@ export function BaseCampScreen() {
     else if (action === 'exit') show('exterior')
     else if (action === 'mailbox') setMailOpen(true)
   }
-  const sun = SUNS[scene.picture.id]
 
   return (
     <section className={styles.camp} aria-labelledby="basecamp-title">
@@ -130,12 +130,7 @@ export function BaseCampScreen() {
 
       <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.picture} layers={[scene.cabin]} objects={scene.placed} focus={focus?.x ?? 0}>
         {view === 'exterior' ? (
-          <>
-            {sun && <div className={styles.sun} style={at(sun)} aria-hidden="true" />}
-            {FIREFLIES.map((f, i) => (
-              <span key={i} className={styles.firefly} style={{ ...at(f), animationDelay: `${f.delay}s` }} aria-hidden="true" />
-            ))}
-          </>
+          <ExteriorAmbience picture={scene.picture} />
         ) : (
           <>
             {(LANTERNS[scene.picture.id] ?? []).map((l, i) => (
@@ -188,12 +183,26 @@ function SpotButton({ spot, onAct }: { spot: CampSpot; onAct(action: CampAction)
   )
 }
 
+/** Outside: the sun of the first exterior and fireflies. */
+export function ExteriorAmbience({ picture }: { picture: CampItem }) {
+  const sun = SUNS[picture.id]
+  return (
+    <>
+      {sun && <div className={styles.sun} style={at(sun)} aria-hidden="true" />}
+      {FIREFLIES.map((f, i) => (
+        <span key={i} className={styles.firefly} style={{ ...at(f), animationDelay: `${f.delay}s` }} aria-hidden="true" />
+      ))}
+    </>
+  )
+}
+
 /**
- * The mailbox (owner idea, 16 November 2026): where congratulations and visits from other runners
- * will arrive. Neither exists yet, so it says so.
+ * The mailbox (owner idea, 16 November 2026; filled 17 November 2026): the latest visits and
+ * congratulations from other runners, each opening the visitor's refuge.
  */
 function Mailbox({ onClose }: { onClose(): void }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const entries = useMailbox()
   return (
     <div className={styles.shopBack} role="presentation" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <section className={styles.shop} role="dialog" aria-modal="true" aria-labelledby="camp-mailbox-title">
@@ -204,7 +213,28 @@ function Mailbox({ onClose }: { onClose(): void }) {
           </button>
         </header>
         <div className={styles.shopBody}>
-          <p>{t('basecamp.mailbox.soon')}</p>
+          {entries === null ? (
+            <p className={styles.muted}>{t('basecamp.mailbox.loading')}</p>
+          ) : entries === 'offline' ? (
+            <p className={styles.muted}>{t('basecamp.mailbox.offline')}</p>
+          ) : entries.length === 0 ? (
+            <p className={styles.muted}>{t('basecamp.mailbox.empty')}</p>
+          ) : (
+            <ul className={styles.letters}>
+              {entries.map((entry) => (
+                <li key={entry.id}>
+                  <span aria-hidden="true">{entry.kind === 'congrats' ? '👏' : '👣'}</span>
+                  <span>
+                    {t(entry.kind === 'congrats' ? 'basecamp.mailbox.congrats' : 'basecamp.mailbox.visit', { name: entry.name })}
+                    <small>{new Date(entry.at).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</small>
+                  </span>
+                  <Link to={visitPath(entry.name)} className={styles.customize}>
+                    {t('basecamp.mailbox.visitBack')}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
     </div>
@@ -216,7 +246,7 @@ function Mailbox({ onClose }: { onClose(): void }) {
  * focus (the door, the gear bench). The background sets the shape; every other piece is on the
  * same canvas and is stretched over it.
  */
-function Panorama({
+export function Panorama({
   scene,
   background,
   layers,

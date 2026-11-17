@@ -16,6 +16,7 @@ import { raceClip } from '../races/raceClips'
 import { intensityKey, intensityOptions, STOP_IDS, stopKey } from '../races/raceStrategyText'
 import { durationText, ordinal, raceTimeText } from '../races/raceText'
 import { LiveTracker } from './LiveTracker'
+import { visitPath } from '../basecamp/visits'
 import styles from './Majors.module.css'
 
 type Tab = 'race' | 'standings'
@@ -287,7 +288,14 @@ function Standings({ race }: { race: LiveRaceView }) {
         <li key={row.slot} aria-current={row.me || undefined}>
           <span className={styles.pos}>{row.position}</span>
           <span className={styles.who}>
-            {row.name}
+            {/* Another runner's name opens their refuge (owner design, 17 November 2026). */}
+            {row.me ? (
+              row.name
+            ) : (
+              <Link to={visitPath(row.name)} className={styles.nameLink}>
+                {row.name}
+              </Link>
+            )}
             {row.me && <em> · {t('major.live.you')}</em>}
           </span>
           {row.auto && <span className={styles.tagAuto}>{t('major.live.auto')}</span>}

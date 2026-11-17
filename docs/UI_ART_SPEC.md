@@ -102,6 +102,13 @@ same canvas (16 November 2026):
   `camp_mailbox`, migration `20261117090000_camp_visits.sql`). Only the pieces in use leave the
   database. A runner without pieces, or an NPC, shows one of the free exteriors (always the same
   for the same name), and visits to NPCs are not recorded. Every refuge can be visited.
+- Friends (17 November 2026): from a runner's refuge, «Agregar amigo» sends a friend request;
+  the other runner accepts or declines it (from their refuge or Base Camp › Amigos). Only
+  accepted requests are friends, both ways. Base Camp › Amigos lists requests to answer (with a
+  count on the button), friends (level, visit, remove) and requests sent (cancel). Requests and
+  acceptances reach the Inbox. At most 200 friends and 50 requests waiting per runner (database
+  functions `friend_request`, `friend_respond`, `friend_remove`, `friend_list`, migration
+  `20261118090000_friends.sql`). Requests to NPCs answer like any request and record nothing.
 - Each picture fills the screen's height and is wider than it; it scrolls horizontally
   (`overflow-x`, `touch-action: pan-x`) and opens centred on the spot. The page never scrolls
   vertically.

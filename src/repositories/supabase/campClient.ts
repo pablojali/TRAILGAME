@@ -26,11 +26,34 @@ export interface MailboxEntry {
   at: number
 }
 
+/** A friend or a friend request (owner design, 17 November 2026: requests and acceptance). */
+export interface FriendEntry {
+  name: string
+  country: string | null
+  xp: number
+  /** friend; incoming: they asked the player; outgoing: the player asked them. */
+  relation: 'friend' | 'incoming' | 'outgoing'
+  /** Epoch ms: when they became friends, or when the request was sent. */
+  since: number
+  /** The player sent the request (for a friend: the player asked first). */
+  mine: boolean
+}
+
+/** What a request answers: sent (or waiting), accepted (they had asked first) or already friends. */
+export type FriendRequestAnswer = 'pending' | 'accepted' | 'friends'
+export type FriendError = 'offline' | 'too-many-friends' | 'too-many-pending'
+
 export interface CampService {
   refuge(name: string): Promise<PublicCamp | 'offline'>
   /** Records a visit (and a congratulation); answers whether the player congratulated them today. */
   visit(name: string, congratulate: boolean): Promise<{ congratulated: boolean } | 'offline'>
   mailbox(): Promise<MailboxEntry[] | 'offline'>
+  friends(): Promise<FriendEntry[] | 'offline'>
+  requestFriend(name: string): Promise<FriendRequestAnswer | FriendError>
+  /** Accepts or declines a request the player received. */
+  answerFriend(name: string, accept: boolean): Promise<'friends' | 'declined' | 'none' | FriendError>
+  /** Ends a friendship, or withdraws the player's own request. */
+  removeFriend(name: string): Promise<boolean | 'offline'>
 }
 
 interface RpcClient {
@@ -45,15 +68,39 @@ function toEntry(value: unknown): MailboxEntry | null {
   return { id: v.id, kind: v.kind, name: v.name, at }
 }
 
+function toFriend(value: unknown): FriendEntry | null {
+  if (typeof value !== 'object' || value === null) return null
+  const v = value as Record<string, unknown>
+  const since = typeof v.since === 'string' ? Date.parse(v.since) : NaN
+  if (typeof v.name !== 'string' || !['friend', 'incoming', 'outgoing'].includes(v.relation as string) || !Number.isFinite(since)) return null
+  return {
+    name: v.name,
+    country: typeof v.country === 'string' ? v.country : null,
+    xp: typeof v.xp === 'number' ? v.xp : 0,
+    relation: v.relation as FriendEntry['relation'],
+    since,
+    mine: v.mine === true,
+  }
+}
+
+/** A database error the game explains (raised by the friends functions), else offline. */
+function friendError(error: unknown): FriendError {
+  const message = typeof error === 'object' && error !== null ? String((error as { message?: unknown }).message ?? '') : ''
+  return message.includes('too-many-friends') ? 'too-many-friends' : message.includes('too-many-pending') ? 'too-many-pending' : 'offline'
+}
+
 export function createCampService(client: () => Promise<RpcClient>, ensureSession: () => Promise<unknown>): CampService {
-  async function call(name: string, args?: Record<string, unknown>): Promise<unknown> {
+  async function rpc(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: unknown }> {
     try {
       await ensureSession()
-      const { data, error } = await (await client()).rpc(name, args)
-      return error ? 'offline' : data
-    } catch {
-      return 'offline'
+      return await (await client()).rpc(name, args)
+    } catch (error) {
+      return { data: null, error }
     }
+  }
+  async function call(name: string, args?: Record<string, unknown>): Promise<unknown> {
+    const { data, error } = await rpc(name, args)
+    return error ? 'offline' : data
   }
   return {
     async refuge(name) {
@@ -71,6 +118,25 @@ export function createCampService(client: () => Promise<RpcClient>, ensureSessio
       const data = await call('camp_mailbox')
       if (!Array.isArray(data)) return 'offline'
       return data.map(toEntry).filter((entry): entry is MailboxEntry => entry !== null)
+    },
+    async friends() {
+      const data = await call('friend_list')
+      if (!Array.isArray(data)) return 'offline'
+      return data.map(toFriend).filter((entry): entry is FriendEntry => entry !== null)
+    },
+    async requestFriend(name) {
+      const { data, error } = await rpc('friend_request', { p_name: name })
+      if (error) return friendError(error)
+      return data === 'accepted' || data === 'friends' ? data : 'pending'
+    },
+    async answerFriend(name, accept) {
+      const { data, error } = await rpc('friend_respond', { p_name: name, p_accept: accept })
+      if (error) return friendError(error)
+      return data === 'friends' || data === 'declined' ? data : 'none'
+    },
+    async removeFriend(name) {
+      const data = await call('friend_remove', { p_name: name })
+      return data === 'offline' ? 'offline' : data === true
     },
   }
 }

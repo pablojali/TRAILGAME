@@ -5,6 +5,7 @@ import { useI18n } from '../../i18n/i18n'
 import { getCampService, type CampService, type PublicCamp } from '../../repositories/supabase/campClient'
 import styles from './BaseCamp.module.css'
 import { ExteriorAmbience, Panorama } from './BaseCampScreen'
+import { FriendButton } from './Friends'
 import { defaultRefuge } from './visits'
 
 /**
@@ -101,6 +102,7 @@ export function CampVisitScreen({ service = getCampService() }: { service?: Camp
         >
           {t(congratulated ? 'basecamp.visit.congratulated' : 'basecamp.visit.congratulate')}
         </button>
+        <FriendButton name={shown.name} service={service} />
       </header>
       <Panorama key={scene.picture.id} scene="exterior" background={scene.picture} layers={[scene.cabin]} objects={scene.placed} focus={door?.x ?? 0.5}>
         <ExteriorAmbience picture={scene.picture} />

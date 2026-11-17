@@ -8,10 +8,12 @@
 # size (decor): the object's height as a share of the picture's height at scale 1 (e.g. 0.2). Decor is a cut-out PNG the player places in a slot.
 # Free pieces (level 0, price 0) are shown from the start; the free ones of each scene must give the exterior an enter and the interior a gear action.
 id,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,name,name_es,name_fr,name_it,name_de
-lvl0-interior,interior,background,0,0,coins,lvl0_interior,gear,0.73,0.62,,,Cabin living room,Salón de la cabaña,Salon du chalet,Soggiorno della baita,Wohnraum der Hütte
-exterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,0.152:0.732:1|0.845:0.815:1|0.542:0.67:1|0.138:0.528:1,,Beach Camp,Refugio de Playa,,,
+exterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,0.198:0.849:1|0.845:0.815:1|0.542:0.67:1|0.138:0.528:1,,Beach Camp,Refugio de Playa,,,
 exterior-2,exterior,background,0,0,coins,exterior_2,enter,0.36,0.56,0.119:0.92:1|0.76:0.862:1|0.509:0.667:1|0.076:0.615:1,,Desert Camp,Refugio Desierto,,,
 exterior-3,exterior,background,0,0,coins,exterior_3,enter,0.36,0.56,0.137:0.915:1|0.677:0.965:1|0.501:0.728:1|0.131:0.67:1,,Lake Camp,Refugio Lago,,,
 exterior-4,exterior,background,0,0,coins,exterior_4,enter,0.36,0.56,0.638:0.959:1|0.649:0.709:1|0.507:0.684:1|0.138:0.662:1,,Mountain Camp,Refugio Montaña,,,
 exterior-5,exterior,background,1,0,coins,exterior_5,enter,0.36,0.56,0.132:0.915:1|0.952:0.867:1|0.523:0.715:1|0.121:0.645:1,,River Camp,Refugio Rio,,,
 exterior-6,exterior,decor,7,50,coins,exterior_6,mailbox,,,,0.2,MailBox,Buzon,,,
+interior-1,interior,background,0,0,coins,interior_1,gear,0.174,0.570,0.437:0.653:1|0.705:0.684:1|0.564:0.412:1|0.021:0.581:1,,Wood cabine,Cabaña Rustica,,,
+interior-2,interior,background,0,0,coins,interior_2,gear,0.170,0.573,0.431:0.662:1|0.709:0.712:1|0.57:0.523:1,,Wood Cabine,Cabaña madera,,,
+interior-3,interior,background,0,0,coins,interior_3,gear,0.180,0.565,0.451:0.659:1|0.72:0.712:1|0.587:0.537:1,,Stone Cabine,Cabaña Pierda,,,

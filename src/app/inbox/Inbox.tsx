@@ -9,7 +9,8 @@ import { countryName } from '../../domain/athlete/countries'
 import { ANNOUNCEMENTS, fetchAnnouncements, type Announcement } from '../../domain/announcements/announcements'
 import { RANKING, rankingSeason } from '../../domain/ranking/ranking'
 import { getRankingService, type RankingService } from '../../repositories/supabase/rankingClient'
-import { arrange, buildInbox, loadMemory, markRead, rememberRank, saveMemory, type InboxItem, type RankingScope } from './inbox'
+import { getCampService, type CampService } from '../../repositories/supabase/campClient'
+import { arrange, buildInbox, loadMemory, mailboxItems, markRead, rememberRank, saveMemory, type InboxItem, type RankingScope } from './inbox'
 import styles from './Inbox.module.css'
 
 const ICON: Record<InboxItem['kind'], string> = {
@@ -22,6 +23,8 @@ const ICON: Record<InboxItem['kind'], string> = {
   cloud: '☁',
   ranking: '🏆',
   announcement: '📣',
+  visit: '👣',
+  congrats: '👏',
 }
 
 function texts(item: InboxItem, t: Translate, locale: string, announcements: readonly Announcement[]): { title: string; body: string } {
@@ -61,6 +64,10 @@ function texts(item: InboxItem, t: Translate, locale: string, announcements: rea
             : t('inbox.ranking.movedBody', { rank: Number(v.rank), previous: Number(v.previous) })
       return { title, body }
     }
+    case 'visit':
+      return { title: t('inbox.visit.title', { name: String(v.name) }), body: t('inbox.visit.body') }
+    case 'congrats':
+      return { title: t('inbox.congrats.title', { name: String(v.name) }), body: t('inbox.congrats.body') }
     case 'cloud': {
       const body: MessageKey = v.notice === 'restored' ? 'notice.restored' : v.notice === 'updated' ? 'notice.updated' : 'inbox.cloud.error'
       return { title: t('inbox.cloud.title'), body: t(body) }
@@ -117,6 +124,26 @@ function useRankingWatch(
   }, [service, country, racesRun, remember])
 }
 
+/** The refuge's mailbox (visits and congratulations), read now and every few minutes. */
+function useCampMailbox(service: CampService | null, playing: boolean): InboxItem[] {
+  const [items, setItems] = useState<InboxItem[]>([])
+  useEffect(() => {
+    if (!service || !playing) return
+    let live = true
+    const check = () =>
+      void service.mailbox().then((entries) => {
+        if (live && entries !== 'offline') setItems(mailboxItems(entries))
+      })
+    check()
+    const timer = window.setInterval(check, RANK_CHECK_MS)
+    return () => {
+      live = false
+      window.clearInterval(timer)
+    }
+  }, [service, playing])
+  return items
+}
+
 /**
  * The announcements to every player: those in this build, then the published table read again now
  * and every few minutes, so a new message arrives while the game is open.
@@ -142,9 +169,11 @@ function useAnnouncements(load: () => Promise<Announcement[] | null>): readonly 
 export function InboxButton({
   rankingService = getRankingService(),
   loadAnnouncements = fetchAnnouncements,
+  campService = getCampService(),
 }: {
   rankingService?: RankingService | null
   loadAnnouncements?: () => Promise<Announcement[] | null>
+  campService?: CampService | null
 }) {
   const { phase, decayNotice, dismissDecayNotice, cloudNotice, dismissCloudNotice, cloudStatus } = useGame()
   const { t, locale } = useI18n()
@@ -173,13 +202,14 @@ export function InboxButton({
   const racesRun = state ? state.raceEntries.filter((entry) => entry.status === 'finished').length : 0
   useRankingWatch(rankingService, state?.athlete.country, racesRun, remember)
   const announcements = useAnnouncements(loadAnnouncements)
+  const visits = useCampMailbox(campService, state !== null)
 
   const { list, memory: next } = useMemo(() => {
-    const items = state ? buildInbox(state, now, { decay: decayNotice, cloudNotice, cloudError: cloudStatus === 'error' }, announcements) : []
+    const items = state ? [...buildInbox(state, now, { decay: decayNotice, cloudNotice, cloudError: cloudStatus === 'error' }, announcements), ...visits] : []
     return arrange(items, memory, now)
     // `now` changes every render; the list only needs the inputs below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, memory, decayNotice, cloudNotice, cloudStatus, announcements])
+  }, [state, memory, decayNotice, cloudNotice, cloudStatus, announcements, visits])
   const unread = list.filter((item) => item.unread).length
 
   // Remember first-seen times of new notifications.

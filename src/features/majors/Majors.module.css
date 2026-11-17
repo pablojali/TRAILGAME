@@ -1009,3 +1009,15 @@
 .meterEnergy {
   background: #5fd37f;
 }
+
+/* Another runner's name: opens their refuge (owner design, 17 November 2026). */
+.nameLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgb(255 255 255 / 0.35);
+  text-underline-offset: 3px;
+}
+
+.nameLink:hover {
+  text-decoration-color: currentcolor;
+}

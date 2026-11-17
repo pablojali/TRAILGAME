@@ -689,3 +689,48 @@
   outline: 3px solid var(--focus-ring);
   outline-offset: -3px;
 }
+
+/* Another runner's refuge while it loads or cannot be reached (owner design, 17 November 2026). */
+.visitState {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* The mailbox: visits and congratulations, each with a way to visit back. */
+.letters {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.letters li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.04);
+}
+
+.letters small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.letters a {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}

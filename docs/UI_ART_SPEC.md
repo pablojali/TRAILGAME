@@ -95,6 +95,13 @@ same canvas (16 November 2026):
   background's button and slots; choosing it brings its background into the scene). Coins are exchanged for Premium Coins there (`premium-exchange`, one way, at
   `coins_per_premium` in `src/data/economy.csv`). Premium Coins for real money are not part of it
   yet.
+- Visiting (17 November 2026): another runner's name in the rankings or a Major's standings
+  opens their refuge outside (`/base-camp/visit/:name`), as they have it, with no buttons in it.
+  Opening it records a visit for its owner and «Felicitar» a congratulation, each once a day;
+  both reach the owner's Inbox and mailbox (database functions `camp_public`, `camp_visit` and
+  `camp_mailbox`, migration `20261117090000_camp_visits.sql`). Only the pieces in use leave the
+  database. A runner without pieces, or an NPC, shows one of the free exteriors (always the same
+  for the same name), and visits to NPCs are not recorded. Every refuge can be visited.
 - Each picture fills the screen's height and is wider than it; it scrolls horizontally
   (`overflow-x`, `touch-action: pan-x`) and opens centred on the spot. The page never scrolls
   vertically.

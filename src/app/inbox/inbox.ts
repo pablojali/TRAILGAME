@@ -10,7 +10,7 @@ import { getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedul
  * The Inbox (owner request, 6 November 2026): notifications built from the career itself, so the
  * server needs nothing new. Each has a stable id; the ids already read are kept in the browser.
  */
-export type InboxKind = 'race' | 'challenge' | 'level' | 'season' | 'race-day' | 'decay' | 'cloud' | 'ranking' | 'announcement'
+export type InboxKind = 'race' | 'challenge' | 'level' | 'season' | 'race-day' | 'decay' | 'cloud' | 'ranking' | 'announcement' | 'visit' | 'congrats'
 
 export interface InboxItem {
   id: string
@@ -84,6 +84,20 @@ export function buildInbox(state: GameState, now: number, transient: Transient =
   if (transient.cloudNotice) items.push({ id: `cloud:${transient.cloudNotice}`, kind: 'cloud', at: now, link: '/settings', values: { notice: transient.cloudNotice } })
   if (transient.cloudError) items.push({ id: 'cloud:error', kind: 'cloud', at: now, link: '/settings', values: { notice: 'error' } })
   return items
+}
+
+/**
+ * Visits and congratulations to the player's refuge (owner design, 17 November 2026), from the
+ * server's mailbox: each opens the visitor's refuge.
+ */
+export function mailboxItems(entries: readonly { id: number; kind: 'visit' | 'congrats'; name: string; at: number }[]): InboxItem[] {
+  return entries.map((entry) => ({
+    id: `camp:${entry.id}`,
+    kind: entry.kind,
+    at: entry.at,
+    link: `/base-camp/visit/${encodeURIComponent(entry.name)}`,
+    values: { name: entry.name },
+  }))
 }
 
 /**

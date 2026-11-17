@@ -8,6 +8,7 @@ import { getLevel } from '../../domain/athlete/levels'
 import { firstSeason, RANKING, rankingSeason, seasonBounds, seasonParts, shiftSeason } from '../../domain/ranking/ranking'
 import { useI18n } from '../../i18n/i18n'
 import type { RankingRow, RankingService } from '../../repositories/supabase/rankingClient'
+import { visitPath } from '../basecamp/visits'
 import styles from './RankingPanel.module.css'
 
 type Mode = 'season' | 'annual'
@@ -159,7 +160,14 @@ export function RankingPanel({ service }: { service: RankingService | null }) {
                       <li key={`${row.rank}-${row.name}`} className={`${styles.row} ${row.isMe ? styles.rowMe : ''}`}>
                         <span className={`${styles.rank} ${row.rank <= 3 ? styles.rankTop : ''}`}>{row.rank}</span>
                         <span className={styles.who}>
-                          <span className={styles.name}>{row.name}</span>
+                          {/* Another runner's name opens their refuge (owner design, 17 November 2026). */}
+                          {row.isMe ? (
+                            <span className={styles.name}>{row.name}</span>
+                          ) : (
+                            <Link to={visitPath(row.name)} className={`${styles.name} ${styles.nameLink}`}>
+                              {row.name}
+                            </Link>
+                          )}
                           <span className={styles.meta}>
                             {row.country && `${countryFlag(row.country)} ${countryName(row.country, locale)} · `}
                             {t('ranking.level', { level: getLevel(row.xp) })}

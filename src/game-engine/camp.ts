@@ -31,7 +31,10 @@ export type ExchangeError = 'bad-amount' | 'rate-changed' | 'insufficient-coins'
 
 const EMPTY: CampState = { owned: [], using: [] }
 
-export function campOf(state: GameState): CampState {
+/** What reading a refuge needs: its pieces (a whole career, or another runner's refuge). */
+export type CampHolder = Pick<GameState, 'camp'>
+
+export function campOf(state: CampHolder): CampState {
   return state.camp ?? EMPTY
 }
 
@@ -39,7 +42,7 @@ export function premiumOf(state: GameState): number {
   return state.premiumCoins ?? 0
 }
 
-export function ownsCampItem(state: GameState, item: CampItem): boolean {
+export function ownsCampItem(state: CampHolder, item: CampItem): boolean {
   return isFreeFromStart(item) || campOf(state).owned.includes(item.id)
 }
 
@@ -57,7 +60,7 @@ const slotKey = (scene: CampScene, slot: number) => `${scene}:${slot}`
  * Where each decor object stands in the scene: the slots the player chose, then the free decor
  * (not taken out) in the empty slots, in the table's order. Only the background's slots show.
  */
-export function campPlacements(state: GameState, scene: CampScene, background: CampItem): PlacedDecor[] {
+export function campPlacements(state: CampHolder, scene: CampScene, background: CampItem): PlacedDecor[] {
   const camp = campOf(state)
   const slots = background.slots ?? []
   const taken = new Map<number, CampItem>()
@@ -85,7 +88,7 @@ export function campPlacements(state: GameState, scene: CampScene, background: C
  * it is what is drawn, while the background keeps the button and slots.
  */
 export function campScene(
-  state: GameState,
+  state: CampHolder,
   scene: CampScene,
 ): { background: CampItem; picture: CampItem; cabin: CampItem | null; decor: CampItem[]; placed: PlacedDecor[] } {
   const camp = campOf(state)
@@ -119,7 +122,7 @@ export interface CampSpot {
  * door outside) is always there: if the shown pieces lack it, the free piece that has it lends its
  * spot.
  */
-export function campSpots(state: GameState, scene: CampScene): CampSpot[] {
+export function campSpots(state: CampHolder, scene: CampScene): CampSpot[] {
   const { background, cabin, placed } = campScene(state, scene)
   // One button per action: a piece drawn later (a cabin over its background) moves it.
   const byAction = new Map<CampAction, CampSpot>()

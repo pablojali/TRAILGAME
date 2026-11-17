@@ -1,4 +1,5 @@
 import { BaseCampScreen } from '../features/basecamp/BaseCampScreen'
+import { CampVisitScreen } from '../features/basecamp/CampVisitScreen'
 import type { RouteObject } from 'react-router'
 import { AppearanceScreen } from '../features/appearance/AppearanceScreen'
 import { AttributesScreen } from '../features/attributes/AttributesScreen'
@@ -31,6 +32,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <DashboardScreen /> },
       { path: 'training', element: <TrainingScreen /> },
       { path: 'base-camp', element: <BaseCampScreen /> },
+      { path: 'base-camp/visit/:name', element: <CampVisitScreen /> },
       { path: 'equipment', element: <EquipmentScreen /> },
       { path: 'appearance', element: <AppearanceScreen /> },
       { path: 'races', element: <RacesScreen /> },

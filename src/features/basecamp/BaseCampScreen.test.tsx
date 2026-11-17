@@ -17,7 +17,7 @@ describe('Base Camp (V1)', () => {
 
     // The mailbox (a free piece with its own action) says what will arrive there.
     await user.click(screen.getByRole('button', { name: 'Mailbox' }))
-    expect(screen.getByRole('dialog', { name: 'Mailbox' })).toHaveTextContent('Congratulations and visits from other runners will arrive here.')
+    expect(screen.getByRole('dialog', { name: 'Mailbox' })).toHaveTextContent('The mailbox needs a connection.')
     await user.click(screen.getByRole('button', { name: 'Close' }))
 
     // The door takes the player inside; the switch shows where they are.

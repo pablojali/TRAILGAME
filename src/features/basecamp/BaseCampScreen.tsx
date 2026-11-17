@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import type { CampAction, CampItem, CampScene } from '../../domain/basecamp/catalog'
@@ -7,7 +7,8 @@ import { useI18n, type MessageKey } from '../../i18n/i18n'
 import styles from './BaseCamp.module.css'
 import { artRatio, campArt } from './campArt'
 import { CampShop } from './CampShop'
-import { useMailbox, visitPath } from './visits'
+import { FriendsSheet } from './Friends'
+import { useFriends, useMailbox, visitPath } from './visits'
 
 /** A point on a scene, in fractions of its picture (0–1 across, 0–1 down). */
 interface Spot {
@@ -99,6 +100,16 @@ export function BaseCampScreen() {
   const [params, setParams] = useSearchParams()
   const [shopOpen, setShopOpen] = useState(false)
   const [mailOpen, setMailOpen] = useState(false)
+  // The friends list opens from its button, or from the Inbox (`?friends=1`).
+  const [friendsOpen, setFriendsOpen] = useState(false)
+  const friendsWanted = params.get('friends') === '1'
+  useEffect(() => {
+    if (!friendsWanted) return
+    setFriendsOpen(true)
+    setParams({}, { replace: true })
+  }, [friendsWanted, setParams])
+  const { list: friends } = useFriends()
+  const requests = Array.isArray(friends) ? friends.filter((f) => f.relation === 'incoming').length : 0
   const view: CampScene = params.get('view') === 'interior' ? 'interior' : 'exterior'
   const show = (next: CampScene) => setParams(next === 'interior' ? { view: 'interior' } : {}, { replace: true })
   const scene = campScene(state, view)
@@ -126,6 +137,19 @@ export function BaseCampScreen() {
         <button type="button" className={styles.customize} onClick={() => setShopOpen(true)}>
           {t('basecamp.customize')}
         </button>
+        <button
+          type="button"
+          className={styles.customize}
+          aria-label={requests ? t('basecamp.friends.openRequests', { count: requests }) : undefined}
+          onClick={() => setFriendsOpen(true)}
+        >
+          {t('basecamp.friends.button')}
+          {requests > 0 && (
+            <span className={styles.badge} aria-hidden="true">
+              {requests}
+            </span>
+          )}
+        </button>
       </header>
 
       <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.picture} layers={[scene.cabin]} objects={scene.placed} focus={focus?.x ?? 0}>
@@ -150,6 +174,7 @@ export function BaseCampScreen() {
       </p>
       {shopOpen && <CampShop scene={view} onClose={() => setShopOpen(false)} />}
       {mailOpen && <Mailbox onClose={() => setMailOpen(false)} />}
+      {friendsOpen && <FriendsSheet onClose={() => setFriendsOpen(false)} />}
     </section>
   )
 }

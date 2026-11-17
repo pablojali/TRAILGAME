@@ -734,3 +734,53 @@
   align-items: center;
   text-decoration: none;
 }
+
+/* The friends list (owner design, 17 November 2026). */
+.friendGroup {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.friendGroup h3 {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.friendActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.friendActions a {
+  text-decoration: none;
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger, #d64545);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.visitError {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgb(120 20 20 / 0.75);
+  font-size: var(--font-size-sm);
+  pointer-events: auto;
+}

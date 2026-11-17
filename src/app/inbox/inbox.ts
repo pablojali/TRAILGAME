@@ -10,7 +10,7 @@ import { getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedul
  * The Inbox (owner request, 6 November 2026): notifications built from the career itself, so the
  * server needs nothing new. Each has a stable id; the ids already read are kept in the browser.
  */
-export type InboxKind = 'race' | 'challenge' | 'level' | 'season' | 'race-day' | 'decay' | 'cloud' | 'ranking' | 'announcement' | 'visit' | 'congrats'
+export type InboxKind = 'race' | 'challenge' | 'level' | 'season' | 'race-day' | 'decay' | 'cloud' | 'ranking' | 'announcement' | 'visit' | 'congrats' | 'friend-request' | 'friend-accepted'
 
 export interface InboxItem {
   id: string
@@ -98,6 +98,28 @@ export function mailboxItems(entries: readonly { id: number; kind: 'visit' | 'co
     link: `/base-camp/visit/${encodeURIComponent(entry.name)}`,
     values: { name: entry.name },
   }))
+}
+
+/**
+ * Friend requests to answer and requests the other runner accepted (owner design, 17 November
+ * 2026), from the server's friends list.
+ */
+export function friendItems(entries: readonly { name: string; relation: 'friend' | 'incoming' | 'outgoing'; since: number; mine: boolean }[]): InboxItem[] {
+  const items: InboxItem[] = []
+  for (const entry of entries) {
+    if (entry.relation === 'incoming') {
+      items.push({ id: `friend:request:${entry.name}:${entry.since}`, kind: 'friend-request', at: entry.since, link: '/base-camp?friends=1', values: { name: entry.name } })
+    } else if (entry.relation === 'friend' && entry.mine) {
+      items.push({
+        id: `friend:accepted:${entry.name}:${entry.since}`,
+        kind: 'friend-accepted',
+        at: entry.since,
+        link: `/base-camp/visit/${encodeURIComponent(entry.name)}`,
+        values: { name: entry.name },
+      })
+    }
+  }
+  return items
 }
 
 /**

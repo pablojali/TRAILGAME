@@ -10,7 +10,7 @@ import { ANNOUNCEMENTS, fetchAnnouncements, type Announcement } from '../../doma
 import { RANKING, rankingSeason } from '../../domain/ranking/ranking'
 import { getRankingService, type RankingService } from '../../repositories/supabase/rankingClient'
 import { getCampService, type CampService } from '../../repositories/supabase/campClient'
-import { arrange, buildInbox, loadMemory, mailboxItems, markRead, rememberRank, saveMemory, type InboxItem, type RankingScope } from './inbox'
+import { arrange, buildInbox, friendItems, loadMemory, mailboxItems, markRead, rememberRank, saveMemory, type InboxItem, type RankingScope } from './inbox'
 import styles from './Inbox.module.css'
 
 const ICON: Record<InboxItem['kind'], string> = {
@@ -25,6 +25,8 @@ const ICON: Record<InboxItem['kind'], string> = {
   announcement: '📣',
   visit: '👣',
   congrats: '👏',
+  'friend-request': '🤝',
+  'friend-accepted': '🤝',
 }
 
 function texts(item: InboxItem, t: Translate, locale: string, announcements: readonly Announcement[]): { title: string; body: string } {
@@ -68,6 +70,10 @@ function texts(item: InboxItem, t: Translate, locale: string, announcements: rea
       return { title: t('inbox.visit.title', { name: String(v.name) }), body: t('inbox.visit.body') }
     case 'congrats':
       return { title: t('inbox.congrats.title', { name: String(v.name) }), body: t('inbox.congrats.body') }
+    case 'friend-request':
+      return { title: t('inbox.friendRequest.title', { name: String(v.name) }), body: t('inbox.friendRequest.body') }
+    case 'friend-accepted':
+      return { title: t('inbox.friendAccepted.title', { name: String(v.name) }), body: t('inbox.friendAccepted.body') }
     case 'cloud': {
       const body: MessageKey = v.notice === 'restored' ? 'notice.restored' : v.notice === 'updated' ? 'notice.updated' : 'inbox.cloud.error'
       return { title: t('inbox.cloud.title'), body: t(body) }
@@ -124,15 +130,17 @@ function useRankingWatch(
   }, [service, country, racesRun, remember])
 }
 
-/** The refuge's mailbox (visits and congratulations), read now and every few minutes. */
+/** The refuge's mailbox (visits and congratulations) and the friend requests and acceptances, read now and every few minutes. */
 function useCampMailbox(service: CampService | null, playing: boolean): InboxItem[] {
   const [items, setItems] = useState<InboxItem[]>([])
   useEffect(() => {
     if (!service || !playing) return
     let live = true
     const check = () =>
-      void service.mailbox().then((entries) => {
-        if (live && entries !== 'offline') setItems(mailboxItems(entries))
+      void Promise.all([service.mailbox(), service.friends()]).then(([entries, friends]) => {
+        if (!live) return
+        if (entries === 'offline' && friends === 'offline') return
+        setItems([...(entries === 'offline' ? [] : mailboxItems(entries)), ...(friends === 'offline' ? [] : friendItems(friends))])
       })
     check()
     const timer = window.setInterval(check, RANK_CHECK_MS)

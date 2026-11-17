@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mailboxItems } from '../../app/inbox/inbox'
+import { friendItems, mailboxItems } from '../../app/inbox/inbox'
 import { createCampService } from './campClient'
 
 const service = (answers: Record<string, unknown>, calls: unknown[] = []) =>
@@ -39,5 +39,39 @@ describe('the refuge service', () => {
     expect(await camp.refuge('Ana')).toBe('offline')
     expect(await camp.visit('Ana', false)).toBe('offline')
     expect(await camp.mailbox()).toBe('offline')
+  })
+})
+
+describe('friends', () => {
+  it('reads the list, sends and answers requests, and explains limits', async () => {
+    const calls: unknown[] = []
+    const camp = createCampService(
+      async () => ({
+        rpc: async (name: string, args?: Record<string, unknown>) => {
+          calls.push([name, args])
+          if (name === 'friend_list') return { data: [{ name: 'Bo', country: null, xp: 10, relation: 'incoming', since: '2026-11-17T10:00:00Z', mine: false }, { name: 'x' }], error: null }
+          if (name === 'friend_request') return args?.p_name === 'Full' ? { data: null, error: { message: 'too-many-pending' } } : { data: 'accepted', error: null }
+          if (name === 'friend_respond') return { data: 'declined', error: null }
+          return { data: true, error: null }
+        },
+      }),
+      async () => null,
+    )
+    expect(await camp.friends()).toEqual([{ name: 'Bo', country: null, xp: 10, relation: 'incoming', since: Date.parse('2026-11-17T10:00:00Z'), mine: false }])
+    expect(await camp.requestFriend('Bo')).toBe('accepted')
+    expect(await camp.requestFriend('Full')).toBe('too-many-pending')
+    expect(await camp.answerFriend('Bo', false)).toBe('declined')
+    expect(await camp.removeFriend('Bo')).toBe(true)
+    expect(calls[3]).toEqual(['friend_respond', { p_name: 'Bo', p_accept: false }])
+    expect(
+      friendItems([
+        { name: 'Bo', relation: 'incoming', since: 5, mine: false },
+        { name: 'Cy', relation: 'friend', since: 6, mine: true },
+        { name: 'Di', relation: 'friend', since: 7, mine: false },
+      ]).map((item) => [item.kind, item.link]),
+    ).toEqual([
+      ['friend-request', '/base-camp?friends=1'],
+      ['friend-accepted', '/base-camp/visit/Cy'],
+    ])
   })
 })

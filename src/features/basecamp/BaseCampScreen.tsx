@@ -53,7 +53,7 @@ const FIREFLIES: readonly (Spot & { delay: number })[] = [
 ]
 
 /** How many screens wide the scene is at most (the rest is swiped). */
-const SCREENS_WIDE = 2.2
+const SCREENS_WIDE = 1.8
 
 const at = ({ x, y }: Spot) => ({ left: `${x * 100}%`, top: `${y * 100}%` })
 

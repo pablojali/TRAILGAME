@@ -164,5 +164,9 @@
   "inbox.ranking.left": "Saliste del top 10: {where}",
   "inbox.ranking.enteredBody": "Estás #{rank} en esta temporada.",
   "inbox.ranking.movedBody": "Ahora #{rank} (antes #{previous}).",
-  "inbox.ranking.leftBody": "Estabas #{previous}. Corre para volver a entrar."
+  "inbox.ranking.leftBody": "Estabas #{previous}. Corre para volver a entrar.",
+  "wallet.open": "Monedas y Premium Coins: canjear",
+  "wallet.title": "Tu cartera",
+  "basecamp.error.bought-no-slot": "Ya es tuyo. Elige un hueco para ponerlo.",
+  "basecamp.goOut": "← Salir"
 }

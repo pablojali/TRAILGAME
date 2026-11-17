@@ -164,5 +164,9 @@
   "inbox.ranking.left": "Raus aus den Top 10: {where}",
   "inbox.ranking.enteredBody": "Du bist #{rank} in dieser Saison.",
   "inbox.ranking.movedBody": "Jetzt #{rank} (vorher #{previous}).",
-  "inbox.ranking.leftBody": "Du warst #{previous}. Lauf, um wieder reinzukommen."
+  "inbox.ranking.leftBody": "Du warst #{previous}. Lauf, um wieder reinzukommen.",
+  "wallet.open": "Münzen und Premium Coins: tauschen",
+  "wallet.title": "Deine Geldbörse",
+  "basecamp.error.bought-no-slot": "Es gehört dir. Wähle einen Platz dafür.",
+  "basecamp.goOut": "← Raus"
 }

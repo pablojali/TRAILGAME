@@ -3,14 +3,13 @@ import { useCareer } from '../../app/game/gameContext'
 import { Coins, Premium } from '../../components/Coins'
 import { getLevel } from '../../domain/athlete/levels'
 import { CAMP_KINDS, campItemName, campItems, type CampItem, type CampScene } from '../../domain/basecamp/catalog'
-import { COINS_PER_PREMIUM, MAX_EXCHANGE } from '../../domain/economy/premium'
 import { campScene, campSlotOf, isCampItemUsed, ownsCampItem, premiumOf, type CampBuyError, type CampUseError, type ExchangeError } from '../../game-engine/camp'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './BaseCamp.module.css'
 import { campArt } from './campArt'
 
-type CampError = CampBuyError | CampUseError | ExchangeError | ServerError
+type CampError = CampBuyError | CampUseError | ExchangeError | ServerError | 'bought-no-slot'
 const errorKey = (error: CampError) => `basecamp.error.${error}` as MessageKey
 
 const KIND_TITLES = {
@@ -21,25 +20,31 @@ const KIND_TITLES = {
 
 /**
  * Customize (owner design, 16 November 2026): the scene's pieces, unlocked by the player's level
- * and bought with coins or Premium Coins, then put in the scene or taken out. Coins are exchanged
- * for Premium Coins here, one way. Everything goes through the server like the equipment shop.
+ * and bought with coins or Premium Coins, then put in the scene or taken out, in one tab per kind.
+ * Using or buying a piece closes the sheet on the scene. (Coins are exchanged for Premium Coins in
+ * the wallet, from the top bar.) Everything goes through the server like the equipment shop.
  */
 export function CampShop({ scene, onClose }: { scene: CampScene; onClose(): void }) {
   const { t } = useI18n()
-  const { state, exchangePremium } = useCareer()
+  const { state } = useCareer()
   const [busy, setBusy] = useState<string | null>(null)
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
-  const [amountText, setAmountText] = useState('1')
-  const amount = Math.max(0, Math.min(MAX_EXCHANGE, Math.floor(Number(amountText) || 0)))
-  const premium = premiumOf(state)
-  const cost = amount * COINS_PER_PREMIUM
+  // One tab per kind with something to show (owner request, 17 November 2026). An exclusive piece
+  // (the admin's refuge) is only listed for whoever has it.
+  const tabs = CAMP_KINDS.map((kind) => ({ kind, items: campItems(scene, kind).filter((item) => !item.exclusive || ownsCampItem(state, item)) })).filter(
+    ({ kind, items }) => (kind === 'cabin' ? items.length > 0 : kind === 'background' ? items.length > 1 : true),
+  )
+  const [tab, setTab] = useState(tabs[0]?.kind ?? 'decor')
+  const shown = tabs.find((x) => x.kind === tab) ?? tabs[0]
 
-  async function run(key: string, action: () => Promise<string | CampError | null>, done: string) {
+  /** Runs an action; with `close`, a success takes the player straight to the scene. */
+  async function run(key: string, action: () => Promise<string | CampError | null>, done: string, close = false) {
     if (busy) return
     setBusy(key)
     setMessage(null)
     const failure = await action()
     setBusy(null)
+    if (!failure && close) return onClose()
     setMessage(failure ? { text: t(errorKey(failure as CampError)), error: true } : done ? { text: done, error: false } : null)
   }
 
@@ -48,72 +53,35 @@ export function CampShop({ scene, onClose }: { scene: CampScene; onClose(): void
       <section className={styles.shop} role="dialog" aria-modal="true" aria-labelledby="camp-shop-title">
         <header className={styles.shopHead}>
           <h2 id="camp-shop-title">{t('basecamp.shop.title')}</h2>
-          <span className={styles.balances}>
-            <Coins amount={state.coins} />
-            <Premium amount={premium} />
-          </span>
           <button type="button" className={styles.close} onClick={onClose}>
             {t('basecamp.shop.close')}
           </button>
         </header>
-
-        <div className={styles.shopBody}>
-          <section className={styles.exchange} aria-labelledby="camp-exchange">
-            <h3 id="camp-exchange">{t('basecamp.exchange.title')}</h3>
-            <p className={styles.muted}>{t('basecamp.exchange.rate', { coins: COINS_PER_PREMIUM })}</p>
-            <div className={styles.exchangeRow}>
-              <label>
-                {t('basecamp.exchange.amount')}
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={MAX_EXCHANGE}
-                  value={amountText}
-                  onChange={(e) => setAmountText(e.target.value)}
-                />
-              </label>
-              <button
-                type="button"
-                className={styles.action}
-                aria-disabled={amount < 1 || cost > state.coins || busy !== null || undefined}
-                onClick={() =>
-                  amount >= 1 &&
-                  cost <= state.coins &&
-                  void run('exchange', () => exchangePremium(amount, COINS_PER_PREMIUM), t('basecamp.exchange.done', { count: amount }))
-                }
-              >
-                {busy === 'exchange' ? t('basecamp.shop.saving') : t('basecamp.exchange.go')}
+        {tabs.length > 1 && (
+          <div className={styles.shopTabs} role="tablist" aria-label={t('basecamp.shop.title')}>
+            {tabs.map(({ kind }) => (
+              <button key={kind} type="button" role="tab" aria-selected={kind === shown?.kind} onClick={() => setTab(kind)}>
+                {t(KIND_TITLES[kind])}
               </button>
-            </div>
-            <p className={styles.muted}>{t('basecamp.exchange.cost', { coins: cost })}</p>
-          </section>
+            ))}
+          </div>
+        )}
 
+        <div className={styles.shopBody} role="tabpanel">
           {message && (
             <p role={message.error ? 'alert' : 'status'} className={message.error ? styles.shopError : styles.shopNote}>
               {message.text}
             </p>
           )}
-
-          {CAMP_KINDS.map((kind) => {
-            // An exclusive piece (the admin's refuge) is only listed for whoever has it.
-            const items = campItems(scene, kind).filter((item) => !item.exclusive || ownsCampItem(state, item))
-            if (kind === 'background' && items.length <= 1) return null
-            return (
-              <section key={kind} aria-labelledby={`camp-kind-${kind}`}>
-                <h3 id={`camp-kind-${kind}`}>{t(KIND_TITLES[kind])}</h3>
-                {items.length === 0 ? (
-                  <p className={styles.muted}>{t('basecamp.shop.empty')}</p>
-                ) : (
-                  <ul className={styles.pieces}>
-                    {items.map((item) => (
-                      <Piece key={item.id} item={item} busy={busy} run={run} />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            )
-          })}
+          {!shown || shown.items.length === 0 ? (
+            <p className={styles.muted}>{t('basecamp.shop.empty')}</p>
+          ) : (
+            <ul className={styles.pieces}>
+              {shown.items.map((item) => (
+                <Piece key={item.id} item={item} busy={busy} run={run} />
+              ))}
+            </ul>
+          )}
         </div>
       </section>
     </div>
@@ -127,7 +95,7 @@ function Piece({
 }: {
   item: CampItem
   busy: string | null
-  run(key: string, action: () => Promise<string | CampError | null>, done: string): Promise<void>
+  run(key: string, action: () => Promise<string | CampError | null>, done: string, close?: boolean): Promise<void>
 }) {
   const { t, locale } = useI18n()
   const { state, buyCampItem, setCampItemUsed } = useCareer()
@@ -152,7 +120,8 @@ function Piece({
           className={styles.action}
           aria-pressed={used}
           aria-disabled={!canToggle || busy !== null || undefined}
-          onClick={() => canToggle && void run(item.id, () => setCampItemUsed(item.id, !used), '')}
+          // Using a piece shows it at once: the sheet closes on the scene.
+          onClick={() => canToggle && void run(item.id, () => setCampItemUsed(item.id, !used), '', !used)}
         >
           {busy === item.id
             ? t('basecamp.shop.saving')
@@ -172,7 +141,19 @@ function Piece({
             aria-disabled={balance < item.price || busy !== null || undefined}
             onClick={() =>
               balance >= item.price &&
-              void run(item.id, () => buyCampItem(item.id, { price: item.price, currency: item.currency }), t('basecamp.shop.bought', { name }))
+              void run(
+                item.id,
+                async () => {
+                  // Bought and put in the scene at once, then the sheet closes on it (an object
+                  // goes to the first empty slot; if there is none, the player chooses one here).
+                  const bought = await buyCampItem(item.id, { price: item.price, currency: item.currency })
+                  if (bought) return bought
+                  const placed = await setCampItemUsed(item.id, true)
+                  return placed === 'no-slot' ? 'bought-no-slot' : placed
+                },
+                t('basecamp.shop.bought', { name }),
+                true,
+              )
             }
           >
             {busy === item.id ? t('basecamp.shop.saving') : t('basecamp.shop.buy')}
@@ -197,7 +178,7 @@ function SlotPicker({
   item: CampItem
   name: string
   busy: string | null
-  run(key: string, action: () => Promise<string | CampError | null>, done: string): Promise<void>
+  run(key: string, action: () => Promise<string | CampError | null>, done: string, close?: boolean): Promise<void>
 }) {
   const { t } = useI18n()
   const { state, setCampItemUsed } = useCareer()
@@ -214,7 +195,7 @@ function SlotPicker({
           aria-pressed={current === n}
           aria-label={t('basecamp.shop.slot', { n })}
           aria-disabled={busy !== null || undefined}
-          onClick={() => busy === null && current !== n && void run(item.id, () => setCampItemUsed(item.id, true, n), '')}
+          onClick={() => busy === null && current !== n && void run(item.id, () => setCampItemUsed(item.id, true, n), '', true)}
         >
           {n}
         </button>

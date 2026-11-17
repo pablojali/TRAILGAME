@@ -164,5 +164,9 @@
   "inbox.ranking.left": "Fuori dalla top 10: {where}",
   "inbox.ranking.enteredBody": "Sei #{rank} in questa stagione.",
   "inbox.ranking.movedBody": "Ora #{rank} (prima #{previous}).",
-  "inbox.ranking.leftBody": "Eri #{previous}. Corri per rientrare."
+  "inbox.ranking.leftBody": "Eri #{previous}. Corri per rientrare.",
+  "wallet.open": "Monete e Premium Coins: cambia",
+  "wallet.title": "Il tuo portafoglio",
+  "basecamp.error.bought-no-slot": "È tuo. Scegli un posto dove metterlo.",
+  "basecamp.goOut": "← Esci"
 }

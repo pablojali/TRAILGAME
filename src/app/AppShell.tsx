@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { NavLink, Outlet, ScrollRestoration, useLocation } from 'react-router'
 import logoUrl from '../../assets/ui/brand/logo-128.png'
-import { Coins } from '../components/Coins'
 import { getLevel } from '../domain/athlete/levels'
 import { Backdrop } from '../components/backdrop/Backdrop'
 import { sceneForPath } from '../components/backdrop/backdrops'
@@ -15,6 +14,7 @@ import button from '../components/Button.module.css'
 import { Screen } from '../components/Screen'
 import { ConflictDialog } from './cloud/ConflictDialog'
 import { InboxButton } from './inbox/Inbox'
+import { WalletButton } from './wallet/Wallet'
 import { useGame } from './game/gameContext'
 import { GameNotices } from './game/GameNotices'
 import { LevelUpDialog } from './game/LevelUpDialog'
@@ -69,9 +69,7 @@ export function AppShell() {
         {phase.kind === 'playing' && (
           <div className={styles.status}>
             <p className={styles.level}>{t('common.lvl', { level: getLevel(phase.state.athlete.xp) })}</p>
-            <p className={styles.balance}>
-              <Coins amount={phase.state.coins} />
-            </p>
+            <WalletButton />
           </div>
         )}
         {phase.kind === 'playing' && <InboxButton />}

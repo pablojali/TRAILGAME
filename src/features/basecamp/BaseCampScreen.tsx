@@ -106,23 +106,19 @@ export function BaseCampScreen() {
 
   return (
     <section className={styles.camp} aria-labelledby="basecamp-title">
+      {/* Title and Customize side by side (owner request, 17 November 2026). The door goes in; inside, "Go out" goes back. */}
       <header className={styles.bar}>
+        {view === 'interior' && (
+          <button type="button" className={styles.customize} onClick={() => show('exterior')}>
+            {t('basecamp.goOut')}
+          </button>
+        )}
         <h1 id="basecamp-title" className={styles.title}>
           {t('basecamp.title')}
         </h1>
-        <div className={styles.controls}>
-          <div className={styles.switch} role="group" aria-label={t('basecamp.views')}>
-            <button type="button" aria-pressed={view === 'exterior'} onClick={() => show('exterior')}>
-              {t('basecamp.outside')}
-            </button>
-            <button type="button" aria-pressed={view === 'interior'} onClick={() => show('interior')}>
-              {t('basecamp.inside')}
-            </button>
-          </div>
-          <button type="button" className={styles.customize} onClick={() => setShopOpen(true)}>
-            {t('basecamp.customize')}
-          </button>
-        </div>
+        <button type="button" className={styles.customize} onClick={() => setShopOpen(true)}>
+          {t('basecamp.customize')}
+        </button>
       </header>
 
       <Panorama key={`${view}:${scene.background.id}`} scene={view} background={scene.background} layers={[scene.cabin]} objects={scene.placed} focus={focus.x}>

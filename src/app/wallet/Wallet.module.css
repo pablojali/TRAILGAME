@@ -1,0 +1,151 @@
+/* The balances in the top bar: coins with the Premium Coins below (owner request, 17 November 2026). */
+.balances {
+  display: grid;
+  justify-items: start;
+  gap: 1px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #f2c531;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.balances:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.premium {
+  color: #b9a2ff;
+}
+
+.back {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgb(0 0 0 / 0.55);
+}
+
+.dialog {
+  width: min(100%, 380px);
+  padding: var(--space-4);
+  border: 1px solid rgb(124 77 255 / 0.4);
+  border-radius: var(--radius-md);
+  background: rgb(14 16 18 / 0.98);
+  color: var(--text);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.head h2 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.dialog h3 {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.totals {
+  display: flex;
+  gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+}
+
+.muted {
+  margin: var(--space-1) 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.row label {
+  display: grid;
+  gap: 4px;
+  font-size: var(--font-size-sm);
+}
+
+.row input {
+  width: 7em;
+  min-height: 38px;
+  padding: 0 8px;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: var(--radius-sm);
+  background: rgb(0 0 0 / 0.3);
+  color: var(--text);
+  font: inherit;
+}
+
+.action,
+.close {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.action {
+  border: 0;
+  background: var(--accent);
+  color: #15100b;
+}
+
+.action[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.close {
+  border: 1px solid rgb(255 255 255 / 0.2);
+  background: transparent;
+  color: var(--text);
+}
+
+.action:focus-visible,
+.close:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.error,
+.note {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.error {
+  background: rgb(200 60 50 / 0.2);
+}
+
+.note {
+  background: rgb(80 170 110 / 0.18);
+}

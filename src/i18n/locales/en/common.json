@@ -164,5 +164,9 @@
   "inbox.ranking.left": "Out of the top 10: {where}",
   "inbox.ranking.enteredBody": "You're #{rank} this season.",
   "inbox.ranking.movedBody": "Now #{rank} (was #{previous}).",
-  "inbox.ranking.leftBody": "You were #{previous}. Race to get back in."
+  "inbox.ranking.leftBody": "You were #{previous}. Race to get back in.",
+  "wallet.open": "Coins and Premium Coins: exchange",
+  "wallet.title": "Your wallet",
+  "basecamp.error.bought-no-slot": "It's yours. Choose a place to put it.",
+  "basecamp.goOut": "← Go out"
 }

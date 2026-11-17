@@ -55,8 +55,12 @@ const FIREFLIES: readonly (Spot & { delay: number })[] = [
 /** Inside, the gear button's centre this far from the screen's left edge (half the button and a margin). */
 const GEAR_EDGE = 64
 
-/** How many screens wide the scene is at most (the rest is swiped). */
-const SCREENS_WIDE = 1.8
+/**
+ * How many screens wide each scene is at most (the rest is swiped). The living room is narrower
+ * (2600×1600), so it may be wider in screens and fill more of the height (owner request,
+ * 17 November 2026: less blur above and below).
+ */
+const SCREENS_WIDE: Record<CampScene, number> = { exterior: 1.8, interior: 2.4 }
 
 const at = ({ x, y }: Spot) => ({ left: `${x * 100}%`, top: `${y * 100}%` })
 
@@ -155,22 +159,30 @@ export function BaseCampScreen() {
   )
 }
 
-/** A piece's action: a pulsing ring and its words; screens open as links, the rest as buttons. */
+/**
+ * A piece's action: a pulsing ring and its words; screens open as links, the rest as buttons. On an
+ * object (decor) only the ring shows, so the words don't cover its drawing (owner request,
+ * 17 November 2026); the words stay for screen readers.
+ */
 function SpotButton({ spot, onAct }: { spot: CampSpot; onAct(action: CampAction): void }) {
   const { t } = useI18n()
   const path = ACTION_PATHS[spot.action]
+  const onObject = spot.item.kind === 'decor'
+  const label = t(ACTION_LABELS[spot.action])
+  const className = onObject ? `${styles.spot} ${styles.objectSpot}` : styles.spot
   const content = (
     <>
       <span className={styles.ring} aria-hidden="true" />
-      <span className={styles.spotLabel}>{t(ACTION_LABELS[spot.action])}</span>
+      {!onObject && <span className={styles.spotLabel}>{label}</span>}
     </>
   )
+  const named = onObject ? { 'aria-label': label, title: label } : {}
   return path ? (
-    <Link to={path} className={styles.spot} style={at(spot)}>
+    <Link to={path} className={className} style={at(spot)} {...named}>
       {content}
     </Link>
   ) : (
-    <button type="button" className={styles.spot} style={at(spot)} onClick={() => onAct(spot.action)}>
+    <button type="button" className={className} style={at(spot)} onClick={() => onAct(spot.action)} {...named}>
       {content}
     </button>
   )
@@ -236,7 +248,7 @@ function Panorama({
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
-  const height = box ? Math.min(box.height, (box.width * SCREENS_WIDE) / ratio) : null
+  const height = box ? Math.min(box.height, (box.width * SCREENS_WIDE[scene]) / ratio) : null
   useLayoutEffect(() => {
     const el = scroller.current
     if (!el || height === null) return

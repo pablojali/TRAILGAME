@@ -10,7 +10,11 @@ import type { Workspace } from './model'
 import { folders, withUploads } from './uploads'
 
 /** Every piece of a scene is drawn on this canvas (owner decision, 16 November 2026). */
-const CAMP_CANVAS = { width: 3200, height: 1600 }
+/** The canvas of each scene (owner, 17 November 2026: the living room narrower than outside). */
+const CAMP_CANVASES: Record<CampScene, { width: number; height: number }> = {
+  exterior: { width: 3200, height: 1600 },
+  interior: { width: 2600, height: 1600 },
+}
 const MAX_BYTES = 20 * 1024 * 1024
 const EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const
 
@@ -95,6 +99,7 @@ function rowError(doc: CsvDoc, values: Record<string, string>): string {
  */
 export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: Workspace; setWs(ws: Workspace): void; scene: CampScene }) {
   const doc = ws.docs.basecamp
+  const CAMP_CANVAS = CAMP_CANVASES[scene]
   const sceneRows = rows(doc).filter((r) => r.values.scene === scene)
   const [selected, select] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -227,6 +232,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
 
           {v.kind === 'decor' ? (
             <CampPreview
+              ratio={CAMP_CANVAS.width / CAMP_CANVAS.height}
               background={backgroundRow && pictureOf(backgroundRow.values)}
               layers={[]}
               objects={(() => {
@@ -239,6 +245,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
             />
           ) : (
             <CampPreview
+              ratio={CAMP_CANVAS.width / CAMP_CANVAS.height}
               background={v.kind === 'background' ? pictureOf(v) : backgroundRow && pictureOf(backgroundRow.values)}
               layers={[...freeLayers(v), ...(v.kind === 'background' ? [] : [pictureOf(v)])].filter((url): url is string => !!url)}
               objects={(() => {
@@ -450,12 +457,14 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
 
 /** The scene as a new player sees it: the piece in its place, its door and slots marked. */
 function CampPreview({
+  ratio,
   background,
   layers,
   objects,
   marks,
   onPick,
 }: {
+  ratio: number
   background?: string
   layers: string[]
   /** Objects standing on a point (their base), `height` as a share of the picture's height. */
@@ -466,6 +475,7 @@ function CampPreview({
   return (
     <div
       className={`campPreview${onPick ? ' pick' : ''}`}
+      style={{ aspectRatio: String(ratio) }}
       onClick={(e) => {
         if (!onPick) return
         const box = e.currentTarget.getBoundingClientRect()

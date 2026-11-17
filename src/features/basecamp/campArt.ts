@@ -10,9 +10,12 @@ export function campArt(item: CampItem, files: Record<string, string> = ART): st
   return files[`../../../assets/ui/basecamp/${item.scene}/${item.art}.webp`]
 }
 
-/** Width / height of the first pictures (before the 3200 × 1600 canvas); new art is 2:1. */
-const KNOWN_RATIOS: Record<string, number> = { lvl0_exterior: 1079 / 625, lvl0_interior: 1080 / 912 }
+/**
+ * The scene's shape before its picture loads (the picture's own shape wins once loaded): the
+ * canvases are 3200 × 1600 outside and 2600 × 1600 inside (owner, 17 November 2026).
+ */
+const CANVAS_RATIOS = { exterior: 3200 / 1600, interior: 2600 / 1600 }
 
 export function artRatio(item: CampItem): number {
-  return KNOWN_RATIOS[item.art] ?? 2
+  return CANVAS_RATIOS[item.scene]
 }

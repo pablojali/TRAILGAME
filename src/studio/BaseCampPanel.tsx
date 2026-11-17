@@ -58,8 +58,9 @@ const ACTIONS = [
   { value: 'races', label: 'Carreras' },
   { value: 'career', label: 'Trayectoria' },
 ]
-const ESSENTIAL: Record<CampScene, string> = { exterior: 'Entrar', interior: 'Equipo' }
-const ESSENTIAL_ACTION: Record<CampScene, string> = { exterior: 'enter', interior: 'gear' }
+/** Outside, every background has the door; inside, the owner picks each background's button (17 November 2026). */
+const ESSENTIAL: Partial<Record<CampScene, string>> = { exterior: 'Entrar' }
+const ESSENTIAL_ACTION: Partial<Record<CampScene, string>> = { exterior: 'enter' }
 const isFree = (values: Record<string, string>) => values.level === '0' && values.price === '0'
 
 function useFolder(token: string, path: string): RepoFile[] | null {
@@ -144,9 +145,9 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
           price: '50',
           currency: 'coins',
           art: id.replace(/-/g, '_'),
-          action: ESSENTIAL_ACTION[scene],
-          spot_x: '0.5',
-          spot_y: '0.5',
+          action: ESSENTIAL_ACTION[scene] ?? '',
+          spot_x: ESSENTIAL_ACTION[scene] ? '0.5' : '',
+          spot_y: ESSENTIAL_ACTION[scene] ? '0.5' : '',
           name: 'New piece',
           name_es: 'Pieza nueva',
         }),
@@ -260,7 +261,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
                 })
               })()}
               marks={[
-                ...(v.action && v.spot_x !== '' && v.spot_y !== '' ? [{ label: '🚪', x: Number(v.spot_x), y: Number(v.spot_y), on: target === 0 }] : []),
+                ...(v.action && v.spot_x !== '' && v.spot_y !== '' ? [{ label: ESSENTIAL[scene] ? '🚪' : '●', x: Number(v.spot_x), y: Number(v.spot_y), on: target === 0 }] : []),
                 ...(v.kind === 'background' ? readSlots(v.slots).map((sl, i) => ({ label: String(i + 1), x: sl.x, y: sl.y, on: target === i + 1 })) : []),
               ]}
               onPick={({ x, y }) => {
@@ -278,8 +279,8 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
             <>
               <div className="chips" role="group" aria-label="Qué colocas con un clic">
                 {[0, 1, 2, 3, 4].map((n) => (
-                  <button key={n} type="button" aria-pressed={target === n} onClick={() => setTarget(n)} disabled={n > readSlots(v.slots).length + 1}>
-                    {n === 0 ? `Puerta («${ESSENTIAL[scene]}»)` : `Hueco ${n}`}
+                  <button key={n} type="button" aria-pressed={target === n} onClick={() => setTarget(n)} disabled={n > readSlots(v.slots).length + 1 || (n === 0 && !v.action)}>
+                    {n === 0 ? (ESSENTIAL[scene] ? `Puerta («${ESSENTIAL[scene]}»)` : 'Botón') : `Hueco ${n}`}
                   </button>
                 ))}
               </div>
@@ -296,7 +297,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
                 : v.action
                   ? 'Haz clic en la imagen para colocar el botón de la acción.'
                   : 'Sin acción: la pieza solo decora.'}{' '}
-              Las piezas gratis de la escena tienen que incluir «{ESSENTIAL[scene]}».
+              {ESSENTIAL[scene] && <>Las piezas gratis de la escena tienen que incluir «{ESSENTIAL[scene]}».</>}
             </p>
           )}
           {rowError(doc, v) && <p className="error">El juego no aceptaría esta pieza: {rowError(doc, v)}</p>}
@@ -311,14 +312,16 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
                 // A background always has the scene's door (or gear bench): its spot shows at once.
                 setPiece(
                   kind === 'background'
-                    ? { kind, action: ESSENTIAL_ACTION[scene]!, spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5', size: '' }
+                    ? ESSENTIAL_ACTION[scene]
+                      ? { kind, action: ESSENTIAL_ACTION[scene], spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5', size: '' }
+                      : { kind, size: '' }
                     : kind === 'decor'
                       ? { kind, spot_x: '', spot_y: '', slots: '', size: v.size || '0.2' }
                       : { kind, slots: '', size: '' },
                 )
               }
             />
-            {v.kind === 'background' ? (
+            {v.kind === 'background' && ESSENTIAL[scene] ? (
               <Field label="Acción al tocarla" hint="Todo fondo lleva la puerta de su casa: haz clic en la imagen para colocarla.">
                 {() => <p className="fixedValue">{ESSENTIAL[scene]}</p>}
               </Field>

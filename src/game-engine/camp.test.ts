@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LEVEL_THRESHOLDS } from '../domain/athlete/levels'
-import { campItems, getCampItem } from '../domain/basecamp/catalog'
+import { campItems, getCampItem, parseCampCatalog } from '../domain/basecamp/catalog'
 import { parseGameState } from '../repositories/gameRepository'
 import { newGame, T0, withAthlete } from '../test/gameFixtures'
 import { buyCampItem, campScene, campSlotOf, campSpots, exchangePremium, parseCampState, setCampItemUsed } from './camp'
@@ -138,5 +138,22 @@ describe('Base Camp pieces', () => {
     expect(parseGameState(saved, T0)?.premiumCoins).toBe(10)
     expect(parseGameState({ ...saved, premiumCoins: -1 }, T0)).toBeNull()
     expect(campItems('interior', 'decor').map((i) => i.id)).toEqual(['banner'])
+  })
+})
+
+describe('Base Camp buttons inside', () => {
+  const header = 'id,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,name\n'
+  const exterior = 'ext,exterior,background,0,0,coins,ext,enter,0.5,0.5,,,Outside\n'
+
+  it('an interior background may have no button, or any button (owner, 17 November 2026)', () => {
+    const items = parseCampCatalog(
+      header + exterior + 'int-1,interior,background,0,0,coins,int_1,,,,,,Room\nint-2,interior,background,1,10,coins,int_2,mailbox,0.3,0.6,,,Room 2\n',
+    )
+    expect(items.find((item) => item.id === 'int-1')?.action).toBeUndefined()
+    expect(items.find((item) => item.id === 'int-2')?.action).toBe('mailbox')
+  })
+
+  it('an exterior background still needs its door', () => {
+    expect(() => parseCampCatalog(header + 'ext,exterior,background,0,0,coins,ext,,,,,,Outside\nint,interior,background,0,0,coins,int,,,,,,Room\n')).toThrow(/enter/)
   })
 })

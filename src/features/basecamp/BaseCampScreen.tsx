@@ -109,7 +109,7 @@ export function BaseCampScreen() {
     else if (action === 'exit') show('exterior')
     else if (action === 'mailbox') setMailOpen(true)
   }
-  const sun = SUNS[scene.background.id]
+  const sun = SUNS[scene.picture.id]
 
   return (
     <section className={styles.camp} aria-labelledby="basecamp-title">
@@ -128,7 +128,7 @@ export function BaseCampScreen() {
         </button>
       </header>
 
-      <Panorama key={`${view}:${scene.background.id}`} scene={view} background={scene.background} layers={[scene.cabin]} objects={scene.placed} focus={focus?.x ?? 0}>
+      <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.picture} layers={[scene.cabin]} objects={scene.placed} focus={focus?.x ?? 0}>
         {view === 'exterior' ? (
           <>
             {sun && <div className={styles.sun} style={at(sun)} aria-hidden="true" />}
@@ -138,7 +138,7 @@ export function BaseCampScreen() {
           </>
         ) : (
           <>
-            {(LANTERNS[scene.background.id] ?? []).map((l, i) => (
+            {(LANTERNS[scene.picture.id] ?? []).map((l, i) => (
               <span key={i} className={styles.lantern} style={{ ...at(l), animationDelay: `${i * 0.7}s` }} aria-hidden="true" />
             ))}
             {MOTES.map((m, i) => (

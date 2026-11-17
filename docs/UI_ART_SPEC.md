@@ -91,7 +91,8 @@ same canvas (16 November 2026):
   pieces are stretched over it, so new pieces should go with 3200 × 1600 backgrounds.
 - The player buys pieces in Base Camp › Personalizar (server-decided, career-ops `camp-buy`), then
   puts them in the scene or takes them out (`camp-use`): one background and one cabin per scene,
-  any decor. Coins are exchanged for Premium Coins there (`premium-exchange`, one way, at
+  any decor, and one upgrade per background (drawn instead of the background's picture, with the
+  background's button and slots; choosing it brings its background into the scene). Coins are exchanged for Premium Coins there (`premium-exchange`, one way, at
   `coins_per_premium` in `src/data/economy.csv`). Premium Coins for real money are not part of it
   yet.
 - Each picture fills the screen's height and is wider than it; it scrolls horizontally

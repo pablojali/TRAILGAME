@@ -18,9 +18,14 @@ export type CampBuyError =
   | 'insufficient-premium'
   /** An exclusive piece (the admin's refuge): never sold. */
   | 'not-for-sale'
+  /** An upgrade of a background the player does not have. */
+  | 'needs-base'
 
-/** `no-slot`: the background has no free place for the object; `bad-slot`: not one of its places. */
-export type CampUseError = 'unknown-item' | 'not-owned' | 'no-slot' | 'bad-slot'
+/**
+ * `no-slot`: the background has no free place for the object; `bad-slot`: not one of its places;
+ * `needs-base`: an upgrade of a background the player does not have.
+ */
+export type CampUseError = 'unknown-item' | 'not-owned' | 'no-slot' | 'bad-slot' | 'needs-base'
 
 export type ExchangeError = 'bad-amount' | 'rate-changed' | 'insufficient-coins'
 
@@ -76,9 +81,13 @@ export function campPlacements(state: GameState, scene: CampScene, background: C
 
 /**
  * What the scene shows: the background and cabin in use (else the free ones), and the decor in
- * its slots.
+ * its slots. `picture` is the background's upgrade the player chose, else the background itself:
+ * it is what is drawn, while the background keeps the button and slots.
  */
-export function campScene(state: GameState, scene: CampScene): { background: CampItem; cabin: CampItem | null; decor: CampItem[]; placed: PlacedDecor[] } {
+export function campScene(
+  state: GameState,
+  scene: CampScene,
+): { background: CampItem; picture: CampItem; cabin: CampItem | null; decor: CampItem[]; placed: PlacedDecor[] } {
   const camp = campOf(state)
   const using = new Set(camp.using)
   const off = new Set(camp.off ?? [])
@@ -89,7 +98,8 @@ export function campScene(state: GameState, scene: CampScene): { background: Cam
   }
   const background = pick('background') ?? defaultBackground(scene)
   const placed = campPlacements(state, scene, background)
-  return { background, cabin: pick('cabin'), decor: placed.map((p) => p.item), placed }
+  const picture = items.find((item) => item.kind === 'upgrade' && item.base === background.id && using.has(item.id) && ownsCampItem(state, item)) ?? background
+  return { background, picture, cabin: pick('cabin'), decor: placed.map((p) => p.item), placed }
 }
 
 /** The slot an object stands in, in the background shown (null: not placed). */
@@ -135,7 +145,7 @@ export function campSpots(state: GameState, scene: CampScene): CampSpot[] {
 
 export function isCampItemUsed(state: GameState, item: CampItem): boolean {
   const shown = campScene(state, item.scene)
-  return shown.background.id === item.id || shown.cabin?.id === item.id || shown.decor.some((d) => d.id === item.id)
+  return shown.background.id === item.id || shown.picture.id === item.id || shown.cabin?.id === item.id || shown.decor.some((d) => d.id === item.id)
 }
 
 export function buyCampItem(
@@ -147,6 +157,7 @@ export function buyCampItem(
   if (!item) return { ok: false, error: 'unknown-item' }
   if (ownsCampItem(state, item)) return { ok: false, error: 'already-owned' }
   if (item.exclusive) return { ok: false, error: 'not-for-sale' }
+  if (item.kind === 'upgrade' && !ownsBase(state, item)) return { ok: false, error: 'needs-base' }
   if (getLevel(state.athlete.xp) < item.level) return { ok: false, error: 'level-locked' }
   if (item.price !== confirmed.price || item.currency !== confirmed.currency) return { ok: false, error: 'price-changed' }
   const camp = campOf(state)
@@ -159,6 +170,11 @@ export function buyCampItem(
     next.premiumCoins = premiumOf(state) - item.price
   }
   return { ok: true, state: next }
+}
+
+function ownsBase(state: GameState, upgrade: CampItem): boolean {
+  const base = getCampItem(upgrade.base ?? '')
+  return !!base && ownsCampItem(state, base)
 }
 
 /**
@@ -202,6 +218,17 @@ export function setCampItemUsed(
     return finish({ ...camp, slots })
   }
 
+  // An upgrade replaces the background's other upgrade and brings its background into the scene.
+  if (item.kind === 'upgrade') {
+    if (used && !ownsBase(state, item)) return { ok: false, error: 'needs-base' }
+    const base = getCampItem(item.base!)!
+    const using = camp.using.filter((id) => {
+      const other = getCampItem(id)
+      return id !== item.id && !(used && other && ((other.kind === 'upgrade' && other.base === item.base) || (other.kind === 'background' && other.scene === base.scene)))
+    })
+    if (used) using.push(base.id, item.id)
+    return finish({ ...camp, using })
+  }
   const replaces = (id: string) => {
     const other = getCampItem(id)
     return !!other && other.scene === item.scene && other.kind === item.kind
@@ -243,7 +270,12 @@ export function parseCampState(value: unknown): CampState | null {
   for (const id of raw.using as string[]) {
     const item = getCampItem(id)
     if (!item || !has(id) || using.includes(id)) continue
-    if (item.kind !== 'decor' && using.some((u) => getCampItem(u)!.scene === item.scene && getCampItem(u)!.kind === item.kind)) continue
+    // One background and one cabin per scene, one upgrade per background.
+    const clash = (u: string) => {
+      const other = getCampItem(u)!
+      return item.kind === 'upgrade' ? other.kind === 'upgrade' && other.base === item.base : other.scene === item.scene && other.kind === item.kind
+    }
+    if (item.kind !== 'decor' && using.some(clash)) continue
     using.push(id)
   }
   const slots: Record<string, string> = {}

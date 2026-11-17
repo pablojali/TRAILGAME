@@ -33,8 +33,14 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     `assets/ui/basecamp/source/{exterior|interior}/`; CI turns them into the game's WebP
     (`scripts/prepare_basecamp_art.py`) when the proposal is published. A new piece cannot be
     proposed without its picture.
-  - A background is the whole scene with its house and always has the scene's door («Entrar»
-    outside, «Equipo» inside): its button shows at once, and clicking the preview places it.
+  - A background is the whole scene with its house. Outside it always has the door («Entrar»):
+    its button shows at once, and clicking the preview places it. Inside (since 17 November
+    2026) the owner picks each background's button, or none.
+  - An upgrade («Mejora», 17 November 2026) is another picture of a background, on the same
+    canvas (a new stove, another cabin). It picks its background and keeps that background's
+    button and slots (shown, not editable). Its shop frame (the `focus` column, x:y:zoom) is the
+    dashed box on the preview: a click moves it, and «Zoom en la tienda» sizes it. The player
+    shows one upgrade of a background at a time, or none, and needs the background to buy it.
     Decor can have any action (Entrar, Salir, Equipo, Look, Buzón, Entreno, Carreras,
     Trayectoria) or none.
   - «Quitar esta pieza del juego» removes a published piece and its picture with the next

@@ -10,7 +10,7 @@ import { ITEM_LANGUAGES, type ItemLanguage } from '../equipment/items'
  * free backgrounds are everyone's from the start. The owner edits the table in Trail Studio.
  */
 export type CampScene = 'exterior' | 'interior'
-export type CampKind = 'background' | 'cabin' | 'decor'
+export type CampKind = 'background' | 'upgrade' | 'cabin' | 'decor'
 export type Currency = 'coins' | 'premium'
 
 /**
@@ -26,7 +26,7 @@ export const CAMP_ACTIONS: readonly CampAction[] = ['enter', 'exit', 'gear', 'lo
 export const ESSENTIAL_ACTION: Partial<Record<CampScene, CampAction>> = { exterior: 'enter' }
 
 export const CAMP_SCENES: readonly CampScene[] = ['exterior', 'interior']
-export const CAMP_KINDS: readonly CampKind[] = ['background', 'cabin', 'decor']
+export const CAMP_KINDS: readonly CampKind[] = ['background', 'upgrade', 'cabin', 'decor']
 export const CURRENCIES: readonly Currency[] = ['coins', 'premium']
 
 /** A place for decor on a background (owner request, 16 November 2026): where an object stands. */
@@ -58,6 +58,14 @@ export interface CampItem {
   slots?: CampSlot[]
   /** Decor: the object's height as a share of the picture's height at scale 1. */
   size?: number
+  /**
+   * Upgrades (owner design, 17 November 2026): the background this piece redraws. An upgrade is a
+   * whole picture on the same canvas (a new stove, another cabin) that keeps its background's
+   * button and slots; the player shows one upgrade of a background at a time, or none.
+   */
+  base?: string
+  /** Upgrades: what the shop shows of the picture (the part that changes), centre and zoom. */
+  focus?: { x: number; y: number; zoom: number }
   /** English name. */
   label: string
   names?: Partial<Record<ItemLanguage, string>>
@@ -79,7 +87,7 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
     const scene = row.scene as CampScene
     if (!CAMP_SCENES.includes(scene)) throw new Error(`${where}: scene must be exterior or interior`)
     const kind = row.kind as CampKind
-    if (!CAMP_KINDS.includes(kind)) throw new Error(`${where}: kind must be background, cabin or decor`)
+    if (!CAMP_KINDS.includes(kind)) throw new Error(`${where}: kind must be background, upgrade, cabin or decor`)
     const currency = (row.currency || 'coins') as Currency
     if (!CURRENCIES.includes(currency)) throw new Error(`${where}: currency must be coins or premium`)
     const level = csvInt(row.level, where)
@@ -98,6 +106,20 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
       item.action = row.action as CampAction
     }
     // Decor is a cut-out object the player places in a slot: its button sits on the object itself.
+    if (kind === 'upgrade') {
+      if (row.action || item.spot || row.slots || row.size) throw new Error(`${where}: an upgrade keeps its background's button and slots (no action, spot, slots or size)`)
+      if (!row.base) throw new Error(`${where}: an upgrade needs base (the background it redraws)`)
+      item.base = row.base
+      if (row.focus) {
+        const [x, y, zoom] = row.focus.split(':').map(Number)
+        if (![x, y].every((n) => Number.isFinite(n) && n! >= 0 && n! <= 1) || !(Number.isFinite(zoom) && zoom! >= 1 && zoom! <= 8)) {
+          throw new Error(`${where}: focus is x:y:zoom (x and y from 0 to 1, zoom from 1 to 8)`)
+        }
+        item.focus = { x: x!, y: y!, zoom: zoom! }
+      }
+      return finishItem(item, row, options)
+    }
+    if (row.base || row.focus) throw new Error(`${where}: only upgrades have base and focus`)
     if (kind === 'decor') {
       if (item.spot) throw new Error(`${where}: decor has no spot_x and spot_y (its button sits on the object)`)
       item.size = row.size ? csvNumber(row.size, where) : 0.2
@@ -124,16 +146,19 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
       if (slots.length > MAX_SLOTS) throw new Error(`${where}: at most ${MAX_SLOTS} slots`)
       item.slots = slots
     }
-    const names: Partial<Record<ItemLanguage, string>> = {}
-    for (const language of ITEM_LANGUAGES) if (row[`name_${language}`]) names[language] = row[`name_${language}`]!
-    if (Object.keys(names).length) item.names = names
-    if (options.exclusive) item.exclusive = true
-    return item
+    return finishItem(item, row, options)
   })
   const ids = new Set<string>()
   for (const item of items) {
     if (ids.has(item.id)) throw new Error(`${file}: id ${item.id} is repeated`)
     ids.add(item.id)
+  }
+  for (const item of items) {
+    if (item.kind !== 'upgrade') continue
+    const base = items.find((other) => other.id === item.base)
+    if (!base || base.kind !== 'background' || base.scene !== item.scene) {
+      throw new Error(`${file}: upgrade ${item.id} needs base to be a background of the ${item.scene} in this table`)
+    }
   }
   if (options.exclusive) return items
   for (const scene of CAMP_SCENES) {
@@ -146,6 +171,14 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
     }
   }
   return items
+}
+
+function finishItem(item: CampItem, row: Record<string, string>, options: { exclusive?: boolean }): CampItem {
+  const names: Partial<Record<ItemLanguage, string>> = {}
+  for (const language of ITEM_LANGUAGES) if (row[`name_${language}`]) names[language] = row[`name_${language}`]!
+  if (Object.keys(names).length) item.names = names
+  if (options.exclusive) item.exclusive = true
+  return item
 }
 
 /** Level 0 and free: every player has it from the start (an exclusive piece never is). */
@@ -174,6 +207,11 @@ export function campItems(scene: CampScene, kind?: CampKind): CampItem[] {
 /** The scene's background when the player chose none: its first free one. */
 export function defaultBackground(scene: CampScene): CampItem {
   return campItems(scene, 'background').find(isFreeFromStart)!
+}
+
+/** The upgrades of a background. */
+export function campUpgrades(background: CampItem): CampItem[] {
+  return CAMP_ITEMS.filter((item) => item.kind === 'upgrade' && item.base === background.id)
 }
 
 export function campItemName(item: CampItem, language: string): string {

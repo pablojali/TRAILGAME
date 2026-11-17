@@ -24,6 +24,7 @@ const campOutputFolder = (scene: CampScene) => `assets/ui/basecamp/${scene}`
 /** The house is part of each background (owner, 16 November 2026): cabins only for old rows. */
 const KINDS = [
   { value: 'background', label: 'Fondo con la casa (toda la escena)' },
+  { value: 'upgrade', label: 'Mejora de un fondo (otra imagen del mismo fondo, con sus puntos)' },
   { value: 'decor', label: 'Objeto (buzón, banderas…): el jugador lo pone en un hueco' },
 ]
 /** Most objects' pictures are cut-outs, not on the canvas: their biggest side. */
@@ -40,7 +41,13 @@ const readSlots = (text: string | undefined): Slot[] =>
     })
 const writeSlots = (slots: Slot[]) => slots.map((sl) => `${+sl.x.toFixed(3)}:${+sl.y.toFixed(3)}:${+sl.scale.toFixed(2)}`).join('|')
 const CABIN_KIND = { value: 'cabin', label: 'Cabaña (sobre el fondo)' }
-const KIND_LABEL: Record<string, string> = { background: 'Fondo', cabin: 'Cabaña', decor: 'Objeto' }
+const KIND_LABEL: Record<string, string> = { background: 'Fondo', upgrade: 'Mejora', cabin: 'Cabaña', decor: 'Objeto' }
+type Focus = { x: number; y: number; zoom: number }
+const readFocus = (text: string | undefined): Focus => {
+  const [x, y, zoom] = (text ?? '').split(':').map(Number)
+  return { x: Number.isFinite(x) ? x! : 0.5, y: Number.isFinite(y) ? y! : 0.5, zoom: Number.isFinite(zoom) && zoom! >= 1 ? zoom! : 3 }
+}
+const writeFocus = (f: Focus) => `${+f.x.toFixed(3)}:${+f.y.toFixed(3)}:${+f.zoom.toFixed(1)}`
 const CURRENCIES = [
   { value: 'coins', label: 'Créditos (monedas)' },
   { value: 'premium', label: 'Premium Coins' },
@@ -78,8 +85,8 @@ function useFolder(token: string, path: string): RepoFile[] | null {
 
 /** The game's check on one row, in words (empty: valid). */
 function rowError(doc: CsvDoc, values: Record<string, string>): string {
-  // A row is checked with the table's free pieces, which every scene needs.
-  const free = rows(doc).filter((r) => isFree(r.values) && r.values.id !== values.id)
+  // A row is checked with the table's free pieces, which every scene needs, and an upgrade with its background.
+  const free = rows(doc).filter((r) => (isFree(r.values) || r.values.id === values.base) && r.values.id !== values.id)
   const text = serializeDoc({
     header: doc.header,
     lines: [{ kind: 'header', text: `${doc.header.join(',')}\n` }, ...[...free, { raw: null, values }].map((row) => ({ kind: 'row' as const, row: { raw: null, values: row.values } }))],
@@ -170,7 +177,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
       if (width !== CAMP_CANVAS.width || height !== CAMP_CANVAS.height) {
         return setError(`Tiene que medir ${CAMP_CANVAS.width} × ${CAMP_CANVAS.height} px (esta mide ${width} × ${height}).`)
       }
-      if (values.kind !== 'background' && ext !== 'png' && ext !== 'webp') return setError('Las cabañas van en PNG con fondo transparente.')
+      if (values.kind === 'cabin' && ext !== 'png' && ext !== 'webp') return setError('Las cabañas van en PNG con fondo transparente.')
     }
     const extension = ext === 'jpeg' ? 'jpg' : ext
     const path = `${campSourceFolder(scene)}/${values.art}.${extension}`
@@ -231,7 +238,28 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
             </div>
           </div>
 
-          {v.kind === 'decor' ? (
+          {v.kind === 'upgrade' ? (
+            (() => {
+              // Its own picture with its background's button and slots (not editable here), and the
+              // part the shop shows: a click moves it.
+              const base = sceneRows.find((r) => r.values.id === v.base)?.values
+              const focus = readFocus(v.focus)
+              return (
+                <CampPreview
+                  ratio={CAMP_CANVAS.width / CAMP_CANVAS.height}
+                  background={pictureOf(v)}
+                  layers={[]}
+                  objects={[]}
+                  marks={[
+                    ...(base?.action && base.spot_x && base.spot_y ? [{ label: ESSENTIAL[scene] ? '🚪' : '●', x: Number(base.spot_x), y: Number(base.spot_y), on: false }] : []),
+                    ...readSlots(base?.slots).map((sl, i) => ({ label: String(i + 1), x: sl.x, y: sl.y, on: false })),
+                  ]}
+                  frame={focus}
+                  onPick={({ x, y }) => setPiece({ focus: writeFocus({ ...focus, x, y }) })}
+                />
+              )
+            })()
+          ) : v.kind === 'decor' ? (
             <CampPreview
               ratio={CAMP_CANVAS.width / CAMP_CANVAS.height}
               background={backgroundRow && pictureOf(backgroundRow.values)}
@@ -290,6 +318,12 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
                 fondos.
               </p>
             </>
+          ) : v.kind === 'upgrade' ? (
+            <p className="hint">
+              Una mejora es el mismo fondo redibujado (otra cabaña, otra estufa…), del mismo tamaño. Usa el botón y los huecos de su fondo: si los mueves en
+              el fondo, se mueven también aquí. El recuadro es lo que muestra la tienda: haz clic sobre lo que cambia y ajusta el zoom. El jugador elige una
+              mejora de cada fondo, o ninguna.
+            </p>
           ) : (
             <p className="hint">
               {v.kind === 'decor'
@@ -311,17 +345,46 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
               onChange={(kind) =>
                 // A background always has the scene's door (or gear bench): its spot shows at once.
                 setPiece(
-                  kind === 'background'
+                  kind === 'upgrade'
+                    ? {
+                        kind,
+                        action: '',
+                        spot_x: '',
+                        spot_y: '',
+                        slots: '',
+                        size: '',
+                        base: v.base || sceneRows.find((r) => r.values.kind === 'background')?.values.id || '',
+                        focus: v.focus || '0.5:0.5:3',
+                      }
+                    : kind === 'background'
                     ? ESSENTIAL_ACTION[scene]
-                      ? { kind, action: ESSENTIAL_ACTION[scene], spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5', size: '' }
-                      : { kind, size: '' }
+                      ? { kind, action: ESSENTIAL_ACTION[scene], spot_x: v.spot_x || '0.5', spot_y: v.spot_y || '0.5', size: '', base: '', focus: '' }
+                      : { kind, size: '', base: '', focus: '' }
                     : kind === 'decor'
-                      ? { kind, spot_x: '', spot_y: '', slots: '', size: v.size || '0.2' }
-                      : { kind, slots: '', size: '' },
+                      ? { kind, spot_x: '', spot_y: '', slots: '', size: v.size || '0.2', base: '', focus: '' }
+                      : { kind, slots: '', size: '', base: '', focus: '' },
                 )
               }
             />
-            {v.kind === 'background' && ESSENTIAL[scene] ? (
+            {v.kind === 'upgrade' ? (
+              <>
+                <SelectField
+                  label="Mejora del fondo"
+                  value={v.base ?? ''}
+                  options={sceneRows.filter((r) => r.values.kind === 'background').map((r) => ({ value: r.values.id!, label: r.values.name_es || r.values.name || r.values.id! }))}
+                  onChange={(base) => setPiece({ base })}
+                />
+                <NumberField
+                  label="Zoom en la tienda"
+                  value={String(readFocus(v.focus).zoom)}
+                  step={0.5}
+                  min={1}
+                  max={8}
+                  onChange={(x) => setPiece({ focus: writeFocus({ ...readFocus(v.focus), zoom: Math.min(8, Math.max(1, Number(x) || 1)) }) })}
+                  hint="1 = la imagen entera; 4 = un cuarto de ancho"
+                />
+              </>
+            ) : v.kind === 'background' && ESSENTIAL[scene] ? (
               <Field label="Acción al tocarla" hint="Todo fondo lleva la puerta de su casa: haz clic en la imagen para colocarla.">
                 {() => <p className="fixedValue">{ESSENTIAL[scene]}</p>}
               </Field>
@@ -465,6 +528,7 @@ function CampPreview({
   layers,
   objects,
   marks,
+  frame,
   onPick,
 }: {
   ratio: number
@@ -473,8 +537,12 @@ function CampPreview({
   /** Objects standing on a point (their base), `height` as a share of the picture's height. */
   objects: { url: string; x: number; y: number; height: number }[]
   marks: { label: string; x: number; y: number; on: boolean }[]
+  /** An upgrade's shop frame: 1/zoom of the picture each way, around its centre (kept inside). */
+  frame?: Focus
   onPick?(spot: { x: number; y: number }): void
 }) {
+  const side = frame ? 1 / frame.zoom : 0
+  const start = (centre: number) => Math.min(Math.max(centre - side / 2, 0), 1 - side)
   return (
     <div
       className={`campPreview${onPick ? ' pick' : ''}`}
@@ -492,6 +560,7 @@ function CampPreview({
       {objects.map((o) => (
         <img key={o.url} className="campObject" src={o.url} alt="" style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, height: `${o.height * 100}%` }} />
       ))}
+      {frame && <span className="campFrame" style={{ left: `${start(frame.x) * 100}%`, top: `${start(frame.y) * 100}%`, width: `${side * 100}%`, height: `${side * 100}%` }} />}
       {marks.map((m) => (
         <span key={m.label} className={`campSpot${m.on ? ' on' : ''}`} style={{ left: `${m.x * 100}%`, top: `${m.y * 100}%` }}>
           {m.label}

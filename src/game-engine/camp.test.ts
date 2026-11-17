@@ -157,3 +157,48 @@ describe('Base Camp buttons inside', () => {
     expect(() => parseCampCatalog(header + 'ext,exterior,background,0,0,coins,ext,,,,,,Outside\nint,interior,background,0,0,coins,int,,,,,,Room\n')).toThrow(/enter/)
   })
 })
+
+describe('Base Camp upgrades (owner design, 17 November 2026)', () => {
+  const ok = <T,>(result: { ok: true; state: T } | { ok: false; error: string }): T => {
+    if (!result.ok) throw new Error(result.error)
+    return result.state
+  }
+
+  it('redraws its background with another picture, keeping the background’s button and slots', () => {
+    const state = ok(setCampItemUsed(ok(buyCampItem(rich(), 'stove', { price: 30, currency: 'coins' })), 'stove', true))
+    const shown = campScene(state, 'interior')
+    expect(shown.background.id).toBe('lvl0-interior')
+    expect(shown.picture.id).toBe('stove')
+    expect(campSpots(state, 'interior').map((s) => [s.item.id, s.action, s.x, s.y])).toEqual([['lvl0-interior', 'gear', 0.73, 0.62]])
+    // Taken out, the background's own picture is back.
+    expect(campScene(ok(setCampItemUsed(state, 'stove', false)), 'interior').picture.id).toBe('lvl0-interior')
+  })
+
+  it('needs its background, and brings it into the scene when chosen', () => {
+    expect(buyCampItem(rich(6), 'boat', { price: 2, currency: 'premium' })).toEqual({ ok: false, error: 'needs-base' })
+    let state = ok(buyCampItem(rich(6), 'lake-exterior', { price: 200, currency: 'coins' }))
+    state = ok(buyCampItem(state, 'boat', { price: 2, currency: 'premium' }))
+    expect(campScene(state, 'exterior').picture.id).toBe('lvl0-exterior')
+    state = ok(setCampItemUsed(state, 'boat', true))
+    expect(campScene(state, 'exterior')).toMatchObject({ background: getCampItem('lake-exterior'), picture: getCampItem('boat') })
+    // Another background hides it; coming back to the lake shows it again.
+    state = ok(setCampItemUsed(state, 'lvl0-exterior', true))
+    expect(campScene(state, 'exterior').picture.id).toBe('lvl0-exterior')
+    state = ok(setCampItemUsed(state, 'lake-exterior', true))
+    expect(campScene(state, 'exterior').picture.id).toBe('boat')
+  })
+
+  it('keeps one upgrade per background in a saved camp', () => {
+    expect(parseCampState({ owned: ['stove'], using: ['stove', 'stove'] })).toEqual({ owned: ['stove'], using: ['stove'] })
+  })
+
+  it('is a whole picture with a base and an optional shop focus in the table', () => {
+    const header = 'id,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,base,focus,name\n'
+    const ext = 'ext,exterior,background,0,0,coins,ext,enter,0.5,0.5,,,,,Outside\nint,interior,background,0,0,coins,int,,,,,,,,Room\n'
+    const [, , up] = parseCampCatalog(header + ext + 'up,exterior,upgrade,1,5,coins,up,,,,,,ext,0.2:0.7:4,Up\n')
+    expect(up).toMatchObject({ kind: 'upgrade', base: 'ext', focus: { x: 0.2, y: 0.7, zoom: 4 } })
+    expect(() => parseCampCatalog(header + ext + 'up,exterior,upgrade,1,5,coins,up,,,,,,nope,,Up\n')).toThrow(/base/)
+    expect(() => parseCampCatalog(header + ext + 'up,exterior,upgrade,1,5,coins,up,mailbox,0.1,0.1,,,ext,,Up\n')).toThrow(/keeps its background/)
+    expect(() => parseCampCatalog(header + ext + 'up,exterior,upgrade,1,5,coins,up,,,,,,ext,0.2:0.7:9,Up\n')).toThrow(/focus/)
+  })
+})

@@ -44,7 +44,7 @@ describe('Base Camp (V1)', () => {
     const shop = screen.getByRole('dialog', { name: 'Customize your cabin' })
 
     // Tabs per kind: backgrounds, cabins and decorations.
-    expect(within(shop).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Backgrounds', 'Cabins', 'Decorations'])
+    expect(within(shop).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Backgrounds', 'Upgrades', 'Cabins', 'Decorations'])
     expect(within(shop).getByText('Level 5')).toBeInTheDocument()
     await user.click(within(shop).getByRole('tab', { name: 'Decorations' }))
     // Buying the bench puts it in the first empty place (the free mailbox has place 1) and closes the sheet.

@@ -2,18 +2,19 @@ import { useState } from 'react'
 import { useCareer } from '../../app/game/gameContext'
 import { Coins, Premium } from '../../components/Coins'
 import { getLevel } from '../../domain/athlete/levels'
-import { CAMP_KINDS, campItemName, campItems, type CampItem, type CampScene } from '../../domain/basecamp/catalog'
+import { CAMP_KINDS, campItemName, campItems, getCampItem, type CampItem, type CampScene } from '../../domain/basecamp/catalog'
 import { campScene, campSlotOf, isCampItemUsed, ownsCampItem, premiumOf, type CampBuyError, type CampUseError, type ExchangeError } from '../../game-engine/camp'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './BaseCamp.module.css'
-import { campArt } from './campArt'
+import { artRatio, campArt, focusPosition } from './campArt'
 
 type CampError = CampBuyError | CampUseError | ExchangeError | ServerError | 'bought-no-slot'
 const errorKey = (error: CampError) => `basecamp.error.${error}` as MessageKey
 
 const KIND_TITLES = {
   background: 'basecamp.kind.background',
+  upgrade: 'basecamp.kind.upgrade',
   cabin: 'basecamp.kind.cabin',
   decor: 'basecamp.kind.decor',
 } as const
@@ -32,7 +33,7 @@ export function CampShop({ scene, onClose }: { scene: CampScene; onClose(): void
   // One tab per kind with something to show (owner request, 17 November 2026). An exclusive piece
   // (the admin's refuge) is only listed for whoever has it.
   const tabs = CAMP_KINDS.map((kind) => ({ kind, items: campItems(scene, kind).filter((item) => !item.exclusive || ownsCampItem(state, item)) })).filter(
-    ({ kind, items }) => (kind === 'cabin' ? items.length > 0 : kind === 'background' ? items.length > 1 : true),
+    ({ kind, items }) => (kind === 'cabin' || kind === 'upgrade' ? items.length > 0 : kind === 'background' ? items.length > 1 : true),
   )
   const [tab, setTab] = useState(tabs[0]?.kind ?? 'decor')
   const shown = tabs.find((x) => x.kind === tab) ?? tabs[0]
@@ -105,14 +106,36 @@ function Piece({
   const locked = getLevel(state.athlete.xp) < item.level
   const balance = item.currency === 'coins' ? state.coins : premiumOf(state)
   const src = campArt(item)
-  // A background in use stays until another is chosen; a cabin or decor is taken out.
+  // A background in use stays until another is chosen; a cabin, upgrade or decor is taken out.
   const canToggle = !(used && item.kind === 'background')
+  // An upgrade needs its background: without it, the shop says which.
+  const base = item.kind === 'upgrade' ? getCampItem(item.base ?? '') : undefined
+  const needsBase = !!base && !ownsCampItem(state, base)
 
   return (
     <li className={styles.piece}>
-      {src ? <img src={src} alt="" loading="lazy" className={item.kind === 'decor' ? styles.objectThumb : undefined} /> : <span className={styles.noArt}>{t('basecamp.shop.noArt')}</span>}
+      {!src ? (
+        <span className={styles.noArt}>{t('basecamp.shop.noArt')}</span>
+      ) : item.focus ? (
+        // An upgrade shows the part that changes (its focus), like an object: 1/zoom of the
+        // picture each way, on the picture's own shape.
+        <span
+          className={styles.focusThumb}
+          role="presentation"
+          style={{
+            aspectRatio: String(artRatio(item)),
+            backgroundImage: `url(${src})`,
+            backgroundSize: `${item.focus.zoom * 100}% auto`,
+            backgroundPosition: `${focusPosition(item.focus.x, item.focus.zoom)}% ${focusPosition(item.focus.y, item.focus.zoom)}%`,
+          }}
+        />
+      ) : (
+        <img src={src} alt="" loading="lazy" className={item.kind === 'decor' ? styles.objectThumb : undefined} />
+      )}
       <strong>{name}</strong>
-      {owned && item.kind === 'decor' ? (
+      {needsBase && !owned ? (
+        <span className={styles.locked}>{t('basecamp.shop.needsBase', { name: campItemName(base!, locale) })}</span>
+      ) : owned && item.kind === 'decor' ? (
         <SlotPicker item={item} name={name} busy={busy} run={run} />
       ) : owned ? (
         <button

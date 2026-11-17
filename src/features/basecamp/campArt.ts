@@ -19,3 +19,13 @@ const CANVAS_RATIOS = { exterior: 3200 / 1600, interior: 2600 / 1600 }
 export function artRatio(item: CampItem): number {
   return CANVAS_RATIOS[item.scene]
 }
+
+/**
+ * The background-position (in %) that puts `centre` (a share of the picture) in the middle of a
+ * thumbnail showing 1/zoom of the picture, kept inside the picture.
+ */
+export function focusPosition(centre: number, zoom: number): number {
+  if (zoom <= 1) return 50
+  const start = Math.min(Math.max(centre - 1 / (2 * zoom), 0), 1 - 1 / zoom)
+  return (start / (1 - 1 / zoom)) * 100
+}

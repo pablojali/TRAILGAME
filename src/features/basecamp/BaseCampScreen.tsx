@@ -52,6 +52,9 @@ const FIREFLIES: readonly (Spot & { delay: number })[] = [
   { x: 0.9, y: 0.6, delay: 5.6 },
 ]
 
+/** Inside, the gear button's centre this far from the screen's left edge (half the button and a margin). */
+const GEAR_EDGE = 64
+
 /** How many screens wide the scene is at most (the rest is swiped). */
 const SCREENS_WIDE = 1.8
 
@@ -237,8 +240,11 @@ function Panorama({
   useLayoutEffect(() => {
     const el = scroller.current
     if (!el || height === null) return
-    el.scrollLeft = Math.max(0, height * ratio * focus - el.clientWidth / 2)
-  }, [ratio, focus, height])
+    // Outside, the door in the middle; inside, the gear button at the screen's left edge (owner
+    // request, 17 November 2026: the room opens towards the side that scrolls).
+    const at = height * ratio * focus
+    el.scrollLeft = Math.max(0, scene === 'interior' ? at - GEAR_EDGE : at - el.clientWidth / 2)
+  }, [ratio, focus, height, scene])
   const art = campArt(background)
   return (
     <>

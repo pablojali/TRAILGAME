@@ -10,7 +10,7 @@ and this script writes what the game loads:
     assets/ui/basecamp/{exterior|interior}/{art}.webp
 
 Transparency is kept (cabins and decor are drawn over the background). Pictures taller than
-1600 px are scaled down to 1600 (the canvas is 3200 x 1600). A WebP source is copied as it is.
+1600 px are scaled down to 1600 (the canvases are 3200 x 1600 outside, 2600 x 1600 inside). A WebP source is copied as it is.
 Outputs whose source is gone are deleted, so the game never shows stale art. Run by CI before
 every build; the originals are never modified. Needs Pillow:
 

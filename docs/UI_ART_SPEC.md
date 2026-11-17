@@ -61,9 +61,9 @@ same canvas (16 November 2026):
 
 | Kind | What | File |
 | --- | --- | --- |
-| background | the whole scene behind | JPG or PNG, 3200 × 1600 |
-| cabin | the cabin, over the background | PNG with transparency, 3200 × 1600 |
-| decor | seats, banners, flags…, over both | PNG with transparency, 3200 × 1600 |
+| background | the whole scene behind | JPG or PNG, 3200 × 1600 outside, 2600 × 1600 inside |
+| cabin | the cabin, over the background | PNG with transparency, on its scene's canvas |
+| decor | objects placed in slots | cut-out PNG with transparency, up to 2400 px per side |
 
 - The pieces are listed in `src/data/basecamp.csv` (edited in Trail Studio › Multimedia › Base
   Camp): scene, kind, player level that unlocks it, price, currency (coins or Premium Coins), the

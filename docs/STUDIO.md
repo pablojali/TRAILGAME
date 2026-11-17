@@ -27,7 +27,8 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     banners, flags…, drawn over both). Each has the player level that unlocks it, a price and a
     currency (coins or Premium Coins). Level 0 and price 0: every player has it from the start;
     every scene needs one such background.
-  - Every picture is on the same 3200 × 1600 canvas: backgrounds as JPG or PNG, cabins and decor
+  - Every picture of a scene is on its canvas (3200 × 1600 outside, 2600 × 1600 inside since
+    17 November 2026, a narrower living room): backgrounds as JPG or PNG, cabins and decor
     as PNG with a transparent background, in their place. Uploads go to
     `assets/ui/basecamp/source/{exterior|interior}/`; CI turns them into the game's WebP
     (`scripts/prepare_basecamp_art.py`) when the proposal is published. A new piece cannot be

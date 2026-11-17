@@ -1,7 +1,7 @@
 # Base Camp (owner design, 16 November 2026). One row per piece of the player's cabin. Keep each id once and never rename it (saves use it).
 # scene: exterior or interior. kind: background (the whole scene behind), cabin (drawn over the background) or decor (seats, banners, flags…, drawn over both).
 # level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.
-# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; every piece of a scene on the same canvas, 3200 x 1600).
+# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; backgrounds on the scene's canvas: 3200 x 1600 outside, 2600 x 1600 inside).
 # action: what tapping the piece does (empty: nothing): enter (go inside), exit (go outside), gear (Equipment), look (Appearance), mailbox (congratulations and visits), training, races, career.
 # spot_x, spot_y (0-1 of the picture): where the action's button sits (backgrounds and cabins). Decor carries its button on itself.
 # slots (backgrounds): up to 4 places for decor, x:y:scale separated by | (x, y: 0-1 of the picture, where the object stands; scale: its size there, 1 = normal).

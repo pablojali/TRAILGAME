@@ -106,8 +106,8 @@ export interface CampSpot {
 
 /**
  * The buttons of the scene: every shown piece with an action. The scene's essential action (the
- * door outside, the gear inside) is always there: if the shown pieces lack it, the free piece that
- * has it lends its spot.
+ * door outside) is always there: if the shown pieces lack it, the free piece that has it lends its
+ * spot.
  */
 export function campSpots(state: GameState, scene: CampScene): CampSpot[] {
   const { background, cabin, placed } = campScene(state, scene)
@@ -125,8 +125,9 @@ export function campSpots(state: GameState, scene: CampScene): CampSpot[] {
     if (item.action) add({ item, action: item.action, x: at.x, y: at.y - ((item.size ?? 0.2) * at.scale) / 2 })
   }
   const spots = [...byAction.values()]
-  if (!spots.some((s) => s.action === ESSENTIAL_ACTION[scene])) {
-    const lender = campItems(scene).find((item) => isFreeFromStart(item) && item.action === ESSENTIAL_ACTION[scene])!
+  const essential = ESSENTIAL_ACTION[scene]
+  if (essential && !spots.some((s) => s.action === essential)) {
+    const lender = campItems(scene).find((item) => isFreeFromStart(item) && item.action === essential)!
     spots.push({ item: lender, action: lender.action!, x: lender.spot!.x, y: lender.spot!.y })
   }
   return spots

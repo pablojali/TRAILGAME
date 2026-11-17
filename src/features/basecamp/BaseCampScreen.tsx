@@ -102,8 +102,8 @@ export function BaseCampScreen() {
   const show = (next: CampScene) => setParams(next === 'interior' ? { view: 'interior' } : {}, { replace: true })
   const scene = campScene(state, view)
   const spots = campSpots(state, view)
-  // The scene opens on its essential spot (the door outside, the gear bench inside).
-  const focus = spots.find((s) => s.action === (view === 'exterior' ? 'enter' : 'gear')) ?? spots[0]!
+  // The scene opens on the door outside; inside, on the gear button if there is one, else at the left.
+  const focus = spots.find((s) => s.action === (view === 'exterior' ? 'enter' : 'gear'))
   const act = (action: CampAction) => {
     if (action === 'enter') show('interior')
     else if (action === 'exit') show('exterior')
@@ -128,7 +128,7 @@ export function BaseCampScreen() {
         </button>
       </header>
 
-      <Panorama key={`${view}:${scene.background.id}`} scene={view} background={scene.background} layers={[scene.cabin]} objects={scene.placed} focus={focus.x}>
+      <Panorama key={`${view}:${scene.background.id}`} scene={view} background={scene.background} layers={[scene.cabin]} objects={scene.placed} focus={focus?.x ?? 0}>
         {view === 'exterior' ? (
           <>
             {sun && <div className={styles.sun} style={at(sun)} aria-hidden="true" />}

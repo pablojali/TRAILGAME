@@ -19,8 +19,11 @@ export type Currency = 'coins' | 'premium'
  */
 export type CampAction = 'enter' | 'exit' | 'gear' | 'look' | 'mailbox' | 'training' | 'races' | 'career'
 export const CAMP_ACTIONS: readonly CampAction[] = ['enter', 'exit', 'gear', 'look', 'mailbox', 'training', 'races', 'career']
-/** The action every scene must offer with its free pieces: the door outside, the gear inside. */
-export const ESSENTIAL_ACTION: Record<CampScene, CampAction> = { exterior: 'enter', interior: 'gear' }
+/**
+ * The action a scene must offer with its free pieces: the door outside. Inside nothing is forced
+ * (owner request, 17 November 2026: he picks each background's button; "Go out" is in the header).
+ */
+export const ESSENTIAL_ACTION: Partial<Record<CampScene, CampAction>> = { exterior: 'enter' }
 
 export const CAMP_SCENES: readonly CampScene[] = ['exterior', 'interior']
 export const CAMP_KINDS: readonly CampKind[] = ['background', 'cabin', 'decor']
@@ -104,9 +107,9 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
       if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`)
       if (row.size) throw new Error(`${where}: only decor has a size`)
     }
-    // The house is part of each background (owner, 16 November 2026): every background has the
-    // scene's door (outside) or gear bench (inside).
-    if (kind === 'background' && item.action !== ESSENTIAL_ACTION[scene]) {
+    // The house is part of each background (owner, 16 November 2026): every exterior background
+    // has its door. An interior background has any button, or none.
+    if (kind === 'background' && ESSENTIAL_ACTION[scene] && item.action !== ESSENTIAL_ACTION[scene]) {
       throw new Error(`${where}: a ${scene} background needs the ${ESSENTIAL_ACTION[scene]} action and its spot`)
     }
     if (row.slots) {
@@ -138,7 +141,7 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
       throw new Error(`basecamp.csv: the ${scene} needs a background with level 0 and price 0 (everyone's from the start)`)
     }
     const free = items.filter((item) => item.scene === scene && isFreeFromStart(item))
-    if (!free.some((item) => item.action === ESSENTIAL_ACTION[scene])) {
+    if (ESSENTIAL_ACTION[scene] && !free.some((item) => item.action === ESSENTIAL_ACTION[scene])) {
       throw new Error(`basecamp.csv: a free piece of the ${scene} must have the ${ESSENTIAL_ACTION[scene]} action`)
     }
   }

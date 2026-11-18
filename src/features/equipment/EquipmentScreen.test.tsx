@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { newGame } from '../../test/gameFixtures'
@@ -136,8 +136,9 @@ describe('Equipment', () => {
     await user.click(screen.getByRole('button', { name: 'Equip poles · lvl 2' }))
     await settled()
     expect(readSave()!.state.equipment).toEqual(['poles-2'])
-    expect(screen.getByRole('tab', { name: 'Equipped' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByText('Poles · Lvl 2 equipped.')).toBeInTheDocument()
+    // The switch to Equipped comes with the server's answer: wait for it (slow CI machines).
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Equipped' })).toHaveAttribute('aria-selected', 'true'))
+    expect(await screen.findByText('Poles · Lvl 2 equipped.')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: 'Shop' }))
     await user.click(screen.getByRole('button', { name: 'Poles' }))
     expect(within(grid()).getByRole('button', { name: 'Poles · Lvl 2, 50 coins, Equipped' })).toBeInTheDocument()

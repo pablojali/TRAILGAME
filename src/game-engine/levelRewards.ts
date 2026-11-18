@@ -2,7 +2,7 @@ import { appearanceUnlocks, type SkinToneId } from '../domain/athlete/appearance
 import type { Sex } from '../domain/athlete/athlete'
 import { getAttributePointsBetween } from '../domain/athlete/levels'
 import { getMinimumLevel } from '../domain/races/access'
-import { RACES, type Race } from '../domain/races/races'
+import { NPC_RACES as RACES, type Race } from '../domain/races/races'
 
 export interface LevelRewards {
   /** Attribute points earned by the levels gained. */

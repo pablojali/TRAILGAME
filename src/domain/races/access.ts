@@ -1,5 +1,5 @@
 import { GROSS_PRIZES, REWARD_MULTIPLIERS } from './categories'
-import { RACES, type Race } from './races'
+import { NPC_RACES as RACES, type Race } from './races'
 
 /**
  * How an entry was made. `free`: every entry since 1 November 2026 (NPC races are free).

@@ -15,6 +15,8 @@ import { weekdayShortKey } from '../../i18n/labels'
 import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
 import { getFinishedEntries, getPendingEntry, type RaceEntryError } from '../../game-engine/races'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
+import { CourseProfile } from './CourseProfile'
+import { raceCourse } from './courses'
 import { RaceDayPanel } from './RaceDayPanel'
 import { Technicality } from './Technicality'
 import { bandLabel, courseText, feePaidText, ordinal, percentText, raceTimeText } from './raceText'
@@ -75,6 +77,14 @@ function RaceDetail({ race }: { race: Race }) {
           <dt>{t('races.elevation')}</dt>
           <dd>{race.elevationGainM.toLocaleString(locale)} m</dd>
         </div>
+        {raceCourse(race.id) && (
+          <div className={`${styles.tile} ${styles.tileWide}`}>
+            <dt>{t('races.profileTitle')}</dt>
+            <dd>
+              <CourseProfile raceId={race.id} />
+            </dd>
+          </div>
+        )}
         <div className={`${styles.tile} ${styles.tileWide}`}>
           <dt className={styles.tileHead}>
             {t('races.terrain')}

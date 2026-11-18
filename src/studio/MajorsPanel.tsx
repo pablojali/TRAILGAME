@@ -386,11 +386,21 @@ function EventForm({
         <div className="field">
           <label htmlFor="m-race">Recorrido (carrera del catálogo)</label>
           <select id="m-race" value={draft.raceId} onChange={(e) => onChange({ ...draft, raceId: e.target.value })}>
-            {RACES.map((race) => (
-              <option key={race.id} value={race.id}>
-                {race.name} · {race.distanceKm} km · +{race.elevationGainM} m
-              </option>
-            ))}
+            {/* The Majors' own courses first (owner design, 18 November 2026), then the NPC races. */}
+            {[
+              { label: 'Recorridos de Major', races: RACES.filter((race) => race.major) },
+              { label: 'Carreras NPC', races: RACES.filter((race) => !race.major) },
+            ]
+              .filter((group) => group.races.length > 0)
+              .map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.races.map((race) => (
+                    <option key={race.id} value={race.id}>
+                      {race.name} · {race.distanceKm} km · +{race.elevationGainM} m
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
           </select>
         </div>
         <div className="field">

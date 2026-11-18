@@ -64,7 +64,8 @@ export function getEntry(state: GameState, entryId: string): RaceEntry | undefin
  */
 export function enterRace(state: GameState, raceId: string, now: number): RaceEntryResult {
   const race = getRace(raceId)
-  if (!race) return { ok: false, error: 'unknown-race' }
+  // A Major's course is not entered here: only its Sunday Major runs it.
+  if (!race || race.major) return { ok: false, error: 'unknown-race' }
   if (getPendingEntry(state, raceId)) return { ok: false, error: 'already-entered' }
   if (getScheduledEntry(state)) return { ok: false, error: 'race-scheduled' }
   const level = getLevel(state.athlete.xp)

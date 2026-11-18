@@ -4,6 +4,8 @@ import { checkpointShares, liveStandings, LIVE_CHECKPOINTS, majorField } from '.
 import { useI18n } from '../../i18n/i18n'
 import type { LiveRace as LiveRaceView } from '../../server/majorOps'
 import { durationText } from '../races/raceText'
+import { courseMapping, heightAt as profileHeight, segmentProfile } from '../races/profile'
+import { CourseMap } from './CourseMap'
 import styles from './Majors.module.css'
 
 const WIDTH = 100
@@ -38,26 +40,15 @@ export function LiveTracker({ race, raceId, ends, now }: { race: LiveRaceView; r
   const leader = rows[0]!
   const km = (distanceShare: number) => ((segment.startM + distanceShare * segment.distanceM) / 1000).toFixed(1)
 
-  // The profile: the pieces' climbs and descents, the checkpoints along it.
-  const points: [number, number][] = [[0, 0]]
-  let x = 0
-  let y = 0
-  for (const { block } of segment.pieces) {
-    x += block.lengthM
-    y += block.gainM - block.lossM
-    points.push([x, y])
-  }
+  // The profile (the real one from the race's GPX, else the pieces' climbs and descents), the
+  // checkpoints along it.
+  const points = segmentProfile(raceId, segment)
+  const mapping = courseMapping(raceId)
+  const x = points[points.length - 1]![0]
   const ys = points.map((p) => p[1])
   const low = Math.min(...ys)
   const span = Math.max(Math.max(...ys) - low, 150)
-  const heightAt = (metres: number) => {
-    let i = 1
-    while (i < points.length - 1 && points[i]![0] < metres) i++
-    const [x0, y0] = points[i - 1]!
-    const [x1, y1] = points[i]!
-    const k = x1 > x0 ? (metres - x0) / (x1 - x0) : 0
-    return y0 + (y1 - y0) * Math.min(1, Math.max(0, k))
-  }
+  const heightAt = (metres: number) => profileHeight(points, metres)
   const toX = (distanceShare: number) => distanceShare * WIDTH
   const toY = (elevation: number) => HEIGHT - 4 - ((elevation - low) / span) * (HEIGHT - 12)
   const line = points.map(([px, py]) => `${toX(px / Math.max(x, 1)).toFixed(1)},${toY(py).toFixed(1)}`).join(' ')
@@ -112,6 +103,16 @@ export function LiveTracker({ race, raceId, ends, now }: { race: LiveRaceView; r
           </span>
         )}
       </div>
+      {/* Seen from above (owner design, 18 November 2026): the segment over a real map, the runners on it. */}
+      {mapping && (
+        <CourseMap
+          course={mapping.course}
+          fromKm={mapping.toCourseKm(segment.startM)}
+          toKm={mapping.toCourseKm(segment.startM + segment.distanceM)}
+          runners={rows.map((row) => ({ km: mapping.toCourseKm(segment.startM + row.distanceShare * segment.distanceM), me: !!bySlot.get(row.slot)?.me }))}
+          label={t('major.map.label', { n: race.category.segment + 1 })}
+        />
+      )}
       <div className={styles.trackerBox}>
         <ol className={styles.trackerTop}>
           {rows.slice(0, 5).map((row) => {

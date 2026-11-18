@@ -58,5 +58,8 @@
   "races.enter": "Iscriviti",
   "races.entering": "Iscrizione…",
   "races.technical": "Tecnica",
-  "races.technicalityLabel": "Difficoltà tecnica {value} su {max}"
+  "races.technicalityLabel": "Difficoltà tecnica {value} su {max}",
+  "races.profileTitle": "Profilo del percorso",
+  "races.profile": "Profilo del percorso: punto più basso {low}, più alto {high}, {aid} ristori",
+  "races.aidCount": "{n} ristori"
 }

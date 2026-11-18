@@ -1416,3 +1416,38 @@
     padding: 3px 6px;
   }
 }
+
+/* The real course profile from the race's GPX (owner design, 18 November 2026). */
+.courseProfile {
+  margin: 0;
+}
+
+.courseProfile svg {
+  display: block;
+  width: 100%;
+  height: 64px;
+}
+
+.courseProfile polygon {
+  fill: rgb(242 140 40 / 0.22);
+}
+
+.courseProfile polyline {
+  fill: none;
+  stroke: var(--accent, #f28c28);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.courseProfile line {
+  stroke: rgb(255 255 255 / 0.35);
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.courseProfile figcaption {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 12px;
+}

@@ -1,9 +1,9 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { countryFlag } from '../../domain/athlete/countries'
 import { getLevel } from '../../domain/athlete/levels'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
-import { getCampService, type CampService, type FriendEntry, type FriendError } from '../../repositories/supabase/campClient'
+import { getCampService, SEARCH_MIN, type CampService, type FoundRunner, type FriendEntry, type FriendError } from '../../repositories/supabase/campClient'
 import styles from './BaseCamp.module.css'
 import { friendOf, useFriends, visitPath } from './visits'
 
@@ -45,6 +45,7 @@ export function FriendsSheet({ onClose, service = getCampService() }: { onClose(
           </button>
         </header>
         <div className={styles.shopBody}>
+          {service && <RunnerSearch service={service} friends={list} />}
           {message && (
             <p role="alert" className={styles.shopError}>
               {message}
@@ -108,6 +109,73 @@ export function FriendsSheet({ onClose, service = getCampService() }: { onClose(
         </div>
       </section>
     </div>
+  )
+}
+
+/**
+ * Finding a runner by name (owner request, 18 November 2026): their refuge opens from the result,
+ * to visit them or ask to be friends. Searches as the player types, after a short pause.
+ */
+function RunnerSearch({ service, friends }: { service: CampService; friends: FriendEntry[] | 'offline' | null }) {
+  const { t } = useI18n()
+  const [query, setQuery] = useState('')
+  const [found, setFound] = useState<{ query: string; runners: FoundRunner[] | 'offline' } | null>(null)
+  const clean = query.trim()
+  useEffect(() => {
+    if (clean.length < SEARCH_MIN) return
+    let live = true
+    const timer = window.setTimeout(() => {
+      void service.searchRunners(clean).then((runners) => live && setFound({ query: clean, runners }))
+    }, 300)
+    return () => {
+      live = false
+      window.clearTimeout(timer)
+    }
+  }, [clean, service])
+  const results = clean.length >= SEARCH_MIN && found?.query === clean ? found.runners : null
+
+  return (
+    <section className={styles.friendGroup} aria-label={t('basecamp.friends.search')}>
+      <input
+        type="search"
+        className={styles.searchInput}
+        value={query}
+        maxLength={40}
+        placeholder={t('basecamp.friends.searchPlaceholder')}
+        aria-label={t('basecamp.friends.search')}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {clean.length >= SEARCH_MIN &&
+        (results === null ? (
+          <p className={styles.muted}>{t('basecamp.friends.searching')}</p>
+        ) : results === 'offline' ? (
+          <p className={styles.muted}>{t('basecamp.friends.offline')}</p>
+        ) : results.length === 0 ? (
+          <p className={styles.muted}>{t('basecamp.friends.notFound')}</p>
+        ) : (
+          <ul className={styles.letters} aria-label={t('basecamp.friends.results')}>
+            {results.map((runner) => {
+              const relation = friendOf(friends, runner.name)?.relation
+              return (
+                <li key={runner.name}>
+                  <span aria-hidden="true">{runner.country ? countryFlag(runner.country) : '🏃'}</span>
+                  <span>
+                    {runner.name}
+                    <small>
+                      {t('ranking.level', { level: getLevel(runner.xp) })}
+                      {relation === 'friend' && ` · ${t('basecamp.friends.areFriends')}`}
+                    </small>
+                  </span>
+                  <Link to={visitPath(runner.name)} className={styles.action}>
+                    {t('basecamp.friends.seeRefuge')}
+                    <span className={styles.srOnly}> {runner.name}</span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        ))}
+    </section>
   )
 }
 

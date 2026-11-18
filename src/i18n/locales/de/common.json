@@ -193,7 +193,7 @@
   "basecamp.friends.title": "Freunde",
   "basecamp.friends.loading": "Freunde werden geladen…",
   "basecamp.friends.offline": "Freunde brauchen eine Verbindung.",
-  "basecamp.friends.empty": "Noch keine Freunde. Öffne die Hütte eines Läufers (tippe auf seinen Namen in der Rangliste oder einem Major) und sende eine Anfrage.",
+  "basecamp.friends.empty": "Noch keine Freunde. Suche oben einen Läufer oder tippe auf einen Namen in der Rangliste oder einem Major und sende ihm eine Anfrage von seiner Hütte aus.",
   "basecamp.friends.incoming": "Anfragen",
   "basecamp.friends.list": "Freunde ({count})",
   "basecamp.friends.none": "Noch keine.",
@@ -227,5 +227,13 @@
   "basecamp.visit.message.not-friends": "Nur Freunde können Nachrichten hinterlassen.",
   "basecamp.visit.message.bad-message": "Schreibe 1 bis 140 Zeichen.",
   "basecamp.visit.message.too-many-messages": "Heute schon 5 Nachrichten. Morgen wieder.",
-  "inbox.message.title": "{name} hat dir eine Nachricht hinterlassen"
+  "inbox.message.title": "{name} hat dir eine Nachricht hinterlassen",
+  "basecamp.friends.search": "Läufer suchen",
+  "basecamp.friends.searchPlaceholder": "🔍 Läufer nach Namen suchen…",
+  "basecamp.friends.searching": "Suche…",
+  "basecamp.friends.notFound": "Kein Läufer mit diesem Namen.",
+  "basecamp.friends.results": "Gefundene Läufer",
+  "basecamp.friends.seeRefuge": "Hütte ansehen",
+  "basecamp.visit.home": "{name} ist zu Hause: die Lampe brennt.",
+  "basecamp.visit.atHome": "{name}, zu Hause"
 }

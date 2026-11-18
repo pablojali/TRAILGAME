@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { Avatar } from '../../components/avatar/Avatar'
 import { campScene, campSpots } from '../../game-engine/camp'
 import { useI18n } from '../../i18n/i18n'
 import { getCampService, MESSAGE_MAX, type CampService, type MessageError, type PublicCamp } from '../../repositories/supabase/campClient'
@@ -89,7 +90,10 @@ export function CampVisitScreen({ service = getCampService() }: { service?: Camp
   const scene = campScene(holder, view)
   const spots = campSpots(holder, view)
   const door = spots.find((spot) => spot.action === 'enter')
-  const focus = view === 'exterior' ? (door?.x ?? 0.5) : (spots.find((spot) => spot.action === 'gear')?.x ?? 0)
+  const gear = spots.find((spot) => spot.action === 'gear')
+  const focus = view === 'exterior' ? (door?.x ?? 0.5) : (gear?.x ?? 0)
+  // The owner stands a little into the room from where the view opens.
+  const runnerX = Math.min(0.85, Math.max(0.15, (gear?.x ?? 0) + 0.2))
 
   return (
     <section className={styles.camp} aria-labelledby="camp-visit-title">
@@ -121,9 +125,24 @@ export function CampVisitScreen({ service = getCampService() }: { service?: Camp
           {t(congratulated ? 'basecamp.visit.congratulated' : 'basecamp.visit.congratulate')}
         </button>
         <FriendButton name={shown.name} service={service} />
+        {shown.online && (
+          <span className={styles.srOnly} role="status">
+            {t('basecamp.visit.home', { name: shown.name })}
+          </span>
+        )}
       </header>
       <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.picture} layers={[scene.cabin]} objects={scene.placed} focus={focus}>
         {view === 'exterior' ? <ExteriorAmbience picture={scene.picture} /> : <InteriorAmbience picture={scene.picture} />}
+        {/* The owner's game is open: a lamp lit over the door (owner design, 18 November 2026). */}
+        {view === 'exterior' && shown.online && door && (
+          <span className={styles.homeLamp} style={{ left: `${door.x * 100}%`, top: `${Math.max(0.04, door.y - 0.14) * 100}%` }} aria-hidden="true" />
+        )}
+        {/* Inside, a friend finds the owner at home: their avatar in their clothes, no equipment. */}
+        {view === 'interior' && shown.avatar && (
+          <div className={styles.homeRunner} style={{ left: `${runnerX * 100}%` }}>
+            <Avatar sex={shown.avatar.sex} appearance={shown.avatar.appearance} equipment={[]} label={t('basecamp.visit.atHome', { name: shown.name })} />
+          </div>
+        )}
         {/* A friend finds the door open. */}
         {view === 'exterior' && shown.friend && door && (
           <button type="button" className={styles.spot} style={{ left: `${door.x * 100}%`, top: `${door.y * 100}%` }} onClick={() => setInside(true)}>

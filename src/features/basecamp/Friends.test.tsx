@@ -27,6 +27,8 @@ describe('the friends list (owner design, 17 November 2026)', () => {
       removeFriend,
       leaveMessage: async () => true,
       deleteMessage: async () => true,
+      ping: async () => {},
+      searchRunners: async (query) => (query.toLowerCase() === 'mar' ? [{ name: 'Martina', country: 'AR', xp: 0 }, { name: 'Ana', country: null, xp: 0 }] : []),
     }
     render(
       <I18nProvider>
@@ -43,5 +45,11 @@ describe('the friends list (owner design, 17 November 2026)', () => {
     await user.click(within(requests).getByRole('button', { name: 'Accept Bo' }))
     expect(answerFriend).toHaveBeenCalledWith('Bo', true)
     expect(await screen.findByRole('region', { name: 'Friends (2)' })).toBeInTheDocument()
+
+    // Finding a runner by name opens their refuge; a friend is marked.
+    await user.type(screen.getByRole('searchbox', { name: 'Find a runner' }), 'Mar')
+    const found = await screen.findByRole('list', { name: 'Runners found' })
+    expect(within(found).getByRole('link', { name: 'See refuge Martina' })).toHaveAttribute('href', '/base-camp/visit/Martina')
+    expect(within(found).getByText(/✓ Friends/)).toBeInTheDocument()
   })
 })

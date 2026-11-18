@@ -193,7 +193,7 @@
   "basecamp.friends.title": "Amigos",
   "basecamp.friends.loading": "Cargando tus amigos…",
   "basecamp.friends.offline": "Los amigos necesitan conexión.",
-  "basecamp.friends.empty": "Todavía no tienes amigos. Abre el refugio de un corredor (toca su nombre en el ranking o en un Major) y envíale una solicitud.",
+  "basecamp.friends.empty": "Todavía no tienes amigos. Busca un corredor arriba, o toca un nombre en el ranking o en un Major, y envíale una solicitud desde su refugio.",
   "basecamp.friends.incoming": "Solicitudes",
   "basecamp.friends.list": "Amigos ({count})",
   "basecamp.friends.none": "Todavía ninguno.",
@@ -227,5 +227,13 @@
   "basecamp.visit.message.not-friends": "Solo los amigos pueden dejar mensajes.",
   "basecamp.visit.message.bad-message": "Escribe entre 1 y 140 caracteres.",
   "basecamp.visit.message.too-many-messages": "Ya van 5 mensajes hoy. Vuelve mañana.",
-  "inbox.message.title": "{name} te dejó un mensaje"
+  "inbox.message.title": "{name} te dejó un mensaje",
+  "basecamp.friends.search": "Buscar corredor",
+  "basecamp.friends.searchPlaceholder": "🔍 Busca un corredor por nombre…",
+  "basecamp.friends.searching": "Buscando…",
+  "basecamp.friends.notFound": "Ningún corredor con ese nombre.",
+  "basecamp.friends.results": "Corredores encontrados",
+  "basecamp.friends.seeRefuge": "Ver refugio",
+  "basecamp.visit.home": "{name} está en casa: la lamparita está encendida.",
+  "basecamp.visit.atHome": "{name}, en casa"
 }

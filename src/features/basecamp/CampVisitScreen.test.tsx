@@ -18,6 +18,8 @@ const fake = (overrides: Partial<CampService>): CampService => ({
   removeFriend: async () => true,
   leaveMessage: async () => true,
   deleteMessage: async () => true,
+  searchRunners: async () => [],
+  ping: async () => {},
   ...overrides,
 })
 
@@ -42,7 +44,7 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
     const visit = vi.fn(async (_name: string, congratulate: boolean) => ({ congratulated: congratulate }))
     open(
       fake({
-        refuge: async () => ({ name: 'Ana', me: false, friend: false, camp: { owned: ['lake-exterior'], using: ['lake-exterior'] } }),
+        refuge: async () => ({ name: 'Ana', me: false, friend: false, online: false, camp: { owned: ['lake-exterior'], using: ['lake-exterior'] } }),
         visit,
       }),
     )
@@ -57,7 +59,7 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
   })
 
   it('sends the player to their own Base Camp, and says when it cannot be reached', async () => {
-    open(fake({ refuge: async () => ({ name: 'Me', me: true, friend: false, camp: null }) }), 'Me')
+    open(fake({ refuge: async () => ({ name: 'Me', me: true, friend: false, online: false, camp: null }) }), 'Me')
     expect(await screen.findByText('Own Base Camp')).toBeInTheDocument()
   })
 
@@ -69,7 +71,7 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
   it('sends a friend request from the refuge, and accepts theirs', async () => {
     const user = userEvent.setup()
     const requestFriend = vi.fn(async () => 'pending' as const)
-    open(fake({ refuge: async () => ({ name: 'Ana', me: false, friend: false, camp: null }), requestFriend }))
+    open(fake({ refuge: async () => ({ name: 'Ana', me: false, friend: false, online: false, camp: null }), requestFriend }))
     await user.click(await screen.findByRole('button', { name: '➕ Add friend' }))
     expect(requestFriend).toHaveBeenCalledWith('Ana')
     expect(await screen.findByText('Request sent')).toBeInTheDocument()
@@ -84,7 +86,7 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
     })
     open(
       fake({
-        refuge: async () => ({ name: 'Ana', me: false, friend: false, camp: null }),
+        refuge: async () => ({ name: 'Ana', me: false, friend: false, online: false, camp: null }),
         friends: async () => [{ name: 'Ana', country: 'AR', xp: 0, relation, since: 1, mine: false }],
         answerFriend,
       }),
@@ -97,7 +99,7 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
   it('lets a friend go in and leave a message', async () => {
     const user = userEvent.setup()
     const leaveMessage = vi.fn(async () => true as const)
-    open(fake({ refuge: async () => ({ name: 'Ana', me: false, friend: true, camp: null }), leaveMessage }))
+    open(fake({ refuge: async () => ({ name: 'Ana', me: false, friend: true, online: false, camp: null }), leaveMessage }))
     await user.click(await screen.findByRole('button', { name: 'Go in' }))
     expect(screen.getByLabelText('Your cabin\'s living room')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '✉️ Leave a message' }))
@@ -108,8 +110,29 @@ describe('Visiting a refuge (owner design, 17 November 2026)', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Sent. It is waiting in their mailbox.')
   })
 
+  it('lights the lamp while the owner is home, and a friend finds them inside, without equipment', async () => {
+    const user = userEvent.setup()
+    open(
+      fake({
+        refuge: async () => ({
+          name: 'Ana',
+          me: false,
+          friend: true,
+          online: true,
+          avatar: { sex: 'female', appearance: { hair: 'natural', skin: 'tone-2', outfit: 'none' } },
+          camp: null,
+        }),
+      }),
+    )
+    expect(await screen.findByText('Ana is home: the lamp is on.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Go in' }))
+    const runner = screen.getByRole('img', { name: 'Ana, at home' })
+    expect(runner.querySelectorAll('[data-layer]').length).toBeGreaterThan(0)
+    expect(runner.querySelector('[data-layer^="shoe"], [data-layer^="pole"], [data-layer^="pack"]')).toBeNull()
+  })
+
   it('keeps the door closed to someone who is not a friend', async () => {
-    open(fake({ refuge: async () => ({ name: 'Ana', me: false, friend: false, camp: null }) }))
+    open(fake({ refuge: async () => ({ name: 'Ana', me: false, friend: false, online: false, camp: null }) }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Ana’s refuge' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Go in' })).not.toBeInTheDocument()
   })

@@ -815,3 +815,63 @@
   color: var(--text-muted);
   font-size: 12px;
 }
+
+/* Finding a runner by name (owner request, 18 November 2026). */
+.searchInput {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.35);
+  color: var(--text);
+  font: inherit;
+}
+
+/* The owner is home (owner design, 18 November 2026): a warm lamp over the door. */
+.homeLamp {
+  position: absolute;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(#fffbe8, #ffd27a 45%, #ff9d2e 70%);
+  box-shadow:
+    0 0 14px 6px rgb(255 205 120 / 0.85),
+    0 0 60px 26px rgb(255 180 90 / 0.45);
+  transform: translate(-50%, -50%);
+  animation: lamp 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes lamp {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}
+
+/* Inside, the owner standing in the room: their feet low in the picture. */
+.homeRunner {
+  position: absolute;
+  z-index: 1;
+  bottom: 4%;
+  height: 52%;
+  aspect-ratio: 2 / 3;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.homeRunner svg {
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homeLamp {
+    animation: none;
+  }
+}

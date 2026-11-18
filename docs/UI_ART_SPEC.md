@@ -115,6 +115,16 @@ same canvas (16 November 2026):
   Inbox), where the owner can delete them. Database functions `camp_message`,
   `camp_message_delete`, and `camp_public` now says `friend` (migration
   `20261118100000_friend_refuge.sql`).
+- Finding runners (18 November 2026): Base Camp › Amigos starts with a search box; typing 2 or
+  more characters lists up to 12 runners whose name contains them (players and ranking NPCs
+  alike, never the player), each opening their refuge (database function `runner_search`,
+  migration `20261118110000_runner_search.sql`).
+- Who is home (18 November 2026): while the game is open and shown it pings the server every
+  minute (`presence_ping`); for 150 seconds after a ping the runner counts as home. Visitors see
+  a lamp lit over the door; a friend who goes in finds the owner in the living room as their
+  avatar in their clothes (body, hair, shirt), never their equipment. `camp_public` returns
+  `online`, and `avatar` only to friends while the owner is home (migration
+  `20261118120000_refuge_presence.sql`).
 - Each picture fills the screen's height and is wider than it; it scrolls horizontally
   (`overflow-x`, `touch-action: pan-x`) and opens centred on the spot. The page never scrolls
   vertically.

@@ -193,7 +193,7 @@
   "basecamp.friends.title": "Friends",
   "basecamp.friends.loading": "Loading your friends…",
   "basecamp.friends.offline": "Friends need a connection.",
-  "basecamp.friends.empty": "No friends yet. Open a runner’s refuge (tap their name in the rankings or a Major) and send them a request.",
+  "basecamp.friends.empty": "No friends yet. Search a runner above, or tap a name in the rankings or a Major, and send them a request from their refuge.",
   "basecamp.friends.incoming": "Requests",
   "basecamp.friends.list": "Friends ({count})",
   "basecamp.friends.none": "None yet.",
@@ -227,5 +227,13 @@
   "basecamp.visit.message.not-friends": "Only friends can leave messages.",
   "basecamp.visit.message.bad-message": "Write between 1 and 140 characters.",
   "basecamp.visit.message.too-many-messages": "That is 5 messages today. Try again tomorrow.",
-  "inbox.message.title": "{name} left you a message"
+  "inbox.message.title": "{name} left you a message",
+  "basecamp.friends.search": "Find a runner",
+  "basecamp.friends.searchPlaceholder": "🔍 Search a runner by name…",
+  "basecamp.friends.searching": "Searching…",
+  "basecamp.friends.notFound": "No runner with that name.",
+  "basecamp.friends.results": "Runners found",
+  "basecamp.friends.seeRefuge": "See refuge",
+  "basecamp.visit.home": "{name} is home: the lamp is on.",
+  "basecamp.visit.atHome": "{name}, at home"
 }

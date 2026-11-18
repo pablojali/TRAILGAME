@@ -105,8 +105,8 @@ describe('anti-farming multipliers', () => {
 describe('race kinds (owner design, 18 November 2026)', () => {
   const header = 'id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,kind\n'
   it('reads a Major course apart from the NPC races', () => {
-    const races = parseRaces(header + 'RACE-001,A,open,5,50,4,0,Paths,\nRACE-002,B,open,5,50,4,0,Paths,major\nRACE-003,C,open,5,50,4,0,Paths,npc\n')
-    expect(races.map((race) => race.major ?? false)).toEqual([false, true, false])
+    const races = parseRaces(header + 'RACE-001,A,open,5,50,4,0,Paths,\nRACE-002,B,open,5,50,4,0,Paths,major\nRACE-003,C,open,5,50,4,0,Paths,npc\nRACE-004,D,open,5,50,4,0,Paths,retired\n')
+    expect(races.map((race) => [race.major ?? false, race.retired ?? false])).toEqual([[false, false], [true, false], [false, false], [false, true]])
     expect(() => parseRaces(header + 'RACE-001,A,open,5,50,4,0,Paths,sponsor\n')).toThrow(/kind/)
   })
 })

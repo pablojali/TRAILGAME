@@ -65,7 +65,7 @@ var races_default = `# Race catalog (owner table, 5 November 2026). One row per 
 # Each race also needs its difficulty (I-V) in ranking_points.csv. Photo (assets/ui/races/RACE-xxx.webp) and clips (assets/race/clips) are optional.
 # After adding a race or changing a recommended level, the NPC rankings need a migration: python3 scripts/ranking_tables_sql.py --points-only.
 # Optional (Trail Studio, 12 November 2026; empty = automatic): min_level and max_level, the entry levels; stop_quick_s, stop_normal_s, stop_slow_s, the seconds of each stop (all three or none);
-# kind (18 November 2026): npc (or empty) for the races players enter, major for a Sunday Major's course (only Majors run it). A race's GPX course, if any, is src/data/courses/RACE-xxx.json (Trail Studio).
+# kind (18 November 2026): npc (or empty) for the races players enter, major for a Sunday Major's course (only Majors run it), retired for a race no longer run (kept: saves name it; never delete a race). A race's GPX course, if any, is src/data/courses/RACE-xxx.json (Trail Studio).
 # segments: the course by hand, km:ascent:descent:technicality per segment and | between segments (an aid station between two), e.g. 6.5:420:120:2|5:0:300:3. Then distance_km and elevation_gain_m are their sums.
 id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,terrain_es,terrain_fr,terrain_it,terrain_de,min_level,max_level,stop_quick_s,stop_normal_s,stop_slow_s,kind,segments
 RACE-001,Forest First Steps,open,5,50,4,0,Non-technical forest paths,Caminos de bosque sin dificultad t\xE9cnica,Chemins forestiers sans difficult\xE9 technique,Sentieri nel bosco senza difficolt\xE0 tecniche,Einfache Waldwege,,,,,,,
@@ -168,7 +168,7 @@ function parseRaces(text) {
     if (!row.name) throw new Error(`${where}: name is missing`);
     if (!isRaceCategory(row.category)) throw new Error(`${where}: category must be open, trail, mountain or elite`);
     if (!row.terrain) throw new Error(`${where}: terrain is missing`);
-    if (row.kind && row.kind !== "npc" && row.kind !== "major") throw new Error(`${where}: kind must be npc or major (empty = npc)`);
+    if (row.kind && row.kind !== "npc" && row.kind !== "major" && row.kind !== "retired") throw new Error(`${where}: kind must be npc, major or retired (empty = npc)`);
     const race = {
       id,
       name: row.name,
@@ -180,6 +180,7 @@ function parseRaces(text) {
       technicality: csvInt(row.technicality, where)
     };
     if (row.kind === "major") race.major = true;
+    if (row.kind === "retired") race.retired = true;
     if (row.segments) {
       const segments = parseSegments(row.segments, where);
       race.segments = segments;
@@ -223,7 +224,7 @@ function parseRaces(text) {
   return races.sort((x, y) => x.recommendedLevel - y.recommendedLevel || x.id.localeCompare(y.id));
 }
 var RACES = parseRaces(races_default);
-var NPC_RACES = RACES.filter((race) => !race.major);
+var NPC_RACES = RACES.filter((race) => !race.major && !race.retired);
 var BY_ID = new Map(RACES.map((race) => [race.id, race]));
 function getRace(id) {
   return BY_ID.get(id);

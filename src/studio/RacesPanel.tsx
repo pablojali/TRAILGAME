@@ -175,6 +175,7 @@ export function RacesPanel({
                       {edited(r.id!, r) && <span className="dot" title="Cambiada" />}
                       {r.name}
                       {r.kind === 'major' && <span className="tag">Major</span>}
+                      {r.kind === 'retired' && <span className="tag">Retirada</span>}
                     </span>
                     <span className="rowId">{r.id}</span>
                   </td>
@@ -302,13 +303,20 @@ export function RacesPanel({
             />
             <SelectField
               label="Tipo de carrera"
-              value={v.kind === 'major' ? 'major' : 'npc'}
+              value={v.kind === 'major' || v.kind === 'retired' ? v.kind : 'npc'}
               options={[
                 { value: 'npc', label: 'NPC (los jugadores se inscriben)' },
                 { value: 'major', label: 'Major (solo se corre en un Major)' },
+                { value: 'retired', label: 'Retirada (ya no se corre)' },
               ]}
-              onChange={(x) => setRace({ kind: x === 'major' ? 'major' : '' })}
-              hint={v.kind === 'major' ? 'No sale en Carreras; con GPX, el Major muestra el mapa del recorrido' : 'Sale en Carreras para inscribirse'}
+              onChange={(x) => setRace({ kind: x === 'npc' ? '' : x })}
+              hint={
+                v.kind === 'major'
+                  ? 'No sale en Carreras; con GPX, el Major muestra el mapa del recorrido'
+                  : v.kind === 'retired'
+                    ? 'No sale en Carreras ni en Majors; se guarda para el historial de quien la corrió'
+                    : 'Sale en Carreras para inscribirse'
+              }
             />
             <SelectField
               label="Categoría interna"

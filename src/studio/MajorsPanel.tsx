@@ -389,7 +389,9 @@ function EventForm({
             {/* The Majors' own courses first (owner design, 18 November 2026), then the NPC races. */}
             {[
               { label: 'Recorridos de Major', races: RACES.filter((race) => race.major) },
-              { label: 'Carreras NPC', races: RACES.filter((race) => !race.major) },
+              { label: 'Carreras NPC', races: RACES.filter((race) => !race.major && !race.retired) },
+              // A retired race only for a Major that already runs it.
+              { label: 'Retiradas', races: RACES.filter((race) => race.retired && race.id === draft.raceId) },
             ]
               .filter((group) => group.races.length > 0)
               .map((group) => (

@@ -1,3 +1,5 @@
+import type { Sex } from '../../domain/athlete/athlete'
+import { parseAppearance, type Appearance } from '../../domain/athlete/appearance'
 import { parseCampState } from '../../game-engine/camp'
 import type { CampState } from '../../game-engine/gameState'
 import { getPlayerIdentity } from './playerIdentity'
@@ -15,6 +17,10 @@ export interface PublicCamp {
   me: boolean
   /** The caller is the owner's friend: they may go inside and leave a message. */
   friend: boolean
+  /** The owner's game is open (owner design, 18 November 2026: a lamp lit over the door). */
+  online: boolean
+  /** For a friend while the owner is home: their avatar, in their clothes (no equipment). */
+  avatar?: { sex: Sex; appearance: Appearance }
   /** Null: no pieces saved (the game shows a free refuge). */
   camp: CampState | null
 }
@@ -67,6 +73,8 @@ export interface CampService {
   leaveMessage(name: string, text: string): Promise<true | MessageError>
   /** Deletes a message from the player's mailbox. */
   deleteMessage(id: number): Promise<boolean | 'offline'>
+  /** Tells the server the player's game is open (every minute while shown). */
+  ping(): Promise<void>
   /** Runners whose name contains the query (at least 2 characters), the player excluded. */
   searchRunners(query: string): Promise<FoundRunner[] | 'offline'>
 }
@@ -133,7 +141,16 @@ export function createCampService(client: () => Promise<RpcClient>, ensureSessio
       const data = await call('camp_public', { p_name: name })
       if (typeof data !== 'object' || data === null) return 'offline'
       const v = data as Record<string, unknown>
-      return { name: typeof v.name === 'string' ? v.name : name, me: v.me === true, friend: v.friend === true, camp: parseCampState(v.camp) }
+      const found: PublicCamp = {
+        name: typeof v.name === 'string' ? v.name : name,
+        me: v.me === true,
+        friend: v.friend === true,
+        online: v.online === true,
+        camp: parseCampState(v.camp),
+      }
+      const avatar = v.avatar as Record<string, unknown> | undefined
+      if (avatar && (avatar.sex === 'male' || avatar.sex === 'female')) found.avatar = { sex: avatar.sex, appearance: parseAppearance(avatar.appearance, avatar.sex) }
+      return found
     },
     async visit(name, congratulate) {
       const data = await call('camp_visit', { p_name: name, p_congrats: congratulate })
@@ -169,6 +186,9 @@ export function createCampService(client: () => Promise<RpcClient>, ensureSessio
       if (!error) return true
       const message = typeof error === 'object' && error !== null ? String((error as { message?: unknown }).message ?? '') : ''
       return (['not-friends', 'bad-message', 'too-many-messages'] as const).find((code) => message.includes(code)) ?? 'offline'
+    },
+    async ping() {
+      await call('presence_ping')
     },
     async searchRunners(query) {
       const data = await call('runner_search', { p_query: query })

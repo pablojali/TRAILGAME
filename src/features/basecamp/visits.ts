@@ -54,3 +54,26 @@ export function friendOf(list: FriendEntry[] | 'offline' | null, name: string): 
   const key = name.trim().toLowerCase()
   return list.find((entry) => entry.name.trim().toLowerCase() === key)
 }
+
+/** How often the player's open game tells the server they are home. */
+const PING_MS = 60 * 1000
+
+/**
+ * Presence (owner design, 18 November 2026): while the game is open and shown, it tells the
+ * server every minute, so visitors find the lamp lit and friends find the player at home.
+ */
+export function usePresencePing(active: boolean, service: CampService | null = getCampService()): void {
+  useEffect(() => {
+    if (!active || !service) return
+    const ping = () => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') void service.ping()
+    }
+    ping()
+    const timer = window.setInterval(ping, PING_MS)
+    document.addEventListener('visibilitychange', ping)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', ping)
+    }
+  }, [active, service])
+}

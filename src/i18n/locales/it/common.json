@@ -233,5 +233,7 @@
   "basecamp.friends.searching": "Cerco…",
   "basecamp.friends.notFound": "Nessun corridore con quel nome.",
   "basecamp.friends.results": "Corridori trovati",
-  "basecamp.friends.seeRefuge": "Vedi rifugio"
+  "basecamp.friends.seeRefuge": "Vedi rifugio",
+  "basecamp.visit.home": "{name} è a casa: la lampada è accesa.",
+  "basecamp.visit.atHome": "{name}, a casa"
 }

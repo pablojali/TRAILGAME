@@ -24,7 +24,7 @@ describe('the refuge service', () => {
       },
       calls,
     )
-    expect(await camp.refuge('ana')).toEqual({ name: 'Ana', me: false, friend: false, camp: { owned: ['lake-exterior'], using: ['lake-exterior'] } })
+    expect(await camp.refuge('ana')).toEqual({ name: 'Ana', me: false, friend: false, online: false, camp: { owned: ['lake-exterior'], using: ['lake-exterior'] } })
     expect(await camp.visit('Ana', true)).toEqual({ congratulated: true })
     const mailbox = await camp.mailbox()
     expect(mailbox).toEqual([{ id: 3, kind: 'congrats', name: 'Bo', at: Date.parse('2026-11-17T10:00:00Z') }])
@@ -83,5 +83,21 @@ describe('runner search', () => {
       async () => null,
     )
     expect(await camp.searchRunners('mar')).toEqual([{ name: 'Martina', country: 'AR', xp: 300 }])
+  })
+})
+
+describe('presence', () => {
+  it('reads whether the owner is home and their avatar', async () => {
+    const camp = createCampService(
+      async () => ({
+        rpc: async () => ({
+          data: { name: 'Ana', me: false, friend: true, online: true, avatar: { sex: 'female', appearance: { skin: 'tone-2' } }, camp: null },
+          error: null,
+        }),
+      }),
+      async () => null,
+    )
+    const refuge = await camp.refuge('Ana')
+    expect(refuge).toMatchObject({ online: true, avatar: { sex: 'female', appearance: { skin: 'tone-2' } } })
   })
 })

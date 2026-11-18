@@ -27,6 +27,7 @@ describe('the friends list (owner design, 17 November 2026)', () => {
       removeFriend,
       leaveMessage: async () => true,
       deleteMessage: async () => true,
+      ping: async () => {},
       searchRunners: async (query) => (query.toLowerCase() === 'mar' ? [{ name: 'Martina', country: 'AR', xp: 0 }, { name: 'Ana', country: null, xp: 0 }] : []),
     }
     render(

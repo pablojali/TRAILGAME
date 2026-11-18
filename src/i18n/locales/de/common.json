@@ -233,5 +233,7 @@
   "basecamp.friends.searching": "Suche…",
   "basecamp.friends.notFound": "Kein Läufer mit diesem Namen.",
   "basecamp.friends.results": "Gefundene Läufer",
-  "basecamp.friends.seeRefuge": "Hütte ansehen"
+  "basecamp.friends.seeRefuge": "Hütte ansehen",
+  "basecamp.visit.home": "{name} ist zu Hause: die Lampe brennt.",
+  "basecamp.visit.atHome": "{name}, zu Hause"
 }

@@ -233,5 +233,7 @@
   "basecamp.friends.searching": "Buscando…",
   "basecamp.friends.notFound": "Ningún corredor con ese nombre.",
   "basecamp.friends.results": "Corredores encontrados",
-  "basecamp.friends.seeRefuge": "Ver refugio"
+  "basecamp.friends.seeRefuge": "Ver refugio",
+  "basecamp.visit.home": "{name} está en casa: la lamparita está encendida.",
+  "basecamp.visit.atHome": "{name}, en casa"
 }

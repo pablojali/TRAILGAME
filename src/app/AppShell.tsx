@@ -22,6 +22,7 @@ import { ChallengeDialog } from './game/ChallengeDialog'
 import { NAV_ITEMS } from './navigation'
 import { useImmersiveMode } from './immersive'
 import { useI18n } from '../i18n/i18n'
+import { usePresencePing } from '../features/basecamp/visits'
 import styles from './AppShell.module.css'
 
 export function AppShell() {
@@ -33,6 +34,8 @@ export function AppShell() {
   // A live Sunday Major takes the whole screen: no bars (owner request, 15 November 2026).
   const immersive = useImmersiveMode()
   const previousPhase = useRef(phase.kind)
+  // Visitors see the player at home while the game is open (owner design, 18 November 2026).
+  usePresencePing(phase.kind === 'playing')
 
   // When the setup flow changes (career started, restart, reset), move focus to the new content.
   // Finishing the initial load is not a change the player made, so focus stays where it was.

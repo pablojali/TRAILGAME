@@ -67,7 +67,19 @@ export interface CampService {
   leaveMessage(name: string, text: string): Promise<true | MessageError>
   /** Deletes a message from the player's mailbox. */
   deleteMessage(id: number): Promise<boolean | 'offline'>
+  /** Runners whose name contains the query (at least 2 characters), the player excluded. */
+  searchRunners(query: string): Promise<FoundRunner[] | 'offline'>
 }
+
+/** A runner found by name (owner request, 18 November 2026). */
+export interface FoundRunner {
+  name: string
+  country: string | null
+  xp: number
+}
+
+/** Fewest characters a search needs (the database's rule). */
+export const SEARCH_MIN = 2
 
 interface RpcClient {
   rpc(name: string, args?: Record<string, unknown>): PromiseLike<{ data: unknown; error: unknown }>
@@ -157,6 +169,15 @@ export function createCampService(client: () => Promise<RpcClient>, ensureSessio
       if (!error) return true
       const message = typeof error === 'object' && error !== null ? String((error as { message?: unknown }).message ?? '') : ''
       return (['not-friends', 'bad-message', 'too-many-messages'] as const).find((code) => message.includes(code)) ?? 'offline'
+    },
+    async searchRunners(query) {
+      const data = await call('runner_search', { p_query: query })
+      if (!Array.isArray(data)) return 'offline'
+      return data.flatMap((row: Record<string, unknown>) =>
+        typeof row?.name === 'string'
+          ? [{ name: row.name, country: typeof row.country === 'string' ? row.country : null, xp: typeof row.xp === 'number' ? row.xp : 0 }]
+          : [],
+      )
     },
     async deleteMessage(id) {
       const data = await call('camp_message_delete', { p_id: id })

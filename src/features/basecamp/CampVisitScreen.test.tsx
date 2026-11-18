@@ -18,6 +18,7 @@ const fake = (overrides: Partial<CampService>): CampService => ({
   removeFriend: async () => true,
   leaveMessage: async () => true,
   deleteMessage: async () => true,
+  searchRunners: async () => [],
   ...overrides,
 })
 

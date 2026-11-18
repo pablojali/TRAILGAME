@@ -75,3 +75,13 @@ describe('friends', () => {
     ])
   })
 })
+
+describe('runner search', () => {
+  it('finds runners by name and reads their country and XP', async () => {
+    const camp = createCampService(
+      async () => ({ rpc: async () => ({ data: [{ name: 'Martina', country: 'AR', xp: 300 }, { name: 7 }], error: null }) }),
+      async () => null,
+    )
+    expect(await camp.searchRunners('mar')).toEqual([{ name: 'Martina', country: 'AR', xp: 300 }])
+  })
+})

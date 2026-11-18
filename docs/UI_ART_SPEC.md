@@ -115,6 +115,10 @@ same canvas (16 November 2026):
   Inbox), where the owner can delete them. Database functions `camp_message`,
   `camp_message_delete`, and `camp_public` now says `friend` (migration
   `20261118100000_friend_refuge.sql`).
+- Finding runners (18 November 2026): Base Camp › Amigos starts with a search box; typing 2 or
+  more characters lists up to 12 runners whose name contains them (players and ranking NPCs
+  alike, never the player), each opening their refuge (database function `runner_search`,
+  migration `20261118110000_runner_search.sql`).
 - Each picture fills the screen's height and is wider than it; it scrolls horizontally
   (`overflow-x`, `touch-action: pan-x`) and opens centred on the spot. The page never scrolls
   vertically.

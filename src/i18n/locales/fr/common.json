@@ -193,7 +193,7 @@
   "basecamp.friends.title": "Amis",
   "basecamp.friends.loading": "Chargement de tes amis…",
   "basecamp.friends.offline": "Les amis ont besoin d’une connexion.",
-  "basecamp.friends.empty": "Pas encore d’amis. Ouvre le refuge d’un coureur (touche son nom dans le classement ou un Major) et envoie-lui une demande.",
+  "basecamp.friends.empty": "Pas encore d’amis. Cherche un coureur ci-dessus, ou touche un nom dans le classement ou un Major, et envoie-lui une demande depuis son refuge.",
   "basecamp.friends.incoming": "Demandes",
   "basecamp.friends.list": "Amis ({count})",
   "basecamp.friends.none": "Aucun pour l’instant.",
@@ -227,5 +227,11 @@
   "basecamp.visit.message.not-friends": "Seuls les amis peuvent laisser des messages.",
   "basecamp.visit.message.bad-message": "Écris entre 1 et 140 caractères.",
   "basecamp.visit.message.too-many-messages": "Déjà 5 messages aujourd’hui. Reviens demain.",
-  "inbox.message.title": "{name} t’a laissé un message"
+  "inbox.message.title": "{name} t’a laissé un message",
+  "basecamp.friends.search": "Chercher un coureur",
+  "basecamp.friends.searchPlaceholder": "🔍 Cherche un coureur par nom…",
+  "basecamp.friends.searching": "Recherche…",
+  "basecamp.friends.notFound": "Aucun coureur avec ce nom.",
+  "basecamp.friends.results": "Coureurs trouvés",
+  "basecamp.friends.seeRefuge": "Voir le refuge"
 }

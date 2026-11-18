@@ -58,5 +58,8 @@
   "races.enter": "S'inscrire",
   "races.entering": "Inscription…",
   "races.technical": "Technique",
-  "races.technicalityLabel": "Difficulté technique {value} sur {max}"
+  "races.technicalityLabel": "Difficulté technique {value} sur {max}",
+  "races.profileTitle": "Profil du parcours",
+  "races.profile": "Profil du parcours : point le plus bas {low}, le plus haut {high}, {aid} ravitaillements",
+  "races.aidCount": "{n} ravitaillements"
 }

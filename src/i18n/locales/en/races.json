@@ -58,5 +58,8 @@
   "races.enter": "Enter race",
   "races.entering": "Entering…",
   "races.technical": "Technical",
-  "races.technicalityLabel": "Technical difficulty {value} of {max}"
+  "races.technicalityLabel": "Technical difficulty {value} of {max}",
+  "races.profileTitle": "Course profile",
+  "races.profile": "Course profile: lowest point {low}, highest {high}, {aid} aid stations",
+  "races.aidCount": "{n} aid stations"
 }

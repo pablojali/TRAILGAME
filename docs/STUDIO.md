@@ -7,6 +7,17 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
   (0–5), recommended level, difficulty (I–V), internal category, name and terrain in five
   languages. It previews the race card and its profile, and shows the effort, segments, entry
   levels, reference time and aid-station stops computed by the game's engine.
+  - **Real course from a GPX** (18 November 2026): «Subir GPX» reads the race's track (its
+    points and elevation), smooths the elevation and writes `src/data/courses/RACE-xxx.json`
+    (evenly spaced points: km, elevation, latitude, longitude). The distance and ascent come from
+    it, and the segments are cut on its profile: a click on the profile adds an aid station, each
+    station's km can be typed, and each segment's km, ascent and descent come from the GPX (its
+    technicality is set by hand). The game keeps reading the `segments` column; the course file
+    only draws the real profile (race page, aid stations, Majors) and the map.
+  - **Race kind** (18 November 2026): NPC (players enter it in Carreras) or Major (only a Sunday
+    Major runs it; it is not listed in Carreras and cannot be entered). A Major whose course has
+    a GPX shows each segment over a real topographic map (OpenTopoMap tiles) with the runners on
+    it, during the segment and at the aid station before it.
   - **Segments and aid stations** (12 November 2026): automatic (the profile generated from the
     totals, cut every ~6 km), or set by hand ("Definir tramos a mano", starting from the automatic
     ones). Each segment has its km, ascent, descent and descent technicality; its gradient per km

@@ -350,7 +350,7 @@ function PlanPanel({ major, onSave }: { major: PlayerMajor; onSave(plan: MajorPl
             {segment.technicality > 0 ? ` · ${t('major.plan.technical', { n: segment.technicality })}` : ''}
           </span>
         </div>
-        <SegmentProfile segment={segment} />
+        <SegmentProfile segment={segment} raceId={race.id} />
         <p className={styles.hint}>{courseDetail(segment, t, locale)}</p>
         <p className={styles.hint}>
           {t('major.plan.arrive', { time: raceTimeText(Math.round(preview.startS)), fatigue: formatFatigue(preview.startFatigue) })}

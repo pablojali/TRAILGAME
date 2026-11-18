@@ -1025,25 +1025,26 @@ var races_default = `# Race catalog (owner table, 5 November 2026). One row per 
 # Each race also needs its difficulty (I-V) in ranking_points.csv. Photo (assets/ui/races/RACE-xxx.webp) and clips (assets/race/clips) are optional.
 # After adding a race or changing a recommended level, the NPC rankings need a migration: python3 scripts/ranking_tables_sql.py --points-only.
 # Optional (Trail Studio, 12 November 2026; empty = automatic): min_level and max_level, the entry levels; stop_quick_s, stop_normal_s, stop_slow_s, the seconds of each stop (all three or none);
+# kind (18 November 2026): npc (or empty) for the races players enter, major for a Sunday Major's course (only Majors run it). A race's GPX course, if any, is src/data/courses/RACE-xxx.json (Trail Studio).
 # segments: the course by hand, km:ascent:descent:technicality per segment and | between segments (an aid station between two), e.g. 6.5:420:120:2|5:0:300:3. Then distance_km and elevation_gain_m are their sums.
-id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,terrain_es,terrain_fr,terrain_it,terrain_de,min_level,max_level,stop_quick_s,stop_normal_s,stop_slow_s,segments
-RACE-001,Forest First Steps,open,5,50,4,0,Non-technical forest paths,Caminos de bosque sin dificultad t\xE9cnica,Chemins forestiers sans difficult\xE9 technique,Sentieri nel bosco senza difficolt\xE0 tecniche,Einfache Waldwege,,,,,,
-RACE-002,Riverside Trail,open,8,95,6,0,"Packed dirt, rolling hills","Tierra compacta, colinas suaves","Terre battue, collines douces","Sterrato compatto, colline dolci","Fester Boden, sanfte H\xFCgel",,,,,,
-RACE-003,Pine Loop Challenge,open,10,150,8,1,"Forest trail, short climbs","Sendero de bosque, subidas cortas","Sentier forestier, mont\xE9es courtes","Sentiero nel bosco, salite brevi","Waldpfad, kurze Anstiege",,,,,,
-RACE-004,Ridge Runner,mountain,12,180,11,3,"Rolling ridges, mixed trail","Crestas onduladas, sendero mixto","Cr\xEAtes vallonn\xE9es, sentier mixte","Creste ondulate, sentiero misto","Wellige Grate, gemischte Pfade",,,,,,
-RACE-005,Stone Path Classic,trail,15,750,14,3,"Rocky sections, moderate technicality","Tramos rocosos, t\xE9cnica moderada","Passages rocheux, technicit\xE9 mod\xE9r\xE9e","Tratti rocciosi, tecnica moderata","Felsige Abschnitte, mittlere Technik",,,,,,
-RACE-006,Wildwood Ascent,trail,18,950,18,2,"Sustained climbs, forest terrain","Subidas largas, terreno de bosque","Longues mont\xE9es, terrain forestier","Salite lunghe, terreno boschivo","Lange Anstiege, Waldgel\xE4nde",,,,,,
-RACE-007,Summit Quest,mountain,22,1300,21,3,"Steep climbs, rocky descents","Subidas empinadas, bajadas rocosas","Mont\xE9es raides, descentes rocheuses","Salite ripide, discese rocciose","Steile Anstiege, felsige Abstiege",,,,,,
-RACE-008,Alpine Traverse,mountain,28,1700,25,5,"Alpine paths, technical descents","Senderos alpinos, bajadas t\xE9cnicas","Sentiers alpins, descentes techniques","Sentieri alpini, discese tecniche","Alpine Pfade, technische Abstiege",,,,,,
-RACE-009,Sky Ridge Ultra,mountain,35,2200,28,3,"Exposed ridges, sustained elevation","Crestas expuestas, altitud sostenida","Cr\xEAtes expos\xE9es, altitude soutenue","Creste esposte, quota costante","Ausgesetzte Grate, viel H\xF6he",,,,,,
-RACE-010,High Peaks Challenge,elite,42,2800,31,5,Highly technical mountain terrain,Terreno de monta\xF1a muy t\xE9cnico,Terrain de montagne tr\xE8s technique,Terreno di montagna molto tecnico,Sehr technisches Berggel\xE4nde,,,,,,
-RACE-011,Legends of the Crest,elite,55,3600,40,5,"Long mountain ultra, technical sections","Ultra de monta\xF1a larga, tramos t\xE9cnicos","Long ultra de montagne, passages techniques","Lunga ultra di montagna, tratti tecnici","Langer Bergultra, technische Abschnitte",,,,,,
-RACE-012,Beyond the Skyline,elite,70,4800,50,5,"Extreme ultra, long climbs and descents","Ultra extrema, subidas y bajadas largas","Ultra extr\xEAme, longues mont\xE9es et descentes","Ultra estrema, lunghe salite e discese","Extremer Ultra, lange Anstiege und Abstiege",,,,,,
-RACE-013,Granite Spine,elite,44,3000,34,4,"Granite ridges, scrambling near the summit","Crestas de granito, trepadas cerca de la cumbre","Cr\xEAtes de granit, passages d\u2019escalade pr\xE8s du sommet","Creste di granito, passaggi di arrampicata vicino alla vetta","Granitgrate, Kletterpassagen unter dem Gipfel",,,,,,
-RACE-014,Northern Lakes Ultra,elite,50,3200,37,2,Lake shores and long rolling climbs,Orillas de lagos y subidas largas y onduladas,Bords de lacs et longues mont\xE9es vallonn\xE9es,Rive di laghi e lunghe salite ondulate,"Seeufer und lange, wellige Anstiege",,,,,,
-RACE-015,Glacier Line,elite,57,3800,43,5,"Glacier moraines, very technical descents","Morrenas glaciares, bajadas muy t\xE9cnicas","Moraines glaciaires, descentes tr\xE8s techniques","Morene glaciali, discese molto tecniche","Gletschermor\xE4nen, sehr technische Abstiege",,,,,,
-RACE-016,Midnight Traverse,elite,62,4100,45,3,"Night start, long mountain ultra","Salida nocturna, ultra largo de monta\xF1a","D\xE9part de nuit, long ultra en montagne","Partenza notturna, lungo ultra in montagna","Nachtstart, langer Bergultra",,,,,,
-RACE-017,Crown of the Range,elite,66,4500,47,4,"High mountain ultra, steep rocky passes","Ultra de alta monta\xF1a, collados rocosos empinados","Ultra de haute montagne, cols rocheux raides","Ultra d\u2019alta montagna, valichi rocciosi ripidi","Hochgebirgsultra, steile felsige P\xE4sse",,,,,,
+id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,terrain_es,terrain_fr,terrain_it,terrain_de,min_level,max_level,stop_quick_s,stop_normal_s,stop_slow_s,kind,segments
+RACE-001,Forest First Steps,open,5,50,4,0,Non-technical forest paths,Caminos de bosque sin dificultad t\xE9cnica,Chemins forestiers sans difficult\xE9 technique,Sentieri nel bosco senza difficolt\xE0 tecniche,Einfache Waldwege,,,,,,,
+RACE-002,Riverside Trail,open,8,95,6,0,"Packed dirt, rolling hills","Tierra compacta, colinas suaves","Terre battue, collines douces","Sterrato compatto, colline dolci","Fester Boden, sanfte H\xFCgel",,,,,,,
+RACE-003,Pine Loop Challenge,open,10,150,8,1,"Forest trail, short climbs","Sendero de bosque, subidas cortas","Sentier forestier, mont\xE9es courtes","Sentiero nel bosco, salite brevi","Waldpfad, kurze Anstiege",,,,,,,
+RACE-004,Ridge Runner,mountain,12,180,11,3,"Rolling ridges, mixed trail","Crestas onduladas, sendero mixto","Cr\xEAtes vallonn\xE9es, sentier mixte","Creste ondulate, sentiero misto","Wellige Grate, gemischte Pfade",,,,,,,
+RACE-005,Stone Path Classic,trail,15,750,14,3,"Rocky sections, moderate technicality","Tramos rocosos, t\xE9cnica moderada","Passages rocheux, technicit\xE9 mod\xE9r\xE9e","Tratti rocciosi, tecnica moderata","Felsige Abschnitte, mittlere Technik",,,,,,,
+RACE-006,Wildwood Ascent,trail,18,950,18,2,"Sustained climbs, forest terrain","Subidas largas, terreno de bosque","Longues mont\xE9es, terrain forestier","Salite lunghe, terreno boschivo","Lange Anstiege, Waldgel\xE4nde",,,,,,,
+RACE-007,Summit Quest,mountain,22,1300,21,3,"Steep climbs, rocky descents","Subidas empinadas, bajadas rocosas","Mont\xE9es raides, descentes rocheuses","Salite ripide, discese rocciose","Steile Anstiege, felsige Abstiege",,,,,,,
+RACE-008,Alpine Traverse,mountain,28,1700,25,5,"Alpine paths, technical descents","Senderos alpinos, bajadas t\xE9cnicas","Sentiers alpins, descentes techniques","Sentieri alpini, discese tecniche","Alpine Pfade, technische Abstiege",,,,,,,
+RACE-009,Sky Ridge Ultra,mountain,35,2200,28,3,"Exposed ridges, sustained elevation","Crestas expuestas, altitud sostenida","Cr\xEAtes expos\xE9es, altitude soutenue","Creste esposte, quota costante","Ausgesetzte Grate, viel H\xF6he",,,,,,,
+RACE-010,High Peaks Challenge,elite,42,2800,31,5,Highly technical mountain terrain,Terreno de monta\xF1a muy t\xE9cnico,Terrain de montagne tr\xE8s technique,Terreno di montagna molto tecnico,Sehr technisches Berggel\xE4nde,,,,,,,
+RACE-011,Legends of the Crest,elite,55,3600,40,5,"Long mountain ultra, technical sections","Ultra de monta\xF1a larga, tramos t\xE9cnicos","Long ultra de montagne, passages techniques","Lunga ultra di montagna, tratti tecnici","Langer Bergultra, technische Abschnitte",,,,,,,
+RACE-012,Beyond the Skyline,elite,70,4800,50,5,"Extreme ultra, long climbs and descents","Ultra extrema, subidas y bajadas largas","Ultra extr\xEAme, longues mont\xE9es et descentes","Ultra estrema, lunghe salite e discese","Extremer Ultra, lange Anstiege und Abstiege",,,,,,,
+RACE-013,Granite Spine,elite,44,3000,34,4,"Granite ridges, scrambling near the summit","Crestas de granito, trepadas cerca de la cumbre","Cr\xEAtes de granit, passages d\u2019escalade pr\xE8s du sommet","Creste di granito, passaggi di arrampicata vicino alla vetta","Granitgrate, Kletterpassagen unter dem Gipfel",,,,,,,
+RACE-014,Northern Lakes Ultra,elite,50,3200,37,2,Lake shores and long rolling climbs,Orillas de lagos y subidas largas y onduladas,Bords de lacs et longues mont\xE9es vallonn\xE9es,Rive di laghi e lunghe salite ondulate,"Seeufer und lange, wellige Anstiege",,,,,,,
+RACE-015,Glacier Line,elite,57,3800,43,5,"Glacier moraines, very technical descents","Morrenas glaciares, bajadas muy t\xE9cnicas","Moraines glaciaires, descentes tr\xE8s techniques","Morene glaciali, discese molto tecniche","Gletschermor\xE4nen, sehr technische Abstiege",,,,,,,
+RACE-016,Midnight Traverse,elite,62,4100,45,3,"Night start, long mountain ultra","Salida nocturna, ultra largo de monta\xF1a","D\xE9part de nuit, long ultra en montagne","Partenza notturna, lungo ultra in montagna","Nachtstart, langer Bergultra",,,,,,,
+RACE-017,Crown of the Range,elite,66,4500,47,4,"High mountain ultra, steep rocky passes","Ultra de alta monta\xF1a, collados rocosos empinados","Ultra de haute montagne, cols rocheux raides","Ultra d\u2019alta montagna, valichi rocciosi ripidi","Hochgebirgsultra, steile felsige P\xE4sse",,,,,,,
 `;
 
 // src/domain/races/categories.ts
@@ -1142,6 +1143,7 @@ function parseRaces(text) {
     if (!row.name) throw new Error(`${where}: name is missing`);
     if (!isRaceCategory(row.category)) throw new Error(`${where}: category must be open, trail, mountain or elite`);
     if (!row.terrain) throw new Error(`${where}: terrain is missing`);
+    if (row.kind && row.kind !== "npc" && row.kind !== "major") throw new Error(`${where}: kind must be npc or major (empty = npc)`);
     const race = {
       id,
       name: row.name,
@@ -1152,6 +1154,7 @@ function parseRaces(text) {
       recommendedLevel: csvInt(row.recommended_level, where),
       technicality: csvInt(row.technicality, where)
     };
+    if (row.kind === "major") race.major = true;
     if (row.segments) {
       const segments = parseSegments(row.segments, where);
       race.segments = segments;
@@ -1195,6 +1198,7 @@ function parseRaces(text) {
   return races.sort((x, y) => x.recommendedLevel - y.recommendedLevel || x.id.localeCompare(y.id));
 }
 var RACES = parseRaces(races_default);
+var NPC_RACES = RACES.filter((race) => !race.major);
 var BY_ID2 = new Map(RACES.map((race) => [race.id, race]));
 function getRace(id) {
   return BY_ID2.get(id);
@@ -1465,7 +1469,7 @@ function getMaximumLevel(race) {
 function canEnterAtLevel(race, level) {
   if (level < getMinimumLevel(race)) return false;
   if (level <= getMaximumLevel(race)) return true;
-  const reachable = RACES.filter((other) => level >= getMinimumLevel(other));
+  const reachable = NPC_RACES.filter((other) => level >= getMinimumLevel(other));
   return reachable.every((other) => other.recommendedLevel <= race.recommendedLevel);
 }
 function getRewardMultiplier(race, level) {
@@ -2427,7 +2431,7 @@ function getEntry(state, entryId) {
 }
 function enterRace(state, raceId, now) {
   const race = getRace(raceId);
-  if (!race) return { ok: false, error: "unknown-race" };
+  if (!race || race.major) return { ok: false, error: "unknown-race" };
   if (getPendingEntry(state, raceId)) return { ok: false, error: "already-entered" };
   if (getScheduledEntry(state)) return { ok: false, error: "race-scheduled" };
   const level = getLevel(state.athlete.xp);

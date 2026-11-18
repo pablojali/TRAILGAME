@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { majorField } from '../../game-engine/majorRace'
 import { formatFatigue } from '../../components/format'
+import { courseMapping } from '../races/profile'
 import { SegmentProfile } from '../races/RaceRunScreen'
+import { CourseMap } from './CourseMap'
 import button from '../../components/Button.module.css'
 import { Chips, Tabs } from '../../components/Tabs'
 import { useBackdropScene } from '../../components/backdrop/sceneOverride'
@@ -193,6 +195,7 @@ export function NextSegment({ race, raceId }: { race: LiveRaceView; raceId: stri
   const segment = course ? majorField(course).segments[race.category.segment + 1] : undefined
   if (!segment) return null
   const me = race.me
+  const mapping = courseMapping(raceId)
   return (
     <section className={styles.nextSegment} aria-label={t('major.live.next.title', { n: race.category.segment + 2 })}>
       <div className={styles.nextHead}>
@@ -205,7 +208,16 @@ export function NextSegment({ race, raceId }: { race: LiveRaceView; raceId: stri
           })}
         </span>
       </div>
-      <SegmentProfile segment={segment} />
+      <SegmentProfile segment={segment} raceId={raceId} />
+      {mapping && (
+        <CourseMap
+          course={mapping.course}
+          fromKm={mapping.toCourseKm(segment.startM)}
+          toKm={mapping.toCourseKm(segment.startM + segment.distanceM)}
+          runners={[]}
+          label={t('major.map.next')}
+        />
+      )}
       {me && (
         <dl className={styles.nextMeters}>
           <div>

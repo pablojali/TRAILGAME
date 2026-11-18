@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { getMaximumLevel, getMinimumLevel } from '../domain/races/access'
+import type { Course } from '../domain/races/course'
 import { formatSegments, parseRaces, parseSegments, segmentsDistanceKm, MAX_SEGMENTS, MAX_TECHNICALITY, MIN_SEGMENTS, RACE_LANGUAGES, type CourseSpec, type Race } from '../domain/races/races'
 import { RACE_CATEGORIES } from '../domain/races/categories'
 import { racePaces, stopSeconds } from '../domain/races/strategyConfig'
@@ -7,6 +8,8 @@ import { getRaceField, getRaceSegments, getReferenceFinishS, getSegmentCount } f
 import { courseEffortKm, generateCourse } from '../game-engine/raceSimulation'
 import { insertRow, rows, serializeDoc, updateRow, type CsvDoc } from './csvDoc'
 import { NumberField, Pips, PipsField, SelectField, TextField } from './fields'
+import { CourseEditor } from './CourseEditor'
+import { workspaceCourse } from './courseFiles'
 import { RaceMedia } from './MediaPanels'
 import type { Workspace } from './model'
 
@@ -32,15 +35,20 @@ function clock(seconds: number): string {
   return h ? `${h}h ${String(m).padStart(2, '0')}min` : `${m}:${String(s).padStart(2, '0')}`
 }
 
-function Profile({ race }: { race: Race }) {
-  const course = generateCourse(race)
+function Profile({ race, real }: { race: Race; real: Course | null }) {
   const points: [number, number][] = [[0, 0]]
   let x = 0
   let y = 0
-  for (const segment of course) {
-    x += segment.lengthM
-    y += segment.gainM - segment.lossM
-    points.push([x, y])
+  if (real) {
+    // The real profile from the race's GPX (18 November 2026).
+    points.splice(0, 1, ...real.points.map(([km, e]): [number, number] => [km * 1000, e]))
+    x = points[points.length - 1]![0]
+  } else {
+    for (const segment of generateCourse(race)) {
+      x += segment.lengthM
+      y += segment.gainM - segment.lossM
+      points.push([x, y])
+    }
   }
   const minY = Math.min(...points.map((p) => p[1]))
   const maxY = Math.max(...points.map((p) => p[1]), minY + 50)
@@ -81,8 +89,8 @@ export function RacesPanel({
   const current = raceRows.find((r) => r.values.id === selected) ?? sorted[0]
   const edited = (id: string, values: Record<string, string>) => baseRows.get(id) !== JSON.stringify(values) || baseDifficulty.get(id) !== difficulty.get(id)
 
-  const setRace = (changes: Record<string, string>) =>
-    current && setWs({ ...ws, docs: { ...ws.docs, races: updateRow(ws.docs.races, (r) => r.values.id === current.values.id, changes) } })
+  const setRace = (changes: Record<string, string>, base: Workspace = ws) =>
+    current && setWs({ ...base, docs: { ...base.docs, races: updateRow(base.docs.races, (r) => r.values.id === current.values.id, changes) } })
   const setDifficulty = (value: string) =>
     current &&
     setWs({ ...ws, docs: { ...ws.docs, points: updateRow(ws.docs.points, (r) => r.values.kind === 'race' && r.values.key === current.values.id, { value }) } })
@@ -119,13 +127,17 @@ export function RacesPanel({
     }
   })()
   /** Writes the segments and the totals that come from them. */
-  const setSpecs = (next: CourseSpec[]) =>
-    setRace({
-      segments: formatSegments(next),
-      distance_km: String(segmentsDistanceKm(next)),
-      elevation_gain_m: String(next.reduce((sum, s) => sum + s.gainM, 0)),
-      technicality: String(Math.max(0, ...next.map((s) => s.technicality))),
-    })
+  const setSpecs = (next: CourseSpec[], base: Workspace = ws) =>
+    setRace(
+      {
+        segments: formatSegments(next),
+        distance_km: String(segmentsDistanceKm(next)),
+        elevation_gain_m: String(next.reduce((sum, s) => sum + s.gainM, 0)),
+        technicality: String(Math.max(0, ...next.map((s) => s.technicality))),
+      },
+      base,
+    )
+  const hasCourse = v ? workspaceCourse(ws, v.id!) !== null : false
   const read = current ? readRace(ws.docs.races, current.values) : {}
   const race = read.race
   const effort = race ? courseEffortKm(generateCourse(race)) : 0
@@ -162,6 +174,7 @@ export function RacesPanel({
                     <span className="rowName">
                       {edited(r.id!, r) && <span className="dot" title="Cambiada" />}
                       {r.name}
+                      {r.kind === 'major' && <span className="tag">Major</span>}
                     </span>
                     <span className="rowId">{r.id}</span>
                   </td>
@@ -203,7 +216,7 @@ export function RacesPanel({
                 </span>
               </span>
             </div>
-            {race && <Profile race={race} />}
+            {race && <Profile race={race} real={workspaceCourse(ws, race.id)} />}
           </div>
 
           {read.error && <p className="error">El juego no aceptaría esta carrera: {read.error}</p>}
@@ -288,6 +301,16 @@ export function RacesPanel({
               hint={difficultyChanged ? 'Cambia los rankings: se añadirá la migración' : 'I moderada · V extrema'}
             />
             <SelectField
+              label="Tipo de carrera"
+              value={v.kind === 'major' ? 'major' : 'npc'}
+              options={[
+                { value: 'npc', label: 'NPC (los jugadores se inscriben)' },
+                { value: 'major', label: 'Major (solo se corre en un Major)' },
+              ]}
+              onChange={(x) => setRace({ kind: x === 'major' ? 'major' : '' })}
+              hint={v.kind === 'major' ? 'No sale en Carreras; con GPX, el Major muestra el mapa del recorrido' : 'Sale en Carreras para inscribirse'}
+            />
+            <SelectField
               label="Categoría interna"
               value={v.category!}
               options={RACE_CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] ?? c }))}
@@ -296,12 +319,24 @@ export function RacesPanel({
             />
           </div>
 
-          <Segments
-            race={race}
+          <CourseEditor
+            ws={ws}
+            setWs={setWs}
+            raceId={v.id!}
             specs={specs}
-            onChange={setSpecs}
-            onAuto={() => setRace({ segments: '' })}
+            fallbackTechnicality={Number(v.technicality) || 0}
+            defaultSegments={race ? getSegmentCount(race) : 3}
+            onSpecs={setSpecs}
           />
+          {/* With a GPX the segments are cut on its profile; without one, by hand or automatic. */}
+          {!hasCourse && (
+            <Segments
+              race={race}
+              specs={specs}
+              onChange={setSpecs}
+              onAuto={() => setRace({ segments: '' })}
+            />
+          )}
 
           <h3>Inscripción y paradas</h3>
           <div className="form">

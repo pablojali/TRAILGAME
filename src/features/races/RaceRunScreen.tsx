@@ -46,6 +46,7 @@ import { courseDetail } from './courseText'
 import { RaceClipPlayer } from './RaceClipPlayer'
 import { raceClip } from './raceClips'
 import { durationText, ordinal, raceTimeText } from './raceText'
+import { segmentProfile } from './profile'
 import styles from './Races.module.css'
 import gelPicture from '../../../assets/ui/nutrition/gel.webp'
 import barPicture from '../../../assets/ui/nutrition/bar.webp'
@@ -474,23 +475,19 @@ function NutritionToggle({
   )
 }
 
-/** The elevation of the next segment as a small filled line (owner request, 9 November 2026). */
-export function SegmentProfile({ segment }: { segment: RaceSegment }) {
-  const points: [number, number][] = [[0, 0]]
-  let x = 0
-  let y = 0
-  for (const { block } of segment.pieces) {
-    x += block.lengthM
-    y += block.gainM - block.lossM
-    points.push([x, y])
-  }
+/**
+ * The elevation of the next segment as a small filled line (owner request, 9 November 2026): the
+ * real profile when the race has a course from a GPX (18 November 2026).
+ */
+export function SegmentProfile({ segment, raceId }: { segment: RaceSegment; raceId?: string }) {
+  const points = segmentProfile(raceId, segment)
+  const x = Math.max(points[points.length - 1]![0], 1)
   const ys = points.map((p) => p[1])
   const low = Math.min(...ys)
   const span = Math.max(Math.max(...ys) - low, 150)
   const width = 100
   const height = 32
-  const at = ([px, py]: [number, number]) =>
-    `${((px / Math.max(x, 1)) * width).toFixed(1)},${(height - 2 - ((py - low) / span) * (height - 6)).toFixed(1)}`
+  const at = ([px, py]: [number, number]) => `${((px / x) * width).toFixed(1)},${(height - 2 - ((py - low) / span) * (height - 6)).toFixed(1)}`
   const line = points.map(at).join(' ')
   return (
     <svg className={styles.segmentProfile} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
@@ -674,7 +671,7 @@ function AidStation({ race, present }: { race: Race; present: Present }) {
             <span className={styles.tileLabel}>
               {t(lastSegment ? 'raceRun.nextFinish' : 'raceRun.next', { segment: station + 1 })}
             </span>
-            <SegmentProfile segment={next} />
+            <SegmentProfile segment={next} raceId={race.id} />
             <div className={styles.nextFacts}>
               <strong>{t(`raceRun.kind.${kind}` as MessageKey)}</strong>
               <span className={styles[`demand-${demand}`]}>{t(`raceRun.demand.${demand}` as MessageKey)}</span>

@@ -38,6 +38,11 @@ export interface Race {
   maxLevel?: number
   /** Seconds of each stop set by hand; missing: from the race's effort. */
   stopS?: StopSeconds
+  /**
+   * A Major's course (owner design, 18 November 2026): only Sunday Majors run it; it is not in the
+   * races players enter. Missing: an NPC race (the Race Hub).
+   */
+  major?: true
 }
 
 /** One segment as the owner sets it. */
@@ -137,6 +142,7 @@ export function parseRaces(text: string): Race[] {
     if (!row.name) throw new Error(`${where}: name is missing`)
     if (!isRaceCategory(row.category)) throw new Error(`${where}: category must be open, trail, mountain or elite`)
     if (!row.terrain) throw new Error(`${where}: terrain is missing`)
+    if (row.kind && row.kind !== 'npc' && row.kind !== 'major') throw new Error(`${where}: kind must be npc or major (empty = npc)`)
     const race: Race = {
       id,
       name: row.name,
@@ -147,6 +153,7 @@ export function parseRaces(text: string): Race[] {
       recommendedLevel: csvInt(row.recommended_level, where),
       technicality: csvInt(row.technicality, where),
     }
+    if (row.kind === 'major') race.major = true
     if (row.segments) {
       const segments = parseSegments(row.segments, where)
       race.segments = segments
@@ -193,6 +200,9 @@ export function parseRaces(text: string): Race[] {
 }
 
 export const RACES: readonly Race[] = parseRaces(racesCsv)
+
+/** The races players enter (the Race Hub): every race but the Majors' courses. */
+export const NPC_RACES: readonly Race[] = RACES.filter((race) => !race.major)
 
 const BY_ID = new Map(RACES.map((race) => [race.id, race]))
 

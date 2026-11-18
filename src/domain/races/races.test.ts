@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { canEnterAtLevel, getGrossPrizes, getMaximumLevel, getMinimumLevel, getRewardMultiplier } from './access'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_CATEGORY_CONFIG } from './categories'
-import { getRace, isRaceId, RACES, type Race } from './races'
+import { getRace, isRaceId, parseRaces, RACES, type Race } from './races'
 
 function race(id: string): Race {
   return getRace(id)!
@@ -99,5 +99,14 @@ describe('anti-farming multipliers', () => {
   it('gives 0 % at 3 or more levels above the recommendation', () => {
     expect(getRewardMultiplier(race('RACE-001'), 7)).toMatchObject({ levelDifference: 3, xp: 0, coins: 0 })
     expect(getRewardMultiplier(race('RACE-001'), 8)).toMatchObject({ levelDifference: 4, xp: 0, coins: 0 })
+  })
+})
+
+describe('race kinds (owner design, 18 November 2026)', () => {
+  const header = 'id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,kind\n'
+  it('reads a Major course apart from the NPC races', () => {
+    const races = parseRaces(header + 'RACE-001,A,open,5,50,4,0,Paths,\nRACE-002,B,open,5,50,4,0,Paths,major\nRACE-003,C,open,5,50,4,0,Paths,npc\n')
+    expect(races.map((race) => race.major ?? false)).toEqual([false, true, false])
+    expect(() => parseRaces(header + 'RACE-001,A,open,5,50,4,0,Paths,sponsor\n')).toThrow(/kind/)
   })
 })

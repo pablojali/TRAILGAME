@@ -58,5 +58,8 @@
   "races.enter": "Anmelden",
   "races.entering": "Anmeldung…",
   "races.technical": "Technik",
-  "races.technicalityLabel": "Technische Schwierigkeit {value} von {max}"
+  "races.technicalityLabel": "Technische Schwierigkeit {value} von {max}",
+  "races.profileTitle": "Streckenprofil",
+  "races.profile": "Streckenprofil: tiefster Punkt {low}, höchster {high}, {aid} Verpflegungsstellen",
+  "races.aidCount": "{n} Verpflegungsstellen"
 }

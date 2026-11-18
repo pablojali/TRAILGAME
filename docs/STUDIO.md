@@ -14,8 +14,10 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     station's km can be typed, and each segment's km, ascent and descent come from the GPX (its
     technicality is set by hand). The game keeps reading the `segments` column; the course file
     only draws the real profile (race page, aid stations, Majors) and the map.
-  - **Race kind** (18 November 2026): NPC (players enter it in Carreras) or Major (only a Sunday
-    Major runs it; it is not listed in Carreras and cannot be entered). A Major whose course has
+  - **Race kind** (18 November 2026): NPC (players enter it in Carreras), Major (only a Sunday
+    Major runs it; it is not listed in Carreras and cannot be entered) or Retirada (no longer
+    listed nor entered, kept for the careers and rankings that ran it). A race is never deleted:
+    saves name it, and a save naming a race the game does not know is refused. A Major whose course has
     a GPX shows each segment over a real topographic map (OpenTopoMap tiles) with the runners on
     it, during the segment and at the aid station before it.
   - **Segments and aid stations** (12 November 2026): automatic (the profile generated from the

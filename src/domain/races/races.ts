@@ -43,6 +43,11 @@ export interface Race {
    * races players enter. Missing: an NPC race (the Race Hub).
    */
   major?: true
+  /**
+   * Retired (owner decision, 18 November 2026): no longer listed nor entered, but kept so the
+   * careers and rankings that ran it stay valid. Never delete a race: saves name it.
+   */
+  retired?: true
 }
 
 /** One segment as the owner sets it. */
@@ -142,7 +147,7 @@ export function parseRaces(text: string): Race[] {
     if (!row.name) throw new Error(`${where}: name is missing`)
     if (!isRaceCategory(row.category)) throw new Error(`${where}: category must be open, trail, mountain or elite`)
     if (!row.terrain) throw new Error(`${where}: terrain is missing`)
-    if (row.kind && row.kind !== 'npc' && row.kind !== 'major') throw new Error(`${where}: kind must be npc or major (empty = npc)`)
+    if (row.kind && row.kind !== 'npc' && row.kind !== 'major' && row.kind !== 'retired') throw new Error(`${where}: kind must be npc, major or retired (empty = npc)`)
     const race: Race = {
       id,
       name: row.name,
@@ -154,6 +159,7 @@ export function parseRaces(text: string): Race[] {
       technicality: csvInt(row.technicality, where),
     }
     if (row.kind === 'major') race.major = true
+    if (row.kind === 'retired') race.retired = true
     if (row.segments) {
       const segments = parseSegments(row.segments, where)
       race.segments = segments
@@ -201,8 +207,8 @@ export function parseRaces(text: string): Race[] {
 
 export const RACES: readonly Race[] = parseRaces(racesCsv)
 
-/** The races players enter (the Race Hub): every race but the Majors' courses. */
-export const NPC_RACES: readonly Race[] = RACES.filter((race) => !race.major)
+/** The races players enter (the Race Hub): every race but the Majors' courses and the retired ones. */
+export const NPC_RACES: readonly Race[] = RACES.filter((race) => !race.major && !race.retired)
 
 const BY_ID = new Map(RACES.map((race) => [race.id, race]))
 

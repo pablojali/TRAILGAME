@@ -1078,7 +1078,7 @@ var REWARD_MULTIPLIERS = [
 // src/domain/races/races.ts
 var RACE_LANGUAGES = ["es", "fr", "it", "de"];
 var MAX_TECHNICALITY = 5;
-var MIN_SEGMENTS = 2;
+var MIN_SEGMENTS = 1;
 var MAX_SEGMENTS = 20;
 function courseOf(race) {
   return {
@@ -1166,6 +1166,7 @@ function parseRaces(text) {
       }
       race.technicality = Math.max(...segments.map((s) => s.technicality));
     }
+    if (race.major && race.segments && race.segments.length < 2) throw new Error(`${where}: a Major's course needs at least 2 segments (an aid station)`);
     if (row.min_level || row.max_level) {
       const min = row.min_level ? csvInt(row.min_level, where) : void 0;
       const max = row.max_level ? csvInt(row.max_level, where) : void 0;
@@ -2545,6 +2546,9 @@ function stepRace(state, decisions, now) {
   if (!isAidStop(decisions.stop)) return { ok: false, error: "unknown-stop" };
   if (!isIntensity(decisions.intensity)) return { ok: false, error: "unknown-intensity" };
   const field = fieldOf(active, race);
+  if (active.splits.length >= field.segments.length) {
+    return { ok: true, value: { finished: true, value: finishRace(state, active, race, field, now) } };
+  }
   const ctx = contextOf(active, race, field);
   const progress = runSegment(ctx, makeStop(ctx, toProgress(active), decisions.stop), decisions.intensity);
   const next = withProgress(active, progress);

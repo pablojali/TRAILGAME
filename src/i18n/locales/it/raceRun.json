@@ -154,5 +154,8 @@
   "raceRun.planned": "Piano",
   "raceRun.prepAdvice.injuryRisk": "Con questo piano finiresti con fatica ≈ {n}: oltre 95 ti infortuni. Scegli una strategia o tratti più leggeri.",
   "raceRun.prepAdvice.tiredLong": "Parti stanco (fatica {fatigue}). In una gara lunga, spingere si paga dopo: tienilo per gli ultimi tratti.",
-  "raceRun.prepAdvice.freshLong": "Parti fresco (fatica {fatigue}). Oggi spingere costa meno: puoi accelerare in alcuni tratti."
+  "raceRun.prepAdvice.freshLong": "Parti fresco (fatica {fatigue}). Oggi spingere costa meno: puoi accelerare in alcuni tratti.",
+  "raceRun.crossing": "Tagliando il traguardo…",
+  "raceRun.crossingDescription": "Gara senza ristori: dritti al traguardo.",
+  "raceRun.retry": "Riprova"
 }

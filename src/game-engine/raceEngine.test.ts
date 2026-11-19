@@ -315,6 +315,21 @@ describe('race in progress', () => {
     expect(parseGameState(JSON.parse(JSON.stringify(started.state)), T0)).toEqual(started.state)
   })
 
+  it('finishes a race without aid stations with the step after the start (owner request, 19 November 2026)', () => {
+    const { state, entryId } = raceSunday()
+    const started = startRace(state, SUNDAY, entryId, { intensity: 'target', gel: false, bar: false }, T0)
+    if (!started.ok) throw new Error(started.error)
+    // The course of a one-segment race: the start ran it whole.
+    const course = started.state.activeRace!.course!
+    const one = { ...course, segments: [{ distanceKm: course.distanceKm, gainM: course.elevationGainM, lossM: course.elevationGainM, technicality: 0 }] }
+    const atFinish = { ...started.state, activeRace: { ...started.state.activeRace!, course: one } }
+    expect(getRaceReport(atFinish)).toMatchObject({ segmentsDone: 1, segmentCount: 1 })
+    const crossed = stepRace(atFinish, { segment: 1, stop: 'normal', intensity: 'target' }, T0 + 1000)
+    if (!crossed.ok) throw new Error(crossed.error)
+    expect(crossed.value.finished).toBe(true)
+    expect(crossed.value.finished && crossed.value.value.entry.status).toBe('finished')
+  })
+
   it('refuses a second start, missing nutrition, an unknown intensity and training meanwhile', () => {
     const { state, entryId } = raceSunday()
     const noStock = { ...state, consumables: { gel: 0, bar: 0 } }

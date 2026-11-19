@@ -68,7 +68,7 @@ export interface StopSeconds {
 export type RaceCourse = Pick<Race, 'distanceKm' | 'elevationGainM' | 'technicality'> & Pick<Race, 'segments' | 'stopS'>
 
 /** Segments a race may have when the owner sets them (an aid station between two). */
-export const MIN_SEGMENTS = 2
+export const MIN_SEGMENTS = 1
 export const MAX_SEGMENTS = 20
 
 export function courseOf(race: Race): RaceCourse {
@@ -171,6 +171,8 @@ export function parseRaces(text: string): Race[] {
       }
       race.technicality = Math.max(...segments.map((s) => s.technicality))
     }
+    // A Major's runners meet at its aid stations: its course has at least one.
+    if (race.major && race.segments && race.segments.length < 2) throw new Error(`${where}: a Major's course needs at least 2 segments (an aid station)`)
     if (row.min_level || row.max_level) {
       const min = row.min_level ? csvInt(row.min_level, where) : undefined
       const max = row.max_level ? csvInt(row.max_level, where) : undefined

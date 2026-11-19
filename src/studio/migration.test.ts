@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { parseCsv } from '../data/csv'
 import { migrationPath, npcRows, racePointsMigration, racePointsRows, rankingMigration } from './migration'
 
 vi.unmock('../data/ranking_points.csv?raw')
@@ -14,7 +15,10 @@ describe('Studio ranking migration', () => {
     const latest = Object.keys(MIGRATIONS).sort().filter((f) => MIGRATIONS[f]!.includes('insert into public.ranking_race_points ('))
     const section = (text: string) => text.slice(text.indexOf('insert into public.ranking_race_points'), text.indexOf('-- ranking_position_percent'))
     expect(section(sql).trim()).toBe(section(MIGRATIONS[latest.at(-1)!]!).trim())
-    expect(racePointsRows(racesCsv, pointsCsv)).toContain('RACE-001|4|100')
+    // Every race of the owner's table, with its recommended level (whatever the owner set).
+    const rows = racePointsRows(racesCsv, pointsCsv)
+    const level = parseCsv(racesCsv).find((race) => race.id === 'RACE-001')!.recommended_level
+    expect(rows.some((row) => row.startsWith(`RACE-001|${level}|`))).toBe(true)
   })
 
   it('names the file after the moment it is made', () => {

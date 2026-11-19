@@ -41,7 +41,7 @@ describe('Studio workspace', () => {
     let ws = openWorkspace(base)
     // The current values come from the tables, which the owner edits in Studio: the test must not pin them.
     // A race without segments (with them, the distance and elevation are the segments' sums).
-    const race = rows(ws.docs.races).find((r) => r.values.id.startsWith('RACE-') && !r.values.segments)!.values
+    const race = rows(ws.docs.races).find((r) => r.values.id?.startsWith('RACE-') && !r.values.segments)!.values
     const poles = rows(ws.docs.equipment).find((r) => r.values.id === 'poles')!.values
     const gain = String(Number(race.elevation_gain_m) + 50)
     const technicality = String((Number(race.technicality) % 5) + 1)

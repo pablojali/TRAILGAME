@@ -297,6 +297,11 @@ export function stepRace(
   if (!isIntensity(decisions.intensity)) return { ok: false, error: 'unknown-intensity' }
 
   const field = fieldOf(active, race)
+  // A race without aid stations (one segment, owner request 19 November 2026) was run whole at the
+  // start: the step only crosses the finish.
+  if (active.splits.length >= field.segments.length) {
+    return { ok: true, value: { finished: true, value: finishRace(state, active, race, field, now) } }
+  }
   const ctx = contextOf(active, race, field)
   const progress = runSegment(ctx, makeStop(ctx, toProgress(active), decisions.stop), decisions.intensity)
   const next = withProgress(active, progress)

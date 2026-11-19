@@ -37,7 +37,9 @@ describe('Races set by hand in Trail Studio (owner request, 12 November 2026)', 
   it('refuses tables that do not add up or cannot be run', () => {
     expect(() => row('RACE-903,Test,trail,20,1300,10,3,Rocky,,,,,,6.5:800:100:1|8:0:900:4|7:500:300:2')).toThrow(/sums/)
     expect(() => row('RACE-904,Test,trail,2,1500,10,3,Rocky,,,,,,1:900:0:1|1:600:0:1')).toThrow(/do not fit/)
-    expect(() => row('RACE-905,Test,trail,5,0,10,0,Flat,,,,,,5:0:0:0')).toThrow(/2 to 20 segments/)
+    // One segment is a race without aid stations (owner request, 19 November 2026); 21 are too many.
+    expect(row('RACE-905,Test,trail,5,0,10,0,Flat,,,,,,5:0:0:0').segments).toHaveLength(1)
+    expect(() => row(`RACE-908,Test,trail,21,0,10,0,Flat,,,,,,${Array.from({ length: 21 }, () => '1:0:0:0').join('|')}`)).toThrow(/1 to 20 segments/)
     expect(() => row('RACE-906,Test,open,10,200,8,0,Paths,,,60,20,150,')).toThrow(/quick ≤ normal ≤ slow/)
     expect(() => row('RACE-907,Test,open,10,200,8,0,Paths,9,5,,,,')).toThrow(/below min_level/)
   })

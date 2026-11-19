@@ -154,5 +154,8 @@
   "raceRun.planned": "Plan",
   "raceRun.prepAdvice.injuryRisk": "With this plan you would finish at about {n} fatigue: over 95 means an injury. Choose a gentler strategy or segments.",
   "raceRun.prepAdvice.tiredLong": "You start tired (fatigue {fatigue}). In a long race, Hard now is paid for later: keep it for the last segments.",
-  "raceRun.prepAdvice.freshLong": "You start fresh (fatigue {fatigue}). Hard costs less today: you can push some segments."
+  "raceRun.prepAdvice.freshLong": "You start fresh (fatigue {fatigue}). Hard costs less today: you can push some segments.",
+  "raceRun.crossing": "Crossing the finish…",
+  "raceRun.crossingDescription": "A race without aid stations: straight to the finish.",
+  "raceRun.retry": "Try again"
 }

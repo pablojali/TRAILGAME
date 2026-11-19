@@ -213,16 +213,23 @@ export function saveMemory(memory: InboxMemory, storage: Pick<Storage, 'setItem'
 }
 
 /**
- * The notifications to show, newest first (at most INBOX_SIZE), each with its `unread` flag, and
+ * The notifications to show, newest first (at most INBOX_SIZE), without the kinds turned off, each with its `unread` flag, and
  * the memory updated with the first-seen time of new ones (transient ones are never remembered).
  */
-export function arrange(built: readonly InboxItem[], memory: InboxMemory, now: number): { list: (InboxItem & { unread: boolean })[]; memory: InboxMemory } {
+export function arrange(
+  built: readonly InboxItem[],
+  memory: InboxMemory,
+  now: number,
+  /** Kinds the owner turned off (src/data/notifications.csv): remembered, not shown. */
+  hidden: ReadonlySet<InboxKind> = new Set(),
+): { list: (InboxItem & { unread: boolean })[]; memory: InboxMemory } {
   // Ranking notifications are remembered events; the rest is rebuilt from the career.
   const items = [...built, ...(memory.events ?? [])]
   const seen = { ...memory.seen }
   for (const item of items) if (!(item.id in seen) && !isTransient(item)) seen[item.id] = now
   const read = new Set(memory.read)
   const list = items
+    .filter((item) => !hidden.has(item.kind))
     .map((item) => ({ ...item, at: item.at ?? seen[item.id] ?? now, unread: !read.has(item.id) }))
     .sort((a, b) => b.at - a.at)
     .slice(0, INBOX_SIZE)

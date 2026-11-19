@@ -124,7 +124,8 @@ function Piece({
           role="presentation"
           style={{
             aspectRatio: String(artRatio(item)),
-            backgroundImage: `url(${src})`,
+            // Over its background: what the upgrade leaves transparent shows the background.
+            backgroundImage: base && campArt(base) ? `url(${src}), url(${campArt(base)})` : `url(${src})`,
             backgroundSize: `${item.focus.zoom * 100}% auto`,
             backgroundPosition: `${focusPosition(item.focus.x, item.focus.zoom)}% ${focusPosition(item.focus.y, item.focus.zoom)}%`,
           }}

@@ -18,9 +18,10 @@ function refuges(state: GameState): CampItem[] {
 
 /**
  * Trail Coach M1, the first welcome (owner request, 8 November 2026): screens with the coach before
- * a new career starts. Since 16 November 2026 the player first chooses their refuge, and the coach
- * welcomes them in it; the welcome ends in Base Camp. The step is saved, so a reload resumes where
- * the player left; finishing or skipping marks it done for good.
+ * a new career starts. Since 19 November 2026 the coach first shows the Base Camp, empty and
+ * desolate, and says what it is; then the player chooses their refuge and the welcome goes inside
+ * it. The step is saved, so a reload resumes where the player left; finishing or skipping marks it
+ * done for good.
  */
 export function WelcomeScreen() {
   const { phase, setCoachProgress, setCampItemUsed } = useGame()
@@ -63,11 +64,18 @@ export function WelcomeScreen() {
       if (failure) return setError(t('coach.camp.error'))
     }
     if (step < WELCOME_STEPS.length - 1) setCoachProgress({ welcomeStep: step + 1, welcomeDone: false })
-    else finish('/base-camp')
+    // Into the chosen refuge, where the coach goes on.
+    else finish('/base-camp?view=interior')
   }
 
   return (
-    <div className={styles.welcome} style={background ? { backgroundImage: `url(${background})`, ...(selected.spot ? { backgroundPosition: `${Math.round(selected.spot.x * 100)}% 40%` } : {}) } : undefined}>
+    <div className={styles.welcome}>
+      {/* The refuge behind the coach: desolate (grey, dim) until the player chooses it. */}
+      <div
+        className={`${styles.scene} ${id === 'place' ? styles.desolate : ''}`}
+        aria-hidden="true"
+        style={background ? { backgroundImage: `url(${background})`, ...(selected.spot ? { backgroundPosition: `${Math.round(selected.spot.x * 100)}% 40%` } : {}) } : undefined}
+      />
       <div className={styles.top}>
         <ol className={styles.dots} aria-label={t('coach.progress', { step: String(step + 1), count: String(WELCOME_STEPS.length) })}>
           {WELCOME_STEPS.map((name, index) => (

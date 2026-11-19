@@ -247,8 +247,8 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
               return (
                 <CampPreview
                   ratio={CAMP_CANVAS.width / CAMP_CANVAS.height}
-                  background={pictureOf(v)}
-                  layers={[]}
+                  background={base ? pictureOf(base) : undefined}
+                  layers={[pictureOf(v)].filter((url): url is string => !!url)}
                   objects={[]}
                   marks={[
                     ...(base?.action && base.spot_x && base.spot_y ? [{ label: ESSENTIAL[scene] ? '🚪' : '●', x: Number(base.spot_x), y: Number(base.spot_y), on: false }] : []),
@@ -322,7 +322,8 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
             <p className="hint">
               Una mejora es el mismo fondo redibujado (otra cabaña, otra estufa…), del mismo tamaño. Usa el botón y los huecos de su fondo: si los mueves en
               el fondo, se mueven también aquí. El recuadro es lo que muestra la tienda: haz clic sobre lo que cambia y ajusta el zoom. El jugador elige una
-              mejora de cada fondo, o ninguna.
+              mejora de cada fondo, o ninguna. Se dibuja encima de su fondo: lo que dejes transparente (PNG) muestra el fondo de debajo, así puedes
+              subir solo lo que cambia (un fogón, una estufa).
             </p>
           ) : (
             <p className="hint">

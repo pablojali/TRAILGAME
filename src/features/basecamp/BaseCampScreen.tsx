@@ -137,7 +137,7 @@ export function BaseCampScreen() {
         <h1 id="basecamp-title" className={styles.title}>
           {t('basecamp.title')}
         </h1>
-        <button type="button" className={styles.customize} onClick={() => setShopOpen(true)}>
+        <button type="button" className={styles.customize} data-coach="camp-customize" onClick={() => setShopOpen(true)}>
           {t('basecamp.customize')}
         </button>
         <button
@@ -155,7 +155,7 @@ export function BaseCampScreen() {
         </button>
       </header>
 
-      <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.picture} layers={[scene.cabin]} objects={scene.placed} focus={focus?.x ?? 0}>
+      <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.background} layers={[scene.picture === scene.background ? null : scene.picture, scene.cabin]} objects={scene.placed} focus={focus?.x ?? 0}>
         {view === 'exterior' ? (
           <ExteriorAmbience picture={scene.picture} />
         ) : (
@@ -192,7 +192,7 @@ function SpotButton({ spot, onAct }: { spot: CampSpot; onAct(action: CampAction)
       {!onObject && <span className={styles.spotLabel}>{label}</span>}
     </>
   )
-  const named = onObject ? { 'aria-label': label, title: label } : {}
+  const named = { ...(onObject ? { 'aria-label': label, title: label } : {}), ...(spot.action === 'gear' ? { 'data-coach': 'camp-gear' } : {}) }
   return path ? (
     <Link to={path} className={className} style={at(spot)} {...named}>
       {content}

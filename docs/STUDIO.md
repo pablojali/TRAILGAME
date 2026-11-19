@@ -56,6 +56,8 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     button and slots (shown, not editable). Its shop frame (the `focus` column, x:y:zoom) is the
     dashed box on the preview: a click moves it, and «Zoom en la tienda» sizes it. The player
     shows one upgrade of a background at a time, or none, and needs the background to buy it.
+    An upgrade is drawn over its background (19 November 2026): what its PNG leaves transparent
+    shows the background, so it can carry only what changes (a firepit, a stove).
     Decor can have any action (Entrar, Salir, Equipo, Look, Buzón, Entreno, Carreras,
     Trayectoria) or none.
   - «Quitar esta pieza del juego» removes a published piece and its picture with the next
@@ -101,10 +103,13 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     - The game's build also publishes the table as `/announcements.csv`, which an open game reads
       every 10 minutes. Players with the game open therefore receive a new announcement within
       minutes of the proposal being published, without reloading.
-    - "Terminarlo" ends one, and announcements that are already published cannot be deleted. Never
-      reuse an id: players' Inboxes remember it as read.
+    - "Terminarlo" ends one; «Quitar» deletes any (19 November 2026: a published one leaves every
+      Inbox when the proposal is published). Never reuse an id: players' Inboxes remember it as
+      read (new ids carry the date and time).
   - **Notificaciones automáticas:** the texts of the Inbox's own notifications (`inbox.*` in
-    `common.json`), with when each appears. Their rules are code: ask Claude for a new kind.
+    `common.json`), with when each appears. Their rules are code: ask Claude for a new kind. Each
+    can be turned off (19 November 2026, `src/data/notifications.csv`, `on`: yes or no): the game
+    stops showing it once published, and turning it back on shows it again.
 - **Textos:** every game text (`src/i18n/locales/{lang}/{screen}.json`) in the five languages side
   by side, by screen or by search, with a "Solo con problemas" filter.
   - Only the wording can change. New keys need code.

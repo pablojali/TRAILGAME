@@ -12,9 +12,22 @@
   padding: calc(var(--space-3) + env(safe-area-inset-top)) calc(var(--space-4) + env(safe-area-inset-right))
     calc(var(--space-4) + env(safe-area-inset-bottom)) calc(var(--space-4) + env(safe-area-inset-left));
   background-color: var(--color-charcoal-950);
+  overflow: hidden;
+}
+
+/* The refuge behind the coach (under the darkening layer). */
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background-position: center 30%;
   background-size: cover;
-  overflow: hidden;
+  transition: filter 1.2s ease;
+}
+
+/* The empty Base Camp, before the player chooses it (owner request, 19 November 2026). */
+.desolate {
+  filter: grayscale(0.9) brightness(0.55) contrast(0.9) blur(1px);
 }
 
 /* Darkens the scene towards the panel, with a warm sunset glow behind the coach. */

@@ -27,9 +27,9 @@ async function createCareer(user: User, sex: Sex, name: string) {
   await skipWelcome(user)
 }
 
-/** A new career meets the coach first (Trail Coach M1), choosing the refuge; skipping opens the Dashboard. */
+/** A new career meets the coach first (Trail Coach M1), in the desolate Base Camp; skipping opens the Dashboard. */
 async function skipWelcome(user: User) {
-  expect(screen.getByRole('heading', { level: 1, name: 'Choose your refuge' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { level: 1, name: 'Welcome to your Base Camp' })).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Skip' }))
 }
 

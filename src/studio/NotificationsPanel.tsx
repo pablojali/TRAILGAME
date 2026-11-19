@@ -22,15 +22,21 @@ const LINKS = [
   ['/career?tab=achievements', 'Desafíos'],
   ['/settings', 'Ajustes'],
 ]
-const AUTOMATIC: [string, string][] = [
-  ['Resultado de carrera', 'Al terminar cada carrera: puesto y puntos de ranking.'],
-  ['Desafío completado', 'Al alcanzar cada nivel de un desafío.'],
-  ['Subida de nivel', 'Al subir de nivel (puntos de atributo para repartir).'],
-  ['Nueva temporada', 'Cada mes, al empezar la temporada de ranking.'],
-  ['Día de carrera', 'El domingo de una carrera inscrita.'],
-  ['Forma perdida', 'Al volver después de días sin jugar (el texto está en Común · notice.decay).'],
-  ['Guardado en la nube', 'Si el progreso no se pudo guardar, o se recuperó de otro dispositivo.'],
-  ['Top 10 del ranking', 'Al entrar, subir, bajar o salir del top 10 mundial o del país.'],
+/** The game's automatic notifications: kind (src/data/notifications.csv), name and when they appear. */
+const AUTOMATIC: [string, string, string][] = [
+  ['race', 'Resultado de carrera', 'Al terminar cada carrera: puesto y puntos de ranking.'],
+  ['challenge', 'Desafío completado', 'Al alcanzar cada nivel de un desafío.'],
+  ['level', 'Subida de nivel', 'Al subir de nivel (puntos de atributo para repartir).'],
+  ['season', 'Nueva temporada', 'Cada mes, al empezar la temporada de ranking.'],
+  ['race-day', 'Día de carrera', 'El domingo de una carrera inscrita.'],
+  ['decay', 'Forma perdida', 'Al volver después de días sin jugar (el texto está en Común · notice.decay).'],
+  ['cloud', 'Guardado en la nube', 'Si el progreso no se pudo guardar, o se recuperó de otro dispositivo.'],
+  ['ranking', 'Top 10 del ranking', 'Al entrar, subir, bajar o salir del top 10 mundial o del país.'],
+  ['visit', 'Visita al refugio', 'Cuando alguien visita el refugio del jugador.'],
+  ['congrats', 'Felicitación', 'Cuando alguien felicita al jugador desde su refugio.'],
+  ['message', 'Mensaje de un amigo', 'Cuando un amigo deja un mensaje en el buzón.'],
+  ['friend-request', 'Solicitud de amistad', 'Cuando alguien pide ser amigo del jugador.'],
+  ['friend-accepted', 'Amistad aceptada', 'Cuando aceptan la solicitud de amistad del jugador.'],
 ]
 
 /** "2026-11-10T09:00Z" ↔ the local date and time of a datetime-local input. */
@@ -52,8 +58,9 @@ function status(from: string, until: string, now: number): { text: string; tone:
 
 /**
  * Notifications (owner request, 9 November 2026): announcements to every player (shown in every
- * Inbox between two dates; open games receive them within minutes of publishing) and the texts of
- * the game's automatic notifications (their rules are the game's).
+ * Inbox between two dates; open games receive them within minutes of publishing; any can be
+ * removed) and the game's automatic notifications: their texts, and which are shown (owner request,
+ * 19 November 2026: some can be turned off).
  */
 export function NotificationsPanel(props: {
   token: string
@@ -78,8 +85,10 @@ export function NotificationsPanel(props: {
     // From now: it is sent when the proposal is published (a later date schedules it).
     const start = new Date()
     const p = (n: number) => String(n).padStart(2, '0')
-    let id = `aviso-${start.getUTCFullYear()}${p(start.getUTCMonth() + 1)}${p(start.getUTCDate())}`
-    for (let n = 2; all.some((r) => r.values.id === id); n++) id = id.replace(/(-\d+)?$/, `-${n}`)
+    // Date and time: an id is never reused, even after a published announcement is removed (players' Inbox remembers it as read).
+    const base = `aviso-${start.getUTCFullYear()}${p(start.getUTCMonth() + 1)}${p(start.getUTCDate())}-${p(start.getUTCHours())}${p(start.getUTCMinutes())}`
+    let id = base
+    for (let n = 2; all.some((r) => r.values.id === id) || rows(ws.docsBase.announcements).some((r) => r.values.id === id); n++) id = `${base}-${n}`
     const row = newRow(doc, { id, from: `${start.toISOString().slice(0, 16)}Z`, title: '', text: '', title_es: 'Novedades', text_es: 'Escribe aquí el mensaje.' })
     setWs({ ...ws, docs: { ...ws.docs, announcements: replaceRows(doc, [...all, row]) } })
     setSelected(id)
@@ -102,14 +111,27 @@ export function NotificationsPanel(props: {
       {section === 'automatic' ? (
         <section className="editPane">
           <p className="hint">El juego las crea solo, en el buzón de cada jugador. Cuándo aparecen lo decide el juego (para una nueva, pídesela a Claude); aquí cambias sus textos.</p>
-          <dl className="facts">
-            {AUTOMATIC.map(([name, when]) => (
-              <div key={name}>
-                <dt>{when}</dt>
-                <dd>{name}</dd>
-              </div>
-            ))}
-          </dl>
+          <p className="hint">Desmarca una para quitarla: el juego deja de mostrarla en el buzón al publicar. Vuelve a marcarla para recuperarla.</p>
+          <ul className="toggleList" aria-label="Notificaciones automáticas">
+            {AUTOMATIC.map(([kind, name, when]) => {
+              const on = rows(ws.docs.notifications).find((r) => r.values.kind === kind)?.values.on !== 'no'
+              return (
+                <li key={kind}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={(e) => setWs({ ...ws, docs: { ...ws.docs, notifications: updateRow(ws.docs.notifications, (r) => r.values.kind === kind, { on: e.target.checked ? 'yes' : 'no' }) } })}
+                    />
+                    <span>
+                      <strong>{name}</strong>
+                      <span className="hint">{on ? when : 'Quitada: no aparece en el buzón.'}</span>
+                    </span>
+                  </label>
+                </li>
+              )
+            })}
+          </ul>
           <TextsPanel token={props.token} ws={ws} addTexts={props.addTexts} setText={props.setText} drafts={props.drafts} only={{ screen: 'common', prefix: 'inbox.' }} />
         </section>
       ) : (
@@ -174,11 +196,17 @@ export function NotificationsPanel(props: {
                     Terminarlo
                   </button>
                 )}
-                {!onMain.has(v.id) && (
-                  <button type="button" className="ghost small" onClick={() => setWs({ ...ws, docs: { ...ws.docs, announcements: replaceRows(doc, all.filter((r) => r !== current)) } })}>
-                    Quitar
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="ghost small"
+                  onClick={() => {
+                    // A published one leaves every Inbox when the proposal is published.
+                    if (onMain.has(v.id) && !window.confirm('¿Quitar este aviso? Desaparece del buzón de todos los jugadores al publicar.')) return
+                    setWs({ ...ws, docs: { ...ws.docs, announcements: replaceRows(doc, all.filter((r) => r !== current)) } })
+                  }}
+                >
+                  Quitar
+                </button>
               </div>
               <h3>Mensaje</h3>
               <div className="langGrid">

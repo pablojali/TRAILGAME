@@ -1671,3 +1671,28 @@ button:disabled {
   font-size: 11px;
   font-weight: 700;
 }
+
+/* Automatic notifications, each turned on or off (owner request, 19 November 2026). */
+.toggleList {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.toggleList label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.toggleList label > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggleList input {
+  margin-top: 3px;
+}

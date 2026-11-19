@@ -43,6 +43,31 @@ describe('Trail Coach moments', () => {
     await waitFor(() => expect(savedCoach()).toMatchObject({ seen: ['dashboard', 'training'], step: 0 }))
   })
 
+  it('inside the refuge: improving it, then the starter shoes put on, then Home (owner request, 19 November 2026)', async () => {
+    const user = userEvent.setup()
+    seedCareer(career())
+    const { router } = await renderApp('/base-camp?view=interior')
+
+    expect(await screen.findByRole('dialog', { name: 'Make it yours' })).toBeInTheDocument()
+    await user.click(within(coachPanel()).getByRole('button', { name: 'Next' }))
+    expect(screen.getByRole('dialog', { name: 'Your gear' })).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Gear' }))
+
+    expect(router.state.location.pathname).toBe('/equipment')
+    expect(await screen.findByRole('dialog', { name: 'Your shoes' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Shoes/ }))
+    expect(await screen.findByRole('dialog', { name: 'Your first pair' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Starter/ }))
+    expect(await screen.findByRole('dialog', { name: 'Put them on' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Equip/ }))
+
+    expect(await screen.findByRole('dialog', { name: 'Ready to start!' })).toBeInTheDocument()
+    await waitFor(() => expect(readSave()?.state.equipment).toContain('starter-shoes'))
+    await user.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Dashboard' }))
+    expect(router.state.location.pathname).toBe('/')
+    expect(await screen.findByRole('dialog', { name: 'Your attributes' })).toBeInTheDocument()
+  })
+
   it('resumes the step after a reload', async () => {
     seedCareer(career([], 1))
     await renderApp('/')

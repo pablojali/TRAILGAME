@@ -71,9 +71,9 @@ function outsidePath(boxes: Box[]): string {
  */
 export function CoachGuide() {
   const { phase, setCoachProgress } = useGame()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const state = phase.kind === 'playing' ? phase.state : null
-  const moment = state ? currentMoment(state, pathname) : null
+  const moment = state ? currentMoment(state, pathname, undefined, search) : null
   return state && moment ? <Guide key={moment.id} moment={moment} progress={state.coach!} setProgress={setCoachProgress} sex={state.athlete.sex} skin={state.athlete.appearance.skin} /> : null
 }
 

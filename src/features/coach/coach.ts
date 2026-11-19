@@ -28,7 +28,9 @@ export function coachPortrait(sex: Sex, skin: SkinToneId): string | null {
 }
 
 /**
- * Screens of the first welcome, in order. `camp`: the player chooses their refuge (owner request,
- * 16 November 2026); the coach then welcomes them in it.
+ * Screens of the first welcome, in order (owner request, 19 November 2026): `place`, the coach
+ * shows the empty Base Camp (desolate) and says what it is; `camp`, the player chooses their
+ * refuge, which comes to life. The welcome then goes inside the refuge, where the coach's moments
+ * go on (src/data/coach_moments.csv: improving it, the starter gear, then Home).
  */
-export const WELCOME_STEPS = ['camp', 'welcome', 'start'] as const
+export const WELCOME_STEPS = ['place', 'camp'] as const

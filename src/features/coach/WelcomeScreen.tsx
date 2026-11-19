@@ -11,6 +11,9 @@ import { useI18n } from '../../i18n/i18n'
 import { coachPortrait, WELCOME_STEPS } from './coach'
 import styles from './WelcomeScreen.module.css'
 
+/** How long the empty refuge shows alone before the coach comes in (none in tests). */
+const INTRO_MS = import.meta.env.MODE === 'test' ? 0 : 3000
+
 /** The refuges a new player can choose: the exterior backgrounds they own (free, or the admin's). */
 function refuges(state: GameState): CampItem[] {
   return campItems('exterior', 'background').filter((item) => ownsCampItem(state, item) && campArt(item))
@@ -35,6 +38,13 @@ export function WelcomeScreen() {
   const step = Math.min(state?.coach?.welcomeStep ?? 0, WELCOME_STEPS.length - 1)
   const id = WELCOME_STEPS[step]!
   const shownStep = useRef(step)
+  // The empty refuge alone first, then the coach comes in (owner request, 19 November 2026); a tap shows the coach at once.
+  const [revealed, setRevealed] = useState(id !== 'place' || INTRO_MS === 0)
+  useEffect(() => {
+    if (revealed) return
+    const timer = window.setTimeout(() => setRevealed(true), INTRO_MS)
+    return () => window.clearTimeout(timer)
+  }, [revealed])
 
   // Each new screen is announced from its title (not the one the welcome opens on).
   useEffect(() => {
@@ -47,8 +57,11 @@ export function WelcomeScreen() {
   const options = refuges(state)
   const current = campScene(state, 'exterior').background
   const selected = options.find((item) => item.id === chosen) ?? current
-  // The welcome happens in the refuge: its picture is the scene behind the coach.
-  const background = campArt(selected) ?? backgroundImage('dashboard')
+  // The welcome happens in the refuge: its picture is the scene behind the coach. Before choosing,
+  // the owner's picture of the bare refuge (assets/ui/backgrounds/empty-camp.*), or the default
+  // refuge made desolate (grey and dim).
+  const emptyCamp = id === 'place' ? backgroundImage('empty-camp') : undefined
+  const background = emptyCamp ?? campArt(selected) ?? backgroundImage('dashboard')
 
   // Finishing ends in the refuge; skipping the whole welcome opens the Dashboard.
   const finish = (to: string) => {
@@ -69,10 +82,10 @@ export function WelcomeScreen() {
   }
 
   return (
-    <div className={styles.welcome}>
+    <div className={`${styles.welcome} ${revealed ? '' : styles.intro}`} onClick={() => !revealed && setRevealed(true)}>
       {/* The refuge behind the coach: desolate (grey, dim) until the player chooses it. */}
       <div
-        className={`${styles.scene} ${id === 'place' ? styles.desolate : ''}`}
+        className={`${styles.scene} ${id === 'place' && !emptyCamp ? styles.desolate : ''}`}
         aria-hidden="true"
         style={background ? { backgroundImage: `url(${background})`, ...(selected.spot ? { backgroundPosition: `${Math.round(selected.spot.x * 100)}% 40%` } : {}) } : undefined}
       />
@@ -89,11 +102,11 @@ export function WelcomeScreen() {
         )}
       </div>
 
-      <div className={styles.stage}>
+      <div className={styles.stage} hidden={!revealed}>
         {portrait && <img className={styles.coach} src={portrait} alt={t('coach.label')} />}
       </div>
 
-      <section key={id} className={styles.panel} aria-labelledby="coach-welcome-title">
+      <section key={id} className={styles.panel} aria-labelledby="coach-welcome-title" hidden={!revealed}>
         <p className={styles.speaker}>{t('coach.label')}</p>
         <h1 id="coach-welcome-title" ref={heading} tabIndex={-1} className={styles.title}>
           {t(`coach.${id}.title`)}

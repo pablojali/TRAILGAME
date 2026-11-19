@@ -139,8 +139,10 @@ same canvas (16 November 2026):
   `src/data/basecamp_exclusive.csv`, same columns, out of Trail Studio. They are never sold or
   shown in the shop to anyone without them; career-ops gives them to the admins (`major_admins`)
   when their career is created, saved or changed. Their pictures go in the same source folder.
-- A new career meets the coach in its Base Camp (coach welcome, 19 November 2026): first empty and
-  desolate (the default refuge, grey and dim) while the coach says what it is; then the player
+- A new career meets the coach in its Base Camp (coach welcome, 19 November 2026): first the empty
+  refuge alone for 3 seconds (a tap skips the wait), the owner's picture `assets/ui/backgrounds/
+  empty-camp.{webp,jpg,png}` when there is one, else the default refuge grey and dim; then the coach
+  comes in and says what it is; then the player
   chooses the refuge (the free exterior backgrounds with a picture, and an admin's exclusive ones),
   which comes to life, and the welcome goes inside it. There the coach's moments go on: Customize
   to improve the refuge, the gear button, the starter shoes (level 0) put on, then the Dashboard

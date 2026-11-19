@@ -27,7 +27,21 @@
 
 /* The empty Base Camp, before the player chooses it (owner request, 19 November 2026). */
 .desolate {
-  filter: grayscale(0.9) brightness(0.55) contrast(0.9) blur(1px);
+  filter: grayscale(0.9) brightness(0.7) contrast(0.95);
+}
+
+/* The first seconds: the empty refuge alone, without the darkening; then the coach comes in. */
+.welcome::before {
+  transition: opacity 1s ease;
+}
+
+.intro::before {
+  opacity: 0.25;
+}
+
+.stage[hidden],
+.panel[hidden] {
+  display: none;
 }
 
 /* Darkens the scene towards the panel, with a warm sunset glow behind the coach. */

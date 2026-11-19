@@ -15,6 +15,8 @@ export type BackdropScene =
   | 'finish'
   | 'career'
   | 'settings'
+  /** The coach's welcome: the bare, empty refuge before the player chooses theirs (owner request, 19 November 2026). */
+  | 'empty-camp'
 
 const BACKGROUNDS = import.meta.glob<string>('/assets/ui/backgrounds/*.{webp,jpg,jpeg,png}', {
   eager: true,

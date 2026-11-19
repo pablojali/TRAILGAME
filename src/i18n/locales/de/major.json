@@ -115,8 +115,6 @@
   "major.room.back": "Zurück zum Startbereich",
   "major.live.gained": "Plätze auf diesem Abschnitt gewonnen",
   "major.live.lost": "Plätze auf diesem Abschnitt verloren",
-  "major.map.credit": "Map © OpenStreetMap contributors, SRTM · style © OpenTopoMap (CC-BY-SA)",
   "major.map.label": "Abschnitt {n} von oben, mit den Läufern",
-  "major.map.next": "Nächster Abschnitt von oben",
-  "major.map.creditShort": "© OpenStreetMap · OpenTopoMap"
+  "major.map.next": "Nächster Abschnitt von oben"
 }

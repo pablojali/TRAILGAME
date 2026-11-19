@@ -1022,7 +1022,7 @@
   text-decoration-color: currentcolor;
 }
 
-/* The course seen from above over a real map (owner design, 18 November 2026). */
+/* The course seen from above: the GPX route alone (owner design, 18 and 19 November 2026). */
 .courseMap {
   margin: var(--space-2) 0;
 }
@@ -1033,15 +1033,7 @@
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 0.12);
   border-radius: 10px;
-  background: #d9d3c4;
-}
-
-.courseMapBox img {
-  position: absolute;
-  width: 256px;
-  height: 256px;
-  max-width: none;
-  user-select: none;
+  background: rgb(255 255 255 / 0.04);
 }
 
 .courseMapBox svg {
@@ -1053,14 +1045,15 @@
 
 .mapRoute {
   fill: none;
-  stroke: rgb(30 30 30 / 0.55);
-  stroke-width: 3;
+  stroke: var(--accent, #f28c28);
+  stroke-width: 2;
+  stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .mapSegment {
   fill: none;
-  stroke: #f28c28;
+  stroke: #fff;
   stroke-width: 5;
   stroke-linejoin: round;
   stroke-linecap: round;
@@ -1092,22 +1085,19 @@
   transition: cx 1s linear, cy 1s linear;
 }
 
-.mapCredit {
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 10px;
-  text-align: right;
-}
-
 .courseMapCompact {
   margin: 0;
 }
 
 .courseMapCompact .courseMapBox {
-  height: 132px;
+  height: 100px;
+  border: 0;
+  background: none;
 }
 
-.courseMapCompact .mapCredit {
-  font-size: 9px;
-  line-height: 1.3;
+.mapAid {
+  fill: var(--surface, #15181b);
+  stroke: rgb(255 255 255 / 0.7);
+  stroke-width: 1.5;
 }
+

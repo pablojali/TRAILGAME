@@ -18,13 +18,19 @@ import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
 import { getFinishedEntries, getPendingEntry, type RaceEntryError } from '../../game-engine/races'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import { CourseProfile } from './CourseProfile'
-import { raceCourse } from './courses'
+import { courseMapping } from './profile'
+import { getRaceSegments } from '../../game-engine/raceEngine'
 import { RaceDayPanel } from './RaceDayPanel'
 import { Technicality } from './Technicality'
 import { bandLabel, courseText, feePaidText, ordinal, percentText, raceTimeText } from './raceText'
 import styles from './Races.module.css'
 
 type DetailTab = 'profile' | 'details'
+
+/** A segment's length in km, one decimal. */
+function kmText(metres: number, locale: string): string {
+  return `${(metres / 1000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`
+}
 
 const ERRORS: Record<RaceEntryError | ServerError, MessageKey> = {
   offline: 'races.error.offline',
@@ -59,7 +65,8 @@ function RaceDetail({ race }: { race: Race }) {
   const minimum = getMinimumLevel(race)
   const multiplier = getRewardMultiplier(race, level)
   const prizes = getGrossPrizes(race)
-  const course = raceCourse(race.id)
+  const mapping = courseMapping(race.id)
+  const segments = getRaceSegments(race)
   const [params, setParams] = useSearchParams()
   const tab: DetailTab = params.get('tab') === 'details' ? 'details' : 'profile'
 
@@ -90,16 +97,22 @@ function RaceDetail({ race }: { race: Race }) {
           onChange={(next) => setParams(next === 'profile' ? {} : { tab: next }, { replace: true })}
         >
           {tab === 'profile' ? (
-            <dl className={`${styles.tiles} ${styles.grow}`}>
-              {course && (
+            <dl className={`${styles.tiles} ${styles.grow} ${styles.profileTiles}`}>
+              {mapping && (
                 <div className={`${styles.tile} ${styles.mapTile}`}>
                   <dt className={styles.srOnly}>{t('races.map')}</dt>
                   <dd>
-                    <CourseMap course={course} runners={[]} label={t('races.mapLabel', { race: race.name })} compact />
+                    <CourseMap
+                      course={mapping.course}
+                      runners={[]}
+                      label={t('races.mapLabel', { race: race.name })}
+                      aidKm={segments.slice(1).map((s) => mapping.toCourseKm(s.startM))}
+                      compact
+                    />
                   </dd>
                 </div>
               )}
-              <div className={`${styles.tile} ${course ? '' : styles.tileWide}`}>
+              <div className={`${styles.tile} ${mapping ? '' : styles.tileWide}`}>
                 <dt>{t('races.distance')}</dt>
                 <dd>{race.distanceKm} km</dd>
                 <dt className={styles.tileSecondLabel}>{t('races.elevation')}</dt>
@@ -109,6 +122,18 @@ function RaceDetail({ race }: { race: Race }) {
                 <dt>{t('races.profileTitle')}</dt>
                 <dd>
                   <CourseProfile raceId={race.id} drawn />
+                  {/* Each segment's km, ascent and descent (owner request, 19 November 2026). */}
+                  <ol className={styles.segmentChips} aria-label={t('races.segmentList')}>
+                    {segments.map((s) => (
+                      <li key={s.index}>
+                        <span className={styles.segmentChipName}>{t('races.segmentShort', { n: s.index + 1 })}</span>
+                        <span>{kmText(s.distanceM, locale)}</span>
+                        <span className={styles.segmentChipElevation}>
+                          ↑{s.gainM.toLocaleString(locale)} ↓{s.lossM.toLocaleString(locale)}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
                 </dd>
               </div>
               <div className={`${styles.tile} ${styles.tileWide}`}>

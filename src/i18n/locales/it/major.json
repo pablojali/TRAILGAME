@@ -115,8 +115,6 @@
   "major.room.back": "Torna alla griglia",
   "major.live.gained": "Posizioni guadagnate in questo tratto",
   "major.live.lost": "Posizioni perse in questo tratto",
-  "major.map.credit": "Map © OpenStreetMap contributors, SRTM · style © OpenTopoMap (CC-BY-SA)",
   "major.map.label": "Tratto {n} visto dall’alto, con i corridori",
-  "major.map.next": "Prossimo tratto visto dall’alto",
-  "major.map.creditShort": "© OpenStreetMap · OpenTopoMap"
+  "major.map.next": "Prossimo tratto visto dall’alto"
 }

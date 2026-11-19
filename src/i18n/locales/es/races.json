@@ -66,5 +66,7 @@
   "races.tab.profile": "Perfil de la carrera",
   "races.tab.details": "Detalles",
   "races.map": "Mapa",
-  "races.mapLabel": "{race} vista desde arriba"
+  "races.mapLabel": "{race} vista desde arriba",
+  "races.segmentList": "Tramos",
+  "races.segmentShort": "T{n}"
 }

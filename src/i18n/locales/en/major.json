@@ -115,8 +115,6 @@
   "major.room.back": "Back to the start room",
   "major.live.gained": "Positions gained on this segment",
   "major.live.lost": "Positions lost on this segment",
-  "major.map.credit": "Map © OpenStreetMap contributors, SRTM · style © OpenTopoMap (CC-BY-SA)",
   "major.map.label": "Segment {n} seen from above, with the runners",
-  "major.map.next": "Next segment seen from above",
-  "major.map.creditShort": "© OpenStreetMap · OpenTopoMap"
+  "major.map.next": "Next segment seen from above"
 }

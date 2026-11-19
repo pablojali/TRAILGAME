@@ -66,5 +66,7 @@
   "races.tab.profile": "Rennprofil",
   "races.tab.details": "Details",
   "races.map": "Karte",
-  "races.mapLabel": "{race} von oben"
+  "races.mapLabel": "{race} von oben",
+  "races.segmentList": "Abschnitte",
+  "races.segmentShort": "A{n}"
 }

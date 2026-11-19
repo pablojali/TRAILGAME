@@ -117,5 +117,6 @@
   "major.live.lost": "Puestos perdidos en este tramo",
   "major.map.credit": "Map © OpenStreetMap contributors, SRTM · style © OpenTopoMap (CC-BY-SA)",
   "major.map.label": "Tramo {n} visto desde arriba, con los corredores",
-  "major.map.next": "Próximo tramo visto desde arriba"
+  "major.map.next": "Próximo tramo visto desde arriba",
+  "major.map.creditShort": "© OpenStreetMap · OpenTopoMap"
 }

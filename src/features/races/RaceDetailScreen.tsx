@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { raceTerrain } from '../../i18n/raceText'
 import { difficultyOf, raceFormat } from '../../domain/races/format'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { Screen } from '../../components/Screen'
+import { Tabs } from '../../components/Tabs'
+import { CourseMap } from '../majors/CourseMap'
 import { getLevel } from '../../domain/athlete/levels'
 import { canEnterAtLevel, getGrossPrizes, getMaximumLevel, getMinimumLevel, getRewardMultiplier } from '../../domain/races/access'
 import { PRIZE_BANDS } from '../../domain/races/categories'
@@ -21,6 +23,8 @@ import { RaceDayPanel } from './RaceDayPanel'
 import { Technicality } from './Technicality'
 import { bandLabel, courseText, feePaidText, ordinal, percentText, raceTimeText } from './raceText'
 import styles from './Races.module.css'
+
+type DetailTab = 'profile' | 'details'
 
 const ERRORS: Record<RaceEntryError | ServerError, MessageKey> = {
   offline: 'races.error.offline',
@@ -55,6 +59,9 @@ function RaceDetail({ race }: { race: Race }) {
   const minimum = getMinimumLevel(race)
   const multiplier = getRewardMultiplier(race, level)
   const prizes = getGrossPrizes(race)
+  const course = raceCourse(race.id)
+  const [params, setParams] = useSearchParams()
+  const tab: DetailTab = params.get('tab') === 'details' ? 'details' : 'profile'
 
   return (
     <Screen
@@ -67,62 +74,87 @@ function RaceDetail({ race }: { race: Race }) {
         </Link>
       }
     >
-      {/* Tiles that fit the screen (owner request, 1 November 2026): no scrolling, no prize notes. */}
-      <dl className={`${styles.tiles} ${styles.grow}`}>
-        <div className={styles.tile}>
-          <dt>{t('races.distance')}</dt>
-          <dd>{race.distanceKm} km</dd>
-        </div>
-        <div className={styles.tile}>
-          <dt>{t('races.elevation')}</dt>
-          <dd>{race.elevationGainM.toLocaleString(locale)} m</dd>
-        </div>
-        {raceCourse(race.id) && (
-          <div className={`${styles.tile} ${styles.tileWide}`}>
-            <dt>{t('races.profileTitle')}</dt>
-            <dd>
-              <CourseProfile raceId={race.id} />
-            </dd>
-          </div>
-        )}
-        <div className={`${styles.tile} ${styles.tileWide}`}>
-          <dt className={styles.tileHead}>
-            {t('races.terrain')}
-            <Technicality value={race.technicality} />
-          </dt>
-          <dd>{raceTerrain(race, locale)}</dd>
-        </div>
-        <div className={styles.tile}>
-          <dt>{t('races.recommended')}</dt>
-          <dd>
-            {race.recommendedLevel} <span className={styles.tileNote}>{t('races.you', { level })}</span>
-          </dd>
-        </div>
-        <div className={styles.tile}>
-          <dt>{t('races.entry')}</dt>
-          <dd>
-            {t('races.free')}{' '}
-            <span className={styles.tileNote}>{t('races.levelRange', { min: minimum, max: getMaximumLevel(race) })}</span>
-          </dd>
-        </div>
-        <div className={`${styles.tile} ${styles.tileWide}`}>
-          <dt>
-            {t('races.prizes')}
-            {multiplier.coins < 1 && <span className={styles.warning}>{t('races.atYourLevel', { percent: percentText(multiplier.coins) })}</span>}
-          </dt>
-          <dd>
-            <ul className={styles.prizeRow} aria-label={t('races.prizeList')}>
-              {PRIZE_BANDS.map((band, i) => (
-                <li key={band.label}>
-                  <span>{bandLabel(band, locale)}</span>
-                  <span>{prizes[i]}</span>
-                </li>
-              ))}
-            </ul>
-          </dd>
-        </div>
-        <PastResults race={race} />
-      </dl>
+      {/*
+       * Two tabs (owner request, 19 November 2026): the race's profile (map from above, distance and
+       * ascent, the course profile, terrain) and its details (level, entry, prizes, results). Entry
+       * under both.
+       */}
+      <div className={styles.tileScreen}>
+        <Tabs<DetailTab>
+          label={t('races.detailTabs')}
+          tabs={[
+            { id: 'profile', label: t('races.tab.profile') },
+            { id: 'details', label: t('races.tab.details') },
+          ]}
+          value={tab}
+          onChange={(next) => setParams(next === 'profile' ? {} : { tab: next }, { replace: true })}
+        >
+          {tab === 'profile' ? (
+            <dl className={`${styles.tiles} ${styles.grow}`}>
+              {course && (
+                <div className={`${styles.tile} ${styles.mapTile}`}>
+                  <dt className={styles.srOnly}>{t('races.map')}</dt>
+                  <dd>
+                    <CourseMap course={course} runners={[]} label={t('races.mapLabel', { race: race.name })} compact />
+                  </dd>
+                </div>
+              )}
+              <div className={`${styles.tile} ${course ? '' : styles.tileWide}`}>
+                <dt>{t('races.distance')}</dt>
+                <dd>{race.distanceKm} km</dd>
+                <dt className={styles.tileSecondLabel}>{t('races.elevation')}</dt>
+                <dd>{race.elevationGainM.toLocaleString(locale)} m</dd>
+              </div>
+              <div className={`${styles.tile} ${styles.tileWide}`}>
+                <dt>{t('races.profileTitle')}</dt>
+                <dd>
+                  <CourseProfile raceId={race.id} drawn />
+                </dd>
+              </div>
+              <div className={`${styles.tile} ${styles.tileWide}`}>
+                <dt className={styles.tileHead}>
+                  {t('races.terrain')}
+                  <Technicality value={race.technicality} />
+                </dt>
+                <dd>{raceTerrain(race, locale)}</dd>
+              </div>
+            </dl>
+          ) : (
+            <dl className={`${styles.tiles} ${styles.grow}`}>
+              <div className={styles.tile}>
+                <dt>{t('races.recommended')}</dt>
+                <dd>
+                  {race.recommendedLevel} <span className={styles.tileNote}>{t('races.you', { level })}</span>
+                </dd>
+              </div>
+              <div className={styles.tile}>
+                <dt>{t('races.entry')}</dt>
+                <dd>
+                  {t('races.free')}{' '}
+                  <span className={styles.tileNote}>{t('races.levelRange', { min: minimum, max: getMaximumLevel(race) })}</span>
+                </dd>
+              </div>
+              <div className={`${styles.tile} ${styles.tileWide}`}>
+                <dt>
+                  {t('races.prizes')}
+                  {multiplier.coins < 1 && <span className={styles.warning}>{t('races.atYourLevel', { percent: percentText(multiplier.coins) })}</span>}
+                </dt>
+                <dd>
+                  <ul className={styles.prizeRow} aria-label={t('races.prizeList')}>
+                    {PRIZE_BANDS.map((band, i) => (
+                      <li key={band.label}>
+                        <span>{bandLabel(band, locale)}</span>
+                        <span>{prizes[i]}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+              <PastResults race={race} />
+            </dl>
+          )}
+        </Tabs>
+      </div>
 
       <div className={styles.entry}>
         <EntryPanel race={race} />

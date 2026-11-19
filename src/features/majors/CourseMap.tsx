@@ -33,6 +33,7 @@ export function CourseMap({
   toKm,
   runners,
   label,
+  compact = false,
 }: {
   course: Course
   /** The segment to show and highlight; the whole course when missing. */
@@ -40,6 +41,8 @@ export function CourseMap({
   toKm?: number
   runners: MapRunner[]
   label: string
+  /** A small map (the race page), without the credit line's margin. */
+  compact?: boolean
 }) {
   const { t } = useI18n()
   const box = useRef<HTMLDivElement>(null)
@@ -110,10 +113,19 @@ export function CourseMap({
   const finishPoint = toScreen(all[all.length - 1]![2], all[all.length - 1]![3])
 
   return (
-    <figure className={styles.courseMap} aria-label={label}>
+    <figure className={`${styles.courseMap} ${compact ? styles.courseMapCompact : ''}`} aria-label={label}>
       <div ref={box} className={styles.courseMapBox}>
         {tiles.map((tile) => (
-          <img key={tile.key} src={tile.src} alt="" draggable={false} loading="lazy" style={{ left: tile.x, top: tile.y }} />
+          <img
+            key={tile.key}
+            src={tile.src}
+            alt=""
+            draggable={false}
+            loading="lazy"
+            style={{ left: tile.x, top: tile.y }}
+            // A tile that cannot load leaves the plain background, not a broken image.
+            onError={(e) => (e.currentTarget.style.visibility = 'hidden')}
+          />
         ))}
         <svg viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <polyline className={styles.mapRoute} points={path(all)} />
@@ -134,7 +146,7 @@ export function CourseMap({
             })}
         </svg>
       </div>
-      <figcaption className={styles.mapCredit}>{t('major.map.credit')}</figcaption>
+      <figcaption className={styles.mapCredit}>{t(compact ? 'major.map.creditShort' : 'major.map.credit')}</figcaption>
     </figure>
   )
 }

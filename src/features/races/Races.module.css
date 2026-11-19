@@ -1451,3 +1451,16 @@
   color: var(--text-muted);
   font-size: 12px;
 }
+
+/* The race page's map tile, beside distance and ascent (owner request, 19 November 2026). */
+.mapTile {
+  padding: 4px;
+}
+
+.mapTile dd {
+  margin: 0;
+}
+
+.tileSecondLabel {
+  margin-top: var(--space-2);
+}

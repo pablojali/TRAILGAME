@@ -61,5 +61,10 @@
   "races.technicalityLabel": "Difficoltà tecnica {value} su {max}",
   "races.profileTitle": "Profilo del percorso",
   "races.profile": "Profilo del percorso: punto più basso {low}, più alto {high}, {aid} ristori",
-  "races.aidCount": "{n} ristori"
+  "races.aidCount": "{n} ristori",
+  "races.detailTabs": "Informazioni sulla gara",
+  "races.tab.profile": "Profilo della gara",
+  "races.tab.details": "Dettagli",
+  "races.map": "Mappa",
+  "races.mapLabel": "{race} vista dall’alto"
 }

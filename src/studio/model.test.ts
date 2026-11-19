@@ -67,7 +67,8 @@ describe('Studio workspace', () => {
 
   it('refuses what the game would refuse', () => {
     let ws = openWorkspace(base)
-    ws = edit(ws, 'races', (v) => v.id === 'RACE-001', { technicality: '7' })
+    // Without segments (with them, the technicality is theirs): the owner may have cut RACE-001.
+    ws = edit(ws, 'races', (v) => v.id === 'RACE-001', { technicality: '7', segments: '' })
     ws = { ...ws, docs: { ...ws.docs, races: insertRow(ws.docs.races, { id: 'RACE-099', name: 'New', category: 'open', distance_km: '5', elevation_gain_m: '100', recommended_level: '3', technicality: '0', terrain: 'Paths' }) } }
     const errors = validate(ws)
     expect(errors.some((e) => e.includes('technicality must be 0 to 5'))).toBe(true)

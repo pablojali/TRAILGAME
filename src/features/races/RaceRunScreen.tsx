@@ -155,9 +155,12 @@ export function RaceRunScreen() {
     return waiting || clipRun ? overlay : <Navigate to={`/races/results/${entry.id}`} replace />
   }
   if (state.activeRace?.entryId === entry.id) {
+    // A race without aid stations (one segment) was run whole at the start: cross the finish.
+    const report = getRaceReport(state)
+    const atFinish = report !== null && report.segmentsDone >= report.segmentCount
     return (
       <>
-        <AidStation race={race} present={present} />
+        {atFinish ? <CrossFinish ready={clipRun === null} present={present} /> : <AidStation race={race} present={present} />}
         {overlay}
       </>
     )
@@ -508,6 +511,50 @@ function Meter({ label, value, tone }: { label: string; value: number; tone: 'en
         {formatFatigue(value)}
       </dd>
     </div>
+  )
+}
+
+/**
+ * The finish of a race without aid stations (owner request, 19 November 2026): the only segment was
+ * run at the start; once its clip is over, the finish is crossed on the server and the result
+ * opens.
+ */
+function CrossFinish({ ready, present }: { ready: boolean; present: Present }) {
+  const { state, stepRace } = useCareer()
+  const { t } = useI18n()
+  const [error, setError] = useState('')
+  const [attempt, setAttempt] = useState(0)
+  const sent = useRef(-1)
+  const segment = state.activeRace?.splits.length ?? 0
+  useEffect(() => {
+    if (!ready || sent.current === attempt) return
+    sent.current = attempt
+    void present(
+      segment + 1,
+      () => stepRace({ segment, stop: 'normal', intensity: 'target' }),
+      (r) => ({ ok: r.ok, finished: r.ok ? r.finished : null }),
+    ).then((result) => {
+      if (!result.ok) setError(t(STEP_ERRORS[result.error]))
+    })
+  }, [ready, attempt, segment, present, stepRace, t])
+  return (
+    <Screen title={t('raceRun.crossing')} description={t('raceRun.crossingDescription')}>
+      {error && (
+        <>
+          <p role="alert">{error}</p>
+          <button
+            type="button"
+            className={`${button.button} ${button.primary}`}
+            onClick={() => {
+              setError('')
+              setAttempt((n) => n + 1)
+            }}
+          >
+            {t('raceRun.retry')}
+          </button>
+        </>
+      )}
+    </Screen>
   )
 }
 

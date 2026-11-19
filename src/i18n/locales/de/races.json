@@ -61,5 +61,10 @@
   "races.technicalityLabel": "Technische Schwierigkeit {value} von {max}",
   "races.profileTitle": "Streckenprofil",
   "races.profile": "Streckenprofil: tiefster Punkt {low}, höchster {high}, {aid} Verpflegungsstellen",
-  "races.aidCount": "{n} Verpflegungsstellen"
+  "races.aidCount": "{n} Verpflegungsstellen",
+  "races.detailTabs": "Renninformationen",
+  "races.tab.profile": "Rennprofil",
+  "races.tab.details": "Details",
+  "races.map": "Karte",
+  "races.mapLabel": "{race} von oben"
 }

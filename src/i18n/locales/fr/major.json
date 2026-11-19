@@ -117,5 +117,6 @@
   "major.live.lost": "Places perdues sur ce tronçon",
   "major.map.credit": "Map © OpenStreetMap contributors, SRTM · style © OpenTopoMap (CC-BY-SA)",
   "major.map.label": "Tronçon {n} vu du dessus, avec les coureurs",
-  "major.map.next": "Prochain tronçon vu du dessus"
+  "major.map.next": "Prochain tronçon vu du dessus",
+  "major.map.creditShort": "© OpenStreetMap · OpenTopoMap"
 }

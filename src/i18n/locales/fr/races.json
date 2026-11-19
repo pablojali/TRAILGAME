@@ -61,5 +61,10 @@
   "races.technicalityLabel": "Difficulté technique {value} sur {max}",
   "races.profileTitle": "Profil du parcours",
   "races.profile": "Profil du parcours : point le plus bas {low}, le plus haut {high}, {aid} ravitaillements",
-  "races.aidCount": "{n} ravitaillements"
+  "races.aidCount": "{n} ravitaillements",
+  "races.detailTabs": "Informations de la course",
+  "races.tab.profile": "Profil de la course",
+  "races.tab.details": "Détails",
+  "races.map": "Carte",
+  "races.mapLabel": "{race} vue du dessus"
 }

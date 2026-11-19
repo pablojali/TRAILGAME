@@ -88,6 +88,8 @@ describe('Race Detail', () => {
     expect(screen.getByText('22 km')).toBeInTheDocument()
     expect(screen.getByText('1,300 m')).toBeInTheDocument()
     expect(screen.getByText('Steep climbs, rocky descents')).toBeInTheDocument()
+    // Level, entry and prizes in the second tab (owner request, 19 November 2026).
+    await userEvent.setup().click(screen.getByRole('tab', { name: 'Race details' }))
     // Tiles, no prize explanations (owner request, 1 November 2026).
     // Summit Quest (recommended 21) takes levels 16 to 23: the level-11 runner cannot enter yet.
     expect(screen.getByText('Entry').nextElementSibling).toHaveTextContent('Free · levels 16–23')
@@ -99,10 +101,10 @@ describe('Race Detail', () => {
 
   it('marks reduced and zero rewards for easy races', async () => {
     seedCareer(withAthlete(newGame(), { xp: 3_850 })) // level 12
-    const view = await renderApp('/races/RACE-004')
+    const view = await renderApp('/races/RACE-004?tab=details')
     expect(screen.getByText(/· 75% at your level/)).toBeInTheDocument()
     view.unmount()
-    await renderApp('/races/RACE-001')
+    await renderApp('/races/RACE-001?tab=details')
     expect(screen.getByText(/· 0% at your level/)).toBeInTheDocument()
   })
 
@@ -265,6 +267,7 @@ describe('Race day and results', () => {
     expect(sunday.router.state.location.pathname).toBe('/races/results/entry-1')
     await user.click(screen.getByRole('link', { name: 'Back to races' }))
     await user.click(screen.getByRole('link', { name: /^Forest First Steps/ }))
+    await user.click(screen.getByRole('tab', { name: 'Race details' }))
     expect(screen.getByText('Your results')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Enter race' })).toBeInTheDocument()
   })

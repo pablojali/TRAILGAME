@@ -40,16 +40,17 @@ describe('Studio workspace', () => {
   it('describes race and equipment changes in Spanish and adds no migration for course changes', () => {
     let ws = openWorkspace(base)
     // The current values come from the tables, which the owner edits in Studio: the test must not pin them.
-    const race = rows(ws.docs.races).find((r) => r.values.id === 'RACE-005')!.values
+    // A race without segments (with them, the distance and elevation are the segments' sums).
+    const race = rows(ws.docs.races).find((r) => r.values.id?.startsWith('RACE-') && !r.values.segments)!.values
     const poles = rows(ws.docs.equipment).find((r) => r.values.id === 'poles')!.values
     const gain = String(Number(race.elevation_gain_m) + 50)
     const technicality = String((Number(race.technicality) % 5) + 1)
     const price = String(Number(poles.price || 0) + 7)
     const climbing = String(Number(poles.climbing || 0) + 1)
-    ws = edit(ws, 'races', (v) => v.id === 'RACE-005', { elevation_gain_m: gain, technicality })
+    ws = edit(ws, 'races', (v) => v.id === race.id, { elevation_gain_m: gain, technicality })
     ws = edit(ws, 'equipment', (v) => v.id === 'poles', { climbing, price })
     expect(summary(ws).races).toEqual([
-      `**RACE-005 ${race.name}**: desnivel (m) ${race.elevation_gain_m} → ${gain}; técnica ${race.technicality} → ${technicality}`,
+      `**${race.id} ${race.name}**: desnivel (m) ${race.elevation_gain_m} → ${gain}; técnica ${race.technicality} → ${technicality}`,
     ])
     expect(summary(ws).equipment[0]).toMatch(new RegExp(`^\\*\\*Bastones \\(poles\\)\\*\\*: .*precio ${poles.price || '—'} → ${price}.*Subida`))
     expect(validate(ws)).toEqual([])

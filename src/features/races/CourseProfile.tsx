@@ -9,11 +9,12 @@ const HEIGHT = 64
  * The whole course's real profile (owner design, 18 November 2026: from the race's GPX), with the
  * aid stations marked and the lowest and highest points. Nothing for a race without a GPX.
  */
-export function CourseProfile({ raceId }: { raceId: string }) {
+export function CourseProfile({ raceId, drawn = false }: { raceId: string; drawn?: boolean }) {
   const { t, locale } = useI18n()
   const data = raceProfile(raceId)
-  if (!data || !data.real) return null
-  const { profile, cutsM } = data
+  // Without a GPX, `drawn` shows the profile drawn from the segments (relative heights, no altitudes).
+  if (!data || (!data.real && !drawn)) return null
+  const { profile, cutsM, real } = data
   const length = profile[profile.length - 1]![0]
   const ys = profile.map((p) => p[1])
   const low = Math.min(...ys)
@@ -25,7 +26,7 @@ export function CourseProfile({ raceId }: { raceId: string }) {
   const metres = (value: number) => `${Math.round(value).toLocaleString(locale)} m`
   return (
     <figure className={styles.courseProfile}>
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="none" role="img" aria-label={t('races.profile', { low: metres(low), high: metres(high), aid: cutsM.length })}>
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="none" role="img" aria-label={real ? t('races.profile', { low: metres(low), high: metres(high), aid: cutsM.length }) : t('races.aidCount', { n: cutsM.length })}>
         <polygon points={`0,${HEIGHT} ${line} ${WIDTH},${HEIGHT}`} />
         <polyline points={line} />
         {cutsM.map((m) => (
@@ -33,9 +34,9 @@ export function CourseProfile({ raceId }: { raceId: string }) {
         ))}
       </svg>
       <figcaption aria-hidden="true">
-        <span>↓ {metres(low)}</span>
+        <span>{real ? `↓ ${metres(low)}` : ''}</span>
         <span>{t('races.aidCount', { n: cutsM.length })}</span>
-        <span>↑ {metres(high)}</span>
+        <span>{real ? `↑ ${metres(high)}` : ''}</span>
       </figcaption>
     </figure>
   )

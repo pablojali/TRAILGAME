@@ -61,5 +61,10 @@
   "races.technicalityLabel": "Dificultad técnica {value} de {max}",
   "races.profileTitle": "Perfil del recorrido",
   "races.profile": "Perfil del recorrido: punto más bajo {low}, más alto {high}, {aid} avituallamientos",
-  "races.aidCount": "{n} avituallamientos"
+  "races.aidCount": "{n} avituallamientos",
+  "races.detailTabs": "Información de la carrera",
+  "races.tab.profile": "Perfil de la carrera",
+  "races.tab.details": "Detalles",
+  "races.map": "Mapa",
+  "races.mapLabel": "{race} vista desde arriba"
 }

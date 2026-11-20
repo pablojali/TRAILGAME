@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useCareer } from '../../app/game/gameContext'
 import { Coins, Premium } from '../../components/Coins'
 import { getLevel } from '../../domain/athlete/levels'
-import { CAMP_KINDS, campItemName, campItems, getCampItem, type CampItem, type CampScene } from '../../domain/basecamp/catalog'
+import { CAMP_KINDS, campItemName, campItems, getCampItem, tiedBackground, type CampItem, type CampScene } from '../../domain/basecamp/catalog'
 import { campScene, isCampItemUsed, missingRequired, ownsCampItem, premiumOf, type CampBuyError, type CampUseError, type ExchangeError } from '../../game-engine/camp'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
@@ -32,7 +32,10 @@ export function CampShop({ scene, initialKind, onClose }: { scene: CampScene; in
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
   // One tab per kind with something to show (owner request, 17 November 2026). An exclusive piece
   // (the admin's refuge) is only listed for whoever has it.
-  const tabs = CAMP_KINDS.map((kind) => ({ kind, items: campItems(scene, kind).filter((item) => !item.exclusive || ownsCampItem(state, item)) })).filter(
+  // Objects tied to another background (its house, its fireplace) are listed with that background.
+  const shownBackground = campScene(state, scene).background
+  const listed = (item: CampItem) => (!item.exclusive || ownsCampItem(state, item)) && (!tiedBackground(item) || tiedBackground(item)!.id === shownBackground.id)
+  const tabs = CAMP_KINDS.map((kind) => ({ kind, items: campItems(scene, kind).filter(listed) })).filter(
     ({ kind, items }) => (kind === 'cabin' || kind === 'upgrade' ? items.length > 0 : kind === 'background' ? items.length > 1 : true),
   )
   const [tab, setTab] = useState(initialKind && tabs.some((x) => x.kind === initialKind) ? initialKind : (tabs[0]?.kind ?? 'decor'))

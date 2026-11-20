@@ -24,10 +24,10 @@ const campOutputFolder = (scene: CampScene) => `assets/ui/basecamp/${scene}`
 /** The house is part of each background (owner, 16 November 2026): cabins only for old rows. */
 const KINDS = [
   { value: 'background', label: 'Fondo con la casa (toda la escena)' },
-  { value: 'upgrade', label: 'Mejora de un fondo (otra imagen del mismo fondo, con sus puntos)' },
-  { value: 'decor', label: 'Objeto (buzón, soporte de equipo…): imagen del tamaño del fondo, transparente salvo el objeto' },
+  { value: 'decor', label: 'Objeto o evolución (casa, chimenea, buzón, gear…): imagen del tamaño del fondo, transparente salvo lo que añade' },
 ]
 const CABIN_KIND = { value: 'cabin', label: 'Cabaña (sobre el fondo)' }
+const UPGRADE_KIND = { value: 'upgrade', label: 'Mejora de un fondo (tipo antiguo: pásala a Objeto)' }
 const KIND_LABEL: Record<string, string> = { background: 'Fondo', upgrade: 'Mejora', cabin: 'Cabaña', decor: 'Objeto' }
 type Focus = { x: number; y: number; zoom: number }
 const readFocus = (text: string | undefined): Focus => {
@@ -120,13 +120,13 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
       .filter((url): url is string => !!url)
 
   /**
-   * The list in groups (owner request, 20 November 2026): backgrounds, upgrades of a background,
-   * then one group per family (each evolution of a firepit, a sofa…), then objects with none.
+   * The list in groups (owner request, 20 November 2026): backgrounds, then one group per family
+   * (each evolution of a house, a firepit, a sofa…), then objects with none.
    */
   const families = [...new Set(sceneRows.map((r) => r.values.family).filter((f): f is string => !!f))]
   const groups: { key: string; title: string; family?: string; rows: typeof sceneRows }[] = [
     { key: 'background', title: 'Fondos', rows: sceneRows.filter((r) => r.values.kind === 'background' || r.values.kind === 'cabin') },
-    { key: 'upgrade', title: 'Mejoras de un fondo', rows: sceneRows.filter((r) => r.values.kind === 'upgrade' && !r.values.family) },
+    { key: 'upgrade', title: 'Mejoras (tipo antiguo)', rows: sceneRows.filter((r) => r.values.kind === 'upgrade' && !r.values.family) },
     ...families.map((family) => ({
       key: `family:${family}`,
       family,
@@ -135,6 +135,20 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
     })),
     { key: 'decor', title: 'Objetos sin familia', rows: sceneRows.filter((r) => r.values.kind === 'decor' && !r.values.family) },
   ].filter((group) => group.rows.length > 0 || group.key === 'background')
+
+  /** The background a piece is tied to, through what it requires (it is only drawn over it). */
+  function tiedRow(values: Record<string, string>, seen = new Set<string>()): Record<string, string> | undefined {
+    for (const id of (values.requires ?? '').split(/\s+/).filter(Boolean)) {
+      if (seen.has(id)) continue
+      seen.add(id)
+      const other = sceneRows.find((r) => r.values.id === id)?.values
+      if (!other) continue
+      if (other.kind === 'background') return other
+      const found = tiedRow(other, seen)
+      if (found) return found
+    }
+    return undefined
+  }
 
   /** The next level of a family: a copy of its last one, one level up, that requires it. */
   function addEvolution(family: string) {
@@ -278,7 +292,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
               // Its own picture over its background (an upgrade's, or the scene's free one for an
               // object), and the part the shop shows: a click moves it. An object's button sits at
               // the centre of that frame.
-              const base = v.kind === 'upgrade' ? sceneRows.find((r) => r.values.id === v.base)?.values : backgroundRow?.values
+              const base = v.kind === 'upgrade' ? sceneRows.find((r) => r.values.id === v.base)?.values : (tiedRow(v) ?? backgroundRow?.values)
               const focus = readFocus(v.focus)
               return (
                 <CampPreview
@@ -319,7 +333,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
           ) : (
             <p className="hint">
               {v.kind === 'decor'
-                ? 'Un objeto es una imagen del tamaño del fondo, transparente salvo el objeto, dibujada encima (como una mejora). Haz clic sobre el objeto: ese recuadro es lo que muestra la tienda y, si tiene acción, su botón va en el centro. El jugador puede poner todos los que tenga a la vez.'
+                ? 'Un objeto (o evolución: casa, chimenea…) es una imagen del tamaño del fondo, transparente salvo lo que añade, dibujada encima. Haz clic sobre él: ese recuadro es lo que muestra la tienda y, si tiene acción, su botón va en el centro. El jugador puede poner todos los que tenga a la vez, uno por familia. Si «Requiere» un fondo (o una pieza que lo requiere), solo se ve sobre ese fondo.'
                 : v.action
                   ? 'Haz clic en la imagen para colocar el botón de la acción.'
                   : 'Sin acción: la pieza solo decora.'}{' '}
@@ -333,7 +347,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
             <SelectField
               label="Tipo"
               value={v.kind!}
-              options={v.kind === 'cabin' ? [...KINDS, CABIN_KIND] : KINDS}
+              options={v.kind === 'cabin' ? [...KINDS, CABIN_KIND] : v.kind === 'upgrade' ? [...KINDS, UPGRADE_KIND] : KINDS}
               onChange={(kind) =>
                 // A background always has the scene's door (or gear bench): its spot shows at once.
                 setPiece(

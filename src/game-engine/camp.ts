@@ -1,5 +1,5 @@
 import { getLevel } from '../domain/athlete/levels'
-import { campItems, defaultBackground, ESSENTIAL_ACTION, EXCLUSIVE_IDS, getCampItem, isFreeFromStart, type CampAction, type CampItem, type CampScene, type Currency } from '../domain/basecamp/catalog'
+import { campItems, defaultBackground, ESSENTIAL_ACTION, EXCLUSIVE_IDS, getCampItem, isFreeFromStart, tiedBackground, type CampAction, type CampItem, type CampScene, type Currency } from '../domain/basecamp/catalog'
 import { COINS_PER_PREMIUM, MAX_EXCHANGE } from '../domain/economy/premium'
 import type { CampState, GameState } from './gameState'
 
@@ -69,6 +69,11 @@ export function campScene(
   // One level per family: the latest put in (later in `using`).
   const decor = items
     .filter((item) => item.kind === 'decor' && using.has(item.id) && ownsCampItem(state, item))
+    // An object tied to a background (a house, a fireplace) is only drawn over it.
+    .filter((item) => {
+      const tied = tiedBackground(item)
+      return !tied || tied.id === background.id
+    })
     .filter((item, _, all) => !all.some((other) => other !== item && sameFamily(other, item) && camp.using.indexOf(other.id) > camp.using.indexOf(item.id)))
   return { background, picture, cabin: pick('cabin'), decor }
 }

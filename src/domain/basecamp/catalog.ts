@@ -212,6 +212,24 @@ export function campUpgrades(background: CampItem): CampItem[] {
   return CAMP_ITEMS.filter((item) => item.kind === 'upgrade' && item.base === background.id)
 }
 
+/**
+ * The background an object is tied to (owner design, 20 November 2026): the background of its scene
+ * it requires, directly or through the pieces it requires (a house lvl 2 requires the house lvl 1,
+ * which requires the River refuge). A tied object is only drawn over that background.
+ */
+export function tiedBackground(item: CampItem, seen: Set<string> = new Set()): CampItem | undefined {
+  for (const id of item.requires ?? []) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    const other = BY_ID.get(id)
+    if (!other || other.scene !== item.scene) continue
+    if (other.kind === 'background') return other
+    const found = tiedBackground(other, seen)
+    if (found) return found
+  }
+  return undefined
+}
+
 export function campItemName(item: CampItem, language: string): string {
   return item.names?.[language as ItemLanguage] ?? item.label
 }

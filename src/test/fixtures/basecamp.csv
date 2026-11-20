@@ -13,3 +13,4 @@ stove,interior,upgrade,2,30,coins,lvl2_stove,,,,,,lvl0-interior,0.5:0.6:3,Stove,
 boat,exterior,upgrade,5,2,premium,lvl5_boat,,,,,,lake-exterior,,Boat,Barca,,,,,
 fire-1,exterior,decor,1,10,coins,lvl1_fire,,,,,,,0.4:0.8:3,Firepit,Fogata,,,,firepit,
 fire-2,exterior,decor,2,30,coins,lvl2_fire,,,,,,,0.4:0.8:3,Big firepit,Fogata grande,,,,firepit,fire-1 log-cabin
+lake-house,exterior,decor,1,0,coins,lvl1_lake_house,,,,,,,0.5:0.5:2,Lake house,Casa del lago,,,,house,lake-exterior

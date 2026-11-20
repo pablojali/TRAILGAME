@@ -51,7 +51,8 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
   - A background is the whole scene with its house. Outside it always has the door («Entrar»):
     its button shows at once, and clicking the preview places it. Inside (since 17 November
     2026) the owner picks each background's button, or none.
-  - An upgrade («Mejora», 17 November 2026) is another picture of a background, on the same
+  - (Older kind, 17 November 2026; since 20 November 2026 houses and fireplaces are objects of a
+    family that require their background.) An upgrade («Mejora», 17 November 2026) is another picture of a background, on the same
     canvas (a new stove, another cabin). It picks its background and keeps that background's
     button (shown, not editable). Its shop frame (the `focus` column, x:y:zoom) is the
     dashed box on the preview: a click moves it, and «Zoom en la tienda» sizes it. The player
@@ -70,7 +71,9 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     the pieces a player must own before buying it (e.g. the firepit level 2 requires the house
     level 1), from either scene. The list groups the pieces: backgrounds, upgrades, one group per
     family with «+ Nueva evolución» (a copy one level up that requires the last), and objects with
-    no family.
+    no family. An object that requires a background (directly or through the pieces it requires,
+    e.g. the River house lvl 2 → lvl 1 → the River refuge) is only drawn, and only sold, over that
+    background: the old upgrades (houses, fireplaces) are now such objects.
   - «Quitar esta pieza del juego» removes a published piece and its picture with the next
     proposal; players who used or bought it lose it. The preview draws the piece with the
     scene's free pieces. The free pieces must include «Entrar» outside. Inside, «Equipo» is the

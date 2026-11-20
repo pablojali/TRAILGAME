@@ -672,7 +672,6 @@ function parseCampCatalog(text, options = {}) {
     const item = { id: row.id, scene, kind, level, price, currency, art: row.art, label: row.name || row.id };
     if (row.family) {
       if (!ID.test(row.family)) throw new Error(`${where}: family must be lower case letters, digits and -`);
-      if (kind !== "decor" && kind !== "upgrade") throw new Error(`${where}: only decor and upgrades have a family`);
       item.family = row.family;
     }
     if (row.requires) item.requires = [...new Set(row.requires.split(/[\s|]+/).filter(Boolean))];
@@ -814,7 +813,7 @@ function buyCampItem(state, itemId, confirmed) {
 function missingRequired(state, item) {
   return (item.requires ?? []).map((id) => getCampItem(id)).filter((other) => !!other && !ownsCampItem(state, other));
 }
-var sameFamily = (a, b) => !!a.family && a.family === b.family && a.scene === b.scene;
+var sameFamily = (a, b) => !!a.family && a.family === b.family && a.scene === b.scene && a.kind !== "background" && b.kind !== "background";
 function ownsBase(state, upgrade) {
   const base = getCampItem(upgrade.base ?? "");
   return !!base && ownsCampItem(state, base);

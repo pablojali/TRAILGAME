@@ -2342,7 +2342,6 @@ function parseCampCatalog(text, options = {}) {
     const item = { id: row.id, scene, kind, level, price, currency, art: row.art, label: row.name || row.id };
     if (row.family) {
       if (!ID.test(row.family)) throw new Error(`${where}: family must be lower case letters, digits and -`);
-      if (kind !== "decor" && kind !== "upgrade") throw new Error(`${where}: only decor and upgrades have a family`);
       item.family = row.family;
     }
     if (row.requires) item.requires = [...new Set(row.requires.split(/[\s|]+/).filter(Boolean))];
@@ -2450,7 +2449,7 @@ function parseEconomy(text) {
 var COINS_PER_PREMIUM = parseEconomy(economy_default).coinsPerPremium;
 
 // src/game-engine/camp.ts
-var sameFamily = (a, b) => !!a.family && a.family === b.family && a.scene === b.scene;
+var sameFamily = (a, b) => !!a.family && a.family === b.family && a.scene === b.scene && a.kind !== "background" && b.kind !== "background";
 function parseCampState(value) {
   if (typeof value !== "object" || value === null) return null;
   const raw = value;

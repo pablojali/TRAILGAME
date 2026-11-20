@@ -66,7 +66,7 @@ export function campScene(
   }
   const background = pick('background') ?? defaultBackground(scene)
   const picture = items.find((item) => item.kind === 'upgrade' && item.base === background.id && using.has(item.id) && ownsCampItem(state, item)) ?? background
-  // One level per family: the latest put in (later in `using`).
+  // A piece another one in use replaces (its earlier level) is not shown.
   const decor = items
     .filter((item) => item.kind === 'decor' && using.has(item.id) && ownsCampItem(state, item))
     // An object tied to a background (a house, a fireplace) is only drawn over it.
@@ -74,7 +74,7 @@ export function campScene(
       const tied = tiedBackground(item)
       return !tied || tied.id === background.id
     })
-    .filter((item, _, all) => !all.some((other) => other !== item && sameFamily(other, item) && camp.using.indexOf(other.id) > camp.using.indexOf(item.id)))
+    .filter((item, _, all) => !all.some((other) => other !== item && replaces(other, item)))
   return { background, picture, cabin: pick('cabin'), decor }
 }
 
@@ -149,9 +149,19 @@ export function missingRequired(state: CampHolder, item: CampItem): CampItem[] {
   return (item.requires ?? []).map((id) => getCampItem(id)).filter((other): other is CampItem => !!other && !ownsCampItem(state, other))
 }
 
-/** Same family (an evolution of the same thing) in the same scene: only one object in use. */
-// A background in a family is its first level: it stays under the objects (one background per scene anyway).
-const sameFamily = (a: CampItem, b: CampItem) => !!a.family && a.family === b.family && a.scene === b.scene && a.kind !== 'background' && b.kind !== 'background'
+/** Whether `a` replaces `b` (its earlier level: Mailbox + replaces Mailbox), directly or through other levels. */
+function replaces(a: CampItem, b: CampItem, seen: Set<string> = new Set()): boolean {
+  for (const id of a.replaces ?? []) {
+    if (id === b.id) return true
+    if (seen.has(id)) continue
+    seen.add(id)
+    const other = getCampItem(id)
+    if (other && replaces(other, b, seen)) return true
+  }
+  return false
+}
+/** Two levels of the same thing: one replaces the other. */
+const sameLine = (a: CampItem, b: CampItem) => replaces(a, b) || replaces(b, a)
 
 function ownsBase(state: GameState, upgrade: CampItem): boolean {
   const base = getCampItem(upgrade.base ?? '')
@@ -177,10 +187,10 @@ export function setCampItemUsed(state: GameState, itemId: string, used: boolean)
   }
 
   if (item.kind === 'decor') {
-    // Another level of the same family makes room.
+    // Another level of the same thing (one replaces the other) makes room.
     const using = camp.using.filter((id) => {
       const other = getCampItem(id)
-      return id !== item.id && !(used && other && sameFamily(other, item))
+      return id !== item.id && !(used && other && sameLine(other, item))
     })
     if (used) using.push(item.id)
     return finish({ ...camp, using })
@@ -194,7 +204,7 @@ export function setCampItemUsed(state: GameState, itemId: string, used: boolean)
       const other = getCampItem(id)
       return (
         id !== item.id &&
-        !(used && other && ((other.kind === 'upgrade' && other.base === item.base) || (other.kind === 'background' && other.scene === base.scene) || sameFamily(other, item)))
+        !(used && other && ((other.kind === 'upgrade' && other.base === item.base) || (other.kind === 'background' && other.scene === base.scene) || sameLine(other, item)))
       )
     })
     if (used) using.push(base.id, item.id)
@@ -246,7 +256,7 @@ export function parseCampState(value: unknown): CampState | null {
       const other = getCampItem(u)!
       return item.kind === 'upgrade' ? other.kind === 'upgrade' && other.base === item.base : other.scene === item.scene && other.kind === item.kind
     }
-    if ((item.kind !== 'decor' && using.some(clash)) || using.some((u) => sameFamily(getCampItem(u)!, item))) continue
+    if ((item.kind !== 'decor' && using.some(clash)) || using.some((u) => sameLine(getCampItem(u)!, item))) continue
     using.push(id)
   }
   // Saves from when decor stood in places ("scene:slot" → id): the objects placed stay in use.

@@ -304,7 +304,7 @@ export function summary(ws: Workspace): Summary {
     texts,
     basecamp: describe(
       diffDocs(before.basecamp, ws.docs.basecamp, (v) => v.id!),
-      { scene: 'scene', kind: 'kind', level: 'level', price: 'price', currency: 'currency', art: 'picture', action: 'action', slots: 'slots', size: 'size', spot_x: 'spot (x)', spot_y: 'spot (y)', focus: 'shop frame', family: 'evolution', requires: 'requires', name: 'name (EN)' },
+      { scene: 'scene', kind: 'kind', level: 'level', price: 'price', currency: 'currency', art: 'picture', action: 'action', slots: 'slots', size: 'size', spot_x: 'spot (x)', spot_y: 'spot (y)', focus: 'shop frame', family: 'evolution', requires: 'requires', replaces: 'replaces', name: 'name (EN)' },
       (k) => `Base Camp · ${rows(ws.docs.basecamp).find((r) => r.values.id === k)?.values.name || k} (${k})`,
     ),
   }

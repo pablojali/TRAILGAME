@@ -55,11 +55,13 @@ export interface CampItem {
    */
   focus?: { x: number; y: number; zoom: number }
   /**
-   * Evolutions (owner design, 20 November 2026): pieces of the same family (e.g. "desert-house")
-   * are levels of one thing: one object in use at a time, the next one replacing the last. A
-   * background may be a family's first level (the scene its objects are drawn over).
+   * Evolutions (owner design, 20 November 2026): the group a piece belongs to in Trail Studio (e.g.
+   * "desert-house": the refuge, its houses, mailbox and firepit). Only a grouping: pieces of an
+   * evolution are shown together.
    */
   family?: string
+  /** The pieces this one replaces when put in (its previous level: Mailbox + replaces Mailbox). */
+  replaces?: string[]
   /** Pieces the player must own before buying this one (e.g. the firepit lvl 2 needs the house lvl 1). */
   requires?: string[]
   /** English name. */
@@ -96,6 +98,7 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
       item.family = row.family
     }
     if (row.requires) item.requires = [...new Set(row.requires.split(/[\s|]+/).filter(Boolean))]
+    if (row.replaces) item.replaces = [...new Set(row.replaces.split(/[\s|]+/).filter(Boolean))]
     if (row.spot_x || row.spot_y) {
       const x = csvNumber(row.spot_x, where)
       const y = csvNumber(row.spot_y, where)
@@ -149,6 +152,10 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
     for (const id of item.requires ?? []) {
       if (id === item.id) throw new Error(`${file}: ${item.id} cannot require itself`)
       if (!options.exclusive && !items.some((other) => other.id === id)) throw new Error(`${file}: ${item.id} requires unknown piece ${id}`)
+    }
+    for (const id of item.replaces ?? []) {
+      if (id === item.id) throw new Error(`${file}: ${item.id} cannot replace itself`)
+      if (!options.exclusive && !items.some((other) => other.id === id)) throw new Error(`${file}: ${item.id} replaces unknown piece ${id}`)
     }
   }
   for (const item of items) {

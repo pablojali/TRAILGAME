@@ -23,7 +23,7 @@ const isNewCareer = (state: GameState) => state.week.number === 1 && state.raceE
 /** The starter gear (level 0, everyone's from the start) not worn yet. */
 const starterOff = (state: GameState) => OWNED_FROM_START.some((id) => !isEquipped(state, id))
 const query = (search: string) => new URLSearchParams(search)
-/** The gear button inside the refuge: the gear stand placed (point 1). */
+/** The gear button inside the refuge: the gear stand placed. */
 const gearPlaced = (state: GameState) => campSpots(state, 'interior').some((spot) => spot.action === 'gear')
 const inside = (p: string, q: string) => p === '/base-camp' && query(q).get('view') === 'interior'
 const inRaceFlow = (pathname: string) => pathname.startsWith('/races/run/') || pathname.startsWith('/races/results/')
@@ -92,7 +92,7 @@ export const COACH_TARGETS: Record<string, string> = {
   'nav-dashboard': 'Menú · Inicio',
   'camp-customize': 'Base Camp · botón Personalizar',
   'camp-gear': 'Base Camp · botón Equipo (el soporte de equipo, dentro del refugio)',
-  'camp-gear-slot': 'Personalizar · punto 1 del soporte de equipo',
+  'camp-gear-put': 'Personalizar · botón Colocar del soporte de equipo',
   'gear-shoes': 'Equipo · casilla de zapatillas',
   'gear-starter': 'Equipo · carta del equipo inicial (nivel 0)',
   'gear-equip': 'Equipo · botón Equipar de una carta',

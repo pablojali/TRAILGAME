@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import type { CampAction, CampItem, CampScene } from '../../domain/basecamp/catalog'
-import { campScene, campSpots, type CampSpot, type PlacedDecor } from '../../game-engine/camp'
+import { campScene, campSpots, type CampSpot } from '../../game-engine/camp'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 import styles from './BaseCamp.module.css'
 import { artRatio, campArt } from './campArt'
@@ -158,7 +158,7 @@ export function BaseCampScreen() {
         </button>
       </header>
 
-      <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.background} layers={[scene.picture === scene.background ? null : scene.picture, scene.cabin]} objects={scene.placed} focus={focus?.x ?? 0}>
+      <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.background} layers={[scene.picture === scene.background ? null : scene.picture, scene.cabin, ...scene.decor]} focus={focus?.x ?? 0}>
         {view === 'exterior' ? (
           <ExteriorAmbience picture={scene.picture} />
         ) : (
@@ -309,15 +309,13 @@ export function Panorama({
   scene,
   background,
   layers,
-  objects,
   focus,
   children,
 }: {
   scene: CampScene
   background: CampItem
+  /** Pictures on the same canvas, drawn in order over the background: an upgrade, the cabin, the decor. */
   layers: (CampItem | null)[]
-  /** Decor standing in the background's slots: drawn with its base on the slot's point. */
-  objects: PlacedDecor[]
   focus: number
   children: ReactNode
 }) {
@@ -364,18 +362,18 @@ export function Panorama({
         />
         {layers.map((item) => {
           const src = item && campArt(item)
-          return src ? <img key={item.id} className={styles.layer} src={src} alt="" draggable={false} /> : null
-        })}
-        {objects.map(({ item, at }) => {
-          const src = campArt(item)
+          // A picture not on the scene's canvas (an old cut-out object) is not shown: it would be stretched.
           return src ? (
             <img
               key={item.id}
-              className={styles.object}
+              className={styles.layer}
               src={src}
               alt=""
               draggable={false}
-              style={{ left: `${at.x * 100}%`, top: `${at.y * 100}%`, height: `${(item.size ?? 0.2) * at.scale * 100}%` }}
+              onLoad={(e) => {
+                const { naturalWidth: w, naturalHeight: h } = e.currentTarget
+                if (w > 0 && h > 0 && Math.abs(w / h - ratio) / ratio > 0.03) e.currentTarget.style.visibility = 'hidden'
+              }}
             />
           ) : null
         })}

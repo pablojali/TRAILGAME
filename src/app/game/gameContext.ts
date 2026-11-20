@@ -97,8 +97,8 @@ export interface GameContextValue {
   setItemEquipped(itemId: string, equipped: boolean): Promise<EquipError | ServerError | null>
   /** Buys a Base Camp piece at the price and currency the player saw. Server-decided with Supabase. */
   buyCampItem(itemId: string, confirmed: { price: number; currency: Currency }): Promise<CampBuyError | ServerError | null>
-  /** Puts an owned Base Camp piece in its scene (decor: in `slot`, 1 to 4) or takes it out. Server-decided with Supabase. */
-  setCampItemUsed(itemId: string, used: boolean, slot?: number): Promise<CampUseError | ServerError | null>
+  /** Puts an owned Base Camp piece in its scene or takes it out. Server-decided with Supabase. */
+  setCampItemUsed(itemId: string, used: boolean): Promise<CampUseError | ServerError | null>
   /** Exchanges coins for `amount` Premium Coins at `rate` coins each. Server-decided with Supabase. */
   exchangePremium(amount: number, rate: number): Promise<ExchangeError | ServerError | null>
   /** Changes the runner's look. Options above the runner's level are refused. */

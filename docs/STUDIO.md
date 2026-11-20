@@ -53,23 +53,29 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     2026) the owner picks each background's button, or none.
   - An upgrade («Mejora», 17 November 2026) is another picture of a background, on the same
     canvas (a new stove, another cabin). It picks its background and keeps that background's
-    button and slots (shown, not editable). Its shop frame (the `focus` column, x:y:zoom) is the
+    button (shown, not editable). Its shop frame (the `focus` column, x:y:zoom) is the
     dashed box on the preview: a click moves it, and «Zoom en la tienda» sizes it. The player
     shows one upgrade of a background at a time, or none, and needs the background to buy it.
     An upgrade is drawn over its background (19 November 2026): what its PNG leaves transparent
     shows the background, so it can carry only what changes (a firepit, a stove).
-    Decor can have any action (Entrar, Salir, Equipo, Look, Buzón, Entreno, Carreras,
-    Trayectoria) or none.
+  - Objects (decor, 20 November 2026): a picture on the scene's whole canvas, PNG transparent
+    but for the object (the gear stand, the mailbox, a firepit…), drawn over the background like
+    an upgrade. No places: the player puts in any number at once. Its shop frame (`focus`) is set
+    with a click on the preview, and an object with an action (Entrar, Salir, Equipo, Look, Buzón,
+    Entreno, Carreras, Trayectoria) has its button at the frame's centre. Free objects are the
+    player's from the start but only show once put in. Old cut-out objects are not shown until
+    their picture is uploaded again at canvas size. The `slots` and `size` columns are unused.
+  - Evolutions (20 November 2026): objects and upgrades with the same «Familia» (e.g. `fogata`)
+    are levels of one thing: one in use at a time, the new one replacing the last. «Requiere» lists
+    the pieces a player must own before buying it (e.g. the firepit level 2 requires the house
+    level 1), from either scene. The list groups the pieces: backgrounds, upgrades, one group per
+    family with «+ Nueva evolución» (a copy one level up that requires the last), and objects with
+    no family.
   - «Quitar esta pieza del juego» removes a published piece and its picture with the next
     proposal; players who used or bought it lose it. The preview draws the piece with the
     scene's free pieces. The free pieces must include «Entrar» outside. Inside, «Equipo» is the
-    free gear stand (decor, level 0, `interior-5`): the player places it in point 1 with the coach
-    (19 November 2026); the interior backgrounds have no button of their own. Free decor is the
-    player's from the start but only shows once placed.
-  - A background has up to 4 slots for objects: choose «Hueco 1–4» and click the preview to
-    place each one (where the object stands), with its size there; «Quitar» removes one.
-  - Objects (buzón, banderas…) are cut-out PNGs with a height in the scene (%); the preview shows
-    one in slot 1 of the free background. Each player chooses the slot in the game.
+    free gear stand (decor, level 0, `interior-5`): the player puts it in with the coach (19 and
+    20 November 2026); the interior backgrounds have no button of their own.
   - The Premium Coin exchange rate (`coins_per_premium` in `src/data/economy.csv`) is in Balance ›
     Economía.
 - **Avatares** (13 November 2026): upload new bodies and heads as PNG (transparent, on the runner's

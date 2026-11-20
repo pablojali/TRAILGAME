@@ -8,8 +8,8 @@ import { readSave, renderApp, seedCareer } from '../../test/renderApp'
 describe('Base Camp (V1)', () => {
   it('opens outside the cabin, goes in, and the gear zone leads to Equipment and back', async () => {
     const user = userEvent.setup()
-    // The free mailbox, placed by the player in place 1 (free objects show once placed).
-    seedCareer({ ...newGame(), camp: { owned: [], using: [], slots: { 'exterior:1': 'mailbox', 'interior:1': 'gear-stand' } } })
+    // The free mailbox and gear stand, put in by the player (free objects show once put in).
+    seedCareer({ ...newGame(), camp: { owned: [], using: ['mailbox', 'gear-stand'] } })
     await renderApp('/')
     // The main navigation: Base Camp in Equipment's place.
     await user.click(screen.getByRole('link', { name: 'Base Camp' }))
@@ -48,18 +48,17 @@ describe('Base Camp (V1)', () => {
     expect(within(shop).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Backgrounds', 'Upgrades', 'Cabins', 'Decorations'])
     expect(within(shop).getByText('Level 5')).toBeInTheDocument()
     await user.click(within(shop).getByRole('tab', { name: 'Decorations' }))
-    // Buying the bench puts it in the first empty place and closes the sheet.
+    // Buying the bench puts it in the scene and closes the sheet.
     await user.click(within(shop).getByRole('button', { name: 'Buy Bench' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(readSave()?.state).toMatchObject({ coins: 280, camp: { owned: ['bench'], using: [], slots: { 'exterior:1': 'bench' } } })
+    expect(readSave()?.state).toMatchObject({ coins: 280, camp: { owned: ['bench'], using: ['bench'] } })
 
-    // Moving it: choosing place 3 closes the sheet on the scene too.
+    // Taking it out: the sheet stays open.
     await user.click(screen.getByRole('button', { name: 'Customize' }))
     await user.click(screen.getByRole('tab', { name: 'Decorations' }))
-    const places = screen.getByRole('group', { name: 'Where Bench goes' })
-    await user.click(within(places).getByRole('button', { name: 'Place 3' }))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(readSave()?.state.camp?.slots).toEqual({ 'exterior:3': 'bench' })
+    await user.click(screen.getByRole('button', { name: /Remove.*Bench|Take out.*Bench/ }))
+    expect(readSave()?.state.camp?.using).toEqual([])
+    await user.click(screen.getByRole('button', { name: 'Close' }))
 
     // The wallet, from the coins in the top bar: 2 Premium Coins for 200 coins.
     await user.click(screen.getByRole('button', { name: 'Coins and Premium Coins: exchange' }))

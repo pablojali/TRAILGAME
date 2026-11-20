@@ -1696,3 +1696,13 @@ button:disabled {
 .toggleList input {
   margin-top: 3px;
 }
+
+/* Base Camp pieces in groups: backgrounds, upgrades, one per family (owner request, 20 November 2026). */
+.campGroup + .campGroup {
+  margin-top: 16px;
+}
+
+.campGroup h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}

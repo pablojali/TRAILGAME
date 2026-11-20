@@ -380,9 +380,9 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     expect((await call(memory, { action: 'camp-buy', operationId: op(3), itemId: 'banner', price: 3, currency: 'premium', baseVersion: 2 })).body).toMatchObject({ ok: false, error: 'level-locked' })
     const bench = await call(memory, { action: 'camp-buy', operationId: op(4), itemId: 'bench', price: 20, currency: 'coins', baseVersion: 2 })
     expect(bench.body).toMatchObject({ ok: true, state: { coins: 30, camp: { owned: ['bench'], using: [] } } })
-    // Into slot 3 of the refuge (the free mailbox stands in slot 1).
+    // Put in the refuge (objects have no places since 20 November 2026; an old `slot` is ignored).
     const used = await call(memory, { action: 'camp-use', operationId: op(5), itemId: 'bench', used: true, slot: 3, baseVersion: 3 })
-    expect(used.body).toMatchObject({ ok: true, state: { camp: { owned: ['bench'], using: [], slots: { 'exterior:3': 'bench' } } } })
+    expect(used.body).toMatchObject({ ok: true, state: { camp: { owned: ['bench'], using: ['bench'] } } })
     expect((await call(memory, { action: 'camp-use', operationId: op(7), itemId: 'bench', used: true, slot: 5, baseVersion: 4 })).status).toBe(400)
     expect((await call(memory, { action: 'camp-buy', operationId: op(6), itemId: 'bench', price: 20, currency: 'gold', baseVersion: 4 })).status).toBe(400)
     expect(memory.commits()).toBe(3)
@@ -408,8 +408,8 @@ describe('career-ops: economy and equipment on the server (Phase 3B.2)', () => {
     const memory = memoryStore()
     memory.store.isAdmin = async () => true
     memory.seed('boss', rich(50))
-    const trained = await call(memory, { action: 'camp-use', operationId: op(1), itemId: 'mailbox', used: false }, 'boss')
-    expect(trained.body).toMatchObject({ ok: true, state: { camp: { owned: ['admin-refuge'], off: ['mailbox'] } } })
+    const trained = await call(memory, { action: 'camp-use', operationId: op(1), itemId: 'mailbox', used: true }, 'boss')
+    expect(trained.body).toMatchObject({ ok: true, state: { camp: { owned: ['admin-refuge'], using: ['mailbox'] } } })
   })
 
   it('ignores coins and items in the snapshot sent with a purchase', async () => {

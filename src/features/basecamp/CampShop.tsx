@@ -3,13 +3,13 @@ import { useCareer } from '../../app/game/gameContext'
 import { Coins, Premium } from '../../components/Coins'
 import { getLevel } from '../../domain/athlete/levels'
 import { CAMP_KINDS, campItemName, campItems, getCampItem, type CampItem, type CampScene } from '../../domain/basecamp/catalog'
-import { campScene, campSlotOf, isCampItemUsed, ownsCampItem, premiumOf, type CampBuyError, type CampUseError, type ExchangeError } from '../../game-engine/camp'
+import { campScene, isCampItemUsed, missingRequired, ownsCampItem, premiumOf, type CampBuyError, type CampUseError, type ExchangeError } from '../../game-engine/camp'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './BaseCamp.module.css'
 import { artRatio, campArt, focusPosition } from './campArt'
 
-type CampError = CampBuyError | CampUseError | ExchangeError | ServerError | 'bought-no-slot'
+type CampError = CampBuyError | CampUseError | ExchangeError | ServerError
 const errorKey = (error: CampError) => `basecamp.error.${error}` as MessageKey
 
 const KIND_TITLES = {
@@ -111,21 +111,25 @@ function Piece({
   // An upgrade needs its background: without it, the shop says which.
   const base = item.kind === 'upgrade' ? getCampItem(item.base ?? '') : undefined
   const needsBase = !!base && !ownsCampItem(state, base)
+  // An evolution needs the pieces it requires first (owner design, 20 November 2026): the shop names them.
+  const missing = owned ? [] : missingRequired(state, item)
+  // Its thumbnail is drawn over a background: its own (an upgrade) or the one shown (decor).
+  const under = base ?? (item.kind === 'decor' ? campScene(state, item.scene).picture : undefined)
 
   return (
     <li className={styles.piece}>
       {!src ? (
         <span className={styles.noArt}>{t('basecamp.shop.noArt')}</span>
       ) : item.focus ? (
-        // An upgrade shows the part that changes (its focus), like an object: 1/zoom of the
+        // An upgrade or an object shows its part of the picture (its focus): 1/zoom of the
         // picture each way, on the picture's own shape.
         <span
           className={styles.focusThumb}
           role="presentation"
           style={{
             aspectRatio: String(artRatio(item)),
-            // Over its background: what the upgrade leaves transparent shows the background.
-            backgroundImage: base && campArt(base) ? `url(${src}), url(${campArt(base)})` : `url(${src})`,
+            // Over its background: what the picture leaves transparent shows the background.
+            backgroundImage: under && campArt(under) ? `url(${src}), url(${campArt(under)})` : `url(${src})`,
             backgroundSize: `${item.focus.zoom * 100}% auto`,
             backgroundPosition: `${focusPosition(item.focus.x, item.focus.zoom)}% ${focusPosition(item.focus.y, item.focus.zoom)}%`,
           }}
@@ -136,12 +140,14 @@ function Piece({
       <strong>{name}</strong>
       {needsBase && !owned ? (
         <span className={styles.locked}>{t('basecamp.shop.needsBase', { name: campItemName(base!, locale) })}</span>
-      ) : owned && item.kind === 'decor' ? (
-        <SlotPicker item={item} name={name} busy={busy} run={run} />
+      ) : missing.length > 0 ? (
+        <span className={styles.locked}>{t('basecamp.shop.needsBase', { name: missing.map((other) => campItemName(other, locale)).join(', ') })}</span>
       ) : owned ? (
         <button
           type="button"
           className={styles.action}
+          // The coach points at the gear stand's button (owner design: placed first, with the coach).
+          data-coach={item.action === 'gear' ? 'camp-gear-put' : undefined}
           aria-pressed={used}
           aria-disabled={!canToggle || busy !== null || undefined}
           // Using a piece shows it at once: the sheet closes on the scene.
@@ -168,12 +174,10 @@ function Piece({
               void run(
                 item.id,
                 async () => {
-                  // Bought and put in the scene at once, then the sheet closes on it (an object
-                  // goes to the first empty slot; if there is none, the player chooses one here).
+                  // Bought and put in the scene at once, then the sheet closes on it.
                   const bought = await buyCampItem(item.id, { price: item.price, currency: item.currency })
                   if (bought) return bought
-                  const placed = await setCampItemUsed(item.id, true)
-                  return placed === 'no-slot' ? 'bought-no-slot' : placed
+                  return setCampItemUsed(item.id, true)
                 },
                 t('basecamp.shop.bought', { name }),
                 true,
@@ -186,57 +190,5 @@ function Piece({
         </>
       )}
     </li>
-  )
-}
-
-/**
- * An object's places (owner request, 16 November 2026): the slots of the refuge shown, to put it
- * in one, move it or take it out. The object already in a slot makes room.
- */
-function SlotPicker({
-  item,
-  name,
-  busy,
-  run,
-}: {
-  item: CampItem
-  name: string
-  busy: string | null
-  run(key: string, action: () => Promise<string | CampError | null>, done: string, close?: boolean): Promise<void>
-}) {
-  const { t } = useI18n()
-  const { state, setCampItemUsed } = useCareer()
-  const count = campScene(state, item.scene).background.slots?.length ?? 0
-  const current = campSlotOf(state, item)
-  if (count === 0) return <span className={styles.locked}>{t('basecamp.shop.noSlots')}</span>
-  return (
-    <div className={styles.slots} role="group" aria-label={t('basecamp.shop.where', { name })}>
-      {Array.from({ length: count }, (_, i) => i + 1).map((n) => (
-        <button
-          key={n}
-          type="button"
-          className={styles.slotChip}
-          // The coach points at place 1 for the gear stand (owner design: the gear goes in point 1).
-          data-coach={item.action === 'gear' && n === 1 ? 'camp-gear-slot' : undefined}
-          aria-pressed={current === n}
-          aria-label={t('basecamp.shop.slot', { n })}
-          aria-disabled={busy !== null || undefined}
-          onClick={() => busy === null && current !== n && void run(item.id, () => setCampItemUsed(item.id, true, n), '', true)}
-        >
-          {n}
-        </button>
-      ))}
-      {current !== null && (
-        <button
-          type="button"
-          className={styles.slotRemove}
-          aria-disabled={busy !== null || undefined}
-          onClick={() => busy === null && void run(item.id, () => setCampItemUsed(item.id, false), '')}
-        >
-          {t('basecamp.shop.remove')}
-          <span className={styles.srOnly}> {name}</span>
-        </button>
-      )}
-    </div>
   )
 }

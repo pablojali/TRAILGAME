@@ -2311,10 +2311,10 @@ function applyFitnessDecay(state, now) {
 }
 
 // raw:src/data/basecamp.csv
-var basecamp_default = "# Base Camp (owner design, 16 November 2026). One row per piece of the player's cabin. Keep each id once and never rename it (saves use it).\n# scene: exterior or interior. kind: background (the whole scene behind), upgrade (another picture of a background: same canvas, its points), cabin (drawn over the background) or decor (seats, banners, flags\u2026, drawn over both).\n# level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.\n# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; backgrounds on the scene's canvas: 3200 x 1600 outside, 2600 x 1600 inside).\n# action: what tapping the piece does (empty: nothing): enter (go inside), exit (go outside), gear (Equipment), look (Appearance), mailbox (congratulations and visits), training, races, career.\n# spot_x, spot_y (0-1 of the picture): where the action's button sits (backgrounds and cabins). Decor carries its button on itself.\n# slots (backgrounds): up to 4 places for decor, x:y:scale separated by | (x, y: 0-1 of the picture, where the object stands; scale: its size there, 1 = normal).\n# size (decor): the object's height as a share of the picture's height at scale 1 (e.g. 0.2). Decor is a cut-out PNG the player places in a slot.\n# base (upgrades): the background it redraws; it keeps that background's button and slots. The player shows one upgrade of a background at a time, or none.\n# focus (upgrades): what the shop shows of it, x:y:zoom (x, y: 0-1 of the picture, the centre; zoom: 1 = the whole picture, 4 = a quarter of it across).\n# Free pieces (level 0, price 0) are shown from the start (upgrades only once chosen); the free ones of the exterior must have an enter action.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,base,focus,name,name_es,name_fr,name_it,name_de\nexterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,0.198:0.849:1|0.845:0.815:1|0.542:0.67:1|0.138:0.528:1,,,,Beach Camp,Refugio de Playa,,,\nexterior-2,exterior,background,0,0,coins,exterior_2,enter,0.36,0.56,0.119:0.92:1|0.76:0.862:1|0.509:0.667:1|0.076:0.615:1,,,,Desert Camp,Refugio Desierto,,,\nexterior-3,exterior,background,0,0,coins,exterior_3,enter,0.36,0.56,0.137:0.915:1|0.677:0.965:1|0.501:0.728:1|0.131:0.67:1,,,,Lake Camp,Refugio Lago,,,\nexterior-4,exterior,background,0,0,coins,exterior_4,enter,0.36,0.56,0.638:0.959:1|0.649:0.709:1|0.507:0.684:1|0.138:0.662:1,,,,Mountain Camp,Refugio Monta\xF1a,,,\nexterior-5,exterior,background,1,0,coins,exterior_5,enter,0.36,0.56,0.132:0.915:1|0.952:0.867:1|0.523:0.715:1|0.121:0.645:1,,,,River Camp,Refugio Rio,,,\nexterior-6,exterior,decor,7,50,coins,exterior_6,mailbox,,,,0.2,,,MailBox,Buzon,,,\ninterior-1,interior,background,0,0,coins,interior_1,gear,0.020,0.817,0.202:0.72:1|0.705:0.684:1|0.577:0.481:1|0.501:0.734:1,,,,Wood cabine,Caba\xF1a Rustica,,,\ninterior-2,interior,background,0,0,coins,interior_2,gear,0.038,0.800,0.191:0.72:1|0.709:0.712:1|0.57:0.483:1|0.502:0.739:1,,,,Wood Cabine,Caba\xF1a madera,,,\ninterior-3,interior,background,0,0,coins,interior_3,gear,0.031,0.745,0.194:0.709:1|0.72:0.712:1|0.577:0.481:1|0.503:0.736:1,,,,Stone Cabine,Caba\xF1a Pierda,,,\ninterior-4,interior,decor,1,0,coins,interior_4,,,,,0.25,,,Calendar,Calendar,,,\ninterior-5,interior,decor,1,0,coins,interior_5,gear,,,,0.27,,,Gear,Gear,,,\ninterior-6,interior,upgrade,1,0,coins,interior_6,,,,,,interior-1,0.848:0.716:3,Chimey lvl2,Chimenea lvl2,,,\ninterior-7,interior,upgrade,1,0,coins,interior_7,,,,,,interior-2,0.909:0.738:3,Chimey lvl2,Chimenea lvl2,,,\ninterior-8,interior,upgrade,1,0,coins,interior_8,,,,,,interior-3,0.852:0.706:3,Chimey lvl2,Chimenea lvl2,,,\ninterior-9,interior,decor,1,0,coins,interior_9,,,,,0.32,,,New piece,Pieza nueva,,,\ninterior-10,interior,decor,1,0,coins,interior_10,,,,,0.32,,,Metal gear support,Soport de metal,,,\ninterior-11,interior,decor,1,0,coins,interior_11,,,,,0.35,,,Stone Sofa,Sofa de piedra,,,\ninterior-12,interior,decor,1,0,coins,interior_12,,,,,0.35,,,Wood Sofa,Sofa de madera,,,\ninterior-13,interior,decor,1,0,coins,interior_13,,,,,0.35,,,New piece,Pieza nueva,,,\ninterior-14,interior,decor,1,0,coins,interior_14,,,,,0.35,,,New piece,Pieza nueva,,,\ninterior-15,interior,decor,1,0,coins,interior_15,,,,,0.35,,,New piece,Pieza nueva,,,\nexterior-7,exterior,upgrade,1,0,coins,exterior_7,,,,,,exterior-1,0.388:0.546:2,Beach House,Refugio Playa,,,\nexterior-8,exterior,upgrade,2,0,coins,exterior_8,,,,,,exterior-1,0.381:0.551:1.5,Beach House,Refugio Playa,,,\nexterior-9,exterior,upgrade,1,0,coins,exterior_9,,,,,,exterior-2,0.363:0.538:2,Desert House,Refugio Desierto,,,\nexterior-10,exterior,upgrade,2,0,coins,exterior_10,,,,,,exterior-2,0.409:0.557:1.5,Dessert House,Refugio Desierto,,,\nexterior-11,exterior,upgrade,1,0,coins,exterior_11,,,,,,exterior-3,0.38:0.546:2,Lake House,Refugio Lago,,,\nexterior-12,exterior,upgrade,2,0,coins,exterior_12,,,,,,exterior-3,0.409:0.515:1.5,Lake House,Refugio Lago,,,\nexterior-13,exterior,upgrade,1,0,coins,exterior_13,,,,,,exterior-5,0.346:0.535:2,River House,Refugio Rio,,,\nexterior-14,exterior,upgrade,2,0,coins,exterior_14,,,,,,exterior-5,0.428:0.515:1.5,River House,Refugio Rio,,,\nexterior-15,exterior,upgrade,1,0,coins,exterior_15,,,,,,exterior-4,0.359:0.53:2,Mountain House,Refugio Monta\xF1a,,,\n";
+var basecamp_default = "# Base Camp (owner design, 16 November 2026). One row per piece of the player's cabin. Keep each id once and never rename it (saves use it).\n# scene: exterior or interior. kind: background (the whole scene behind, with its house) or decor (an object or an evolution: a picture on the whole canvas, transparent but for what it adds, drawn over the background). upgrade and cabin: older kinds, no longer offered in Trail Studio.\n# level: player level that unlocks it. price: what it costs; 0 with level 0 = everyone has it from the start. currency: coins or premium.\n# art: the picture's name in assets/ui/basecamp/{scene}/ (uploaded in Trail Studio; backgrounds on the scene's canvas: 3200 x 1600 outside, 2600 x 1600 inside).\n# action: what tapping the piece does (empty: nothing): enter (go inside), exit (go outside), gear (Equipment), look (Appearance), mailbox (congratulations and visits), training, races, career.\n# spot_x, spot_y (0-1 of the picture): where the action's button sits (backgrounds and cabins). Decor carries its button at its focus.\n# slots, size: no longer used (since 20 November 2026 objects are whole pictures; leave empty).\n# Decor (20 November 2026): a picture on the scene's whole canvas, transparent but for the object, drawn over the background; any number at once.\n# base (upgrades): the background it redraws; it keeps that background's button. The player shows one upgrade of a background at a time, or none.\n# focus (upgrades and decor): what the shop shows of it, x:y:zoom (x, y: 0-1 of the picture, the centre; zoom: 1 = the whole picture, 4 = a quarter of it across). A decor's button sits at its centre.\n# Free pieces (level 0, price 0) are shown from the start (upgrades and decor only once chosen); the free ones of the exterior must have an enter action.\n# family, requires (evolutions, 20 November 2026): pieces with the same family (e.g. casa, fogata) are levels of one thing, one in use at a time; requires: ids the player must own before buying it (separated by spaces). An object that requires a background (directly or through the pieces it requires) is only drawn over that background.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,base,focus,name,name_es,name_fr,name_it,name_de,family,requires\nexterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,,,,,Beach Camp,Refugio de Playa,,,,,\nexterior-2,exterior,background,0,0,coins,exterior_2,enter,0.36,0.56,,,,,Desert Camp,Refugio Desierto,,,,,\nexterior-3,exterior,background,0,0,coins,exterior_3,enter,0.36,0.56,,,,,Lake Camp,Refugio Lago,,,,,\nexterior-4,exterior,background,0,0,coins,exterior_4,enter,0.36,0.56,,,,,Mountain Camp,Refugio Monta\xF1a,,,,,\nexterior-5,exterior,background,1,0,coins,exterior_5,enter,0.36,0.56,,,,,River Camp,Refugio Rio,,,,,\nexterior-6,exterior,decor,7,50,coins,exterior_6,mailbox,,,,,,0.5:0.5:3,MailBox,Buzon,,,,buzon,\ninterior-1,interior,background,0,0,coins,interior_1,,,,,,,,Wood cabine,Caba\xF1a Rustica,,,,,\ninterior-2,interior,background,0,0,coins,interior_2,,,,,,,,Wood Cabine,Caba\xF1a madera,,,,,\ninterior-3,interior,background,0,0,coins,interior_3,,,,,,,,Stone Cabine,Caba\xF1a Pierda,,,,,\ninterior-4,interior,decor,1,0,coins,interior_4,,,,,,,0.5:0.5:3,Calendar,Calendar,,,,calendario,\ninterior-5,interior,decor,0,0,coins,interior_5,gear,,,,,,0.5:0.5:3,Gear,Gear,,,,gear,\ninterior-6,interior,decor,1,0,coins,interior_6,,,,,,,0.848:0.716:3,Chimey lvl2,Chimenea lvl2,,,,chimenea,interior-1\ninterior-7,interior,decor,1,0,coins,interior_7,,,,,,,0.909:0.738:3,Chimey lvl2,Chimenea lvl2,,,,chimenea,interior-2\ninterior-8,interior,decor,1,0,coins,interior_8,,,,,,,0.852:0.706:3,Chimey lvl2,Chimenea lvl2,,,,chimenea,interior-3\ninterior-9,interior,decor,1,0,coins,interior_9,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,\ninterior-10,interior,decor,1,0,coins,interior_10,,,,,,,0.5:0.5:3,Metal gear support,Soport de metal,,,,,\ninterior-11,interior,decor,1,0,coins,interior_11,,,,,,,0.5:0.5:3,Stone Sofa,Sofa de piedra,,,,sofa,\ninterior-12,interior,decor,1,0,coins,interior_12,,,,,,,0.5:0.5:3,Wood Sofa,Sofa de madera,,,,sofa,\ninterior-13,interior,decor,1,0,coins,interior_13,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,\ninterior-14,interior,decor,1,0,coins,interior_14,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,\ninterior-15,interior,decor,1,0,coins,interior_15,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,\nexterior-7,exterior,decor,1,0,coins,exterior_7,,,,,,,0.388:0.546:2,Beach House,Refugio Playa,,,,casa,exterior-1\nexterior-8,exterior,decor,2,0,coins,exterior_8,,,,,,,0.381:0.551:1.5,Beach House,Refugio Playa,,,,casa,exterior-7\nexterior-9,exterior,decor,1,0,coins,exterior_9,,,,,,,0.363:0.538:2,Desert House,Refugio Desierto,,,,casa,exterior-2\nexterior-10,exterior,decor,2,0,coins,exterior_10,,,,,,,0.409:0.557:1.5,Dessert House,Refugio Desierto,,,,casa,exterior-9\nexterior-11,exterior,decor,1,0,coins,exterior_11,,,,,,,0.38:0.546:2,Lake House,Refugio Lago,,,,casa,exterior-3\nexterior-12,exterior,decor,2,0,coins,exterior_12,,,,,,,0.409:0.515:1.5,Lake House,Refugio Lago,,,,casa,exterior-11\nexterior-13,exterior,decor,1,0,coins,exterior_13,,,,,,,0.346:0.535:2,River House,Refugio Rio,,,,casa,exterior-5\nexterior-14,exterior,decor,2,0,coins,exterior_14,,,,,,,0.428:0.515:1.5,River House,Refugio Rio,,,,casa,exterior-13\nexterior-15,exterior,decor,1,0,coins,exterior_15,,,,,,,0.359:0.53:2,Mountain House,Refugio Monta\xF1a,,,,casa,exterior-4\n";
 
 // raw:src/data/basecamp_exclusive.csv
-var basecamp_exclusive_default = "# Base Camp pieces never for sale (owner request, 16 November 2026): the admin's own refuge. Same columns as basecamp.csv.\n# Not edited in Trail Studio. The server gives these pieces to the admins (major_admins) when their career is created or saved; nobody else can buy or use them.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,base,focus,name,name_es,name_fr,name_it,name_de\n";
+var basecamp_exclusive_default = "# Base Camp pieces never for sale (owner request, 16 November 2026): the admin's own refuge. Same columns as basecamp.csv.\n# Not edited in Trail Studio. The server gives these pieces to the admins (major_admins) when their career is created or saved; nobody else can buy or use them.\nid,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,base,focus,name,name_es,name_fr,name_it,name_de,family,requires\n";
 
 // src/domain/basecamp/catalog.ts
 var CAMP_ACTIONS = ["enter", "exit", "gear", "look", "mailbox", "training", "races", "career"];
@@ -2322,7 +2322,6 @@ var ESSENTIAL_ACTION = { exterior: "enter" };
 var CAMP_SCENES = ["exterior", "interior"];
 var CAMP_KINDS = ["background", "upgrade", "cabin", "decor"];
 var CURRENCIES = ["coins", "premium"];
-var MAX_SLOTS = 4;
 var ID = /^[a-z0-9][a-z0-9-]*$/;
 var ART = /^[a-z0-9][a-z0-9_-]*$/;
 function parseCampCatalog(text, options = {}) {
@@ -2341,6 +2340,12 @@ function parseCampCatalog(text, options = {}) {
     if (level < 0 || price < 0) throw new Error(`${where}: level and price cannot be negative`);
     if (!row.art || !ART.test(row.art)) throw new Error(`${where}: art must be a file name (lower case letters, digits, - and _)`);
     const item = { id: row.id, scene, kind, level, price, currency, art: row.art, label: row.name || row.id };
+    if (row.family) {
+      if (!ID.test(row.family)) throw new Error(`${where}: family must be lower case letters, digits and -`);
+      if (kind !== "decor" && kind !== "upgrade") throw new Error(`${where}: only decor and upgrades have a family`);
+      item.family = row.family;
+    }
+    if (row.requires) item.requires = [...new Set(row.requires.split(/[\s|]+/).filter(Boolean))];
     if (row.spot_x || row.spot_y) {
       const x = csvNumber(row.spot_x, where);
       const y = csvNumber(row.spot_y, where);
@@ -2351,43 +2356,32 @@ function parseCampCatalog(text, options = {}) {
       if (!CAMP_ACTIONS.includes(row.action)) throw new Error(`${where}: unknown action "${row.action}" (${CAMP_ACTIONS.join(", ")})`);
       item.action = row.action;
     }
+    const readFocus = () => {
+      if (!row.focus) return;
+      const [x, y, zoom] = row.focus.split(":").map(Number);
+      if (![x, y].every((n) => Number.isFinite(n) && n >= 0 && n <= 1) || !(Number.isFinite(zoom) && zoom >= 1 && zoom <= 8)) {
+        throw new Error(`${where}: focus is x:y:zoom (x and y from 0 to 1, zoom from 1 to 8)`);
+      }
+      item.focus = { x, y, zoom };
+    };
     if (kind === "upgrade") {
-      if (row.action || item.spot || row.slots || row.size) throw new Error(`${where}: an upgrade keeps its background's button and slots (no action, spot, slots or size)`);
+      if (row.action || item.spot) throw new Error(`${where}: an upgrade keeps its background's button (no action or spot)`);
       if (!row.base) throw new Error(`${where}: an upgrade needs base (the background it redraws)`);
       item.base = row.base;
-      if (row.focus) {
-        const [x, y, zoom] = row.focus.split(":").map(Number);
-        if (![x, y].every((n) => Number.isFinite(n) && n >= 0 && n <= 1) || !(Number.isFinite(zoom) && zoom >= 1 && zoom <= 8)) {
-          throw new Error(`${where}: focus is x:y:zoom (x and y from 0 to 1, zoom from 1 to 8)`);
-        }
-        item.focus = { x, y, zoom };
-      }
+      readFocus();
       return finishItem(item, row, options);
     }
-    if (row.base || row.focus) throw new Error(`${where}: only upgrades have base and focus`);
+    if (row.base) throw new Error(`${where}: only upgrades have base`);
     if (kind === "decor") {
-      if (item.spot) throw new Error(`${where}: decor has no spot_x and spot_y (its button sits on the object)`);
-      item.size = row.size ? csvNumber(row.size, where) : 0.2;
-      if (!(item.size >= 0.02 && item.size <= 0.9)) throw new Error(`${where}: size goes from 0.02 to 0.9 (share of the picture's height)`);
-    } else {
-      if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`);
-      if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`);
-      if (row.size) throw new Error(`${where}: only decor has a size`);
+      if (item.spot) throw new Error(`${where}: decor has no spot_x and spot_y (its button sits at its focus)`);
+      readFocus();
+      return finishItem(item, row, options);
     }
+    if (row.focus) throw new Error(`${where}: only upgrades and decor have focus`);
+    if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`);
+    if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`);
     if (kind === "background" && ESSENTIAL_ACTION[scene] && item.action !== ESSENTIAL_ACTION[scene]) {
       throw new Error(`${where}: a ${scene} background needs the ${ESSENTIAL_ACTION[scene]} action and its spot`);
-    }
-    if (row.slots) {
-      if (kind !== "background") throw new Error(`${where}: only backgrounds have slots`);
-      const slots = row.slots.split("|").map((part) => {
-        const [x, y, scale] = part.split(":").map(Number);
-        if (![x, y].every((n) => Number.isFinite(n) && n >= 0 && n <= 1) || !(Number.isFinite(scale) && scale >= 0.2 && scale <= 3)) {
-          throw new Error(`${where}: each slot is x:y:scale (x and y from 0 to 1, scale from 0.2 to 3)`);
-        }
-        return { x, y, scale };
-      });
-      if (slots.length > MAX_SLOTS) throw new Error(`${where}: at most ${MAX_SLOTS} slots`);
-      item.slots = slots;
     }
     return finishItem(item, row, options);
   });
@@ -2395,6 +2389,12 @@ function parseCampCatalog(text, options = {}) {
   for (const item of items) {
     if (ids.has(item.id)) throw new Error(`${file}: id ${item.id} is repeated`);
     ids.add(item.id);
+  }
+  for (const item of items) {
+    for (const id of item.requires ?? []) {
+      if (id === item.id) throw new Error(`${file}: ${item.id} cannot require itself`);
+      if (!options.exclusive && !items.some((other) => other.id === id)) throw new Error(`${file}: ${item.id} requires unknown piece ${id}`);
+    }
   }
   for (const item of items) {
     if (item.kind !== "upgrade") continue;
@@ -2450,6 +2450,7 @@ function parseEconomy(text) {
 var COINS_PER_PREMIUM = parseEconomy(economy_default).coinsPerPremium;
 
 // src/game-engine/camp.ts
+var sameFamily = (a, b) => !!a.family && a.family === b.family && a.scene === b.scene;
 function parseCampState(value) {
   if (typeof value !== "object" || value === null) return null;
   const raw = value;
@@ -2465,23 +2466,18 @@ function parseCampState(value) {
       const other = getCampItem(u);
       return item.kind === "upgrade" ? other.kind === "upgrade" && other.base === item.base : other.scene === item.scene && other.kind === item.kind;
     };
-    if (item.kind !== "decor" && using.some(clash)) continue;
+    if (item.kind !== "decor" && using.some(clash) || using.some((u) => sameFamily(getCampItem(u), item))) continue;
     using.push(id);
   }
-  const slots = {};
   if (raw.slots !== void 0 && typeof raw.slots === "object" && raw.slots !== null) {
-    for (const [key, id] of Object.entries(raw.slots)) {
-      const match = /^(exterior|interior):([1-4])$/.exec(key);
+    for (const id of Object.values(raw.slots)) {
       const item = typeof id === "string" ? getCampItem(id) : void 0;
-      if (!match || !item || item.kind !== "decor" || item.scene !== match[1] || Object.values(slots).includes(item.id)) continue;
-      if (!owned.includes(item.id) && !isFreeFromStart(item)) continue;
-      slots[key] = item.id;
+      if (item && item.kind === "decor" && has(item.id) && !using.includes(item.id)) using.push(item.id);
     }
   }
-  const off = Array.isArray(raw.off) ? [...new Set(raw.off.filter((id) => typeof id === "string" && !!getCampItem(id) && isFreeFromStart(getCampItem(id)) && getCampItem(id).kind !== "background"))] : [];
+  const off = Array.isArray(raw.off) ? [...new Set(raw.off.filter((id) => typeof id === "string" && !!getCampItem(id) && isFreeFromStart(getCampItem(id)) && !["background", "decor"].includes(getCampItem(id).kind)))] : [];
   const parsed = { owned, using };
   if (off.length) parsed.off = off;
-  if (Object.keys(slots).length) parsed.slots = slots;
   return parsed;
 }
 

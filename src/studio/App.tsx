@@ -45,8 +45,8 @@ import { BaseCampPanel } from './BaseCampPanel'
 /** Multimedia (owner request, 16 November 2026): the art of the game, in sub-tabs. */
 type MediaTab = 'equipment' | 'avatars' | 'camp-exterior' | 'camp-interior'
 const MEDIA_TABS: { id: MediaTab; label: string }[] = [
-  { id: 'equipment', label: 'Equipamiento' },
-  { id: 'avatars', label: 'Avatares' },
+  { id: 'equipment', label: 'Equipment' },
+  { id: 'avatars', label: 'Avatars' },
   { id: 'camp-exterior', label: 'Base Camp (ext)' },
   { id: 'camp-interior', label: 'Base Camp (int)' },
 ]
@@ -136,14 +136,14 @@ export function App() {
       setTextDrafts(draft?.gameTexts ?? {})
       if (draft && FILE_IDS.every((id) => draft.base[id] === base[id])) {
         setWsState(openWorkspace(base, draft.texts))
-        setNotice('Recuperé tus cambios sin guardar.')
+        setNotice('I recovered your unsaved changes.')
       } else {
-        if (draft) setNotice('Las tablas cambiaron en el juego desde tu último borrador: empiezo desde la versión publicada.')
+        if (draft) setNotice('The game\'s tables changed since your last draft: starting from the published version.')
         storeDraft(null)
         setWsState(openWorkspace(base))
       }
     } catch (e) {
-      setError(`No pude leer las tablas: ${(e as Error).message}`)
+      setError(`Could not read the tables: ${(e as Error).message}`)
     }
   }, [])
 
@@ -153,9 +153,9 @@ export function App() {
     try {
       setProposals((await listProposals(tok)).filter((p) => !closed.current.has(p.number)))
       // A network hiccup earlier is over.
-      setError((current) => (current.startsWith('No pude leer las propuestas') ? '' : current))
+      setError((current) => (current.startsWith('Could not read the proposals') ? '' : current))
     } catch (e) {
-      setError(`No pude leer las propuestas: ${(e as Error).message}`)
+      setError(`Could not read the proposals: ${(e as Error).message}`)
     }
   }, [])
 
@@ -194,9 +194,9 @@ export function App() {
         <span className="brand">
           Trail <b>Studio</b>
         </span>
-        <nav className="tabs" aria-label="Secciones">
+        <nav className="tabs" aria-label="Sections">
           <button type="button" aria-pressed={tab === 'races'} onClick={() => setTab('races')}>
-            Carreras
+            Races
           </button>
           <button type="button" aria-pressed={tab === 'media'} onClick={() => setTab('media')}>
             Multimedia
@@ -205,10 +205,10 @@ export function App() {
             Coach
           </button>
           <button type="button" aria-pressed={tab === 'notifications'} onClick={() => setTab('notifications')}>
-            Notificaciones
+            Notifications
           </button>
           <button type="button" aria-pressed={tab === 'texts'} onClick={() => setTab('texts')}>
-            Textos
+            Texts
           </button>
           <button type="button" aria-pressed={tab === 'balance'} onClick={() => setTab('balance')}>
             Balance
@@ -217,10 +217,10 @@ export function App() {
             Majors
           </button>
           <button type="button" aria-pressed={tab === 'runners'} onClick={() => setTab('runners')}>
-            Corredores
+            Runners
           </button>
           <button type="button" aria-pressed={tab === 'changes'} onClick={() => setTab('changes')}>
-            Propuestas{pending ? ` (${pending})` : ''}
+            Proposals{pending ? ` (${pending})` : ''}
           </button>
         </nav>
         <button
@@ -231,7 +231,7 @@ export function App() {
             setToken(null)
           }}
         >
-          Desconectar
+          Disconnect
         </button>
       </header>
 
@@ -255,7 +255,7 @@ export function App() {
         ) : tab === 'runners' ? (
           <RunnersPanel />
         ) : !ws ? (
-          <p className="loading">Leyendo las tablas del juego…</p>
+          <p className="loading">Reading the game's tables…</p>
         ) : tab === 'races' ? (
           <RacesPanel token={token} ws={ws} setWs={setWs} selected={raceId} select={setRaceId} />
         ) : tab === 'media' ? (
@@ -303,27 +303,27 @@ export function App() {
         )}
       </main>
 
-      {/* On every tab, Propuestas included: what is waiting to be proposed is never out of sight. */}
+      {/* On every tab, Proposals included: what is waiting to be proposed is never out of sight. */}
       {ws && hasChanges(ws) && (
         <footer className="saveBar">
           <span>
-            Sin guardar:{' '}
-            {[changed.length && (changed.length === 1 ? '1 tabla o texto' : `${changed.length} tablas o textos`), uploads && (uploads === 1 ? '1 archivo' : `${uploads} archivos`)]
+            Unsaved:{' '}
+            {[changed.length && (changed.length === 1 ? '1 table or text' : `${changed.length} tables or texts`), uploads && (uploads === 1 ? '1 file' : `${uploads} files`)]
               .filter(Boolean)
-              .join(' y ')}
+              .join(' and ')}
             .
           </span>
           <button
             type="button"
             className="ghost"
             onClick={() => {
-              if (window.confirm('¿Descartar todos los cambios sin guardar?')) setWs(freshWorkspace(ws))
+              if (window.confirm('Discard every unsaved change?')) setWs(freshWorkspace(ws))
             }}
           >
-            Descartar
+            Discard
           </button>
           <button type="button" className="primary" onClick={() => setReviewing(true)}>
-            Revisar y proponer
+            Review and propose
           </button>
         </footer>
       )}
@@ -359,7 +359,7 @@ function Connect({ onConnected }: { onConnected(token: string): void }) {
       saveToken(value.trim())
       onConnected(value.trim())
     } catch (e) {
-      setError(`GitHub no aceptó el token: ${(e as Error).message}`)
+      setError(`GitHub did not accept the token: ${(e as Error).message}`)
     }
     setBusy(false)
   }
@@ -368,7 +368,7 @@ function Connect({ onConnected }: { onConnected(token: string): void }) {
       <h1>
         Trail <b>Studio</b>
       </h1>
-      <p>Para leer y proponer cambios al juego, conecta tu cuenta de GitHub con un token (solo una vez en este navegador).</p>
+      <p>To read and propose changes to the game, connect your GitHub account with a token (once in this browser).</p>
       <ol>
         <li>
           Abre{' '}
@@ -378,18 +378,18 @@ function Connect({ onConnected }: { onConnected(token: string): void }) {
           .
         </li>
         <li>
-          Nombre: <i>Trail Studio</i>. Repository access: <i>Only select repositories → TRAILGAME</i>.
+          Name: <i>Trail Studio</i>. Repository access: <i>Only select repositories → TRAILGAME</i>.
         </li>
         <li>
-          Permisos del repositorio: <i>Contents: Read and write</i>, <i>Pull requests: Read and write</i>, <i>Commit statuses: Read</i>.
+          Repository permissions: <i>Contents: Read and write</i>, <i>Pull requests: Read and write</i>, <i>Commit statuses: Read</i>.
         </li>
-        <li>Genera el token, cópialo y pégalo aquí.</li>
+        <li>Generate the token, copy it and paste it here.</li>
       </ol>
       <label htmlFor="token">Token</label>
       <input id="token" type="password" value={value} onChange={(e) => setValue(e.target.value)} placeholder="github_pat_…" />
       {error && <p className="error">{error}</p>}
       <button type="button" className="primary" disabled={!value.trim() || busy} onClick={connect}>
-        {busy ? 'Comprobando…' : 'Conectar'}
+        {busy ? 'Checking…' : 'Connect'}
       </button>
     </div>
   )
@@ -414,16 +414,16 @@ function Review({
   const migration = needsRankingMigration(ws)
   const [title, setTitle] = useState(() => {
     const parts = [
-      races.length && `${races.length} carrera${races.length > 1 ? 's' : ''}`,
-      equipment.length && `${equipment.length} artículo${equipment.length > 1 ? 's' : ''}`,
+      races.length && `${races.length} race${races.length > 1 ? 's' : ''}`,
+      equipment.length && `${equipment.length} item${equipment.length > 1 ? 's' : ''}`,
       coach.length && 'coach',
-      announcements.length && `${announcements.length} aviso${announcements.length > 1 ? 's' : ''}`,
+      announcements.length && `${announcements.length} announcement${announcements.length > 1 ? 's' : ''}`,
       balance.length && 'balance',
-      basecamp.length && `${basecamp.length} pieza${basecamp.length > 1 ? 's' : ''} de Base Camp`,
-      texts.length && `${texts.length} texto${texts.length > 1 ? 's' : ''}`,
-      media.length && `${media.length} archivo${media.length > 1 ? 's' : ''}`,
+      basecamp.length && `${basecamp.length} Base Camp piece${basecamp.length > 1 ? 's' : ''}`,
+      texts.length && `${texts.length} text${texts.length > 1 ? 's' : ''}`,
+      media.length && `${media.length} file${media.length > 1 ? 's' : ''}`,
     ].filter(Boolean)
-    return `Studio: cambios en ${parts.join(', ')}`
+    return `Studio: changes to ${parts.join(', ')}`
   })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -432,25 +432,25 @@ function Review({
     setBusy(true)
     setError('')
     const lines = [
-      'Cambios hechos en **Trail Studio** por el diseñador.',
+      'Changes made in **Trail Studio** by the designer.',
       '',
-      ...(races.length ? ['### Carreras', ...races.map((l) => `- ${l}`), ''] : []),
-      ...(equipment.length ? ['### Equipamiento', ...equipment.map((l) => `- ${l}`), ''] : []),
+      ...(races.length ? ['### Races', ...races.map((l) => `- ${l}`), ''] : []),
+      ...(equipment.length ? ['### Equipment', ...equipment.map((l) => `- ${l}`), ''] : []),
       ...(coach.length ? ['### Coach', ...coach.map((l) => `- ${l}`), ''] : []),
-      ...(announcements.length ? ['### Avisos a todos los jugadores', ...announcements.map((l) => `- ${l}`), ''] : []),
+      ...(announcements.length ? ['### Announcements to every player', ...announcements.map((l) => `- ${l}`), ''] : []),
       ...(balance.length ? ['### Balance', ...balance.map((l) => `- ${l}`), ''] : []),
       ...(basecamp.length ? ['### Base Camp', ...basecamp.map((l) => `- ${l}`), ''] : []),
-      ...(texts.length ? ['### Textos', ...texts.map((l) => `- ${l}`), ''] : []),
-      ...(media.length ? ['### Fotos y vídeos', ...media.map((l) => `- ${l}`), ''] : []),
+      ...(texts.length ? ['### Texts', ...texts.map((l) => `- ${l}`), ''] : []),
+      ...(media.length ? ['### Photos and videos', ...media.map((l) => `- ${l}`), ''] : []),
       ...(migration
-        ? ['⚠️ Incluye una migración de los rankings (niveles o dificultades de carreras, puntos por puesto o rivales NPC). Después de publicar hay que aplicarla en Supabase: pídeselo a Claude.', '']
+        ? ['⚠️ Includes a rankings migration (race levels or difficulties, points per place or NPC rivals). After publishing it must be applied in Supabase: ask Claude.', '']
         : []),
-      'La vista previa del juego muestra los cambios; el servidor usa los datos publicados hasta que se publique esta propuesta.',
+      'The game preview shows the changes; the server uses the published data until this proposal is published.',
     ]
     try {
       onCreated(await createProposal(token, proposalFiles(ws, new Date()), title, lines.join('\n'), new Date(), proposalMedia(ws)))
     } catch (e) {
-      setError(`GitHub no aceptó la propuesta: ${(e as Error).message}`)
+      setError(`GitHub did not accept the proposal: ${(e as Error).message}`)
       setBusy(false)
     }
   }
@@ -458,10 +458,10 @@ function Review({
   return (
     <div className="dialogBack" role="presentation">
       <section className="dialog" role="dialog" aria-modal="true" aria-labelledby="review-title">
-        <h2 id="review-title">Revisar cambios</h2>
+        <h2 id="review-title">Review changes</h2>
         {races.length > 0 && (
           <>
-            <h3>Carreras</h3>
+            <h3>Races</h3>
             <ul className="changes">
               {races.map((line) => (
                 <li key={line}>
@@ -473,7 +473,7 @@ function Review({
         )}
         {equipment.length > 0 && (
           <>
-            <h3>Equipamiento</h3>
+            <h3>Equipment</h3>
             <ul className="changes">
               {equipment.map((line) => (
                 <li key={line}>
@@ -486,10 +486,10 @@ function Review({
         {(
           [
             ['Coach', coach],
-            ['Avisos a todos', announcements],
+            ['Announcements', announcements],
             ['Balance', balance],
             ['Base Camp', basecamp],
-            ['Textos', texts],
+            ['Texts', texts],
           ] as const
         ).map(([title, lines]) =>
           lines.length ? (
@@ -507,7 +507,7 @@ function Review({
         )}
         {media.length > 0 && (
           <>
-            <h3>Fotos y vídeos</h3>
+            <h3>Photos and videos</h3>
             <ul className="changes">
               {media.map((line) => (
                 <li key={line}>{line}</li>
@@ -515,11 +515,11 @@ function Review({
             </ul>
           </>
         )}
-        {migration && <p className="warning">Cambian datos de los rankings: la propuesta incluye su migración. Después de publicar, avisa a Claude para aplicarla.</p>}
-        {pendingProposals > 0 && <p className="warning">Tienes otra propuesta sin publicar: si tocan las mismas tablas, publica una antes de la otra.</p>}
+        {migration && <p className="warning">Ranking data changes: the proposal includes its migration. After publishing, tell Claude to apply it.</p>}
+        {pendingProposals > 0 && <p className="warning">You have another proposal not published yet: if they touch the same tables, publish one before the other.</p>}
         {errors.length > 0 ? (
           <div className="error">
-            <p>El juego no aceptaría estos cambios. Corrígelos antes de proponer:</p>
+            <p>The game would refuse these changes. Fix them before proposing:</p>
             <ul>
               {errors.map((e) => (
                 <li key={e}>{e}</li>
@@ -528,17 +528,17 @@ function Review({
           </div>
         ) : (
           <>
-            <label htmlFor="proposal-title">Título</label>
+            <label htmlFor="proposal-title">Title</label>
             <input id="proposal-title" value={title} onChange={(e) => setTitle(e.target.value)} />
           </>
         )}
         {error && <p className="error">{error}</p>}
         <div className="dialogActions">
           <button type="button" className="ghost" onClick={onClose}>
-            Seguir editando
+            Keep editing
           </button>
           <button type="button" className="primary" disabled={errors.length > 0 || busy || !title.trim()} onClick={propose}>
-            {busy ? 'Creando…' : 'Crear propuesta'}
+            {busy ? 'Creating…' : 'Create proposal'}
           </button>
         </div>
       </section>
@@ -556,10 +556,10 @@ function Rich({ line }: { line: string }) {
 }
 
 const STATE_TEXT: Record<Proposal['state'], string> = {
-  checking: 'Comprobando… (los tests tardan unos 4 minutos)',
-  ready: 'Lista para publicar',
-  failed: 'Los tests fallaron: revisa el detalle en GitHub o pídele ayuda a Claude',
-  conflict: 'Choca con otro cambio publicado: descártala y vuelve a hacerla',
+  checking: 'Checking… (the tests take about 4 minutes)',
+  ready: 'Ready to publish',
+  failed: 'The tests failed: see the details on GitHub or ask Claude for help',
+  conflict: 'It clashes with another published change: discard it and make it again',
 }
 
 function ProposalsPanel({
@@ -584,18 +584,18 @@ function ProposalsPanel({
   const [busy, setBusy] = useState<number | null>(null)
   const [error, setError] = useState('')
   async function act(p: Proposal, action: 'publish' | 'discard') {
-    if (action === 'publish' && !window.confirm(`¿Publicar «${p.title}» en el juego?`)) return
-    if (action === 'discard' && !window.confirm(`¿Descartar «${p.title}»?`)) return
+    if (action === 'publish' && !window.confirm(`Publish «${p.title}» to the game?`)) return
+    if (action === 'discard' && !window.confirm(`Discard «${p.title}»?`)) return
     setBusy(p.number)
     setError('')
     try {
       if (action === 'publish') await publishProposal(token, p)
       else await discardProposal(token, p)
-      onDone(p.number, action === 'publish' ? `«${p.title}» está publicada: el juego se actualiza en unos minutos.` : `«${p.title}» se descartó.`)
+      onDone(p.number, action === 'publish' ? `«${p.title}» is published: the game updates in a few minutes.` : `«${p.title}» was discarded.`)
       await refresh()
       await reload()
     } catch (e) {
-      setError(`GitHub no lo permitió: ${(e as Error).message}`)
+      setError(`GitHub did not allow it: ${(e as Error).message}`)
     }
     setBusy(null)
   }
@@ -603,21 +603,21 @@ function ProposalsPanel({
   return (
     <section className="proposals">
       <div className="paneHead">
-        <h2>Propuestas</h2>
+        <h2>Proposals</h2>
         <button type="button" className="ghost" onClick={() => void refresh()}>
-          Actualizar
+          Refresh
         </button>
       </div>
       {error && <p className="error">{error}</p>}
       {unsent && (
         <p className="warning">
-          Tienes cambios o archivos sin proponer: no aparecen aquí hasta que crees la propuesta.{' '}
+          You have changes or files not proposed yet: they show here once you create the proposal.{' '}
           <button type="button" className="link" onClick={onReview}>
-            Revisar y proponer
+            Review and propose
           </button>
         </p>
       )}
-      {proposals.length === 0 && <p className="muted">No hay propuestas pendientes. Edita carreras o equipamiento y pulsa «Revisar y proponer».</p>}
+      {proposals.length === 0 && <p className="muted">No pending proposals. Edit races or equipment and press «Review and propose».</p>}
       <ul>
         {proposals.map((p) => (
           <li key={p.number} className={`proposal ${p.state}`}>
@@ -627,24 +627,24 @@ function ProposalsPanel({
             </div>
             <div className="proposalActions">
               <a href={p.previewUrl} target="_blank" rel="noreferrer">
-                Probar en el juego
+                Try in the game
               </a>
               <a href={p.url} target="_blank" rel="noreferrer">
-                Ver en GitHub
+                See on GitHub
               </a>
               <button type="button" className="ghost" disabled={busy !== null} onClick={() => act(p, 'discard')}>
-                Descartar
+                Discard
               </button>
               <button type="button" className="primary" disabled={busy !== null || p.state !== 'ready'} onClick={() => act(p, 'publish')}>
-                {busy === p.number ? 'Un momento…' : 'Publicar'}
+                {busy === p.number ? 'One moment…' : 'Publish'}
               </button>
             </div>
           </li>
         ))}
       </ul>
       <p className="muted small">
-        Publicar une la propuesta al juego: Cloudflare lo despliega en unos minutos y el servidor recibe los datos nuevos. «Probar en el juego» abre la vista previa
-        de Cloudflare cuando está lista.
+        Publish merges the proposal into the game: Cloudflare deploys it in a few minutes and the server gets the new data. «Try in the game» opens Cloudflare's
+        preview once it is ready.
       </p>
     </section>
   )

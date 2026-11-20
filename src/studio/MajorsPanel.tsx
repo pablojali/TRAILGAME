@@ -15,14 +15,14 @@ import { bothTimes, currentSession, majorClient, majorOps, sendMagicLink, signOu
  * rights: no pull request, no code published.
  */
 const STATUS: Record<MajorStatus, string> = {
-  DRAFT: 'Borrador',
-  SCHEDULED: 'Programado',
-  REGISTRATION_OPEN: 'Inscripción abierta',
-  LOCKED: 'Parrilla cerrada',
-  STARTING: 'Saliendo',
-  RUNNING: 'En carrera',
-  FINISHED: 'Terminado',
-  CANCELLED: 'Cancelado',
+  DRAFT: 'Draft',
+  SCHEDULED: 'Scheduled',
+  REGISTRATION_OPEN: 'Registration open',
+  LOCKED: 'Grid locked',
+  STARTING: 'Starting',
+  RUNNING: 'Running',
+  FINISHED: 'Finished',
+  CANCELLED: 'Cancelled',
 }
 
 const raceName = (id: string) => RACES.find((r) => r.id === id)?.name ?? id
@@ -62,19 +62,19 @@ export function AdminGate({ title, children }: { title: string; children: ReactN
     })
   }, [session])
 
-  if (!checked) return <p className="loading">Comprobando la sesión…</p>
+  if (!checked) return <p className="loading">Checking the session…</p>
   if (!session) return <SignIn title={title} />
-  if (!who) return <p className="loading">{error || 'Comprobando tus permisos…'}</p>
+  if (!who) return <p className="loading">{error || 'Checking your permissions…'}</p>
   if (!who.admin) {
     return (
       <section className="connect">
         <h1>{title}</h1>
-        <p>Tu cuenta no es administradora de Trail Studio todavía.</p>
+        <p>Your account is not a Trail Studio admin yet.</p>
         <p>
-          Pásale este identificador a Claude para darle permisos: <code>{who.userId}</code>
+          Give Claude this id to grant permissions: <code>{who.userId}</code>
         </p>
         <button type="button" className="ghost" onClick={() => void signOut()}>
-          Salir
+          Sign out
         </button>
       </section>
     )
@@ -89,8 +89,8 @@ function SignIn({ title }: { title: string }) {
   return (
     <section className="connect">
       <h1>{title}</h1>
-      <p>Entra con el correo de tu cuenta del juego (la que vinculaste en Ajustes). Te llega un enlace que te trae de vuelta aquí.</p>
-      <label htmlFor="major-email">Correo</label>
+      <p>Sign in with your game account's email (the one you linked in Settings). You get a link that brings you back here.</p>
+      <label htmlFor="major-email">Email</label>
       <input id="major-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
       {error && (
         <p className="error" role="alert">
@@ -99,7 +99,7 @@ function SignIn({ title }: { title: string }) {
       )}
       {state === 'sent' ? (
         <p className="notice" role="status">
-          Revisa tu correo y abre el enlace en este navegador.
+          Check your email and open the link in this browser.
         </p>
       ) : (
         <button
@@ -111,12 +111,12 @@ function SignIn({ title }: { title: string }) {
             setError('')
             const problem = await sendMagicLink(email.trim())
             if (problem) {
-              setError(`No pude enviar el enlace: ${problem}`)
+              setError(`Could not send the link: ${problem}`)
               setState('idle')
             } else setState('sent')
           }}
         >
-          Enviarme el enlace
+          Send me the link
         </button>
       )}
     </section>
@@ -181,24 +181,24 @@ function MajorsAdmin() {
     const result = await call(draft.id ? { action: 'event-update', id: draft.id, event } : { action: 'event-create', event })
     if (result) {
       setDraft(null)
-      setNotice(draft.id ? 'Borrador guardado.' : 'Borrador creado. Publícalo cuando esté listo.')
+      setNotice(draft.id ? 'Draft saved.' : 'Draft created. Publish it when ready.')
       await reload()
     }
   }
 
   const publish = async (event: MajorEvent) => {
-    if (!window.confirm(`¿Publicar «${event.name}»? Después ya no se puede editar: solo cancelar.`)) return
+    if (!window.confirm(`Publish «${event.name}»? After that it cannot be edited: only cancelled.`)) return
     if (await call({ action: 'event-publish', id: event.id })) {
-      setNotice('Publicado: las inscripciones abren según la configuración.')
+      setNotice('Published: registrations open as configured.')
       await reload()
     }
   }
 
   const cancel = async (event: MajorEvent) => {
-    const reason = window.prompt(`Motivo de la cancelación de «${event.name}»:`)
+    const reason = window.prompt(`Reason for cancelling «${event.name}»:`)
     if (reason === null) return
     if (await call({ action: 'event-cancel', id: event.id, reason })) {
-      setNotice('Major cancelado.')
+      setNotice('Major cancelled.')
       await reload()
     }
   }
@@ -208,14 +208,14 @@ function MajorsAdmin() {
       <header className="majorsHead">
         <h2>Sunday Majors</h2>
         <button type="button" className="ghost small" onClick={() => void signOut()}>
-          Salir de la cuenta
+          Sign out
         </button>
       </header>
       {notice && (
         <p className="notice" role="status">
           {notice}{' '}
           <button type="button" className="link" onClick={() => setNotice('')}>
-            Cerrar
+            Close
           </button>
         </p>
       )}
@@ -227,9 +227,9 @@ function MajorsAdmin() {
 
       <section className="editPane">
         <div className="majorsBar">
-          <h3>Eventos</h3>
+          <h3>Events</h3>
           <button type="button" className="primary" onClick={newDraft} disabled={!config || busy}>
-            Nuevo Major
+            New Major
           </button>
         </div>
         {draft && (
@@ -247,25 +247,25 @@ function MajorsAdmin() {
             <div className="majorsBar">
               <span />
               <button type="button" className="ghost small" onClick={() => setMediaFor(null)}>
-                Cerrar banner y vídeos
+                Close banner and videos
               </button>
             </div>
           </>
         )}
         {reportFor && <MajorReport eventId={reportFor.id} name={reportFor.name} onClose={() => setReportFor(null)} />}
         {!events ? (
-          <p className="loading">Leyendo los Majors…</p>
+          <p className="loading">Reading the Majors…</p>
         ) : events.length === 0 ? (
-          <p className="muted">Todavía no hay ningún Major.</p>
+          <p className="muted">No Majors yet.</p>
         ) : (
           <div className="gridWrap">
             <table className="grid">
               <thead>
                 <tr>
                   <th>Major</th>
-                  <th>Carrera</th>
-                  <th>Salida</th>
-                  <th>Estado</th>
+                  <th>Race</th>
+                  <th>Start</th>
+                  <th>Status</th>
                   <th />
                 </tr>
               </thead>
@@ -280,7 +280,7 @@ function MajorsAdmin() {
                           {event.categories.map((c) => `${c.name} (${c.maxLevel === null ? `${c.minLevel}+` : `${c.minLevel}–${c.maxLevel}`})`).join(', ')}
                         </span>
                       )}
-                      {event.cancelReason && <span className="hint"> · Motivo: {event.cancelReason}</span>}
+                      {event.cancelReason && <span className="hint"> · Reason: {event.cancelReason}</span>}
                     </td>
                     <td>{raceName(event.raceId)}</td>
                     <td>
@@ -288,7 +288,7 @@ function MajorsAdmin() {
                       {event.registrationOpenAt && event.readyOpenAt && (
                         <span className="hint">
                           <br />
-                          Inscripción desde {bothTimes(event.registrationOpenAt)} · READY desde {bothTimes(event.readyOpenAt)}
+                          Registration from {bothTimes(event.registrationOpenAt)} · READY from {bothTimes(event.readyOpenAt)}
                         </span>
                       )}
                     </td>
@@ -313,26 +313,26 @@ function MajorsAdmin() {
                               })
                             }
                           >
-                            Editar
+                            Edit
                           </button>
                           <button type="button" className="primary small" disabled={busy} onClick={() => void publish(event)}>
-                            Publicar
+                            Publish
                           </button>
                         </>
                       )}
                       {!['RUNNING', 'FINISHED', 'CANCELLED'].includes(event.status) && (
                         <button type="button" className="ghost small" disabled={busy} onClick={() => setMediaFor(event.id)}>
-                          Banner y vídeos
+                          Banner and videos
                         </button>
                       )}
                       {(event.status === 'RUNNING' || event.status === 'FINISHED') && (
                         <button type="button" className="primary small" disabled={busy} onClick={() => setReportFor(event)}>
-                          Informe
+                          Report
                         </button>
                       )}
                       {event.status !== 'FINISHED' && event.status !== 'CANCELLED' && (
                         <button type="button" className="ghost small" disabled={busy} onClick={() => void cancel(event)}>
-                          Cancelar
+                          Cancel
                         </button>
                       )}
                     </td>
@@ -348,7 +348,7 @@ function MajorsAdmin() {
         const result = await call({ action: 'config-set', config: next })
         if (result) {
           setConfig(result.config as MajorConfig)
-          setNotice('Configuración guardada. Se aplica a los Majors que publiques desde ahora.')
+          setNotice('Configuration saved. It applies to the Majors you publish from now on.')
         }
       }} />}
     </div>
@@ -373,25 +373,25 @@ function EventForm({
   const past = valid && Date.parse(start) <= Date.now()
   return (
     <div className="majorForm">
-      <h4>{draft.id ? 'Editar borrador' : 'Nuevo Major'}</h4>
+      <h4>{draft.id ? 'Edit draft' : 'New Major'}</h4>
       <div className="form">
         <div className="field wide">
-          <label htmlFor="m-name">Nombre</label>
+          <label htmlFor="m-name">Name</label>
           <input id="m-name" value={draft.name} maxLength={80} onChange={(e) => onChange({ ...draft, name: e.target.value })} />
         </div>
         <div className="field wide">
-          <label htmlFor="m-desc">Descripción</label>
+          <label htmlFor="m-desc">Description</label>
           <textarea id="m-desc" value={draft.description} maxLength={500} rows={2} onChange={(e) => onChange({ ...draft, description: e.target.value })} />
         </div>
         <div className="field">
-          <label htmlFor="m-race">Recorrido (carrera del catálogo)</label>
+          <label htmlFor="m-race">Course (race from the catalog)</label>
           <select id="m-race" value={draft.raceId} onChange={(e) => onChange({ ...draft, raceId: e.target.value })}>
             {/* The Majors' own courses first (owner design, 18 November 2026), then the NPC races. */}
             {[
-              { label: 'Recorridos de Major', races: RACES.filter((race) => race.major) },
-              { label: 'Carreras NPC', races: RACES.filter((race) => !race.major && !race.retired) },
+              { label: 'Major courses', races: RACES.filter((race) => race.major) },
+              { label: 'NPC races', races: RACES.filter((race) => !race.major && !race.retired) },
               // A retired race only for a Major that already runs it.
-              { label: 'Retiradas', races: RACES.filter((race) => race.retired && race.id === draft.raceId) },
+              { label: 'Retired', races: RACES.filter((race) => race.retired && race.id === draft.raceId) },
             ]
               .filter((group) => group.races.length > 0)
               .map((group) => (
@@ -406,23 +406,23 @@ function EventForm({
           </select>
         </div>
         <div className="field">
-          <label htmlFor="m-date">Fecha (UTC)</label>
+          <label htmlFor="m-date">Date (UTC)</label>
           <input id="m-date" type="date" value={draft.date} onChange={(e) => onChange({ ...draft, date: e.target.value })} />
         </div>
         <div className="field">
-          <label htmlFor="m-time">Hora de salida (UTC)</label>
+          <label htmlFor="m-time">Start time (UTC)</label>
           <input id="m-time" type="time" value={draft.time} onChange={(e) => onChange({ ...draft, time: e.target.value })} />
         </div>
         <p className={`field wide ${valid && !past ? 'hint' : 'error'}`}>
-          {!valid ? 'Fecha no válida.' : past ? 'Esa salida ya pasó.' : `Sale ${bothTimes(start)}.`}
+          {!valid ? 'Date not valid.' : past ? 'That start has passed.' : `Starts ${bothTimes(start)}.`}
         </p>
       </div>
       <div className="majorsBar">
         <button type="button" className="ghost" onClick={onClose}>
-          Cerrar
+          Close
         </button>
         <button type="button" className="primary" disabled={busy || !valid || past || !draft.name.trim()} onClick={onSave}>
-          Guardar borrador
+          Save draft
         </button>
       </div>
     </div>
@@ -443,45 +443,45 @@ function ConfigForm({ config, busy, onSave }: { config: MajorConfig; busy: boole
 
   return (
     <section className="editPane">
-      <h3>Configuración de los próximos Majors</h3>
-      <p className="hint">Cada Major guarda una copia al publicarse: cambiarla aquí no toca los ya publicados.</p>
+      <h3>Configuration of the next Majors</h3>
+      <p className="hint">Each Major keeps a copy when published: changing it here does not touch the published ones.</p>
       <div className="form">
         <div className="field">
-          <label htmlFor="c-time">Hora de salida por defecto (UTC)</label>
+          <label htmlFor="c-time">Default start time (UTC)</label>
           <input id="c-time" type="time" value={value.startTimeUtc} onChange={(e) => setValue({ ...value, startTimeUtc: e.target.value })} />
           <span className="hint">{bothTimes(new Date(nextSundayStart(Date.now(), value.startTimeUtc)).toISOString())}</span>
         </div>
         <div className="field">
-          <label htmlFor="c-reg">Inscripción abre (días antes)</label>
+          <label htmlFor="c-reg">Registration opens (days before)</label>
           <input id="c-reg" type="number" min={1} max={13} value={value.registrationOpenDays} onChange={num('registrationOpenDays')} />
         </div>
         <div className="field">
-          <label htmlFor="c-ready">READY abre (minutos antes)</label>
+          <label htmlFor="c-ready">READY opens (minutes before)</label>
           <input id="c-ready" type="number" min={5} max={180} value={value.readyMinutes} onChange={num('readyMinutes')} />
-          <span className="hint">Las inscripciones cierran en ese momento.</span>
+          <span className="hint">Registrations close at that moment.</span>
         </div>
         <div className="field">
-          <label htmlFor="c-window">Ventana de decisión PA (s)</label>
+          <label htmlFor="c-window">Aid station decision window (s)</label>
           <input id="c-window" type="number" min={30} max={600} value={value.decisionWindowS} onChange={num('decisionWindowS')} />
         </div>
         <div className="field">
-          <label htmlFor="c-run">Fase corriendo por tramo (s)</label>
+          <label htmlFor="c-run">Running phase per segment (s)</label>
           <input id="c-run" type="number" min={30} max={900} value={value.runningS} onChange={num('runningS')} />
         </div>
         <div className="field">
-          <label htmlFor="c-limit">Participantes por categoría</label>
+          <label htmlFor="c-limit">Participants per category</label>
           <input id="c-limit" type="number" min={2} max={50} value={value.participantLimit} onChange={num('participantLimit')} />
         </div>
       </div>
 
-      <h4>Categorías por nivel</h4>
+      <h4>Categories by level</h4>
       <div className="gridWrap">
       <table className="grid">
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Desde nivel</th>
-            <th>Hasta nivel</th>
+            <th>Name</th>
+            <th>From level</th>
+            <th>To level</th>
             <th />
           </tr>
         </thead>
@@ -491,15 +491,15 @@ function ConfigForm({ config, busy, onSave }: { config: MajorConfig; busy: boole
             return (
               <tr key={i}>
                 <td>
-                  <input aria-label={`Nombre de la banda ${i + 1}`} value={band.name} maxLength={40} onChange={(e) => setBands(value.bands.map((b, j) => (j === i ? { ...b, name: e.target.value } : b)))} />
+                  <input aria-label={`Band ${i + 1} name`} value={band.name} maxLength={40} onChange={(e) => setBands(value.bands.map((b, j) => (j === i ? { ...b, name: e.target.value } : b)))} />
                 </td>
                 <td className="num">{band.min}</td>
                 <td>
                   {last ? (
-                    <span className="muted">y más</span>
+                    <span className="muted">and up</span>
                   ) : (
                     <input
-                      aria-label={`Nivel máximo de la banda ${i + 1}`}
+                      aria-label={`Band ${i + 1} maximum level`}
                       type="number"
                       min={band.min}
                       value={band.max ?? ''}
@@ -510,7 +510,7 @@ function ConfigForm({ config, busy, onSave }: { config: MajorConfig; busy: boole
                 <td>
                   {value.bands.length > 1 && (
                     <button type="button" className="ghost small" onClick={() => setBands(value.bands.filter((_, j) => j !== i))}>
-                      Quitar
+                      Remove
                     </button>
                   )}
                 </td>
@@ -529,14 +529,14 @@ function ConfigForm({ config, busy, onSave }: { config: MajorConfig; busy: boole
             const bands = [...value.bands]
             const last = bands[bands.length - 1]!
             bands[bands.length - 1] = { ...last, max: last.min + 7 }
-            setBands([...bands, { name: `Banda ${bands.length + 1}`, min: last.min + 8, max: null }])
+            setBands([...bands, { name: `Band ${bands.length + 1}`, min: last.min + 8, max: null }])
           }}
         >
-          Añadir banda
+          Add band
         </button>
         {bandProblem && <span className="error">{BAND_ERRORS[bandProblem]}</span>}
         <button type="button" className="primary" disabled={busy || bandProblem !== null} onClick={() => onSave(value)}>
-          Guardar configuración
+          Save configuration
         </button>
       </div>
     </section>

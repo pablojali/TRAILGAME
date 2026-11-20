@@ -91,52 +91,52 @@ export function validate(ws: Workspace): string[] {
     }
   }
   const raceIds = rows(ws.docs.races).map((row) => row.values.id!)
-  check('Carreras', () => parseRaces(textOf(ws, 'races')))
-  check('Equipamiento', () => parseEquipment(textOf(ws, 'equipment')))
+  check('Races', () => parseRaces(textOf(ws, 'races')))
+  check('Equipment', () => parseEquipment(textOf(ws, 'equipment')))
   check('Coach', () => parseCoachMoments(textOf(ws, 'coach')))
-  check('Avisos', () => parseAnnouncements(textOf(ws, 'announcements')))
+  check('Announcements', () => parseAnnouncements(textOf(ws, 'announcements')))
   check('Base Camp', () => parseCampCatalog(textOf(ws, 'basecamp')))
-  check('Economía', () => parseEconomy(textOf(ws, 'economy')))
-  check('Notificaciones', () => parseNotificationKinds(textOf(ws, 'notifications')))
+  check('Economy', () => parseEconomy(textOf(ws, 'economy')))
+  check('Notifications', () => parseNotificationKinds(textOf(ws, 'notifications')))
   // A new Base Camp piece (or a new picture name) needs its picture in the same proposal.
   const publishedArt = new Set(rows(ws.docsBase.basecamp).map((r) => `${r.values.scene}/${r.values.art}`))
   for (const row of rows(ws.docs.basecamp)) {
     const art = `${row.values.scene}/${row.values.art}`
     const uploaded = Object.entries(ws.uploads).some(([path, upload]) => upload.base64 && path.replace(/\.\w+$/, '') === `assets/ui/basecamp/source/${art}`)
-    if (!publishedArt.has(art) && !uploaded) errors.push(`Base Camp: «${row.values.name_es || row.values.name || row.values.id}» necesita su imagen (súbela en Multimedia)`)
+    if (!publishedArt.has(art) && !uploaded) errors.push(`Base Camp: «${row.values.name || row.values.name_es || row.values.id}» needs its picture (upload it in Multimedia)`)
   }
   // The English text is the one every empty language shows.
-  for (const [label, id] of [['Avisos', 'announcements'], ['Coach', 'coach']] as const) {
+  for (const [label, id] of [['Announcements', 'announcements'], ['Coach', 'coach']] as const) {
     for (const row of rows(ws.docs[id])) {
-      if (!row.values.title || !row.values.text) errors.push(`${label}: «${row.values.id ?? row.values.moment}» necesita título y texto en inglés (los idiomas vacíos lo muestran)`)
+      if (!row.values.title || !row.values.text) errors.push(`${label}: «${row.values.id ?? row.values.moment}» needs an English title and text (empty languages show it)`)
     }
   }
-  check('Niveles', () => parseLevels(textOf(ws, 'levels')))
-  check('Desafíos', () => parseAchievementTable(textOf(ws, 'achievements')))
-  check('Rivales por categoría', () => parseRaceField(textOf(ws, 'raceField')))
-  check('Puntos de ranking', () => parseRankingTable(textOf(ws, 'points'), raceIds))
+  check('Levels', () => parseLevels(textOf(ws, 'levels')))
+  check('Challenges', () => parseAchievementTable(textOf(ws, 'achievements')))
+  check('Rivals by category', () => parseRaceField(textOf(ws, 'raceField')))
+  check('Ranking points', () => parseRankingTable(textOf(ws, 'points'), raceIds))
   const points = rows(ws.docs.points).map((row) => row.values)
   const difficulties = new Set(points.filter((p) => p.kind === 'difficulty').map((p) => p.key))
   for (const id of raceIds) {
     const row = points.find((p) => p.kind === 'race' && p.key === id)
-    if (!row) errors.push(`Carreras: ${id} no tiene dificultad (I–V)`)
-    else if (!difficulties.has(row.value)) errors.push(`Carreras: ${id} tiene una dificultad desconocida "${row.value}"`)
+    if (!row) errors.push(`Races: ${id} has no difficulty (I–V)`)
+    else if (!difficulties.has(row.value)) errors.push(`Races: ${id} has an unknown difficulty "${row.value}"`)
   }
   // NPC runners (the same rules as src/data/rankingNpcs.test.ts).
   const npcs = parseCsv(textOf(ws, 'npcs'))
   const names = new Set<string>()
   npcs.forEach((n, i) => {
-    const where = `Rivales NPC, fila ${i + 1} (${n.id})`
+    const where = `Ranking NPC rivals, row ${i + 1} (${n.id})`
     const name = (n.name ?? '').toLowerCase()
-    if (!n.name || n.name.length > 16) errors.push(`${where}: el nombre debe tener de 1 a 16 caracteres`)
-    if (names.has(name)) errors.push(`${where}: el nombre ${n.name} está repetido`)
+    if (!n.name || n.name.length > 16) errors.push(`${where}: the name must have 1 to 16 characters`)
+    if (names.has(name)) errors.push(`${where}: the name ${n.name} is repeated`)
     names.add(name)
-    if (!isCountryCode(n.country)) errors.push(`${where}: país desconocido "${n.country}"`)
-    if (n.sex !== 'male' && n.sex !== 'female') errors.push(`${where}: sexo debe ser male o female`)
+    if (!isCountryCode(n.country)) errors.push(`${where}: unknown country "${n.country}"`)
+    if (n.sex !== 'male' && n.sex !== 'female') errors.push(`${where}: sex must be male or female`)
     const int = (v: string | undefined, min: number, max: number) => /^\d+$/.test(v ?? '') && Number(v) >= min && Number(v) <= max
-    if (!int(n.level, 1, 999) || !int(n.xp, 0, 99_999_999)) errors.push(`${where}: nivel y XP deben ser números enteros`)
-    if (!int(n.strength, 0, 100)) errors.push(`${where}: fuerza de 0 a 100`)
-    if (!int(n.races_per_week, 0, 7)) errors.push(`${where}: carreras por semana de 0 a 7`)
+    if (!int(n.level, 1, 999) || !int(n.xp, 0, 99_999_999)) errors.push(`${where}: level and XP must be whole numbers`)
+    if (!int(n.strength, 0, 100)) errors.push(`${where}: strength from 0 to 100`)
+    if (!int(n.races_per_week, 0, 7)) errors.push(`${where}: races per week from 0 to 7`)
   })
   // Texts: every language keeps the English texts' placeholders ({name}), nothing empty.
   const byScreen = new Map<string, Record<string, Record<string, TextValue>>>()
@@ -153,9 +153,9 @@ export function validate(ws: Workspace): string[] {
       for (const key of Object.keys(english)) {
         const value = data[key]
         if (value === undefined || (typeof value === 'string' ? value.trim() === '' : Object.values(value).some((v) => !v.trim()))) {
-          errors.push(`Textos ${language.toUpperCase()}: ${key} está vacío`)
+          errors.push(`Texts ${language.toUpperCase()}: ${key} is empty`)
         } else if (placeholders(value) !== placeholders(english[key])) {
-          errors.push(`Textos ${language.toUpperCase()}: ${key} debe llevar ${placeholders(english[key]) || 'ninguna variable'} como el inglés`)
+          errors.push(`Texts ${language.toUpperCase()}: ${key} must have ${placeholders(english[key]) || 'no variable'} like the English`)
         }
       }
     }
@@ -176,47 +176,47 @@ function npcsChanged(ws: Workspace): boolean {
 }
 
 const RACE_COLUMNS: Record<string, string> = {
-  name: 'nombre',
-  category: 'categoría interna',
-  distance_km: 'distancia (km)',
-  elevation_gain_m: 'desnivel (m)',
-  recommended_level: 'nivel recomendado',
-  technicality: 'técnica',
-  terrain: 'terreno (EN)',
-  terrain_es: 'terreno (ES)',
-  terrain_fr: 'terreno (FR)',
-  terrain_it: 'terreno (IT)',
-  terrain_de: 'terreno (DE)',
-  difficulty: 'dificultad',
+  name: 'name',
+  category: 'internal category',
+  distance_km: 'distance (km)',
+  elevation_gain_m: 'elevation (m)',
+  recommended_level: 'recommended level',
+  technicality: 'technicality',
+  terrain: 'terrain (EN)',
+  terrain_es: 'terrain (ES)',
+  terrain_fr: 'terrain (FR)',
+  terrain_it: 'terrain (IT)',
+  terrain_de: 'terrain (DE)',
+  difficulty: 'difficulty',
 }
 
 export const EQUIPMENT_COLUMNS: Record<string, string> = {
-  name: 'nombre (EN)',
-  type: 'tipo',
-  level: 'nivel',
-  price: 'precio',
-  pack: 'unidades por pack',
-  thumbnail: 'imagen',
-  avatar_layer: 'capa en el corredor',
-  speed: 'Velocidad',
-  endurance: 'Resistencia',
-  climbing: 'Subida',
-  technical: 'Técnica',
-  recovery: 'Recuperación',
-  consistency: 'Regularidad',
-  flat: 'llano',
-  climb: 'subidas',
-  descent: 'bajadas',
-  technical_penalty: 'bajadas técnicas',
-  wear: 'desgaste',
-  effect_text: 'texto del efecto (EN)',
-  description: 'descripción (EN)',
+  name: 'name (EN)',
+  type: 'type',
+  level: 'level',
+  price: 'price',
+  pack: 'units per pack',
+  thumbnail: 'picture',
+  avatar_layer: 'layer on the runner',
+  speed: 'Speed',
+  endurance: 'Endurance',
+  climbing: 'Climbing',
+  technical: 'Technique',
+  recovery: 'Recovery',
+  consistency: 'Consistency',
+  flat: 'flat',
+  climb: 'climbs',
+  descent: 'descents',
+  technical_penalty: 'technical descents',
+  wear: 'wear',
+  effect_text: 'effect text (EN)',
+  description: 'description (EN)',
 }
 
 function columnLabel(labels: Record<string, string>, column: string): string {
   if (labels[column]) return labels[column]
   const m = /^(name|effect_text|description|title|text)_(es|fr|it|de)$/.exec(column)
-  if (m) return `${{ name: 'nombre', effect_text: 'texto del efecto', description: 'descripción', title: 'título', text: 'texto' }[m[1] as 'name']} (${m[2]!.toUpperCase()})`
+  if (m) return `${{ name: 'name', effect_text: 'effect text', description: 'description', title: 'title', text: 'text' }[m[1] as 'name']} (${m[2]!.toUpperCase()})`
   return column
 }
 
@@ -224,8 +224,8 @@ const shown = (value: string) => (value === '' ? '—' : value.length > 60 ? `${
 
 function describe(changes: RowChange[], labels: Record<string, string>, nameOf: (key: string) => string): string[] {
   return changes.map((change) => {
-    if (change.kind === 'added') return `**${nameOf(change.key)}** (nueva)`
-    if (change.kind === 'removed') return `**${nameOf(change.key)}** (quitada)`
+    if (change.kind === 'added') return `**${nameOf(change.key)}** (new)`
+    if (change.kind === 'removed') return `**${nameOf(change.key)}** (removed)`
     const fields = change.fields.map((f) => `${columnLabel(labels, f.column)} ${shown(f.before)} → ${shown(f.after)}`)
     return `**${nameOf(change.key)}**: ${fields.join('; ')}`
   })
@@ -233,12 +233,12 @@ function describe(changes: RowChange[], labels: Record<string, string>, nameOf: 
 
 /** The balance tables (Balance tab): title, how a row is named and what changes need. */
 export const BALANCE: { id: FileId; title: string; key: (v: Record<string, string>) => string; canAdd: boolean }[] = [
-  { id: 'levels', title: 'Niveles', key: (v) => `Nivel ${v.level}`, canAdd: true },
-  { id: 'achievements', title: 'Desafíos', key: (v) => `${v.achievement} nivel ${v.level}`, canAdd: true },
-  { id: 'points', title: 'Puntos de ranking', key: (v) => `${v.kind} ${v.key}`, canAdd: true },
-  { id: 'raceField', title: 'Rivales por categoría', key: (v) => v.category!, canAdd: false },
-  { id: 'npcs', title: 'Rivales NPC del ranking', key: (v) => `${v.id} ${v.name}`, canAdd: false },
-  { id: 'economy', title: 'Economía', key: (v) => v.key!, canAdd: false },
+  { id: 'levels', title: 'Levels', key: (v) => `Level ${v.level}`, canAdd: true },
+  { id: 'achievements', title: 'Challenges', key: (v) => `${v.achievement} level ${v.level}`, canAdd: true },
+  { id: 'points', title: 'Ranking points', key: (v) => `${v.kind} ${v.key}`, canAdd: true },
+  { id: 'raceField', title: 'Rivals by category', key: (v) => v.category!, canAdd: false },
+  { id: 'npcs', title: 'Ranking NPC rivals', key: (v) => `${v.id} ${v.name}`, canAdd: false },
+  { id: 'economy', title: 'Economy', key: (v) => v.key!, canAdd: false },
 ]
 
 export interface Summary {
@@ -272,14 +272,14 @@ export function summary(ws: Workspace): Summary {
   }
   const itemName = (key: string) => {
     const row = rows(ws.docs.equipment).find((r) => r.values.id === key)
-    return `${row?.values.name_es || row?.values.name || key} (${key})`
+    return `${row?.values.name || row?.values.name_es || key} (${key})`
   }
   const balance: string[] = []
   for (const table of BALANCE) {
     let changes = diffDocs(before[table.id], ws.docs[table.id], (v) => table.key(v))
     // Race difficulties are listed with the races.
     if (table.id === 'points') changes = changes.filter((c) => !c.key.startsWith('race '))
-    balance.push(...describe(changes, { value: 'valor', xp: 'XP', attribute_points: 'puntos de atributo', target: 'objetivo', coins: 'monedas' }, (k) => `${table.title} · ${k}`))
+    balance.push(...describe(changes, { value: 'value', xp: 'XP', attribute_points: 'attribute points', target: 'target', coins: 'coins' }, (k) => `${table.title} · ${k}`))
   }
   const texts: string[] = []
   for (const path of changedTexts(ws)) {
@@ -295,17 +295,17 @@ export function summary(ws: Workspace): Summary {
   return {
     races: describe(raceChanges, RACE_COLUMNS, raceName),
     equipment: describe(diffDocs(before.equipment, ws.docs.equipment, (v) => v.id!), EQUIPMENT_COLUMNS, itemName),
-    coach: describe(diffDocs(before.coach, ws.docs.coach, (v) => `${v.moment} paso ${v.step}`), { trigger: 'disparador', after: 'después de', unless: 'salvo', targets: 'señala', tap: 'espera toque', title: 'título (EN)', text: 'texto (EN)' }, (k) => `Coach · ${k}`),
+    coach: describe(diffDocs(before.coach, ws.docs.coach, (v) => `${v.moment} step ${v.step}`), { trigger: 'trigger', after: 'after', unless: 'unless', targets: 'points at', tap: 'waits for a tap', title: 'title (EN)', text: 'text (EN)' }, (k) => `Coach · ${k}`),
     announcements: [
-      ...describe(diffDocs(before.announcements, ws.docs.announcements, (v) => v.id!), { from: 'desde', until: 'hasta', link: 'enlace', title: 'título (EN)', text: 'texto (EN)' }, (k) => `Aviso · ${k}`),
-      ...describe(diffDocs(before.notifications, ws.docs.notifications, (v) => v.kind!), { on: 'activa' }, (k) => `Notificación automática · ${k}`),
+      ...describe(diffDocs(before.announcements, ws.docs.announcements, (v) => v.id!), { from: 'from', until: 'until', link: 'link', title: 'title (EN)', text: 'text (EN)' }, (k) => `Announcement · ${k}`),
+      ...describe(diffDocs(before.notifications, ws.docs.notifications, (v) => v.kind!), { on: 'on' }, (k) => `Automatic notification · ${k}`),
     ],
     balance,
     texts,
     basecamp: describe(
       diffDocs(before.basecamp, ws.docs.basecamp, (v) => v.id!),
-      { scene: 'escena', kind: 'tipo', level: 'nivel', price: 'precio', currency: 'moneda', art: 'imagen', action: 'acción', slots: 'huecos', size: 'altura', spot_x: 'punto (x)', spot_y: 'punto (y)', focus: 'recuadro (tienda)', family: 'familia', requires: 'requiere', name: 'nombre (EN)' },
-      (k) => `Base Camp · ${rows(ws.docs.basecamp).find((r) => r.values.id === k)?.values.name_es || k} (${k})`,
+      { scene: 'scene', kind: 'kind', level: 'level', price: 'price', currency: 'currency', art: 'picture', action: 'action', slots: 'slots', size: 'size', spot_x: 'spot (x)', spot_y: 'spot (y)', focus: 'shop frame', family: 'evolution', requires: 'requires', name: 'name (EN)' },
+      (k) => `Base Camp · ${rows(ws.docs.basecamp).find((r) => r.values.id === k)?.values.name || k} (${k})`,
     ),
   }
 }

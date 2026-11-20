@@ -57,10 +57,10 @@ export function RaceMedia({ token, ws, setWs, raceId, segments }: { token: strin
 
   const uploadPhoto = (file: File) =>
     run('photo', async () => {
-      const changes: Record<string, Upload | undefined> = { [racePhotoPath(raceId)]: await asUpload(await photoJpeg(file), `Foto de ${raceId}`) }
+      const changes: Record<string, Upload | undefined> = { [racePhotoPath(raceId)]: await asUpload(await photoJpeg(file), `Photo of ${raceId}`) }
       // Another picture of this race (e.g. .webp) would compete with the new one: it goes.
       for (const other of photos ?? []) {
-        if (other.name.replace(/\.\w+$/, '') === raceId && other.path !== racePhotoPath(raceId)) changes[other.path] = { base64: null, label: `Quitar ${other.name}` }
+        if (other.name.replace(/\.\w+$/, '') === raceId && other.path !== racePhotoPath(raceId)) changes[other.path] = { base64: null, label: `Remove ${other.name}` }
       }
       return withUploads(ws, changes)
     })
@@ -68,17 +68,17 @@ export function RaceMedia({ token, ws, setWs, raceId, segments }: { token: strin
   const uploadClip = (segment: number, file: File) =>
     run(`clip-${segment}`, async () => {
       const bytes = new Uint8Array(await file.arrayBuffer())
-      if (!isMp4(bytes)) throw new Error('Ese archivo no es un vídeo MP4. Expórtalo como MP4 (H.264), por ejemplo desde InShot o CapCut a 720p.')
+      if (!isMp4(bytes)) throw new Error('That file is not an MP4 video. Export it as MP4 (H.264), e.g. from InShot or CapCut at 720p.')
       if (file.size > MAX_VIDEO_BYTES) {
         throw new Error(
-          `El vídeo pesa ${megabytes(file.size)}: Cloudflare no publica archivos de más de 25 MB. Expórtalo a 720p (InShot o CapCut: resolución 720p, calidad media) o pídele a Claude que lo comprima.`,
+          `The video weighs ${megabytes(file.size)}: Cloudflare does not publish files over 25 MB. Export it at 720p (InShot or CapCut: 720p resolution, medium quality) or ask Claude to compress it.`,
         )
       }
       const changes: Record<string, Upload | undefined> = {
-        [clipPath(raceId, segment, 'mp4')]: await asUpload(file, `Vídeo del tramo ${segment} de ${raceId}`),
+        [clipPath(raceId, segment, 'mp4')]: await asUpload(file, `Segment ${segment} video of ${raceId}`),
       }
       try {
-        changes[clipPath(raceId, segment, 'jpg')] = await asUpload(await videoPoster(file), `Póster del tramo ${segment} de ${raceId}`)
+        changes[clipPath(raceId, segment, 'jpg')] = await asUpload(await videoPoster(file), `Segment ${segment} poster of ${raceId}`)
       } catch {
         // No poster: the game shows the video directly.
       }
@@ -87,20 +87,20 @@ export function RaceMedia({ token, ws, setWs, raceId, segments }: { token: strin
 
   return (
     <>
-      <h3>Foto y vídeos</h3>
+      <h3>Photo and videos</h3>
       {error && <p className="error">{error}</p>}
       <div className="media">
         <div className="mediaItem wide">
-          <span className="mediaTitle">Foto de la carrera</span>
+          <span className="mediaTitle">Race photo</span>
           <div className="mediaFrame photo">
-            {photoPending?.previewUrl ? <img src={photoPending.previewUrl} alt="" /> : photoOnMain ? <img src={photoOnMain.url} alt="" /> : <span className="muted">Sin foto: el juego dibuja el paisaje</span>}
+            {photoPending?.previewUrl ? <img src={photoPending.previewUrl} alt="" /> : photoOnMain ? <img src={photoOnMain.url} alt="" /> : <span className="muted">No photo: the game draws the landscape</span>}
           </div>
-          <span className="hint">Foto apaisada (se recorta como una franja ancha). Se guarda como JPEG de 1672 px de ancho.</span>
+          <span className="hint">Landscape photo (cropped to a wide band). Saved as a 1672 px wide JPEG.</span>
           <div className="mediaActions">
-            <Picker accept="image/*" label={busy === 'photo' ? 'Preparando…' : photoOnMain || photoPending ? 'Cambiar foto' : 'Subir foto'} onFile={uploadPhoto} disabled={busy !== null} />
+            <Picker accept="image/*" label={busy === 'photo' ? 'Preparing…' : photoOnMain || photoPending ? 'Change photo' : 'Upload photo'} onFile={uploadPhoto} disabled={busy !== null} />
             {photoPending && (
               <button type="button" className="link" onClick={() => setWs(withUploads(ws, Object.fromEntries(Object.keys(ws.uploads).filter((p) => p.startsWith('assets/ui/races/' + raceId)).map((p) => [p, undefined]))))}>
-                Deshacer
+                Undo
               </button>
             )}
           </div>
@@ -109,8 +109,8 @@ export function RaceMedia({ token, ws, setWs, raceId, segments }: { token: strin
           const pending = ws.uploads[clipPath(raceId, segment, 'mp4')]
           const onMain = clips?.find((f) => f.name === `segment-${segment}.mp4` || f.name === `segment-${segment}.webm`)
           const poster = ws.uploads[clipPath(raceId, segment, 'jpg')]?.previewUrl ?? clips?.find((f) => f.name.startsWith(`segment-${segment}.`) && /\.(jpe?g|webp)$/.test(f.name))?.url
-          const from = segment === 1 ? 'Salida' : `Avituallamiento ${segment - 1}`
-          const to = segment === segments ? 'meta' : `avituallamiento ${segment}`
+          const from = segment === 1 ? 'Start' : `Aid station ${segment - 1}`
+          const to = segment === segments ? 'finish' : `aid station ${segment}`
           return (
             <div className="mediaItem" key={segment}>
               <span className="mediaTitle">
@@ -120,19 +120,19 @@ export function RaceMedia({ token, ws, setWs, raceId, segments }: { token: strin
                 {pending?.previewUrl || onMain ? (
                   <video src={pending?.previewUrl ?? onMain!.url} poster={poster} controls muted playsInline preload="metadata" />
                 ) : (
-                  <span className="muted">Sin vídeo</span>
+                  <span className="muted">No video</span>
                 )}
               </div>
-              {pending?.bytes !== undefined && pending.bytes > LARGE_VIDEO_BYTES && <span className="hint warn">Pesa {megabytes(pending.bytes)}: mejor por debajo de 3 MB (720p).</span>}
+              {pending?.bytes !== undefined && pending.bytes > LARGE_VIDEO_BYTES && <span className="hint warn">It weighs {megabytes(pending.bytes)}: better under 3 MB (720p).</span>}
               <div className="mediaActions">
-                <Picker accept="video/mp4" label={busy === `clip-${segment}` ? 'Preparando…' : onMain || pending ? 'Cambiar vídeo' : 'Subir vídeo'} onFile={(f) => uploadClip(segment, f)} disabled={busy !== null} />
+                <Picker accept="video/mp4" label={busy === `clip-${segment}` ? 'Preparing…' : onMain || pending ? 'Change video' : 'Upload video'} onFile={(f) => uploadClip(segment, f)} disabled={busy !== null} />
                 {pending && (
                   <button
                     type="button"
                     className="link"
                     onClick={() => setWs(withUploads(ws, { [clipPath(raceId, segment, 'mp4')]: undefined, [clipPath(raceId, segment, 'jpg')]: undefined }))}
                   >
-                    Deshacer
+                    Undo
                   </button>
                 )}
               </div>
@@ -140,7 +140,7 @@ export function RaceMedia({ token, ws, setWs, raceId, segments }: { token: strin
           )
         })}
       </div>
-      <p className="hint">Vídeos verticales 9:16 en MP4, de 4 a 8 segundos, idealmente por debajo de 3 MB. El póster se saca solo del vídeo.</p>
+      <p className="hint">Vertical 9:16 MP4 videos, 4 to 8 seconds, ideally under 3 MB. The poster is taken from the video.</p>
     </>
   )
 }

@@ -32,7 +32,7 @@ export async function asUpload(blob: Blob, label: string): Promise<Upload> {
 export async function itemPicture(itemId: string, file: File): Promise<{ path: string; upload: Upload; column: string }> {
   const column = thumbnailFile(itemId)
   const path = thumbnailPath(column)
-  return { path, column, upload: await asUpload(await squarePng(file), `Imagen de tienda de ${itemId}`) }
+  return { path, column, upload: await asUpload(await squarePng(file), `Shop picture of ${itemId}`) }
 }
 
 
@@ -75,18 +75,18 @@ export function layerSources(stem: string): { sex: 'men' | 'women' | null; tone:
 
 /** The button of one source file: "Subir (hombres, tono 2)". */
 export function layerLabel(sex: 'men' | 'women' | null, tone: number | null): string {
-  const parts = [sex === 'men' ? 'hombres' : sex === 'women' ? 'mujeres' : '', tone ? `tono ${tone}` : ''].filter(Boolean)
-  return parts.length ? `Subir (${parts.join(', ')})` : 'Subir imagen'
+  const parts = [sex === 'men' ? 'men' : sex === 'women' ? 'women' : '', tone ? `tone ${tone}` : ''].filter(Boolean)
+  return parts.length ? `Upload (${parts.join(', ')})` : 'Upload picture'
 }
 
 export const layerColumn = (stem: string) => `accessories/${stem}.webp`
 
 /** Checks and prepares a layer upload (refused if it is not a PNG on the runner's canvas). */
 export async function layerPicture(path: string, file: File, label: string): Promise<Upload> {
-  if (file.type !== 'image/png') throw new Error('Tiene que ser un PNG con fondo transparente.')
+  if (file.type !== 'image/png') throw new Error('It must be a PNG with a transparent background.')
   const { width, height } = await imageSize(file)
   if (width !== LAYER_CANVAS.width || height !== LAYER_CANVAS.height) {
-    throw new Error(`Tiene que estar sobre el lienzo del corredor de ${LAYER_CANVAS.width} × ${LAYER_CANVAS.height} (esta mide ${width} × ${height}).`)
+    throw new Error(`It must be on the runner's ${LAYER_CANVAS.width} × ${LAYER_CANVAS.height} canvas (this one is ${width} × ${height}).`)
   }
   void path
   return { base64: await fileBase64(file), previewUrl: URL.createObjectURL(file), label, bytes: file.size }

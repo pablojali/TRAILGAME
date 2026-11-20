@@ -61,7 +61,7 @@ async function loadImage(file: Blob): Promise<HTMLImageElement> {
 }
 
 function canvasBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
-  return new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('No se pudo preparar la imagen'))), type, quality))
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Could not prepare the picture'))), type, quality))
 }
 
 /** A photo as JPEG, at most `maxWidth` wide (keeping its shape). */
@@ -99,7 +99,7 @@ export async function videoPoster(file: Blob): Promise<Blob> {
     video.src = url
     await new Promise<void>((resolve, reject) => {
       video.onloadeddata = () => resolve()
-      video.onerror = () => reject(new Error('El navegador no puede leer este vídeo'))
+      video.onerror = () => reject(new Error('The browser cannot read this video'))
     })
     video.currentTime = Math.min(0.5, (video.duration || 1) / 2)
     await new Promise<void>((resolve) => (video.onseeked = () => resolve()))

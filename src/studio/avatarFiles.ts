@@ -2,8 +2,8 @@
 export const INCOMING = 'assets/runner/incoming'
 
 export const AVATAR_KINDS = [
-  { id: 'bodies', title: 'Cuerpos', live: 'assets/runner/bodies', hint: 'El cuerpo entero, sobre el lienzo transparente de 1024 × 1536 del corredor.' },
-  { id: 'heads', title: 'Caras', live: 'assets/runner/heads', hint: 'La cabeza (cara y pelo), sobre el mismo lienzo, en su sitio sobre el cuerpo.' },
+  { id: 'bodies', title: 'Bodies', live: 'assets/runner/bodies', hint: 'The whole body, on the runner\'s transparent 1024 × 1536 canvas.' },
+  { id: 'heads', title: 'Heads', live: 'assets/runner/heads', hint: 'The head (face and hair), on the same canvas, in its place over the body.' },
 ] as const
 
 /** Biggest PNG accepted (GitHub takes it in one proposal). */

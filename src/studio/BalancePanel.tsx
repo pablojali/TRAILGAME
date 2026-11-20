@@ -3,11 +3,11 @@ import { newRow, replaceRows, rows, updateRow, type CsvRow } from './csvDoc'
 import { BALANCE, validate, type FileId, type Workspace } from './model'
 
 const TITLES: Record<string, string> = {
-  levels: 'Niveles',
-  achievements: 'Desafíos',
-  points: 'Puntos de ranking',
-  raceField: 'Rivales por categoría',
-  npcs: 'Rivales NPC del ranking',
+  levels: 'Levels',
+  achievements: 'Challenges',
+  points: 'Ranking points',
+  raceField: 'Rivals by category',
+  npcs: 'Ranking NPC rivals',
 }
 
 /** The comment lines at the top of a table: its own explanation of the columns. */
@@ -29,7 +29,7 @@ export function BalancePanel({ ws, setWs }: { ws: Workspace; setWs(ws: Workspace
   // Race difficulties are edited with the races.
   const shown = all.filter((r) => !(table === 'points' && r.values.kind === 'race')).filter((r) => !filter || Object.values(r.values).join(' ').toLowerCase().includes(filter.toLowerCase()))
   const base = new Map(rows(ws.docsBase[table]).map((r) => [meta.key(r.values), JSON.stringify(r.values)]))
-  const errors = validate(ws).filter((e) => e.startsWith(TITLES[table]!) || (table === 'points' && e.startsWith('Puntos')) || (table === 'npcs' && e.startsWith('Rivales NPC')))
+  const errors = validate(ws).filter((e) => e.startsWith(TITLES[table]!) || (table === 'points' && e.startsWith('Ranking points')) || (table === 'npcs' && e.startsWith('Ranking NPC')))
 
   const set = (row: CsvRow, column: string, value: string) => setWs({ ...ws, docs: { ...ws.docs, [table]: updateRow(doc, (r) => r === row, { [column]: value }) } })
   const remove = (row: CsvRow) => setWs({ ...ws, docs: { ...ws.docs, [table]: replaceRows(doc, all.filter((r) => r !== row)) } })
@@ -53,12 +53,12 @@ export function BalancePanel({ ws, setWs }: { ws: Workspace; setWs(ws: Workspace
       </nav>
       <section className="editPane">
         <details className="help">
-          <summary>Qué es cada columna</summary>
+          <summary>What each column is</summary>
           {helpOf(ws, table).map((line, i) => (
             <p key={i}>{line}</p>
           ))}
-          {table === 'points' && <p>Las dificultades de cada carrera (filas «race») se cambian en Carreras.</p>}
-          {(table === 'points' || table === 'npcs') && <p>Cambiar esta tabla añade a la propuesta la migración de los rankings: después de publicar, avisa a Claude para aplicarla.</p>}
+          {table === 'points' && <p>Each race's difficulty (the «race» rows) is changed in Races.</p>}
+          {(table === 'points' || table === 'npcs') && <p>Changing this table adds the rankings migration to the proposal: after publishing, tell Claude to apply it.</p>}
         </details>
         {errors.length > 0 && (
           <div className="error">
@@ -67,7 +67,7 @@ export function BalancePanel({ ws, setWs }: { ws: Workspace; setWs(ws: Workspace
             ))}
           </div>
         )}
-        {table === 'npcs' && <input type="search" className="filter" placeholder="Buscar rival (nombre, país, id)…" value={filter} onChange={(e) => setFilter(e.target.value)} />}
+        {table === 'npcs' && <input type="search" className="filter" placeholder="Search rival (name, country, id)…" value={filter} onChange={(e) => setFilter(e.target.value)} />}
         <div className="gridWrap">
           <table className="grid editGrid">
             <thead>
@@ -88,10 +88,10 @@ export function BalancePanel({ ws, setWs }: { ws: Workspace; setWs(ws: Workspace
                   ))}
                   {meta.canAdd && (
                     <td className="rowActions">
-                      <button type="button" className="ghost small" title="Añadir una fila debajo" onClick={() => addAfter(row)}>
+                      <button type="button" className="ghost small" title="Add a row below" onClick={() => addAfter(row)}>
                         +
                       </button>
-                      <button type="button" className="ghost small" title="Quitar la fila" onClick={() => remove(row)}>
+                      <button type="button" className="ghost small" title="Remove the row" onClick={() => remove(row)}>
                         ×
                       </button>
                     </td>

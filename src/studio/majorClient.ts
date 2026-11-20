@@ -53,12 +53,12 @@ export async function majorOps(body: Record<string, unknown>): Promise<MajorCall
   return { ok: false, error: 'network' }
 }
 
-/** "dom, 15 nov 2026, 18:00 UTC · dom, 15:00 hora local". */
+/** "Sun, 15 Nov 2026, 18:00 UTC · Sun 15:00 local time". */
 export function bothTimes(iso: string): string {
   const date = new Date(iso)
-  const utc = date.toLocaleString('es', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-  const local = date.toLocaleString('es', { hour: '2-digit', minute: '2-digit', weekday: 'short' })
-  return `${utc} UTC · ${local} hora local`
+  const utc = date.toLocaleString('en-GB', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const local = date.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', weekday: 'short' })
+  return `${utc} UTC · ${local} local time`
 }
 
 

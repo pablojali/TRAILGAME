@@ -53,7 +53,7 @@ export function CourseEditor({
       const built = buildCourse(parseGpx(await file.text()))
       const json = JSON.stringify(built)
       const next = withUploads(ws, {
-        [coursePath(raceId)]: await asUpload(new Blob([json], { type: 'application/json' }), `Recorrido GPX de ${raceId} (${file.name})`),
+        [coursePath(raceId)]: await asUpload(new Blob([json], { type: 'application/json' }), `GPX course of ${raceId} (${file.name})`),
       })
       const count = Math.min(MAX_SEGMENTS, Math.max(MIN_SEGMENTS, specs?.length ?? defaultSegments))
       const techs = Array.from({ length: count }, (_, i) => specs?.[i]?.technicality ?? fallbackTechnicality)
@@ -65,13 +65,13 @@ export function CourseEditor({
 
   if (!course) {
     return (
-      <section className="segments" aria-label="Recorrido real (GPX)">
+      <section className="segments" aria-label="Real course (GPX)">
         <div className="majorsBar">
-          <h3>Recorrido real (GPX)</h3>
-          <Picker accept=".gpx,application/gpx+xml" label="Subir GPX" onFile={(file) => void upload(file)} />
+          <h3>Real course (GPX)</h3>
+          <Picker accept=".gpx,application/gpx+xml" label="Upload GPX" onFile={(file) => void upload(file)} />
         </div>
         <p className="hint">
-          Sube el GPX de la carrera: el juego saca de él la distancia, el desnivel y el perfil, y los tramos se cortan sobre el perfil.
+          Upload the race's GPX: the game takes the distance, the elevation and the profile from it, and the segments are cut on the profile.
         </p>
         {error && <p className="error">{error}</p>}
       </section>
@@ -95,26 +95,26 @@ export function CourseEditor({
   const line = course.points.map(([km, e]) => `${px(km).toFixed(1)},${py(e).toFixed(1)}`).join(' ')
 
   return (
-    <section className="segments" aria-label="Recorrido real (GPX)">
+    <section className="segments" aria-label="Real course (GPX)">
       <div className="majorsBar">
-        <h3>Recorrido real (GPX)</h3>
-        <Picker accept=".gpx,application/gpx+xml" label="Cambiar GPX" onFile={(file) => void upload(file)} />
+        <h3>Real course (GPX)</h3>
+        <Picker accept=".gpx,application/gpx+xml" label="Change GPX" onFile={(file) => void upload(file)} />
         <button
           type="button"
           className="ghost small"
           onClick={() => {
-            if (window.confirm('¿Quitar el GPX de esta carrera? Los tramos quedan como están, a mano.')) {
-              setWs(withUploads(ws, { [coursePath(raceId)]: raceCourse(raceId) ? { base64: null, label: `Recorrido GPX de ${raceId} (quitado)` } : undefined }))
+            if (window.confirm('Remove this race\'s GPX? The segments stay as they are, by hand.')) {
+              setWs(withUploads(ws, { [coursePath(raceId)]: raceCourse(raceId) ? { base64: null, label: `GPX course of ${raceId} (removed)` } : undefined }))
             }
           }}
         >
-          Quitar GPX
+          Remove GPX
         </button>
       </div>
       {error && <p className="error">{error}</p>}
       <p className="hint">
-        {total.distanceKm} km · D+ {total.gainM} m · D− {total.lossM} m · de {Math.round(low)} a {Math.round(low + Math.max(...ys) - low)} m. Haz clic en el perfil
-        para poner un avituallamiento; cada tramo saca sus km y desnivel del GPX.
+        {total.distanceKm} km · D+ {total.gainM} m · D− {total.lossM} m · from {Math.round(low)} to {Math.round(low + Math.max(...ys) - low)} m. Click the profile
+        to place an aid station; each segment takes its km and elevation from the GPX.
       </p>
       {segs.length === 0 && (
         <button
@@ -125,14 +125,14 @@ export function CourseEditor({
             write(evenCuts(course, count), Array.from({ length: count }, () => fallbackTechnicality))
           }}
         >
-          Cortar en tramos iguales
+          Cut into equal segments
         </button>
       )}
       <svg
         className="profile courseEdit"
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label="Perfil del GPX: clic para añadir un avituallamiento"
+        aria-label="GPX profile: click to add an aid station"
         onClick={(e) => {
           if (segs.length >= MAX_SEGMENTS) return
           const box = e.currentTarget.getBoundingClientRect()
@@ -157,12 +157,12 @@ export function CourseEditor({
         <table className="grid segmentGrid">
           <thead>
             <tr>
-              <th>Tramo</th>
-              <th>Llega a (km)</th>
+              <th>Segment</th>
+              <th>Ends at (km)</th>
               <th>km</th>
               <th>D+ (m)</th>
               <th>D− (m)</th>
-              <th>Técnica</th>
+              <th>Technicality</th>
               <th />
             </tr>
           </thead>
@@ -176,12 +176,12 @@ export function CourseEditor({
                       type="number"
                       inputMode="decimal"
                       step={0.1}
-                      aria-label={`Avituallamiento ${i + 1}: km`}
+                      aria-label={`Aid station ${i + 1}: km`}
                       value={cuts[i]}
                       onChange={(e) => write(cuts.map((c, k) => (k === i ? Number(e.target.value) || c : c)))}
                     />
                   ) : (
-                    <span className="hint">meta ({length.toFixed(1)})</span>
+                    <span className="hint">finish ({length.toFixed(1)})</span>
                   )}
                 </td>
                 <td className="num">{spec.distanceKm}</td>
@@ -189,7 +189,7 @@ export function CourseEditor({
                 <td className="num">{spec.lossM}</td>
                 <td>
                   <select
-                    aria-label={`Tramo ${i + 1}: técnica`}
+                    aria-label={`Segment ${i + 1}: technicality`}
                     value={spec.technicality}
                     onChange={(e) => write(cuts, techs.map((t, k) => (k === i ? Number(e.target.value) : t)))}
                   >
@@ -207,9 +207,9 @@ export function CourseEditor({
                       className="ghost small"
                       disabled={segs.length <= MIN_SEGMENTS}
                       onClick={() => write(cuts.filter((_, k) => k !== i), techs.filter((_, k) => k !== i + 1))}
-                      title="Quita este avituallamiento (une los dos tramos)"
+                      title="Removes this aid station (joins the two segments)"
                     >
-                      Quitar avit.
+                      Remove aid
                     </button>
                   )}
                 </td>
@@ -218,7 +218,7 @@ export function CourseEditor({
           </tbody>
         </table>
         <span className="hint">
-          {segs.length} tramos · {Math.max(0, segs.length - 1)} avituallamientos · {MIN_SEGMENTS}–{MAX_SEGMENTS} tramos
+          {segs.length} segments · {Math.max(0, segs.length - 1)} aid stations · {MIN_SEGMENTS}–{MAX_SEGMENTS} segments
         </span>
       </div>
     </section>

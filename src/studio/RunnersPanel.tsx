@@ -12,21 +12,21 @@ import { filterRunners, runnerStats, sortRunners, type Count, type RunnerKindFil
  */
 export function RunnersPanel() {
   return (
-    <AdminGate title="Corredores">
+    <AdminGate title="Runners">
       <Runners />
     </AdminGate>
   )
 }
 
 const SORTS: Record<RunnerSort, string> = {
-  level: 'Nivel',
-  name: 'Nombre',
-  country: 'País',
-  lastActive: 'Última actividad',
+  level: 'Level',
+  name: 'Name',
+  country: 'Country',
+  lastActive: 'Last active',
 }
 
 const dateText = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
+  iso ? new Date(iso).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 
 function Bars({ title, counts }: { title: string; counts: Count[] }) {
   const max = Math.max(1, ...counts.map((c) => c.players + c.npcs))
@@ -78,13 +78,13 @@ function Runners() {
   return (
     <div className="majors runners">
       <header className="majorsHead">
-        <h2>Corredores</h2>
+        <h2>Runners</h2>
         <span>
           <button type="button" className="ghost small" onClick={() => void load()}>
-            Actualizar
+            Refresh
           </button>{' '}
           <button type="button" className="ghost small" onClick={() => void signOut()}>
-            Salir de la cuenta
+            Sign out
           </button>
         </span>
       </header>
@@ -93,17 +93,17 @@ function Runners() {
           No pude leer los corredores ({error}).
         </p>
       )}
-      {!rows && !error && <p className="loading">Leyendo los corredores…</p>}
+      {!rows && !error && <p className="loading">Reading the runners…</p>}
       {stats && rows && (
         <>
           <div className="runnerTotals">
             <div>
               <b>{stats.players + stats.npcs}</b>
-              <span>corredores</span>
+              <span>runners</span>
             </div>
             <div className="kind-player">
               <b>{stats.players}</b>
-              <span>{stats.players === 1 ? 'jugador' : 'jugadores'} · nivel medio {stats.averageLevel.players ?? '—'}</span>
+              <span>{stats.players === 1 ? 'player' : 'players'} · average level {stats.averageLevel.players ?? '—'}</span>
             </div>
             <div className="kind-npc">
               <b>{stats.npcs}</b>
@@ -114,35 +114,35 @@ function Runners() {
             <p className="warning">Nombres de jugador repetidos: {stats.repeatedNames.join(', ')}.</p>
           )}
           <p className="hint">
-            <span className="legend barPlayers" /> jugadores · <span className="legend barNpcs" /> NPC (cifras: jugadores · NPC)
+            <span className="legend barPlayers" /> players · <span className="legend barNpcs" /> NPC (figures: players · NPC)
           </p>
           <div className="runnerCharts">
-            <Bars title="Por nivel" counts={stats.byLevel} />
+            <Bars title="By level" counts={stats.byLevel} />
             <div>
-              <Bars title="Por país" counts={allCountries ? stats.byCountry : stats.byCountry.slice(0, 10)} />
+              <Bars title="By country" counts={allCountries ? stats.byCountry : stats.byCountry.slice(0, 10)} />
               {stats.byCountry.length > 10 && (
                 <button type="button" className="link" onClick={() => setAllCountries(!allCountries)}>
-                  {allCountries ? 'Ver solo los 10 primeros' : `Ver los ${stats.byCountry.length} países`}
+                  {allCountries ? 'Only the first 10' : `All ${stats.byCountry.length} countries`}
                 </button>
               )}
             </div>
-            <Bars title="Por sexo" counts={stats.bySex} />
+            <Bars title="By sex" counts={stats.bySex} />
           </div>
 
           <section className="editPane">
             <div className="runnerFilters">
               <label>
-                Tipo
+                Kind
                 <select value={kind} onChange={(e) => setKind(e.target.value as RunnerKindFilter)}>
-                  <option value="all">Todos</option>
-                  <option value="PLAYER">Jugadores</option>
+                  <option value="all">All</option>
+                  <option value="PLAYER">Players</option>
                   <option value="NPC">NPC</option>
                 </select>
               </label>
               <label>
-                País
+                Country
                 <select value={country} onChange={(e) => setCountry(e.target.value)}>
-                  <option value="">Todos</option>
+                  <option value="">All</option>
                   {countries.map((c) => (
                     <option key={c} value={c}>
                       {c}
@@ -151,7 +151,7 @@ function Runners() {
                 </select>
               </label>
               <label>
-                Ordenar por
+                Sort by
                 <select value={sort} onChange={(e) => setSort(e.target.value as RunnerSort)}>
                   {Object.entries(SORTS).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -161,25 +161,25 @@ function Runners() {
                 </select>
               </label>
               <label>
-                Buscar
-                <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nombre" />
+                Search
+                <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name" />
               </label>
             </div>
-            <p className="hint">{shown.length === 1 ? '1 corredor' : `${shown.length} corredores`}</p>
+            <p className="hint">{shown.length === 1 ? '1 runner' : `${shown.length} runners`}</p>
             <div className="gridWrap">
               <table className="grid">
                 <thead>
                   <tr>
-                    <th>Corredor</th>
-                    <th>Tipo</th>
-                    <th>País</th>
-                    <th>Sexo</th>
-                    <th className="num">Nivel</th>
+                    <th>Runner</th>
+                    <th>Kind</th>
+                    <th>Country</th>
+                    <th>Sex</th>
+                    <th className="num">Level</th>
                     <th className="num">XP</th>
-                    <th className="num">Monedas</th>
-                    <th className="num">Carreras</th>
-                    <th>Alta</th>
-                    <th>Última actividad</th>
+                    <th className="num">Coins</th>
+                    <th className="num">Races</th>
+                    <th>Joined</th>
+                    <th>Last active</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -187,17 +187,17 @@ function Runners() {
                     <tr key={`${r.kind}-${r.name}-${i}`}>
                       <td>
                         {r.name}
-                        {r.kind === 'PLAYER' && repeated.has(r.name.toLowerCase()) && <span className="tag kind-player"> repetido</span>}
+                        {r.kind === 'PLAYER' && repeated.has(r.name.toLowerCase()) && <span className="tag kind-player"> repeated</span>}
                       </td>
                       <td>
-                        <span className={`tag ${r.kind === 'NPC' ? 'kind-npc' : 'kind-player'}`}>{r.kind === 'NPC' ? 'NPC' : 'Jugador'}</span>
+                        <span className={`tag ${r.kind === 'NPC' ? 'kind-npc' : 'kind-player'}`}>{r.kind === 'NPC' ? 'NPC' : 'Player'}</span>
                       </td>
                       <td>{r.country ?? '—'}</td>
-                      <td>{r.sex === 'male' ? 'H' : r.sex === 'female' ? 'M' : '—'}</td>
+                      <td>{r.sex === 'male' ? 'M' : r.sex === 'female' ? 'F' : '—'}</td>
                       <td className="num">{r.level}</td>
                       <td className="num">{r.xp}</td>
                       <td className="num">{r.coins ?? '—'}</td>
-                      <td className="num">{r.kind === 'NPC' ? `${r.racesPerWeek}/sem.` : r.racesFinished}</td>
+                      <td className="num">{r.kind === 'NPC' ? `${r.racesPerWeek}/wk` : r.racesFinished}</td>
                       <td>{dateText(r.createdAt)}</td>
                       <td>{dateText(r.lastActiveAt)}</td>
                     </tr>

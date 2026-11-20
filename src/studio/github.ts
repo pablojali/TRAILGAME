@@ -179,7 +179,7 @@ export async function createProposal(
     body: JSON.stringify({ title, body, head: branch, base: 'main' }),
   })
   const proposal = await proposalOf(token, pull)
-  if (!proposal) throw new GitHubError(409, 'la propuesta se cerró al crearla')
+  if (!proposal) throw new GitHubError(409, 'the proposal was closed when created')
   return proposal
 }
 

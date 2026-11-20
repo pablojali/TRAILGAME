@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { layerColumn, layerLabel, layerSources, layerStem } from './uploads'
 
-describe('runner layer uploads (Studio › Equipamiento)', () => {
+describe('runner layer uploads (Studio › Equipment)', () => {
   it('keeps the name the item already has, with or without folder and extension', () => {
     expect(layerStem('poles-2', 'poles', '2', 'accessories/lvl2_poles_01')).toBe('lvl2_poles_01')
     expect(layerStem('poles-2', 'poles', '2', 'accessories/lvl2_poles_01.webp')).toBe('lvl2_poles_01')
@@ -24,7 +24,7 @@ describe('runner layer uploads (Studio › Equipamiento)', () => {
     expect(cap).toHaveLength(8)
     expect(cap[0]).toEqual({ sex: 'men', tone: 1, path: 'assets/runner/accesories/lvl4_men_cap_cap-red_tone1.png' })
     expect(cap[7]!.path).toBe('assets/runner/accesories/lvl4_women_cap_cap-red_tone4.png')
-    expect(layerLabel('women', 3)).toBe('Subir (mujeres, tono 3)')
+    expect(layerLabel('women', 3)).toBe('Upload (women, tone 3)')
     expect(layerStem('watch-1', 'watch', '5', '')).toBe('lvl5_{sex}_watch_watch-1')
     expect(layerColumn('lvl2_poles_01')).toBe('accessories/lvl2_poles_01.webp')
   })

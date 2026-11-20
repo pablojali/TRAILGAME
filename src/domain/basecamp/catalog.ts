@@ -55,8 +55,9 @@ export interface CampItem {
    */
   focus?: { x: number; y: number; zoom: number }
   /**
-   * Evolutions (owner design, 20 November 2026): pieces of the same family (e.g. "firepit") are
-   * levels of one thing: one in use at a time, the next one replacing the last.
+   * Evolutions (owner design, 20 November 2026): pieces of the same family (e.g. "desert-house")
+   * are levels of one thing: one object in use at a time, the next one replacing the last. A
+   * background may be a family's first level (the scene its objects are drawn over).
    */
   family?: string
   /** Pieces the player must own before buying this one (e.g. the firepit lvl 2 needs the house lvl 1). */
@@ -92,7 +93,6 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
     const item: CampItem = { id: row.id, scene, kind, level, price, currency, art: row.art, label: row.name || row.id }
     if (row.family) {
       if (!ID.test(row.family)) throw new Error(`${where}: family must be lower case letters, digits and -`)
-      if (kind !== 'decor' && kind !== 'upgrade') throw new Error(`${where}: only decor and upgrades have a family`)
       item.family = row.family
     }
     if (row.requires) item.requires = [...new Set(row.requires.split(/[\s|]+/).filter(Boolean))]

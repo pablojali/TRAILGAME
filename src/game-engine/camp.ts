@@ -149,8 +149,9 @@ export function missingRequired(state: CampHolder, item: CampItem): CampItem[] {
   return (item.requires ?? []).map((id) => getCampItem(id)).filter((other): other is CampItem => !!other && !ownsCampItem(state, other))
 }
 
-/** Same family (an evolution of the same thing) in the same scene: only one in use. */
-const sameFamily = (a: CampItem, b: CampItem) => !!a.family && a.family === b.family && a.scene === b.scene
+/** Same family (an evolution of the same thing) in the same scene: only one object in use. */
+// A background in a family is its first level: it stays under the objects (one background per scene anyway).
+const sameFamily = (a: CampItem, b: CampItem) => !!a.family && a.family === b.family && a.scene === b.scene && a.kind !== 'background' && b.kind !== 'background'
 
 function ownsBase(state: GameState, upgrade: CampItem): boolean {
   const base = getCampItem(upgrade.base ?? '')

@@ -7,8 +7,23 @@ const HEADER = 'moment,step,trigger,after,unless,targets,tap,title,text,title_es
 
 describe('coach moments table (owner table, 9 November 2026)', () => {
   it('reads the owner table: moments in order, steps, targets, taps and texts with English as fallback', () => {
-    expect(MOMENTS.map((m) => m.id)).toEqual(['dashboard', 'training', 'first-week', 'race-list', 'race-prep', 'first-race', 'career'])
-    const dashboard = MOMENTS[0]!
+    expect(MOMENTS.map((m) => m.id)).toEqual([
+      'camp-inside',
+      'camp-gear-place',
+      'camp-gear-open',
+      'first-gear',
+      'first-gear-card',
+      'first-gear-equip',
+      'gear-done',
+      'dashboard',
+      'training',
+      'first-week',
+      'race-list',
+      'race-prep',
+      'first-race',
+      'career',
+    ])
+    const dashboard = MOMENTS.find((m) => m.id === 'dashboard')!
     expect(dashboard.trigger).toBe('open-dashboard')
     expect(dashboard.steps.map((s) => [s.targets, s.click])).toEqual([[['attributes'], false], [['condition'], false], [['nav-training', 'go-training'], true]])
     expect(dashboard.steps[0]!.title.es).toBe('Tus atributos')

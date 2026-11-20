@@ -131,7 +131,7 @@ export function CampVisitScreen({ service = getCampService() }: { service?: Camp
           </span>
         )}
       </header>
-      <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.picture} layers={[scene.cabin]} objects={scene.placed} focus={focus}>
+      <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.background} layers={[scene.picture === scene.background ? null : scene.picture, scene.cabin, ...scene.decor]} focus={focus}>
         {view === 'exterior' ? <ExteriorAmbience picture={scene.picture} /> : <InteriorAmbience picture={scene.picture} />}
         {/* The owner's game is open: a lamp lit over the door (owner design, 18 November 2026). */}
         {view === 'exterior' && shown.online && door && (

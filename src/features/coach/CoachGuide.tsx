@@ -18,8 +18,8 @@ interface Box {
 /** Room left around a highlighted element. */
 const PAD = 6
 
-/** Height the speech panel needs beside a highlight (px); with less, it goes to the bottom. */
-const PANEL_ROOM = 230
+/** Height the (compact) speech panel needs beside a highlight (px); with less, it goes to the bottom. */
+const PANEL_ROOM = 170
 
 /**
  * Where the marked elements are on screen (visible ones only), re-measured as the layout moves.
@@ -71,9 +71,9 @@ function outsidePath(boxes: Box[]): string {
  */
 export function CoachGuide() {
   const { phase, setCoachProgress } = useGame()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const state = phase.kind === 'playing' ? phase.state : null
-  const moment = state ? currentMoment(state, pathname) : null
+  const moment = state ? currentMoment(state, pathname, undefined, search) : null
   return state && moment ? <Guide key={moment.id} moment={moment} progress={state.coach!} setProgress={setCoachProgress} sex={state.athlete.sex} skin={state.athlete.appearance.skin} /> : null
 }
 

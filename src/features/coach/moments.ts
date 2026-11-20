@@ -82,7 +82,7 @@ export const MOMENTS: readonly CoachMoment[] = parseCoachMoments(coachCsv)
 export const MOMENT_IDS: readonly string[] = MOMENTS.map((moment) => moment.id)
 
 /** The moment to show now, if any. Careers from before the coach (no progress) get none. */
-export function currentMoment(state: GameState, pathname: string, moments: readonly CoachMoment[] = MOMENTS): CoachMoment | null {
+export function currentMoment(state: GameState, pathname: string, moments: readonly CoachMoment[] = MOMENTS, search = ''): CoachMoment | null {
   const coach = state.coach
   if (!coach?.welcomeDone) return null
   const seen = new Set(coach.seen ?? [])
@@ -92,7 +92,7 @@ export function currentMoment(state: GameState, pathname: string, moments: reado
         !seen.has(m.id) &&
         m.after.every((id) => seen.has(id)) &&
         !m.unless.some((id) => seen.has(id)) &&
-        COACH_TRIGGERS[m.trigger]!.applies(state, pathname),
+        COACH_TRIGGERS[m.trigger]!.applies(state, pathname, search),
     ) ?? null
   )
 }

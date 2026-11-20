@@ -23,6 +23,7 @@ const base = {
   announcements: (await import('../data/announcements.csv?raw')).default,
   basecamp: (await import('../data/basecamp.csv?raw')).default,
   economy: (await import('../data/economy.csv?raw')).default,
+  notifications: (await import('../data/notifications.csv?raw')).default,
 }
 
 function edit(ws: Workspace, id: FileId, key: (v: Record<string, string>) => boolean, changes: Record<string, string>): Workspace {

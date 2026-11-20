@@ -116,7 +116,7 @@ export type CareerOpRequest =
   | ({ action: 'claim'; operationId: string } & WithSnapshot)
   /** Base Camp (16 November 2026): a piece bought at the price and currency the player saw. */
   | ({ action: 'camp-buy'; operationId: string; itemId: string; price: number; currency: Currency } & WithSnapshot)
-  /** `slot` (decor): which of the background's places (1 to 4); without it, the first empty one. */
+  /** `slot`: from when decor had places (before 20 November 2026); accepted and ignored. */
   | ({ action: 'camp-use'; operationId: string; itemId: string; used: boolean; slot?: number } & WithSnapshot)
   /** `amount` Premium Coins for coins, at the rate (coins per Premium Coin) the player saw. */
   | ({ action: 'premium-exchange'; operationId: string; amount: number; rate: number } & WithSnapshot)
@@ -285,7 +285,7 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       return { ok: true, state: bought.state }
     }
     case 'camp-use': {
-      const changed = setCampItemUsed(career, request.itemId, request.used, request.slot)
+      const changed = setCampItemUsed(career, request.itemId, request.used)
       if (!changed.ok) return { ok: false, error: changed.error }
       return { ok: true, state: changed.state }
     }

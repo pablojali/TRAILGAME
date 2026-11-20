@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { Link, useSearchParams } from 'react-router'
 import { useCareer } from '../../app/game/gameContext'
 import type { CampAction, CampItem, CampScene } from '../../domain/basecamp/catalog'
-import { campScene, campSpots, type CampSpot, type PlacedDecor } from '../../game-engine/camp'
+import { campScene, campSpots, type CampSpot } from '../../game-engine/camp'
 import { useI18n, type MessageKey } from '../../i18n/i18n'
 import styles from './BaseCamp.module.css'
 import { artRatio, campArt } from './campArt'
@@ -99,7 +99,6 @@ export function BaseCampScreen() {
   const { t } = useI18n()
   const { state } = useCareer()
   const [params, setParams] = useSearchParams()
-  const [shopOpen, setShopOpen] = useState(false)
   const [mailOpen, setMailOpen] = useState(false)
   // The friends list opens from its button, or from the Inbox (`?friends=1`).
   const [friendsOpen, setFriendsOpen] = useState(false)
@@ -115,6 +114,10 @@ export function BaseCampScreen() {
   const requests = Array.isArray(friends) ? friends.filter((f) => f.relation === 'incoming').length : 0
   const view: CampScene = params.get('view') === 'interior' ? 'interior' : 'exterior'
   const show = (next: CampScene) => setParams(next === 'interior' ? { view: 'interior' } : {}, { replace: true })
+  // Customize is open while the URL says so (`?customize=1`), so the coach can guide inside it.
+  const shopOpen = params.get('customize') === '1'
+  const setShopOpen = (open: boolean) =>
+    setParams({ ...(view === 'interior' ? { view: 'interior' } : {}), ...(open ? { customize: '1' } : {}) }, { replace: true })
   const scene = campScene(state, view)
   const spots = campSpots(state, view)
   // The scene opens on the door outside; inside, on the gear button if there is one, else at the left.
@@ -137,7 +140,7 @@ export function BaseCampScreen() {
         <h1 id="basecamp-title" className={styles.title}>
           {t('basecamp.title')}
         </h1>
-        <button type="button" className={styles.customize} onClick={() => setShopOpen(true)}>
+        <button type="button" className={styles.customize} data-coach="camp-customize" onClick={() => setShopOpen(true)}>
           {t('basecamp.customize')}
         </button>
         <button
@@ -155,7 +158,7 @@ export function BaseCampScreen() {
         </button>
       </header>
 
-      <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.picture} layers={[scene.cabin]} objects={scene.placed} focus={focus?.x ?? 0}>
+      <Panorama key={`${view}:${scene.picture.id}`} scene={view} background={scene.background} layers={[scene.picture === scene.background ? null : scene.picture, scene.cabin, ...scene.decor]} focus={focus?.x ?? 0}>
         {view === 'exterior' ? (
           <ExteriorAmbience picture={scene.picture} />
         ) : (
@@ -168,7 +171,10 @@ export function BaseCampScreen() {
       <p className={styles.hint} aria-hidden="true">
         {t('basecamp.swipe')}
       </p>
-      {shopOpen && <CampShop scene={view} onClose={() => setShopOpen(false)} />}
+      {/* Inside without the gear stand: Customize opens on the objects, where it is (owner request, 19 November 2026). */}
+      {shopOpen && (
+        <CampShop scene={view} initialKind={view === 'interior' && !spots.some((s) => s.action === 'gear') ? 'decor' : undefined} onClose={() => setShopOpen(false)} />
+      )}
       {mailOpen && <Mailbox onClose={() => setMailOpen(false)} />}
       {friendsOpen && <FriendsSheet onClose={() => setFriendsOpen(false)} />}
     </section>
@@ -192,7 +198,7 @@ function SpotButton({ spot, onAct }: { spot: CampSpot; onAct(action: CampAction)
       {!onObject && <span className={styles.spotLabel}>{label}</span>}
     </>
   )
-  const named = onObject ? { 'aria-label': label, title: label } : {}
+  const named = { ...(onObject ? { 'aria-label': label, title: label } : {}), ...(spot.action === 'gear' ? { 'data-coach': 'camp-gear' } : {}) }
   return path ? (
     <Link to={path} className={className} style={at(spot)} {...named}>
       {content}
@@ -303,15 +309,13 @@ export function Panorama({
   scene,
   background,
   layers,
-  objects,
   focus,
   children,
 }: {
   scene: CampScene
   background: CampItem
+  /** Pictures on the same canvas, drawn in order over the background: an upgrade, the cabin, the decor. */
   layers: (CampItem | null)[]
-  /** Decor standing in the background's slots: drawn with its base on the slot's point. */
-  objects: PlacedDecor[]
   focus: number
   children: ReactNode
 }) {
@@ -358,18 +362,18 @@ export function Panorama({
         />
         {layers.map((item) => {
           const src = item && campArt(item)
-          return src ? <img key={item.id} className={styles.layer} src={src} alt="" draggable={false} /> : null
-        })}
-        {objects.map(({ item, at }) => {
-          const src = campArt(item)
+          // A picture not on the scene's canvas (an old cut-out object) is not shown: it would be stretched.
           return src ? (
             <img
               key={item.id}
-              className={styles.object}
+              className={styles.layer}
               src={src}
               alt=""
               draggable={false}
-              style={{ left: `${at.x * 100}%`, top: `${at.y * 100}%`, height: `${(item.size ?? 0.2) * at.scale * 100}%` }}
+              onLoad={(e) => {
+                const { naturalWidth: w, naturalHeight: h } = e.currentTarget
+                if (w > 0 && h > 0 && Math.abs(w / h - ratio) / ratio > 0.03) e.currentTarget.style.visibility = 'hidden'
+              }}
             />
           ) : null
         })}

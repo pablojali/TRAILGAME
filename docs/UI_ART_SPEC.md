@@ -63,7 +63,7 @@ same canvas (16 November 2026):
 | --- | --- | --- |
 | background | the whole scene behind | JPG or PNG, 3200 × 1600 outside, 2600 × 1600 inside |
 | cabin | the cabin, over the background | PNG with transparency, on its scene's canvas |
-| decor | objects placed in slots | cut-out PNG with transparency, up to 2400 px per side |
+| decor | objects (gear stand, mailbox, firepit…), any number at once | PNG transparent but for the object, on its scene's canvas |
 
 - The pieces are listed in `src/data/basecamp.csv` (edited in Trail Studio › Multimedia › Base
   Camp): scene, kind, player level that unlocks it, price, currency (coins or Premium Coins), the
@@ -91,8 +91,9 @@ same canvas (16 November 2026):
   pieces are stretched over it, so new pieces should go with 3200 × 1600 backgrounds.
 - The player buys pieces in Base Camp › Personalizar (server-decided, career-ops `camp-buy`), then
   puts them in the scene or takes them out (`camp-use`): one background and one cabin per scene,
-  any decor, and one upgrade per background (drawn instead of the background's picture, with the
-  background's button and slots; choosing it brings its background into the scene). Coins are exchanged for Premium Coins there (`premium-exchange`, one way, at
+  any decor (one per family), and one upgrade per background (drawn over the background, with the
+  background's button; choosing it brings its background into the scene). A piece that requires
+  others (`requires`) is sold once the player owns them. Coins are exchanged for Premium Coins there (`premium-exchange`, one way, at
   `coins_per_premium` in `src/data/economy.csv`). Premium Coins for real money are not part of it
   yet.
 - Visiting (17 November 2026): another runner's name in the rankings or a Major's standings
@@ -139,15 +140,17 @@ same canvas (16 November 2026):
   `src/data/basecamp_exclusive.csv`, same columns, out of Trail Studio. They are never sold or
   shown in the shop to anyone without them; career-ops gives them to the admins (`major_admins`)
   when their career is created, saved or changed. Their pictures go in the same source folder.
-- A new career chooses its refuge first (coach welcome, 16 November 2026): the free exterior
-  backgrounds with a picture (and an admin's exclusive ones), shown behind the coach; the welcome
-  then happens in the chosen refuge and ends in Base Camp. Skip leaves the default refuge and opens
-  the Dashboard.
-- Slots (owner request, 16 November 2026): each background has up to 4 places for objects
-  (`slots`: `x:y:scale|…`, the point an object stands on and its size there), numbered 1 to 4 in
-  every background of the scene. Decor is a cut-out object (PNG, transparent, any size up to 2400
-  px per side) with a `size` (its height as a share of the picture's height at scale 1); the player
-  chooses which slot it stands in (Base Camp › Personalizar), and an object with an action carries
-  its button on itself. Free objects fill the empty slots in table order until the player takes
-  them out. The placement is kept by slot number (`camp.slots`, "scene:n"), so changing background
-  keeps each object in the same numbered place; a background with fewer slots hides the rest.
+- A new career meets the coach in its Base Camp (coach welcome, 19 November 2026): first the empty
+  refuge alone for 3 seconds (a tap skips the wait), the owner's picture `assets/ui/backgrounds/
+  empty-camp.{webp,jpg,png}` when there is one, else the default refuge grey and dim; then the coach
+  comes in and says what it is; then the player
+  chooses the refuge (the free exterior backgrounds with a picture, and an admin's exclusive ones),
+  which comes to life, and the welcome goes inside it. There the coach's moments go on: Customize
+  to improve the refuge, the gear button, the starter shoes (level 0) put on, then the Dashboard
+  (`camp-inside`, `first-gear…`, `gear-done` in coach_moments.csv; new careers only). Skip leaves
+  the default refuge and opens the Dashboard.
+- Objects (owner design, 20 November 2026; slots before): decor is a picture on the scene's whole
+  canvas, transparent but for the object, drawn over the background; the player puts in any
+  number at once (one per `family`: evolutions replace each other). An object with an action has
+  its button at the centre of its shop frame (`focus`). Saves from the slot days keep the placed
+  objects in use (`camp.slots` is read once and dropped).

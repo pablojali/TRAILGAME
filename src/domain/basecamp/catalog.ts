@@ -5,7 +5,8 @@ import { ITEM_LANGUAGES, type ItemLanguage } from '../equipment/items'
 
 /**
  * Base Camp pieces (owner design, 16 November 2026): the player's cabin is built from layers on
- * the same canvas, a background, a cabin over it and decor (seats, banners, flags…) over both.
+ * the same canvas, a background, a cabin over it and decor (seats, banners, flags…) over both;
+ * since 20 November 2026 decor too is a whole-canvas picture, transparent but for the object.
  * Every piece is unlocked by the player's level and bought with coins or Premium Coins; the level 0
  * free backgrounds are everyone's from the start. The owner edits the table in Trail Studio.
  */
@@ -29,18 +30,6 @@ export const CAMP_SCENES: readonly CampScene[] = ['exterior', 'interior']
 export const CAMP_KINDS: readonly CampKind[] = ['background', 'upgrade', 'cabin', 'decor']
 export const CURRENCIES: readonly Currency[] = ['coins', 'premium']
 
-/** A place for decor on a background (owner request, 16 November 2026): where an object stands. */
-export interface CampSlot {
-  /** Shares of the picture: the point the object stands on (its bottom centre). */
-  x: number
-  y: number
-  /** The object's size there (1 = normal; smaller far away, bigger close). */
-  scale: number
-}
-
-/** Most decor places a background can have. */
-export const MAX_SLOTS = 4
-
 export interface CampItem {
   id: string
   scene: CampScene
@@ -54,18 +43,24 @@ export interface CampItem {
   /** What tapping the piece does, and where its button sits (shares of the picture). */
   action?: CampAction
   spot?: { x: number; y: number }
-  /** Backgrounds: the places where the player can put decor, numbered 1 to 4 in order. */
-  slots?: CampSlot[]
-  /** Decor: the object's height as a share of the picture's height at scale 1. */
-  size?: number
   /**
    * Upgrades (owner design, 17 November 2026): the background this piece redraws. An upgrade is a
    * whole picture on the same canvas (a new stove, another cabin) that keeps its background's
    * button and slots; the player shows one upgrade of a background at a time, or none.
    */
   base?: string
-  /** Upgrades: what the shop shows of the picture (the part that changes), centre and zoom. */
+  /**
+   * Upgrades and decor: what the shop shows of the picture (the part that changes, the object),
+   * centre and zoom. A decor object's button sits at its centre.
+   */
   focus?: { x: number; y: number; zoom: number }
+  /**
+   * Evolutions (owner design, 20 November 2026): pieces of the same family (e.g. "firepit") are
+   * levels of one thing: one in use at a time, the next one replacing the last.
+   */
+  family?: string
+  /** Pieces the player must own before buying this one (e.g. the firepit lvl 2 needs the house lvl 1). */
+  requires?: string[]
   /** English name. */
   label: string
   names?: Partial<Record<ItemLanguage, string>>
@@ -95,6 +90,12 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
     if (level < 0 || price < 0) throw new Error(`${where}: level and price cannot be negative`)
     if (!row.art || !ART.test(row.art)) throw new Error(`${where}: art must be a file name (lower case letters, digits, - and _)`)
     const item: CampItem = { id: row.id, scene, kind, level, price, currency, art: row.art, label: row.name || row.id }
+    if (row.family) {
+      if (!ID.test(row.family)) throw new Error(`${where}: family must be lower case letters, digits and -`)
+      if (kind !== 'decor' && kind !== 'upgrade') throw new Error(`${where}: only decor and upgrades have a family`)
+      item.family = row.family
+    }
+    if (row.requires) item.requires = [...new Set(row.requires.split(/[\s|]+/).filter(Boolean))]
     if (row.spot_x || row.spot_y) {
       const x = csvNumber(row.spot_x, where)
       const y = csvNumber(row.spot_y, where)
@@ -105,46 +106,37 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
       if (!CAMP_ACTIONS.includes(row.action as CampAction)) throw new Error(`${where}: unknown action "${row.action}" (${CAMP_ACTIONS.join(', ')})`)
       item.action = row.action as CampAction
     }
-    // Decor is a cut-out object the player places in a slot: its button sits on the object itself.
+    const readFocus = () => {
+      if (!row.focus) return
+      const [x, y, zoom] = row.focus.split(':').map(Number)
+      if (![x, y].every((n) => Number.isFinite(n) && n! >= 0 && n! <= 1) || !(Number.isFinite(zoom) && zoom! >= 1 && zoom! <= 8)) {
+        throw new Error(`${where}: focus is x:y:zoom (x and y from 0 to 1, zoom from 1 to 8)`)
+      }
+      item.focus = { x: x!, y: y!, zoom: zoom! }
+    }
+    // Upgrades and decor are whole pictures on the scene's canvas, drawn over the background (owner
+    // design, 17 and 20 November 2026): no places. The old slots and size columns are ignored.
     if (kind === 'upgrade') {
-      if (row.action || item.spot || row.slots || row.size) throw new Error(`${where}: an upgrade keeps its background's button and slots (no action, spot, slots or size)`)
+      if (row.action || item.spot) throw new Error(`${where}: an upgrade keeps its background's button (no action or spot)`)
       if (!row.base) throw new Error(`${where}: an upgrade needs base (the background it redraws)`)
       item.base = row.base
-      if (row.focus) {
-        const [x, y, zoom] = row.focus.split(':').map(Number)
-        if (![x, y].every((n) => Number.isFinite(n) && n! >= 0 && n! <= 1) || !(Number.isFinite(zoom) && zoom! >= 1 && zoom! <= 8)) {
-          throw new Error(`${where}: focus is x:y:zoom (x and y from 0 to 1, zoom from 1 to 8)`)
-        }
-        item.focus = { x: x!, y: y!, zoom: zoom! }
-      }
+      readFocus()
       return finishItem(item, row, options)
     }
-    if (row.base || row.focus) throw new Error(`${where}: only upgrades have base and focus`)
+    if (row.base) throw new Error(`${where}: only upgrades have base`)
     if (kind === 'decor') {
-      if (item.spot) throw new Error(`${where}: decor has no spot_x and spot_y (its button sits on the object)`)
-      item.size = row.size ? csvNumber(row.size, where) : 0.2
-      if (!(item.size >= 0.02 && item.size <= 0.9)) throw new Error(`${where}: size goes from 0.02 to 0.9 (share of the picture's height)`)
-    } else {
-      if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`)
-      if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`)
-      if (row.size) throw new Error(`${where}: only decor has a size`)
+      // Its button sits where its thumbnail points (the focus centre).
+      if (item.spot) throw new Error(`${where}: decor has no spot_x and spot_y (its button sits at its focus)`)
+      readFocus()
+      return finishItem(item, row, options)
     }
+    if (row.focus) throw new Error(`${where}: only upgrades and decor have focus`)
+    if (item.action && !item.spot) throw new Error(`${where}: an action needs spot_x and spot_y`)
+    if (!item.action && item.spot) throw new Error(`${where}: spot_x and spot_y need an action`)
     // The house is part of each background (owner, 16 November 2026): every exterior background
     // has its door. An interior background has any button, or none.
     if (kind === 'background' && ESSENTIAL_ACTION[scene] && item.action !== ESSENTIAL_ACTION[scene]) {
       throw new Error(`${where}: a ${scene} background needs the ${ESSENTIAL_ACTION[scene]} action and its spot`)
-    }
-    if (row.slots) {
-      if (kind !== 'background') throw new Error(`${where}: only backgrounds have slots`)
-      const slots = row.slots.split('|').map((part) => {
-        const [x, y, scale] = part.split(':').map(Number)
-        if (![x, y].every((n) => Number.isFinite(n) && n! >= 0 && n! <= 1) || !(Number.isFinite(scale) && scale! >= 0.2 && scale! <= 3)) {
-          throw new Error(`${where}: each slot is x:y:scale (x and y from 0 to 1, scale from 0.2 to 3)`)
-        }
-        return { x: x!, y: y!, scale: scale! }
-      })
-      if (slots.length > MAX_SLOTS) throw new Error(`${where}: at most ${MAX_SLOTS} slots`)
-      item.slots = slots
     }
     return finishItem(item, row, options)
   })
@@ -152,6 +144,12 @@ export function parseCampCatalog(text: string, options: { exclusive?: boolean } 
   for (const item of items) {
     if (ids.has(item.id)) throw new Error(`${file}: id ${item.id} is repeated`)
     ids.add(item.id)
+  }
+  for (const item of items) {
+    for (const id of item.requires ?? []) {
+      if (id === item.id) throw new Error(`${file}: ${item.id} cannot require itself`)
+      if (!options.exclusive && !items.some((other) => other.id === id)) throw new Error(`${file}: ${item.id} requires unknown piece ${id}`)
+    }
   }
   for (const item of items) {
     if (item.kind !== 'upgrade') continue
@@ -212,6 +210,24 @@ export function defaultBackground(scene: CampScene): CampItem {
 /** The upgrades of a background. */
 export function campUpgrades(background: CampItem): CampItem[] {
   return CAMP_ITEMS.filter((item) => item.kind === 'upgrade' && item.base === background.id)
+}
+
+/**
+ * The background an object is tied to (owner design, 20 November 2026): the background of its scene
+ * it requires, directly or through the pieces it requires (a house lvl 2 requires the house lvl 1,
+ * which requires the River refuge). A tied object is only drawn over that background.
+ */
+export function tiedBackground(item: CampItem, seen: Set<string> = new Set()): CampItem | undefined {
+  for (const id of item.requires ?? []) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    const other = BY_ID.get(id)
+    if (!other || other.scene !== item.scene) continue
+    if (other.kind === 'background') return other
+    const found = tiedBackground(other, seen)
+    if (found) return found
+  }
+  return undefined
 }
 
 export function campItemName(item: CampItem, language: string): string {

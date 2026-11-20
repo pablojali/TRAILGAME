@@ -12,6 +12,7 @@ import type { AttributeId, Sex } from '../../domain/athlete/athlete'
 import { useI18n, type Locale, type MessageKey, type Translate } from '../../i18n/i18n'
 import {
   EQUIPMENT_ITEMS,
+  OWNED_FROM_START,
   getEquipmentItem,
   consumableKinds,
   isConsumable,
@@ -326,6 +327,7 @@ function EquippedTab({ onOpen }: { onOpen(slot: EquipmentSlot): void }) {
               <button
                 type="button"
                 className={`${styles.slotBox} ${worn ? styles.slotWorn : ''}`}
+                data-coach={id === 'shoes' ? 'gear-shoes' : undefined}
                 aria-label={t('equipment.slotBox', {
                   slot: label,
                   item: worn ? itemDisplayName(worn, locale, t) : t('equipment.empty'),
@@ -443,6 +445,7 @@ export function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId:
     <button
       type="button"
       className={styles.card}
+      data-coach={OWNED_FROM_START.includes(item.id) ? 'gear-starter' : undefined}
       aria-label={`${itemDisplayName(item, locale, t)}, ${priceText}${isConsumable(item) ? `, ${itemStockText(item, state.consumables, t)}` : ''}, ${status.text}`}
       onClick={() => onOpen(item.id)}
     >
@@ -597,6 +600,7 @@ export function ItemDetail({
           <button
             type="button"
             className={`${button.button} ${button.primary}`}
+            data-coach="gear-equip"
             aria-disabled={busy !== null || undefined}
             onClick={(event) =>
               !isRepeatClick(event) &&

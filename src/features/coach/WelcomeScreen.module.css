@@ -12,9 +12,36 @@
   padding: calc(var(--space-3) + env(safe-area-inset-top)) calc(var(--space-4) + env(safe-area-inset-right))
     calc(var(--space-4) + env(safe-area-inset-bottom)) calc(var(--space-4) + env(safe-area-inset-left));
   background-color: var(--color-charcoal-950);
+  overflow: hidden;
+}
+
+/* The refuge behind the coach (under the darkening layer). */
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background-position: center 30%;
   background-size: cover;
-  overflow: hidden;
+  transition: filter 1.2s ease;
+}
+
+/* The empty Base Camp, before the player chooses it (owner request, 19 November 2026). */
+.desolate {
+  filter: grayscale(0.9) brightness(0.7) contrast(0.95);
+}
+
+/* The first seconds: the empty refuge alone, without the darkening; then the coach comes in. */
+.welcome::before {
+  transition: opacity 1s ease;
+}
+
+.intro::before {
+  opacity: 0.25;
+}
+
+.stage[hidden],
+.panel[hidden] {
+  display: none;
 }
 
 /* Darkens the scene towards the panel, with a warm sunset glow behind the coach. */
@@ -24,7 +51,7 @@
   inset: 0;
   background:
     radial-gradient(ellipse 70% 40% at 50% 42%, rgb(240 124 42 / 0.22), transparent 70%),
-    linear-gradient(to bottom, rgb(8 12 10 / 0.55) 0%, rgb(8 12 10 / 0.1) 30%, rgb(12 26 18 / 0.75) 62%, rgb(8 12 10 / 0.95) 100%);
+    linear-gradient(to bottom, rgb(8 12 10 / 0.35) 0%, rgb(8 12 10 / 0) 18%, rgb(8 12 10 / 0) 55%, rgb(12 26 18 / 0.7) 80%, rgb(8 12 10 / 0.92) 100%);
   pointer-events: none;
 }
 
@@ -93,8 +120,9 @@
   display: block;
   width: auto;
   height: 100%;
-  max-width: min(100%, 420px);
-  max-height: 480px;
+  max-width: min(100%, 320px);
+  /* Small (owner request, 19 November 2026): the refuge behind stays in view. */
+  max-height: min(34vh, 300px);
   object-fit: contain;
   object-position: bottom;
   filter: drop-shadow(0 10px 24px rgb(0 0 0 / 0.55));
@@ -105,8 +133,8 @@
   flex: none;
   width: 100%;
   max-width: 480px;
-  margin: calc(-1 * var(--space-6)) auto 0;
-  padding: var(--space-4);
+  margin: calc(-1 * var(--space-4)) auto 0;
+  padding: var(--space-3);
   border: 1px solid rgb(212 162 60 / 0.35);
   border-radius: var(--radius-lg, 16px);
   background: linear-gradient(160deg, rgb(31 74 51 / 0.55), rgb(13 16 15 / 0.78));
@@ -125,8 +153,8 @@
 }
 
 .title {
-  margin: 0 0 var(--space-2);
-  font-size: clamp(1.25rem, 5.5vw, 1.625rem);
+  margin: 0 0 var(--space-1);
+  font-size: clamp(1.125rem, 4.8vw, 1.375rem);
   line-height: 1.2;
 }
 
@@ -146,7 +174,7 @@
 
 
 .action {
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 700;
@@ -201,7 +229,7 @@
 
 .refuges li {
   flex: none;
-  width: 132px;
+  width: 104px;
 }
 
 .refuges button {
@@ -240,4 +268,9 @@
   margin: var(--space-2) 0 0;
   color: #ffb4a8;
   font-size: var(--font-size-sm);
+}
+
+/* Choosing the refuge: no big coach, so the refuge fills about half the screen (owner request, 19 November 2026). */
+.stageEmpty .coach {
+  display: none;
 }

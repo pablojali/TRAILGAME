@@ -1,3 +1,6 @@
+import { OWNED_FROM_START } from '../../domain/equipment/items'
+import { campSpots } from '../../game-engine/camp'
+import { isEquipped } from '../../game-engine/equipment'
 import type { GameState } from '../../game-engine/gameState'
 import { isRaceDayToday } from '../../game-engine/raceSchedule'
 
@@ -10,14 +13,51 @@ import { isRaceDayToday } from '../../game-engine/raceSchedule'
 export interface CoachTrigger {
   /** For Trail Studio (Spanish). */
   label: string
-  /** Whether the moment may appear now: the screen and the moment in the career. */
-  applies(state: GameState, pathname: string): boolean
+  /** Whether the moment may appear now: the screen (path and query, e.g. "?view=interior") and the moment in the career. */
+  applies(state: GameState, pathname: string, search: string): boolean
 }
 
 const hasFinishedRace = (state: GameState) => state.raceEntries.some((entry) => entry.status === 'finished')
+/** A new career's first days: the first week, no race entered (the first steps in Base Camp). */
+const isNewCareer = (state: GameState) => state.week.number === 1 && state.raceEntries.length === 0
+/** The starter gear (level 0, everyone's from the start) not worn yet. */
+const starterOff = (state: GameState) => OWNED_FROM_START.some((id) => !isEquipped(state, id))
+const query = (search: string) => new URLSearchParams(search)
+/** The gear button inside the refuge: the gear stand placed. */
+const gearPlaced = (state: GameState) => campSpots(state, 'interior').some((spot) => spot.action === 'gear')
+const inside = (p: string, q: string) => p === '/base-camp' && query(q).get('view') === 'interior'
 const inRaceFlow = (pathname: string) => pathname.startsWith('/races/run/') || pathname.startsWith('/races/results/')
 
 export const COACH_TRIGGERS: Record<string, CoachTrigger> = {
+  // The first steps after the welcome (owner request, 19 November 2026): inside the refuge, then the starter gear.
+  'open-camp-inside': {
+    label: 'Al entrar al interior del refugio sin el soporte de equipo (carrera nueva, 1ª semana)',
+    applies: (s, p, q) => inside(p, q) && !query(q).get('customize') && isNewCareer(s) && !gearPlaced(s),
+  },
+  'open-camp-customize-gear': {
+    label: 'En Personalizar, dentro, sin el soporte de equipo puesto (carrera nueva)',
+    applies: (s, p, q) => inside(p, q) && query(q).get('customize') === '1' && isNewCareer(s) && !gearPlaced(s),
+  },
+  'camp-gear-placed': {
+    label: 'Dentro del refugio, con el soporte de equipo puesto y el equipo inicial sin poner (carrera nueva)',
+    applies: (s, p, q) => inside(p, q) && !query(q).get('customize') && isNewCareer(s) && gearPlaced(s) && starterOff(s),
+  },
+  'open-equipment-starter': {
+    label: 'Al abrir Equipo con el equipo inicial sin poner (carrera nueva)',
+    applies: (s, p, q) => p === '/equipment' && !query(q).get('slot') && !query(q).get('tab') && isNewCareer(s) && starterOff(s),
+  },
+  'open-shoes-starter': {
+    label: 'Al abrir las zapatillas en Equipo con las iniciales sin poner (carrera nueva)',
+    applies: (s, p, q) => p === '/equipment' && query(q).get('slot') === 'shoes' && !query(q).get('item') && isNewCareer(s) && starterOff(s),
+  },
+  'open-starter-item': {
+    label: 'Al abrir la carta del equipo inicial sin poner (carrera nueva)',
+    applies: (s, p, q) => p === '/equipment' && OWNED_FROM_START.includes(query(q).get('item') ?? '') && isNewCareer(s) && starterOff(s),
+  },
+  'starter-equipped': {
+    label: 'En Equipo, con el equipo inicial puesto (carrera nueva)',
+    applies: (s, p) => p === '/equipment' && isNewCareer(s) && !starterOff(s),
+  },
   'open-dashboard': { label: 'Al abrir Inicio', applies: (_s, p) => p === '/' },
   'open-training': { label: 'Al abrir Entreno', applies: (_s, p) => p === '/training' },
   'open-equipment': { label: 'Al abrir Equipo', applies: (_s, p) => p === '/equipment' },
@@ -50,6 +90,12 @@ export const COACH_TARGETS: Record<string, string> = {
   condition: 'Inicio · fitness y fatiga',
   'go-training': 'Inicio · botón Entrenar',
   'nav-dashboard': 'Menú · Inicio',
+  'camp-customize': 'Base Camp · botón Personalizar',
+  'camp-gear': 'Base Camp · botón Equipo (el soporte de equipo, dentro del refugio)',
+  'camp-gear-put': 'Personalizar · botón Colocar del soporte de equipo',
+  'gear-shoes': 'Equipo · casilla de zapatillas',
+  'gear-starter': 'Equipo · carta del equipo inicial (nivel 0)',
+  'gear-equip': 'Equipo · botón Equipar de una carta',
   'nav-training': 'Menú · Entreno',
   'nav-basecamp': 'Menú · Base Camp',
   'nav-races': 'Menú · Carreras',

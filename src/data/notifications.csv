@@ -1,0 +1,17 @@
+# Automatic notifications (owner request, 19 November 2026: some can be turned off in Trail Studio). One row per kind the
+# game creates in every player's Inbox. on: yes = shown; no = the game no longer shows it (nothing is lost: turning it back
+# on shows it again). The kinds are the game's (src/app/inbox/inbox.ts); keep each once.
+kind,on
+race,yes
+challenge,yes
+level,yes
+season,yes
+race-day,yes
+decay,yes
+cloud,yes
+ranking,yes
+visit,yes
+congrats,yes
+message,yes
+friend-request,yes
+friend-accepted,yes

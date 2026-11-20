@@ -8,6 +8,7 @@ import { parseEconomy } from '../domain/economy/premium'
 import { parseRaceField } from '../domain/races/raceField'
 import { parseRaces } from '../domain/races/races'
 import { parseRankingTable } from '../domain/ranking/ranking'
+import { parseNotificationKinds } from '../app/inbox/kinds'
 import { parseCoachMoments } from '../features/coach/moments'
 import { parseAchievementTable } from '../game-engine/achievements'
 import { diffDocs, parseDoc, rows, serializeDoc, type CsvDoc, type RowChange } from './csvDoc'
@@ -27,6 +28,7 @@ export const FILES = {
   announcements: 'src/data/announcements.csv',
   basecamp: 'src/data/basecamp.csv',
   economy: 'src/data/economy.csv',
+  notifications: 'src/data/notifications.csv',
 } as const
 export type FileId = keyof typeof FILES
 export const FILE_IDS = Object.keys(FILES) as FileId[]
@@ -95,6 +97,7 @@ export function validate(ws: Workspace): string[] {
   check('Avisos', () => parseAnnouncements(textOf(ws, 'announcements')))
   check('Base Camp', () => parseCampCatalog(textOf(ws, 'basecamp')))
   check('Economía', () => parseEconomy(textOf(ws, 'economy')))
+  check('Notificaciones', () => parseNotificationKinds(textOf(ws, 'notifications')))
   // A new Base Camp piece (or a new picture name) needs its picture in the same proposal.
   const publishedArt = new Set(rows(ws.docsBase.basecamp).map((r) => `${r.values.scene}/${r.values.art}`))
   for (const row of rows(ws.docs.basecamp)) {
@@ -293,12 +296,15 @@ export function summary(ws: Workspace): Summary {
     races: describe(raceChanges, RACE_COLUMNS, raceName),
     equipment: describe(diffDocs(before.equipment, ws.docs.equipment, (v) => v.id!), EQUIPMENT_COLUMNS, itemName),
     coach: describe(diffDocs(before.coach, ws.docs.coach, (v) => `${v.moment} paso ${v.step}`), { trigger: 'disparador', after: 'después de', unless: 'salvo', targets: 'señala', tap: 'espera toque', title: 'título (EN)', text: 'texto (EN)' }, (k) => `Coach · ${k}`),
-    announcements: describe(diffDocs(before.announcements, ws.docs.announcements, (v) => v.id!), { from: 'desde', until: 'hasta', link: 'enlace', title: 'título (EN)', text: 'texto (EN)' }, (k) => `Aviso · ${k}`),
+    announcements: [
+      ...describe(diffDocs(before.announcements, ws.docs.announcements, (v) => v.id!), { from: 'desde', until: 'hasta', link: 'enlace', title: 'título (EN)', text: 'texto (EN)' }, (k) => `Aviso · ${k}`),
+      ...describe(diffDocs(before.notifications, ws.docs.notifications, (v) => v.kind!), { on: 'activa' }, (k) => `Notificación automática · ${k}`),
+    ],
     balance,
     texts,
     basecamp: describe(
       diffDocs(before.basecamp, ws.docs.basecamp, (v) => v.id!),
-      { scene: 'escena', kind: 'tipo', level: 'nivel', price: 'precio', currency: 'moneda', art: 'imagen', action: 'acción', slots: 'huecos', size: 'altura', spot_x: 'punto (x)', spot_y: 'punto (y)', name: 'nombre (EN)' },
+      { scene: 'escena', kind: 'tipo', level: 'nivel', price: 'precio', currency: 'moneda', art: 'imagen', action: 'acción', slots: 'huecos', size: 'altura', spot_x: 'punto (x)', spot_y: 'punto (y)', focus: 'recuadro (tienda)', family: 'familia', requires: 'requiere', name: 'nombre (EN)' },
       (k) => `Base Camp · ${rows(ws.docs.basecamp).find((r) => r.values.id === k)?.values.name_es || k} (${k})`,
     ),
   }

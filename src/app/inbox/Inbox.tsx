@@ -11,6 +11,7 @@ import { RANKING, rankingSeason } from '../../domain/ranking/ranking'
 import { getRankingService, type RankingService } from '../../repositories/supabase/rankingClient'
 import { getCampService, type CampService } from '../../repositories/supabase/campClient'
 import { arrange, buildInbox, friendItems, loadMemory, mailboxItems, markRead, rememberRank, saveMemory, type InboxItem, type RankingScope } from './inbox'
+import { NOTIFICATIONS_OFF } from './kinds'
 import styles from './Inbox.module.css'
 
 const ICON: Record<InboxItem['kind'], string> = {
@@ -217,7 +218,7 @@ export function InboxButton({
 
   const { list, memory: next } = useMemo(() => {
     const items = state ? [...buildInbox(state, now, { decay: decayNotice, cloudNotice, cloudError: cloudStatus === 'error' }, announcements), ...visits] : []
-    return arrange(items, memory, now)
+    return arrange(items, memory, now, NOTIFICATIONS_OFF)
     // `now` changes every render; the list only needs the inputs below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, memory, decayNotice, cloudNotice, cloudStatus, announcements, visits])

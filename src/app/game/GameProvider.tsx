@@ -578,22 +578,21 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   )
 
   const campUse = useCallback(
-    async (itemId: string, used: boolean, slot?: number): Promise<CampUseError | ServerError | null> => {
+    async (itemId: string, used: boolean): Promise<CampUseError | ServerError | null> => {
       const state = currentState()
       if (!state) return 'unknown-item'
       if (ops) {
-        const response = await runServerOp(`camp-use:${itemId}:${used}:${slot ?? ''}`, (operationId) => ({
+        const response = await runServerOp(`camp-use:${itemId}:${used}`, (operationId) => ({
           action: 'camp-use',
           operationId,
           baseVersion: sync?.knownVersion() ?? null,
           snapshot: state,
           itemId,
           used,
-          ...(slot === undefined ? {} : { slot }),
         }))
         return response.ok ? null : serverError<CampUseError>(response.error)
       }
-      const result = setCampItemUsed(state, itemId, used, slot)
+      const result = setCampItemUsed(state, itemId, used)
       if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.state })
       return null

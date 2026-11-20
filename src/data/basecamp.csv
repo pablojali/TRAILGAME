@@ -9,55 +9,55 @@
 # base (upgrades): the background it redraws; it keeps that background's button. The player shows one upgrade of a background at a time, or none.
 # focus (upgrades and decor): what the shop shows of it, x:y:zoom (x, y: 0-1 of the picture, the centre; zoom: 1 = the whole picture, 4 = a quarter of it across). A decor's button sits at its centre.
 # Free pieces (level 0, price 0) are shown from the start (upgrades and decor only once chosen); the free ones of the exterior must have an enter action.
-# family, requires (evolutions, 20 November 2026): pieces with the same family (e.g. casa, fogata) are levels of one thing, one in use at a time; requires: ids the player must own before buying it (separated by spaces). An object that requires a background (directly or through the pieces it requires) is only drawn over that background.
-id,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,base,focus,name,name_es,name_fr,name_it,name_de,family,requires
-exterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,,,,,Beach Camp,Refugio de Playa,,,,beach-house,
-exterior-2,exterior,background,0,0,coins,exterior_2,enter,0.36,0.56,,,,,Desert Camp,Refugio Desierto,,,,desert-house,
-exterior-3,exterior,background,0,0,coins,exterior_3,enter,0.36,0.56,,,,,Lake Camp,Refugio Lago,,,,lake-house,
-exterior-4,exterior,background,0,0,coins,exterior_4,enter,0.36,0.56,,,,,Mountain Camp,Refugio Montaña,,,,mountain-house,
-exterior-5,exterior,background,0,0,coins,exterior_5,enter,0.36,0.56,,,,,River Camp,Refugio Rio,,,,river-house,
-interior-1,interior,background,0,0,coins,interior_1,,,,,,,,Wood cabine,Cabaña Rustica,,,,,
-interior-2,interior,background,0,0,coins,interior_2,,,,,,,,Wood Cabine,Cabaña madera,,,,,
-interior-3,interior,background,0,0,coins,interior_3,,,,,,,,Stone Cabine,Cabaña Pierda,,,,,
-interior-4,interior,decor,1,0,coins,interior_4,,,,,,,0.5:0.5:3,Calendar,Calendar,,,,calendario,
-interior-5,interior,decor,0,0,coins,interior_5,gear,,,,,,0.5:0.5:3,Gear,Gear,,,,gear,
-interior-6,interior,decor,1,0,coins,interior_6,,,,,,,0.848:0.716:3,Chimey lvl2,Chimenea lvl2,,,,chimenea,interior-1
-interior-7,interior,decor,1,0,coins,interior_7,,,,,,,0.909:0.738:3,Chimey lvl2,Chimenea lvl2,,,,chimenea,interior-2
-interior-8,interior,decor,1,0,coins,interior_8,,,,,,,0.852:0.706:3,Chimey lvl2,Chimenea lvl2,,,,chimenea,interior-3
-interior-9,interior,decor,1,0,coins,interior_9,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,
-interior-10,interior,decor,1,0,coins,interior_10,,,,,,,0.5:0.5:3,Metal gear support,Soport de metal,,,,,
-interior-11,interior,decor,1,0,coins,interior_11,,,,,,,0.5:0.5:3,Stone Sofa,Sofa de piedra,,,,sofa,
-interior-12,interior,decor,1,0,coins,interior_12,,,,,,,0.5:0.5:3,Wood Sofa,Sofa de madera,,,,sofa,
-interior-13,interior,decor,1,0,coins,interior_13,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,
-interior-14,interior,decor,1,0,coins,interior_14,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,
-interior-15,interior,decor,1,0,coins,interior_15,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,
-exterior-7,exterior,decor,1,0,coins,exterior_7,enter,,,,,,0.376:0.55:2,Beach House,Refugio Playa,,,,beach-house,exterior-1
-exterior-8,exterior,decor,2,0,coins,exterior_8,enter,,,,,,0.381:0.551:1.5,Beach House,Refugio Playa,,,,beach-house,exterior-7
-exterior-9,exterior,decor,1,0,coins,exterior_9,,,,,,,0.363:0.538:2,Desert House,Refugio Desierto,,,,desert-house,exterior-2
-exterior-10,exterior,decor,2,0,coins,exterior_10,enter,,,,,,0.409:0.557:1.5,Dessert House,Refugio Desierto,,,,desert-house,exterior-9
-exterior-11,exterior,decor,1,0,coins,exterior_11,enter,,,,,,0.38:0.546:2,Lake House,Refugio Lago,,,,lake-house,exterior-3
-exterior-12,exterior,decor,2,0,coins,exterior_12,enter,,,,,,0.409:0.515:1.5,Lake House,Refugio Lago,,,,lake-house,exterior-11
-exterior-13,exterior,decor,1,0,coins,exterior_13,enter,,,,,,0.346:0.535:2,River House,Refugio Rio,,,,river-house,exterior-5
-exterior-14,exterior,decor,2,0,coins,exterior_14,enter,,,,,,0.428:0.515:1.5,River House,Refugio Rio,,,,river-house,exterior-13
-exterior-15,exterior,decor,1,0,coins,exterior_15,,,,,,,0.359:0.53:2,Mountain House,Refugio Montaña,,,,mountain-house,exterior-4
-exterior-16,exterior,decor,1,0,coins,exterior_16,mailbox,,,,,,0.082:0.792:3,MailBox,Buzon,,,,beach-house,exterior-1
-exterior-17,exterior,decor,1,0,coins,exterior_17,mailbox,,,,,,0.076:0.765:3,MailBox,Buzon,,,,desert-house,exterior-2
-exterior-18,exterior,decor,2,0,coins,exterior_18,mailbox,,,,,,0.064:0.755:3,MailBox +,Buzon +,,,,beach-house,exterior-8 exterior-16
-exterior-19,exterior,decor,2,0,coins,exterior_19,,,,,,,0.717:0.888:2.5,FirePit,Fogon + +,,,,beach-house,
-exterior-20,exterior,decor,3,0,coins,exterior_20,,,,,,,0.717:0.888:2.5,FirePit +,Fogon + + +,,,,beach-house,exterior-19 exterior-8
-exterior-21,exterior,decor,2,0,coins,exterior_21,mailbox,,,,,,0.076:0.765:3,MailBox +,Buzon +,,,,desert-house,exterior-17
-exterior-22,exterior,decor,2,0,coins,exterior_22,,,,,,,0.605:0.756:3,FirePit,Fogon,,,,desert-house,exterior-2 exterior-10
-exterior-23,exterior,decor,3,0,coins,exterior_23,,,,,,,0.678:0.883:3,FirePit +,Fogon +,,,,desert-house,exterior-22 exterior-9
-exterior-6,exterior,decor,2,0,coins,exterior_6,enter,,,,,,0.367:0.543:1.5,Mountain House +,Refugio Montaña +,,,,mountain-house,exterior-15
-exterior-24,exterior,decor,1,0,coins,exterior_24,mailbox,,,,,,0.088:0.719:3,Mailbox,Buzon +,,,,lake-house,exterior-3
-exterior-25,exterior,decor,3,0,coins,exterior_25,mailbox,,,,,,0.101:0.716:3,Mailbox +,Buzon + +,,,,lake-house,exterior-24 exterior-11
-exterior-26,exterior,decor,1,0,coins,exterior_26,,,,,,,0.785:0.961:3,Firepit,Fogon,,,,lake-house,exterior-3
-exterior-27,exterior,decor,2,0,coins,exterior_27,,,,,,,0.767:0.916:3,Firepit +,Fogon +,,,,lake-house,exterior-26 exterior-12
-exterior-28,exterior,decor,1,0,coins,exterior_28,mailbox,,,,,,0.08:0.755:3,Mailbox,Buzon,,,,mountain-house,exterior-4
-exterior-29,exterior,decor,3,0,coins,exterior_29,mailbox,,,,,,0.08:0.755:3,Mailbox +,Buzon +,,,,mountain-house,exterior-28 exterior-15
-exterior-30,exterior,decor,1,0,coins,exterior_30,,,,,,,0.67:0.915:3,Firepit,Fogon,,,,mountain-house,exterior-4
-exterior-31,exterior,decor,2,0,coins,exterior_31,,,,,,,0.67:0.915:3,Firepit +,Fogon +,,,,mountain-house,exterior-30 exterior-6
-exterior-32,exterior,decor,1,0,coins,exterior_32,mailbox,,,,,,0.085:0.757:3,Mailbox,Buzon,,,,river-house,exterior-5
-exterior-33,exterior,decor,3,0,coins,exterior_33,mailbox,,,,,,0.077:0.735:3,Mailbox +,Buzon +,,,,river-house,exterior-32 exterior-13
-exterior-34,exterior,decor,1,0,coins,exterior_34,,,,,,,0.385:0.921:4,Firebit,Fogon,,,,river-house,exterior-5
-exterior-35,exterior,decor,2,0,coins,exterior_35,,,,,,,0.376:0.915:3.5,Firebit +,Fogon +,,,,river-house,exterior-34 exterior-14
+# family (evolution): the group a piece belongs to in Trail Studio (e.g. beach-house: the refuge, its houses, mailbox and firepit); only a grouping. requires: ids the player must own before buying it (separated by spaces); an object that requires a background (directly or through the pieces it requires) is only drawn over it. replaces (20 November 2026): the piece(s) this one replaces when put in, its previous level (Mailbox + replaces Mailbox).
+id,scene,kind,level,price,currency,art,action,spot_x,spot_y,slots,size,base,focus,name,name_es,name_fr,name_it,name_de,family,requires,replaces
+exterior-1,exterior,background,0,0,coins,exterior_1,enter,0.36,0.56,,,,,Beach Camp,Refugio de Playa,,,,beach-house,,
+exterior-2,exterior,background,0,0,coins,exterior_2,enter,0.36,0.56,,,,,Desert Camp,Refugio Desierto,,,,desert-house,,
+exterior-3,exterior,background,0,0,coins,exterior_3,enter,0.36,0.56,,,,,Lake Camp,Refugio Lago,,,,lake-house,,
+exterior-4,exterior,background,0,0,coins,exterior_4,enter,0.36,0.56,,,,,Mountain Camp,Refugio Montaña,,,,mountain-house,,
+exterior-5,exterior,background,0,0,coins,exterior_5,enter,0.36,0.56,,,,,River Camp,Refugio Rio,,,,river-house,,
+interior-1,interior,background,0,0,coins,interior_1,,,,,,,,Wood cabine,Cabaña Rustica,,,,,,
+interior-2,interior,background,0,0,coins,interior_2,,,,,,,,Wood Cabine,Cabaña madera,,,,,,
+interior-3,interior,background,0,0,coins,interior_3,,,,,,,,Stone Cabine,Cabaña Pierda,,,,,,
+interior-4,interior,decor,1,0,coins,interior_4,,,,,,,0.5:0.5:3,Calendar,Calendar,,,,calendario,,
+interior-5,interior,decor,0,0,coins,interior_5,gear,,,,,,0.5:0.5:3,Gear,Gear,,,,gear,,
+interior-6,interior,decor,1,0,coins,interior_6,,,,,,,0.848:0.716:3,Chimey lvl2,Chimenea lvl2,,,,chimenea,interior-1,
+interior-7,interior,decor,1,0,coins,interior_7,,,,,,,0.909:0.738:3,Chimey lvl2,Chimenea lvl2,,,,chimenea,interior-2,
+interior-8,interior,decor,1,0,coins,interior_8,,,,,,,0.852:0.706:3,Chimey lvl2,Chimenea lvl2,,,,chimenea,interior-3,
+interior-9,interior,decor,1,0,coins,interior_9,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
+interior-10,interior,decor,1,0,coins,interior_10,,,,,,,0.5:0.5:3,Metal gear support,Soport de metal,,,,,,
+interior-11,interior,decor,1,0,coins,interior_11,,,,,,,0.5:0.5:3,Stone Sofa,Sofa de piedra,,,,sofa,,
+interior-12,interior,decor,1,0,coins,interior_12,,,,,,,0.5:0.5:3,Wood Sofa,Sofa de madera,,,,sofa,,
+interior-13,interior,decor,1,0,coins,interior_13,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
+interior-14,interior,decor,1,0,coins,interior_14,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
+interior-15,interior,decor,1,0,coins,interior_15,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
+exterior-7,exterior,decor,1,0,coins,exterior_7,enter,,,,,,0.376:0.55:2,Beach House,Refugio Playa,,,,beach-house,exterior-1,
+exterior-8,exterior,decor,2,0,coins,exterior_8,enter,,,,,,0.381:0.551:1.5,Beach House,Refugio Playa,,,,beach-house,exterior-7,exterior-7
+exterior-9,exterior,decor,1,0,coins,exterior_9,,,,,,,0.363:0.538:2,Desert House,Refugio Desierto,,,,desert-house,exterior-2,
+exterior-10,exterior,decor,2,0,coins,exterior_10,enter,,,,,,0.409:0.557:1.5,Dessert House,Refugio Desierto,,,,desert-house,exterior-9,exterior-9
+exterior-11,exterior,decor,1,0,coins,exterior_11,enter,,,,,,0.38:0.546:2,Lake House,Refugio Lago,,,,lake-house,exterior-3,
+exterior-12,exterior,decor,2,0,coins,exterior_12,enter,,,,,,0.409:0.515:1.5,Lake House,Refugio Lago,,,,lake-house,exterior-11,exterior-11
+exterior-13,exterior,decor,1,0,coins,exterior_13,enter,,,,,,0.346:0.535:2,River House,Refugio Rio,,,,river-house,exterior-5,
+exterior-14,exterior,decor,2,0,coins,exterior_14,enter,,,,,,0.428:0.515:1.5,River House,Refugio Rio,,,,river-house,exterior-13,exterior-13
+exterior-15,exterior,decor,1,0,coins,exterior_15,,,,,,,0.359:0.53:2,Mountain House,Refugio Montaña,,,,mountain-house,exterior-4,
+exterior-16,exterior,decor,1,0,coins,exterior_16,mailbox,,,,,,0.082:0.792:3,MailBox,Buzon,,,,beach-house,exterior-1,
+exterior-17,exterior,decor,1,0,coins,exterior_17,mailbox,,,,,,0.076:0.765:3,MailBox,Buzon,,,,desert-house,exterior-2,
+exterior-18,exterior,decor,2,0,coins,exterior_18,mailbox,,,,,,0.064:0.755:3,MailBox +,Buzon +,,,,beach-house,exterior-8 exterior-16,exterior-16
+exterior-19,exterior,decor,2,0,coins,exterior_19,,,,,,,0.717:0.888:2.5,FirePit,Fogon + +,,,,beach-house,,
+exterior-20,exterior,decor,3,0,coins,exterior_20,,,,,,,0.717:0.888:2.5,FirePit +,Fogon + + +,,,,beach-house,exterior-19 exterior-8,exterior-19
+exterior-21,exterior,decor,2,0,coins,exterior_21,mailbox,,,,,,0.076:0.765:3,MailBox +,Buzon +,,,,desert-house,exterior-17,exterior-17
+exterior-22,exterior,decor,2,0,coins,exterior_22,,,,,,,0.605:0.756:3,FirePit,Fogon,,,,desert-house,exterior-2 exterior-10,
+exterior-23,exterior,decor,3,0,coins,exterior_23,,,,,,,0.678:0.883:3,FirePit +,Fogon +,,,,desert-house,exterior-22 exterior-9,exterior-22
+exterior-6,exterior,decor,2,0,coins,exterior_6,enter,,,,,,0.367:0.543:1.5,Mountain House +,Refugio Montaña +,,,,mountain-house,exterior-15,exterior-15
+exterior-24,exterior,decor,1,0,coins,exterior_24,mailbox,,,,,,0.088:0.719:3,Mailbox,Buzon +,,,,lake-house,exterior-3,
+exterior-25,exterior,decor,3,0,coins,exterior_25,mailbox,,,,,,0.101:0.716:3,Mailbox +,Buzon + +,,,,lake-house,exterior-24 exterior-11,exterior-24
+exterior-26,exterior,decor,1,0,coins,exterior_26,,,,,,,0.785:0.961:3,Firepit,Fogon,,,,lake-house,exterior-3,
+exterior-27,exterior,decor,2,0,coins,exterior_27,,,,,,,0.767:0.916:3,Firepit +,Fogon +,,,,lake-house,exterior-26 exterior-12,exterior-26
+exterior-28,exterior,decor,1,0,coins,exterior_28,mailbox,,,,,,0.08:0.755:3,Mailbox,Buzon,,,,mountain-house,exterior-4,
+exterior-29,exterior,decor,3,0,coins,exterior_29,mailbox,,,,,,0.08:0.755:3,Mailbox +,Buzon +,,,,mountain-house,exterior-28 exterior-15,exterior-28
+exterior-30,exterior,decor,1,0,coins,exterior_30,,,,,,,0.67:0.915:3,Firepit,Fogon,,,,mountain-house,exterior-4,
+exterior-31,exterior,decor,2,0,coins,exterior_31,,,,,,,0.67:0.915:3,Firepit +,Fogon +,,,,mountain-house,exterior-30 exterior-6,exterior-30
+exterior-32,exterior,decor,1,0,coins,exterior_32,mailbox,,,,,,0.085:0.757:3,Mailbox,Buzon,,,,river-house,exterior-5,
+exterior-33,exterior,decor,3,0,coins,exterior_33,mailbox,,,,,,0.077:0.735:3,Mailbox +,Buzon +,,,,river-house,exterior-32 exterior-13,exterior-32
+exterior-34,exterior,decor,1,0,coins,exterior_34,,,,,,,0.385:0.921:4,Firebit,Fogon,,,,river-house,exterior-5,
+exterior-35,exterior,decor,2,0,coins,exterior_35,,,,,,,0.376:0.915:3.5,Firebit +,Fogon +,,,,river-house,exterior-34 exterior-14,exterior-34

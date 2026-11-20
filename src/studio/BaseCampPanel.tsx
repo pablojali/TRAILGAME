@@ -171,6 +171,8 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
           art: id.replace(/-/g, '_'),
           level: String(Number(last.values.level || 0) + 1),
           requires: last.values.id!,
+          // The next level replaces the last one (unless the last one is the scene itself).
+          replaces: last.values.kind === 'background' ? '' : last.values.id!,
           name: `${last.values.name || family} +`,
           name_es: `${last.values.name_es || last.values.name || family} +`,
         }),
@@ -425,7 +427,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
             <NumberField label="Price" value={v.price!} min={0} onChange={(x) => setPiece({ price: x })} hint="0 with level 0: everyone has it" />
             <SelectField label="Currency" value={v.currency || 'coins'} options={CURRENCIES} onChange={(x) => setPiece({ currency: x })} />
             {(v.kind === 'decor' || v.kind === 'upgrade' || v.kind === 'background') && (
-              <Field label="Evolution" hint="Same name = levels of the same thing (e.g. firepit): a player shows one layer of it at a time, the new one replacing the last. A whole scene can be its first level.">
+              <Field label="Evolution" hint="The group in this list (e.g. beach-house: the refuge, its houses, mailbox and firepit). Pieces of one evolution show together; use «Replaces» for a level that takes the place of another.">
                 {(id) => (
                   <>
                     <input
@@ -472,6 +474,36 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
                 )
               }}
             </Field>
+            {v.kind !== 'background' && (
+              <Field label="Replaces" hint="The piece this one takes the place of when put in: its previous level (e.g. Mailbox + replaces Mailbox). Empty: it shows with the rest." wide>
+                {(id) => {
+                  const replaced = (v.replaces ?? '').split(/\s+/).filter(Boolean)
+                  const nameOf = (rid: string) => {
+                    const row = rows(doc).find((r) => r.values.id === rid)?.values
+                    return row ? `${row.name || row.name_es} (lv ${row.level})` : rid
+                  }
+                  return (
+                    <div className="chips">
+                      {replaced.map((rid) => (
+                        <button key={rid} type="button" className="ghost small" title="Remove" onClick={() => setPiece({ replaces: replaced.filter((x) => x !== rid).join(' ') })}>
+                          {nameOf(rid)} ✕
+                        </button>
+                      ))}
+                      <select id={id} value="" onChange={(e) => e.target.value && setPiece({ replaces: [...replaced, e.target.value].join(' ') })}>
+                        <option value="">+ Add…</option>
+                        {sceneRows
+                          .filter((r) => r.values.id !== v.id && r.values.kind !== 'background' && !replaced.includes(r.values.id!))
+                          .map((r) => (
+                            <option key={r.values.id} value={r.values.id}>
+                              {nameOf(r.values.id!)}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  )
+                }}
+              </Field>
+            )}
             {v.action && v.kind !== 'decor' && (
               <>
                 <NumberField label="Button: x (0–1)" value={v.spot_x ?? ''} step={0.01} min={0} max={1} onChange={(x) => setPiece({ spot_x: x })} />

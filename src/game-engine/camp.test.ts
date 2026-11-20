@@ -127,6 +127,22 @@ describe('Base Camp pieces', () => {
     expect(() => parseCampCatalog('id,scene,kind,level,price,currency,art,action,spot_x,spot_y,name,family,requires\next,exterior,background,0,0,coins,ext,enter,0.5,0.5,Out,,nope\nint,interior,background,0,0,coins,int,,,,In,,\n')).toThrow(/unknown piece nope/)
   })
 
+  it('pieces of one evolution show together; only a level that replaces another one hides it (owner report, 20 November 2026)', () => {
+    let state = rich()
+    for (const [id, price] of [['fire-1', 10], ['lantern', 0]] as const) {
+      const bought = buyCampItem(state, id, { price, currency: 'coins' })
+      if (!bought.ok) throw new Error(bought.error)
+      state = bought.state
+    }
+    for (const id of ['fire-1', 'lantern']) {
+      const next = setCampItemUsed(state, id, true)
+      if (!next.ok) throw new Error(next.error)
+      state = next.state
+    }
+    // Same evolution (firepit), no replacement between them: both are drawn.
+    expect(campScene(state, 'exterior').decor.map((item) => item.id).sort()).toEqual(['fire-1', 'lantern'])
+  })
+
   it('an object that requires a background is only drawn over it (a house of that refuge)', () => {
     let state = rich()
     for (const [id, price] of [['lake-exterior', 200], ['lake-house', 0]] as const) {

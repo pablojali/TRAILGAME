@@ -69,14 +69,14 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     Entreno, Carreras, Trayectoria) has its button at the frame's centre. Free objects are the
     player's from the start but only show once put in. Old cut-out objects are not shown until
     their picture is uploaded again at canvas size. The `slots` and `size` columns are unused.
-  - Evolutions (20 November 2026): objects and upgrades with the same «Familia» (e.g. `fogata`)
-    are levels of one thing: one in use at a time, the new one replacing the last. «Requiere» lists
-    the pieces a player must own before buying it (e.g. the firepit level 2 requires the house
-    level 1), from either scene. The list groups the pieces: backgrounds, upgrades, one group per
-    family with «+ Nueva evolución» (a copy one level up that requires the last), and objects with
-    no family. An object that requires a background (directly or through the pieces it requires,
-    e.g. the River house lvl 2 → lvl 1 → the River refuge) is only drawn, and only sold, over that
-    background: the old upgrades (houses, fireplaces) are now such objects.
+  - Evolutions (20 November 2026): «Evolution» groups the pieces in the list (e.g. `beach-house`:
+    the Beach refuge as level 0, its houses, mailbox and firepit); pieces of one evolution show
+    together. «Replaces» names the piece a level takes the place of when put in (Mailbox + replaces
+    Mailbox; the house lvl 2 replaces the house lvl 1). «Requires» lists the pieces a player must own
+    before buying it, from either scene. «+ New evolution» starts one from scratch; «+ Next level»
+    copies its last level one level up, requiring and replacing it. An object that requires a
+    background (directly or through the pieces it requires, e.g. the River house lvl 2 → lvl 1 → the
+    River refuge) is only drawn, and only sold, over that background.
   - «Quitar esta pieza del juego» removes a published piece and its picture with the next
     proposal; players who used or bought it lose it. The preview draws the piece with the
     scene's free pieces. The free pieces must include «Entrar» outside. Inside, «Equipo» is the

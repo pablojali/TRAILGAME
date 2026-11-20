@@ -349,7 +349,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
           <h3>Piece</h3>
           <div className="form">
             <SelectField
-              label="Tipo"
+              label="Type"
               value={v.kind!}
               options={v.kind === 'cabin' ? [...KINDS, CABIN_KIND] : v.kind === 'upgrade' ? [...KINDS, UPGRADE_KIND] : KINDS}
               onChange={(kind) =>
@@ -424,7 +424,7 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
             <NumberField label="Player level" value={v.level!} min={0} onChange={(x) => setPiece({ level: x })} hint="The level it can be bought from" />
             <NumberField label="Price" value={v.price!} min={0} onChange={(x) => setPiece({ price: x })} hint="0 with level 0: everyone has it" />
             <SelectField label="Currency" value={v.currency || 'coins'} options={CURRENCIES} onChange={(x) => setPiece({ currency: x })} />
-            {(v.kind === 'decor' || v.kind === 'upgrade') && (
+            {(v.kind === 'decor' || v.kind === 'upgrade' || v.kind === 'background') && (
               <Field label="Evolution" hint="Same name = levels of the same thing (e.g. firepit): a player shows one layer of it at a time, the new one replacing the last. A whole scene can be its first level.">
                 {(id) => (
                   <>
@@ -474,8 +474,8 @@ export function BaseCampPanel({ token, ws, setWs, scene }: { token: string; ws: 
             </Field>
             {v.action && v.kind !== 'decor' && (
               <>
-                <NumberField label="Punto: x (0–1)" value={v.spot_x ?? ''} step={0.01} min={0} max={1} onChange={(x) => setPiece({ spot_x: x })} />
-                <NumberField label="Punto: y (0–1)" value={v.spot_y ?? ''} step={0.01} min={0} max={1} onChange={(x) => setPiece({ spot_y: x })} />
+                <NumberField label="Button: x (0–1)" value={v.spot_x ?? ''} step={0.01} min={0} max={1} onChange={(x) => setPiece({ spot_x: x })} />
+                <NumberField label="Button: y (0–1)" value={v.spot_y ?? ''} step={0.01} min={0} max={1} onChange={(x) => setPiece({ spot_y: x })} />
               </>
             )}
             <Field

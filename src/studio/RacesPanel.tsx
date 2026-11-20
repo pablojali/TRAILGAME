@@ -15,8 +15,8 @@ import type { Workspace } from './model'
 
 const DIFFICULTIES = ['I', 'II', 'III', 'IV', 'V']
 const CATEGORY_LABELS: Record<string, string> = { open: 'Open', trail: 'Trail', mountain: 'Mountain', elite: 'Elite' }
-const STOP_LABELS = { quick: 'rápida', normal: 'normal', slow: 'larga' } as const
-const LANGUAGE_LABELS: Record<string, string> = { es: 'Español', fr: 'Français', it: 'Italiano', de: 'Deutsch' }
+const STOP_LABELS = { quick: 'quick', normal: 'normal', slow: 'long' } as const
+const LANGUAGE_LABELS: Record<string, string> = { es: 'Spanish', fr: 'French', it: 'Italian', de: 'German' }
 
 /** One race read by the game's own reader, or the game's complaint about it. */
 function readRace(doc: CsvDoc, values: Record<string, string>): { race?: Race; error?: string } {
@@ -58,7 +58,7 @@ function Profile({ race, real }: { race: Race; real: Course | null }) {
   const py = (v: number) => H - 4 - ((v - minY) / (maxY - minY)) * (H - 12)
   const line = points.map(([a, b]) => `${px(a).toFixed(1)},${py(b).toFixed(1)}`).join(' ')
   return (
-    <svg className="profile" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Perfil de desnivel">
+    <svg className="profile" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Elevation profile">
       <polygon points={`0,${H} ${line} ${W},${H}`} />
       <polyline points={line} />
     </svg>
@@ -100,7 +100,7 @@ export function RacesPanel({
     const id = `RACE-${String(next).padStart(3, '0')}`
     const races = insertRow(ws.docs.races, {
       id,
-      name: 'Nueva carrera',
+      name: 'New race',
       category: 'open',
       distance_km: '10',
       elevation_gain_m: '300',
@@ -146,22 +146,22 @@ export function RacesPanel({
 
   return (
     <div className="split">
-      <section className="listPane" aria-label="Carreras">
+      <section className="listPane" aria-label="Races">
         <div className="paneHead">
-          <h2>Carreras ({raceRows.length})</h2>
+          <h2>Races ({raceRows.length})</h2>
           <button type="button" className="ghost" onClick={addRace}>
-            + Nueva carrera
+            + New race
           </button>
         </div>
         <table className="grid">
           <thead>
             <tr>
-              <th>Nivel</th>
-              <th>Carrera</th>
+              <th>Level</th>
+              <th>Race</th>
               <th>Dif.</th>
               <th>km</th>
               <th>D+</th>
-              <th>Técnica</th>
+              <th>Technicality</th>
             </tr>
           </thead>
           <tbody>
@@ -172,10 +172,10 @@ export function RacesPanel({
                   <td className="num">{r.recommended_level}</td>
                   <td>
                     <span className="rowName">
-                      {edited(r.id!, r) && <span className="dot" title="Cambiada" />}
+                      {edited(r.id!, r) && <span className="dot" title="Changed" />}
                       {r.name}
                       {r.kind === 'major' && <span className="tag">Major</span>}
-                      {r.kind === 'retired' && <span className="tag">Retirada</span>}
+                      {r.kind === 'retired' && <span className="tag">Retired</span>}
                     </span>
                     <span className="rowId">{r.id}</span>
                   </td>
@@ -193,11 +193,11 @@ export function RacesPanel({
       </section>
 
       {v && (
-        <section className="editPane" aria-label={`Editar ${v.name}`}>
+        <section className="editPane" aria-label={`Edit ${v.name}`}>
           <div className="editHead">
             <div>
               <span className="eyebrow">{v.id}</span>
-              <h2>{v.name || 'Sin nombre'}</h2>
+              <h2>{v.name || 'No name'}</h2>
             </div>
           </div>
 
@@ -208,7 +208,7 @@ export function RacesPanel({
                 {v.distance_km} km · {v.elevation_gain_m} m D+
               </span>
               <span className="tags">
-                <span className="tag">Nv {v.recommended_level}</span>
+                <span className="tag">Lv {v.recommended_level}</span>
                 <span className="tag">
                   Técnica <Pips value={Number(v.technicality) || 0} max={MAX_TECHNICALITY} />
                 </span>
@@ -220,42 +220,42 @@ export function RacesPanel({
             {race && <Profile race={race} real={workspaceCourse(ws, race.id)} />}
           </div>
 
-          {read.error && <p className="error">El juego no aceptaría esta carrera: {read.error}</p>}
+          {read.error && <p className="error">The game would refuse this race: {read.error}</p>}
           {race && (
             <dl className="facts">
               <div>
-                <dt>Esfuerzo</dt>
-                <dd>{effort.toFixed(1)} km-esf.</dd>
+                <dt>Effort</dt>
+                <dd>{effort.toFixed(1)} effort-km</dd>
               </div>
               <div>
-                <dt>Desnivel por km</dt>
+                <dt>Elevation per km</dt>
                 <dd>{Math.round(race.elevationGainM / race.distanceKm)} m</dd>
               </div>
               <div>
-                <dt>Tramos</dt>
+                <dt>Segments</dt>
                 <dd>
-                  {getSegmentCount(race)} ({getSegmentCount(race) - 1} avituall.)
+                  {getSegmentCount(race)} ({getSegmentCount(race) - 1} aid st.)
                 </dd>
               </div>
               <div>
-                <dt>Inscripción</dt>
+                <dt>Entry</dt>
                 <dd>
-                  niveles {getMinimumLevel(race)}–{getMaximumLevel(race)}
+                  levels {getMinimumLevel(race)}–{getMaximumLevel(race)}
                   {race.minLevel === undefined && race.maxLevel === undefined ? ' (auto)' : ''}
                 </dd>
               </div>
               <div>
-                <dt>Tiempo de referencia</dt>
+                <dt>Reference time</dt>
                 <dd>{clock(getReferenceFinishS(race))}</dd>
               </div>
               <div>
-                <dt>Ganador / último</dt>
+                <dt>Winner / last</dt>
                 <dd>
                   {clock(effort * racePaces(effort).winner * 60)} / {clock(effort * racePaces(effort).last * 60)}
                 </dd>
               </div>
               <div>
-                <dt>Paradas (rápida/normal/lenta)</dt>
+                <dt>Stops (quick/normal/long)</dt>
                 <dd>
                   {Object.values(getRaceField(race).stopS)
                     .map((s) => `${s}s`)
@@ -266,64 +266,64 @@ export function RacesPanel({
             </dl>
           )}
 
-          <h3>Recorrido</h3>
+          <h3>Course</h3>
           <div className="form">
             {specs ? (
               <>
                 <p className="hint wideHint">
-                  Distancia {v.distance_km} km · D+ {v.elevation_gain_m} m · técnica máxima {v.technicality}: la suma de los tramos.
+                  Distance {v.distance_km} km · D+ {v.elevation_gain_m} m · top technicality {v.technicality}: the segments' sums.
                 </p>
               </>
             ) : (
               <>
-                <NumberField label="Distancia (km)" value={v.distance_km!} min={1} onChange={(x) => setRace({ distance_km: x })} />
-                <NumberField label="Desnivel positivo (m)" value={v.elevation_gain_m!} min={0} step={10} onChange={(x) => setRace({ elevation_gain_m: x })} />
+                <NumberField label="Distance (km)" value={v.distance_km!} min={1} onChange={(x) => setRace({ distance_km: x })} />
+                <NumberField label="Elevation gain (m)" value={v.elevation_gain_m!} min={0} step={10} onChange={(x) => setRace({ elevation_gain_m: x })} />
                 <PipsField
-                  label="Técnica de las bajadas"
+                  label="Descent technicality"
                   value={Number(v.technicality) || 0}
                   max={MAX_TECHNICALITY}
                   onChange={(x) => setRace({ technicality: String(x) })}
-                  hint="0 nada técnica · 5 extrema"
+                  hint="0 not technical · 5 extreme"
                 />
               </>
             )}
             <NumberField
-              label="Nivel recomendado"
+              label="Recommended level"
               value={v.recommended_level!}
               min={1}
               onChange={(x) => setRace({ recommended_level: x })}
-              hint={levelChanged ? 'Cambia los rankings: se añadirá la migración' : 'El nivel de la carrera'}
+              hint={levelChanged ? 'Changes the rankings: the migration will be added' : 'The race\'s level'}
             />
             <SelectField
-              label="Dificultad (puntos de ranking)"
+              label="Difficulty (ranking points)"
               value={difficulty.get(v.id!) ?? 'I'}
               options={DIFFICULTIES.map((d) => ({ value: d, label: d }))}
               onChange={setDifficulty}
-              hint={difficultyChanged ? 'Cambia los rankings: se añadirá la migración' : 'I moderada · V extrema'}
+              hint={difficultyChanged ? 'Changes the rankings: the migration will be added' : 'I moderate · V extreme'}
             />
             <SelectField
-              label="Tipo de carrera"
+              label="Race kind"
               value={v.kind === 'major' || v.kind === 'retired' ? v.kind : 'npc'}
               options={[
-                { value: 'npc', label: 'NPC (los jugadores se inscriben)' },
-                { value: 'major', label: 'Major (solo se corre en un Major)' },
-                { value: 'retired', label: 'Retirada (ya no se corre)' },
+                { value: 'npc', label: 'NPC (players enter it)' },
+                { value: 'major', label: 'Major (only run in a Major)' },
+                { value: 'retired', label: 'Retired (no longer run)' },
               ]}
               onChange={(x) => setRace({ kind: x === 'npc' ? '' : x })}
               hint={
                 v.kind === 'major'
-                  ? 'No sale en Carreras; con GPX, el Major muestra el mapa del recorrido'
+                  ? 'Not listed in Races; with a GPX, the Major shows the course map'
                   : v.kind === 'retired'
-                    ? 'No sale en Carreras ni en Majors; se guarda para el historial de quien la corrió'
-                    : 'Sale en Carreras para inscribirse'
+                    ? 'Not listed in Races nor Majors; kept for the history of who ran it'
+                    : 'Listed in Races to enter'
               }
             />
             <SelectField
-              label="Categoría interna"
+              label="Internal category"
               value={v.category!}
               options={RACE_CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] ?? c }))}
               onChange={(x) => setRace({ category: x })}
-              hint="No se muestra: decide XP, premios y rivales"
+              hint="Not shown: decides XP, prizes and rivals"
             />
           </div>
 
@@ -346,45 +346,45 @@ export function RacesPanel({
             />
           )}
 
-          <h3>Inscripción y paradas</h3>
+          <h3>Entry and stops</h3>
           <div className="form">
             <NumberField
-              label="Nivel mínimo"
+              label="Minimum level"
               value={v.min_level ?? ''}
               min={1}
               onChange={(x) => setRace({ min_level: x })}
-              hint={`vacío = automático (${race ? getMinimumLevel({ ...race, minLevel: undefined }) : '—'})`}
+              hint={`empty = automatic (${race ? getMinimumLevel({ ...race, minLevel: undefined }) : '—'})`}
             />
             <NumberField
-              label="Nivel máximo"
+              label="Maximum level"
               value={v.max_level ?? ''}
               min={1}
               onChange={(x) => setRace({ max_level: x })}
-              hint={`vacío = automático (${race ? getMaximumLevel({ ...race, maxLevel: undefined }) : '—'})`}
+              hint={`empty = automatic (${race ? getMaximumLevel({ ...race, maxLevel: undefined }) : '—'})`}
             />
             {(['quick', 'normal', 'slow'] as const).map((stop) => (
               <NumberField
                 key={stop}
-                label={`Parada ${STOP_LABELS[stop]} (s)`}
+                label={`${STOP_LABELS[stop][0]!.toUpperCase()}${STOP_LABELS[stop].slice(1)} stop (s)`}
                 value={v[`stop_${stop}_s`] ?? ''}
                 min={0}
                 step={5}
                 onChange={(x) => setRace({ [`stop_${stop}_s`]: x })}
-                hint={`vacío = automático (${stopSeconds(effort)[stop]} s) · las tres o ninguna`}
+                hint={`empty = automatic (${stopSeconds(effort)[stop]} s) · all three or none`}
               />
             ))}
           </div>
 
-          <h3>Nombre y terreno</h3>
+          <h3>Name and terrain</h3>
           <div className="form">
-            <TextField label="Nombre" value={v.name!} onChange={(x) => setRace({ name: x })} wide />
-            <TextField label="Terreno (English)" value={v.terrain!} onChange={(x) => setRace({ terrain: x })} wide />
+            <TextField label="Name" value={v.name!} onChange={(x) => setRace({ name: x })} wide />
+            <TextField label="Terrain (English)" value={v.terrain!} onChange={(x) => setRace({ terrain: x })} wide />
             {RACE_LANGUAGES.map((language) => (
               <TextField
                 key={language}
-                label={`Terreno (${LANGUAGE_LABELS[language]})`}
+                label={`Terrain (${LANGUAGE_LABELS[language]})`}
                 value={v[`terrain_${language}`] ?? ''}
-                placeholder="vacío = en inglés"
+                placeholder="empty = English"
                 onChange={(x) => setRace({ [`terrain_${language}`]: x })}
                 wide
               />
@@ -441,35 +441,35 @@ function Segments({
   const num = (text: string) => (text === '' ? 0 : Number(text))
 
   return (
-    <section className="segments" aria-label="Tramos y avituallamientos">
+    <section className="segments" aria-label="Segments and aid stations">
       <div className="majorsBar">
-        <h3>Tramos y avituallamientos</h3>
+        <h3>Segments and aid stations</h3>
         {specs ? (
           <button type="button" className="ghost small" onClick={onAuto}>
-            Volver a tramos automáticos
+            Back to automatic segments
           </button>
         ) : (
           <button type="button" className="primary small" disabled={!race} onClick={() => onChange(fromAuto())}>
-            Definir tramos a mano
+            Set segments by hand
           </button>
         )}
       </div>
       {!specs ? (
         <p className="hint">
-          Automáticos: {race ? getSegmentCount(race) : '—'} tramos de la misma distancia, perfil generado del total. Pulsa «Definir tramos a mano» para
-          partir de ellos y ajustar cada tramo.
+          Automatic: {race ? getSegmentCount(race) : '—'} segments of the same distance, profile generated from the totals. Press «Set segments by hand» to
+          start from them and adjust each segment.
         </p>
       ) : (
         <div className="gridWrap">
           <table className="grid segmentGrid">
             <thead>
               <tr>
-                <th>Tramo</th>
+                <th>Segment</th>
                 <th>km</th>
                 <th>D+ (m)</th>
                 <th>D− (m)</th>
-                <th>Técnica</th>
-                <th>Desnivel por km</th>
+                <th>Technicality</th>
+                <th>Elevation per km</th>
                 <th />
               </tr>
             </thead>
@@ -478,19 +478,19 @@ function Segments({
                 <tr key={i}>
                   <td>
                     {i + 1}
-                    {i < specs.length - 1 && <span className="hint"> · avit. {i + 1}</span>}
+                    {i < specs.length - 1 && <span className="hint"> · aid {i + 1}</span>}
                   </td>
                   <td>
-                    <input type="number" inputMode="decimal" step={0.1} min={0.5} aria-label={`Tramo ${i + 1}: km`} value={spec.distanceKm} onChange={(e) => set(i, { distanceKm: num(e.target.value) })} />
+                    <input type="number" inputMode="decimal" step={0.1} min={0.5} aria-label={`Segment ${i + 1}: km`} value={spec.distanceKm} onChange={(e) => set(i, { distanceKm: num(e.target.value) })} />
                   </td>
                   <td>
-                    <input type="number" step={10} min={0} aria-label={`Tramo ${i + 1}: D+`} value={spec.gainM} onChange={(e) => set(i, { gainM: Math.round(num(e.target.value)) })} />
+                    <input type="number" step={10} min={0} aria-label={`Segment ${i + 1}: D+`} value={spec.gainM} onChange={(e) => set(i, { gainM: Math.round(num(e.target.value)) })} />
                   </td>
                   <td>
-                    <input type="number" step={10} min={0} aria-label={`Tramo ${i + 1}: D−`} value={spec.lossM} onChange={(e) => set(i, { lossM: Math.round(num(e.target.value)) })} />
+                    <input type="number" step={10} min={0} aria-label={`Segment ${i + 1}: D−`} value={spec.lossM} onChange={(e) => set(i, { lossM: Math.round(num(e.target.value)) })} />
                   </td>
                   <td>
-                    <select aria-label={`Tramo ${i + 1}: técnica`} value={spec.technicality} onChange={(e) => set(i, { technicality: Number(e.target.value) })}>
+                    <select aria-label={`Segment ${i + 1}: technicality`} value={spec.technicality} onChange={(e) => set(i, { technicality: Number(e.target.value) })}>
                       {Array.from({ length: MAX_TECHNICALITY + 1 }, (_, t) => (
                         <option key={t} value={t}>
                           {t}
@@ -505,9 +505,9 @@ function Segments({
                       className="ghost small"
                       disabled={specs.length <= MIN_SEGMENTS}
                       onClick={() => onChange(specs.filter((_, k) => k !== i))}
-                      title="Quita el tramo (y un avituallamiento)"
+                      title="Removes the segment (and an aid station)"
                     >
-                      Quitar
+                      Remove
                     </button>
                   </td>
                 </tr>
@@ -521,10 +521,10 @@ function Segments({
               disabled={specs.length >= MAX_SEGMENTS}
               onClick={() => onChange([...specs, { distanceKm: 5, gainM: 0, lossM: 0, technicality: 0 }])}
             >
-              + Añadir tramo (y un avituallamiento)
+              + Add segment (and an aid station)
             </button>
             <span className="hint">
-              {specs.length} tramos · {specs.length - 1} avituallamientos · {MIN_SEGMENTS}–{MAX_SEGMENTS} tramos
+              {specs.length} segments · {specs.length - 1} aid stations · {MIN_SEGMENTS}–{MAX_SEGMENTS} segments
             </span>
           </div>
         </div>

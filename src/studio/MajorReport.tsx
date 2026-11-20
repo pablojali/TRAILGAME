@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { MajorReport as Report } from '../server/majorOps'
 import { majorOps } from './majorClient'
 
-const playersText = (n: number) => `${n} ${n === 1 ? 'jugador' : 'jugadores'}`
+const playersText = (n: number) => `${n} ${n === 1 ? 'player' : 'players'}`
 
 function timeText(seconds: number | null): string {
   if (seconds === null) return '—'
@@ -38,11 +38,11 @@ export function MajorReport({ eventId, name, onClose }: { eventId: string; name:
   const npcs = report?.categories.reduce((sum, c) => sum + c.npcs, 0) ?? 0
 
   return (
-    <section className="majorReport" aria-label={`Informe de ${name}`}>
+    <section className="majorReport" aria-label={`Report of ${name}`}>
       <div className="majorsBar">
         <h3>Informe · {name}</h3>
         <button type="button" className="ghost small" onClick={onClose}>
-          Cerrar informe
+          Close report
         </button>
       </div>
       {error && (
@@ -50,28 +50,28 @@ export function MajorReport({ eventId, name, onClose }: { eventId: string; name:
           No se pudo leer el informe ({error}).
         </p>
       )}
-      {!report && !error && <p className="loading">Leyendo el informe…</p>}
+      {!report && !error && <p className="loading">Reading the report…</p>}
       {report && (
         <>
           <p className="reportTotals">
-            <b>{players}</b> {players === 1 ? 'jugador' : 'jugadores'} · <b>{npcs}</b> NPC en {report.categories.length} {report.categories.length === 1 ? 'categoría' : 'categorías'}
+            <b>{players}</b> {players === 1 ? 'player' : 'players'} · <b>{npcs}</b> NPC in {report.categories.length} {report.categories.length === 1 ? 'category' : 'categories'}
           </p>
           {report.categories.map((category) => (
             <details key={category.idx} open={report.categories.length === 1}>
               <summary>
                 <b>{category.name}</b> · {playersText(category.players)} · {category.npcs} NPC
-                {category.phase !== 'FINISHED' && <span className="hint"> · en carrera</span>}
+                {category.phase !== 'FINISHED' && <span className="hint"> · racing</span>}
               </summary>
               <div className="gridWrap">
                 <table className="grid">
                   <thead>
                     <tr>
                       <th>Pos.</th>
-                      <th>Corredor</th>
-                      <th>Tipo</th>
-                      <th>Nivel</th>
-                      <th>Tiempo</th>
-                      <th>En su carrera</th>
+                      <th>Runner</th>
+                      <th>Kind</th>
+                      <th>Level</th>
+                      <th>Time</th>
+                      <th>In their career</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -83,11 +83,11 @@ export function MajorReport({ eventId, name, onClose }: { eventId: string; name:
                           {row.country && <span className="hint"> · {row.country}</span>}
                         </td>
                         <td>
-                          <span className={`tag ${row.kind === 'NPC' ? 'kind-npc' : 'kind-player'}`}>{row.kind === 'NPC' ? 'NPC' : 'Jugador'}</span>
+                          <span className={`tag ${row.kind === 'NPC' ? 'kind-npc' : 'kind-player'}`}>{row.kind === 'NPC' ? 'NPC' : 'Player'}</span>
                         </td>
                         <td>{row.level}</td>
                         <td>{timeText(row.timeS)}</td>
-                        <td>{row.claimed === null ? '—' : row.claimed ? 'Sí' : 'Pendiente'}</td>
+                        <td>{row.claimed === null ? '—' : row.claimed ? 'Yes' : 'Pending'}</td>
                       </tr>
                     ))}
                   </tbody>

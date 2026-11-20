@@ -40,7 +40,7 @@ export function MajorMedia({ event, onChange }: { event: MajorEvent; onChange(ev
       await task()
       setNotice(done)
     } catch (e) {
-      setError(`No se pudo: ${(e as Error).message}`)
+      setError(`It failed: ${(e as Error).message}`)
     } finally {
       setBusy(null)
     }
@@ -54,7 +54,7 @@ export function MajorMedia({ event, onChange }: { event: MajorEvent; onChange(ev
         if (!saved.ok) throw new Error(errorText(saved.error))
         onChange(saved.event as MajorEvent)
       },
-      'Quitado.',
+      'Removed.',
     )
 
   return (
@@ -73,13 +73,13 @@ export function MajorMedia({ event, onChange }: { event: MajorEvent; onChange(ev
 
       <div className="mediaRow">
         <div className="mediaPreview banner">
-          {event.bannerPath ? <img src={mediaUrl(event.bannerPath)} alt={`Banner de ${event.name}`} /> : <span className="muted">Sin banner (se usa la foto de la carrera)</span>}
+          {event.bannerPath ? <img src={mediaUrl(event.bannerPath)} alt={`Banner of ${event.name}`} /> : <span className="muted">No banner (the race photo is used)</span>}
         </div>
         <div className="mediaActions">
           <b>Banner</b>
-          <span className="hint">Imagen apaisada; se guarda como JPEG de hasta 1672 px de ancho.</span>
+          <span className="hint">Landscape picture; saved as a JPEG up to 1672 px wide.</span>
           <label className="ghost small fileButton">
-            {busy === 'banner' ? 'Subiendo…' : event.bannerPath ? 'Cambiar banner' : 'Subir banner'}
+            {busy === 'banner' ? 'Uploading…' : event.bannerPath ? 'Change banner' : 'Upload banner'}
             <input
               type="file"
               accept="image/*"
@@ -87,13 +87,13 @@ export function MajorMedia({ event, onChange }: { event: MajorEvent; onChange(ev
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 e.target.value = ''
-                if (file) void run('banner', async () => send('banner', null, [{ blob: await photoJpeg(file), type: 'image/jpeg' }]), 'Banner guardado.')
+                if (file) void run('banner', async () => send('banner', null, [{ blob: await photoJpeg(file), type: 'image/jpeg' }]), 'Banner saved.')
               }}
             />
           </label>
           {event.bannerPath && (
             <button type="button" className="link" disabled={busy !== null} onClick={() => void remove('banner', null)}>
-              Quitar
+              Remove
             </button>
           )}
         </div>
@@ -107,14 +107,14 @@ export function MajorMedia({ event, onChange }: { event: MajorEvent; onChange(ev
               {path ? (
                 <video src={mediaUrl(path)} poster={mediaUrl(path.replace(/\.mp4$/, '.jpg'))} controls muted playsInline preload="none" />
               ) : (
-                <span className="muted">Usa el vídeo de la carrera</span>
+                <span className="muted">Uses the race's video</span>
               )}
             </div>
             <div className="mediaActions">
               <b>Tramo {segment}</b>
               <span className="hint">MP4 (H.264), hasta {megabytes(MAX_VIDEO_BYTES)}; se sube tal cual.</span>
               <label className="ghost small fileButton">
-                {busy === `clip${segment}` ? 'Subiendo…' : path ? 'Cambiar vídeo' : 'Subir vídeo'}
+                {busy === `clip${segment}` ? 'Uploading…' : path ? 'Change video' : 'Upload video'}
                 <input
                   type="file"
                   accept="video/mp4"
@@ -127,21 +127,21 @@ export function MajorMedia({ event, onChange }: { event: MajorEvent; onChange(ev
                       `clip${segment}`,
                       async () => {
                         const head = new Uint8Array(await file.arrayBuffer())
-                        if (!isMp4(head)) throw new Error('ese archivo no es un vídeo MP4. Expórtalo como MP4 (H.264), por ejemplo desde InShot o CapCut a 720p.')
-                        if (file.size > MAX_VIDEO_BYTES) throw new Error(`pesa ${megabytes(file.size)}; el máximo es ${megabytes(MAX_VIDEO_BYTES)}. Expórtalo a 720p.`)
+                        if (!isMp4(head)) throw new Error('that file is not an MP4 video. Export it as MP4 (H.264), e.g. from InShot or CapCut at 720p.')
+                        if (file.size > MAX_VIDEO_BYTES) throw new Error(`it weighs ${megabytes(file.size)}; the maximum is ${megabytes(MAX_VIDEO_BYTES)}. Export it at 720p.`)
                         await send('clip', segment, [
                           { blob: file, type: 'video/mp4' },
                           { blob: await videoPoster(file), type: 'image/jpeg' },
                         ])
                       },
-                      file.size > LARGE_VIDEO_BYTES ? `Vídeo del tramo ${segment} guardado (${megabytes(file.size)}: tardará en cargar con datos móviles).` : `Vídeo del tramo ${segment} guardado.`,
+                      file.size > LARGE_VIDEO_BYTES ? `Segment ${segment} video saved (${megabytes(file.size)}: slow to load on mobile data).` : `Segment ${segment} video saved.`,
                     )
                   }}
                 />
               </label>
               {path && (
                 <button type="button" className="link" disabled={busy !== null} onClick={() => void remove('clip', segment)}>
-                  Quitar
+                  Remove
                 </button>
               )}
             </div>

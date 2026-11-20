@@ -7,10 +7,10 @@ import type { Workspace } from './model'
 const PORTRAIT = Object.values(import.meta.glob<string>('../../assets/coach/portraits/women_light.webp', { eager: true, query: '?url', import: 'default' }))[0]
 const LANGUAGES = [
   ['', 'English'],
-  ['_es', 'Español'],
-  ['_fr', 'Français'],
-  ['_it', 'Italiano'],
-  ['_de', 'Deutsch'],
+  ['_es', 'Spanish'],
+  ['_fr', 'French'],
+  ['_it', 'Italian'],
+  ['_de', 'German'],
 ] as const
 
 interface Moment {
@@ -62,13 +62,13 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
   const setHead = (changes: Record<string, string>) => current && setStep(current.rows[0]!, changes)
 
   function addMoment() {
-    const name = window.prompt('Nombre del momento (minúsculas y guiones, p. ej. primera-tienda). No se puede cambiar después.')?.trim().toLowerCase()
+    const name = window.prompt('Name of the moment (lower case and hyphens, e.g. first-shop). It cannot be changed later.')?.trim().toLowerCase()
     if (!name) return
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name) || moments.some((m) => m.id === name)) {
-      window.alert('Usa minúsculas, números y guiones, y un nombre que no exista.')
+      window.alert('Use lower case, digits and hyphens, and a name that does not exist yet.')
       return
     }
-    const row = newRow(ws.docs.coach, { moment: name, step: '1', trigger: 'pending', title: '', text: '', title_es: 'Nuevo consejo', text_es: 'Escribe aquí el texto.' })
+    const row = newRow(ws.docs.coach, { moment: name, step: '1', trigger: 'pending', title: 'New tip', text: 'Write the text here.' })
     save([...moments, { id: name, rows: [row] }])
     select(name)
   }
@@ -94,14 +94,14 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
 
   return (
     <div className="split">
-      <section className="listPane" aria-label="Momentos del coach">
+      <section className="listPane" aria-label="Coach moments">
         <div className="paneHead">
           <h2>Coach ({moments.length})</h2>
           <button type="button" className="ghost" onClick={addMoment}>
-            + Nuevo momento
+            + New moment
           </button>
         </div>
-        <p className="hint">El coach revisa los momentos en este orden y muestra el primero que toque y no se haya visto. Cada uno sale una sola vez.</p>
+        <p className="hint">The coach checks the moments in this order and shows the first one that fits and has not been seen. Each shows once.</p>
         <ol className="momentList">
           {moments.map((m, i) => {
             const trigger = m.rows[0]!.values.trigger!
@@ -114,7 +114,7 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
                     {i + 1}. {m.id}
                   </span>
                   <span className={`rowId${trigger === 'pending' ? ' pendingTag' : ''}`}>
-                    {COACH_TRIGGERS[trigger]?.label ?? trigger} · {m.rows.length} paso{m.rows.length > 1 ? 's' : ''}
+                    {COACH_TRIGGERS[trigger]?.label ?? trigger} · {m.rows.length} step{m.rows.length > 1 ? 's' : ''}
                   </span>
                 </button>
               </li>
@@ -124,22 +124,22 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
       </section>
 
       {current && head && (
-        <section className="editPane" aria-label={`Editar ${current.id}`}>
+        <section className="editPane" aria-label={`Edit ${current.id}`}>
           <div className="editHead">
             <div>
-              <span className="eyebrow">MOMENTO</span>
+              <span className="eyebrow">MOMENT</span>
               <h2>{current.id}</h2>
             </div>
             <div className="mediaActions">
               <button type="button" className="ghost small" onClick={() => moveMoment(-1)}>
-                ↑ Antes
+                ↑ Earlier
               </button>
               <button type="button" className="ghost small" onClick={() => moveMoment(1)}>
-                ↓ Después
+                ↓ Later
               </button>
               {!baseIds.has(current.id) && (
                 <button type="button" className="ghost small" onClick={() => save(moments.filter((m) => m !== current))}>
-                  Quitar
+                  Remove
                 </button>
               )}
             </div>
@@ -148,29 +148,29 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
           <div className="coachPreview">
             {PORTRAIT && <img src={PORTRAIT} alt="" />}
             <div>
-              <span className="eyebrow">TU ENTRENADORA · {Math.min(preview, current.rows.length - 1) + 1}/{current.rows.length}</span>
-              <strong>{shown?.title_es || shown?.title}</strong>
-              <p>{shown?.text_es || shown?.text}</p>
+              <span className="eyebrow">YOUR COACH · {Math.min(preview, current.rows.length - 1) + 1}/{current.rows.length}</span>
+              <strong>{shown?.title || shown?.title_es}</strong>
+              <p>{shown?.text || shown?.text_es}</p>
               {current.rows.length > 1 && (
                 <button type="button" className="link" onClick={() => setPreview((p) => (p + 1) % current.rows.length)}>
-                  Ver el siguiente paso
+                  See the next step
                 </button>
               )}
             </div>
           </div>
 
-          <h3>Cuándo aparece</h3>
+          <h3>When it shows</h3>
           <div className="form">
             <SelectField
-              label="Disparador"
+              label="Trigger"
               value={head.trigger!}
               options={Object.entries(COACH_TRIGGERS).map(([value, t]) => ({ value, label: t.label }))}
               onChange={(x) => setHead({ trigger: x })}
-              hint={head.trigger === 'pending' ? 'No aparece hasta que Claude programe su disparador: avísale qué debe esperar.' : 'Además, cada paso necesita en pantalla lo que señala.'}
+              hint={head.trigger === 'pending' ? 'It does not show until Claude programs its trigger: tell Claude what it must wait for.' : 'Each step also needs what it points at on the screen.'}
             />
           </div>
           <div className="chipRow">
-            <span className="hint">Solo después de ver:</span>
+            <span className="hint">Only after seeing:</span>
             {others.map((id) => (
               <button key={id} type="button" className="chip" aria-pressed={list(head.after).includes(id)} onClick={() => toggleIn('after', id)}>
                 {id}
@@ -178,7 +178,7 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
             ))}
           </div>
           <div className="chipRow">
-            <span className="hint">Se cancela si ya vio:</span>
+            <span className="hint">Cancelled if already seen:</span>
             {others.map((id) => (
               <button key={id} type="button" className="chip" aria-pressed={list(head.unless).includes(id)} onClick={() => toggleIn('unless', id)}>
                 {id}
@@ -186,14 +186,14 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
             ))}
           </div>
 
-          <h3>Pasos</h3>
+          <h3>Steps</h3>
           {current.rows.map((row, i) => {
             const v = row.values
             const targets = list(v.targets)
             return (
               <div className="stepCard" key={`${current.id}-${i}`}>
                 <div className="editHead">
-                  <strong>Paso {i + 1}</strong>
+                  <strong>Step {i + 1}</strong>
                   <div className="mediaActions">
                     <button type="button" className="ghost small" disabled={i === 0} onClick={() => withSteps((s) => { const n = [...s]; [n[i - 1], n[i]] = [n[i]!, n[i - 1]!]; return n })}>
                       ↑
@@ -202,12 +202,12 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
                       ↓
                     </button>
                     <button type="button" className="ghost small" disabled={current.rows.length === 1} onClick={() => withSteps((s) => s.filter((_, k) => k !== i))}>
-                      Quitar
+                      Remove
                     </button>
                   </div>
                 </div>
                 <div className="chipRow">
-                  <span className="hint">Señala:</span>
+                  <span className="hint">Points at:</span>
                   {Object.entries(COACH_TARGETS).map(([id, label]) => (
                     <button
                       key={id}
@@ -222,14 +222,14 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
                 </div>
                 <label className="check">
                   <input type="checkbox" checked={v.tap === 'yes'} disabled={targets.length === 0} onChange={(e) => setStep(row, { tap: e.target.checked ? 'yes' : '' })} />
-                  Espera a que toque lo señalado (solo eso se puede tocar; sin botón Siguiente)
+                  Waits for a tap on what it points at (only that can be tapped; no Next button)
                 </label>
                 <div className="langGrid">
                   {LANGUAGES.map(([suffix, name]) => (
                     <div className="langBlock" key={suffix}>
                       <span className="langTitle">{name}</span>
-                      <TextField label="Título" value={v[`title${suffix}`] ?? ''} placeholder={suffix ? 'vacío = en inglés' : ''} onChange={(x) => setStep(row, { [`title${suffix}`]: x })} wide />
-                      <TextField label="Texto" value={v[`text${suffix}`] ?? ''} placeholder={suffix ? 'vacío = en inglés' : ''} onChange={(x) => setStep(row, { [`text${suffix}`]: x })} wide multiline />
+                      <TextField label="Title" value={v[`title${suffix}`] ?? ''} placeholder={suffix ? 'empty = English' : ''} onChange={(x) => setStep(row, { [`title${suffix}`]: x })} wide />
+                      <TextField label="Text" value={v[`text${suffix}`] ?? ''} placeholder={suffix ? 'empty = English' : ''} onChange={(x) => setStep(row, { [`text${suffix}`]: x })} wide multiline />
                     </div>
                   ))}
                 </div>
@@ -239,11 +239,11 @@ export function CoachPanel({ ws, setWs, selected, select }: { ws: Workspace; set
           <button
             type="button"
             className="ghost"
-            onClick={() => withSteps((s) => [...s, newRow(ws.docs.coach, { moment: current.id, title: '', text: '', title_es: 'Nuevo paso', text_es: 'Escribe aquí el texto.' })])}
+            onClick={() => withSteps((s) => [...s, newRow(ws.docs.coach, { moment: current.id, title: 'New step', text: 'Write the text here.' })])}
           >
-            + Añadir paso
+            + Add step
           </button>
-          <p className="hint">¿Necesitas que el coach espere otra situación o señale otra cosa de la pantalla? Crea el momento con «Nuevo disparador» y pídeselo a Claude.</p>
+          <p className="hint">Need the coach to wait for another situation or point at something else on screen? Create the moment with «New trigger» and ask Claude.</p>
         </section>
       )}
     </div>

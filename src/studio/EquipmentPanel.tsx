@@ -14,34 +14,34 @@ const SHOP = import.meta.glob<string>('../../assets/ui/shop/*.webp', { eager: tr
 const SOURCES = Object.keys(import.meta.glob(['../../assets/ui/thumbnails/*.png', '../../assets/ui/equipment/*.webp'])).map((p) => p.slice(p.lastIndexOf('/') + 1))
 
 const TYPES: { value: string; label: string }[] = [
-  { value: 'shoes', label: 'Zapatillas' },
-  { value: 'pack', label: 'Mochila' },
-  { value: 'poles', label: 'Bastones' },
-  { value: 'nutrition', label: 'Geles y barritas' },
-  { value: 'gel', label: 'Geles' },
-  { value: 'bar', label: 'Barritas' },
-  { value: 'watch', label: 'Reloj' },
-  { value: 'glasses', label: 'Gafas (Apariencia)' },
-  { value: 'cap', label: 'Gorra (Apariencia)' },
+  { value: 'shoes', label: 'Shoes' },
+  { value: 'pack', label: 'Pack' },
+  { value: 'poles', label: 'Poles' },
+  { value: 'nutrition', label: 'Gels and bars' },
+  { value: 'gel', label: 'Gels' },
+  { value: 'bar', label: 'Bars' },
+  { value: 'watch', label: 'Watch' },
+  { value: 'glasses', label: 'Glasses (Look)' },
+  { value: 'cap', label: 'Cap (Look)' },
 ]
 const TYPE_LABEL = Object.fromEntries(TYPES.map((t) => [t.value, t.label]))
 const ATTRIBUTE_LABELS: Record<string, string> = {
-  endurance: 'Resistencia',
-  climbing: 'Subida',
-  speed: 'Velocidad',
-  technical: 'Técnica',
-  recovery: 'Recuperación',
-  consistency: 'Regularidad',
+  endurance: 'Endurance',
+  climbing: 'Climbing',
+  speed: 'Speed',
+  technical: 'Technique',
+  recovery: 'Recovery',
+  consistency: 'Consistency',
 }
 const MULTIPLIERS: { column: string; label: string }[] = [
-  { column: 'flat', label: 'Tiempo en llano' },
-  { column: 'climb', label: 'Tiempo en subidas' },
-  { column: 'descent', label: 'Tiempo en bajadas' },
-  { column: 'technical_penalty', label: 'Penalización en bajadas técnicas' },
-  { column: 'wear', label: 'Desgaste con la distancia' },
+  { column: 'flat', label: 'Time on the flat' },
+  { column: 'climb', label: 'Time on climbs' },
+  { column: 'descent', label: 'Time on descents' },
+  { column: 'technical_penalty', label: 'Penalty on technical descents' },
+  { column: 'wear', label: 'Wear with distance' },
 ]
-const LANGUAGE_LABELS: Record<string, string> = { es: 'Español', fr: 'Français', it: 'Italiano', de: 'Deutsch' }
-const t = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) => translate('es', key, vars)
+const LANGUAGE_LABELS: Record<string, string> = { es: 'Spanish', fr: 'French', it: 'Italian', de: 'German' }
+const t = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) => translate('en', key, vars)
 
 /** The shop picture of a thumbnail column (men's file for {sex}). */
 function pictureOf(file: string): string | undefined {
@@ -75,13 +75,13 @@ function Card({ values, item, picture }: { values: Record<string, string>; item?
   return (
     <div className="itemCard">
       <span className="itemTop">
-        {values.level ? <span className="level">Nv {values.level}</span> : <span />}
+        {values.level ? <span className="level">Lv {values.level}</span> : <span />}
         <span className="type">{TYPE_LABEL[values.type!] ?? values.type}</span>
       </span>
-      <strong>{item ? itemLabel(item, 'es') : values.name_es || values.name}</strong>
-      <span className="art">{picture ? <img src={picture} alt="" /> : <span className="noArt">sin imagen</span>}</span>
-      <span className="effect">{item ? itemEffect(item, 'es', t) ?? 'Sin bonus de atributos' : ''}</span>
-      <span className="price">{values.price === '' ? 'No a la venta' : values.price === '0' ? 'Gratis' : `● ${values.price}`}</span>
+      <strong>{item ? itemLabel(item, 'en') : values.name || values.name_es}</strong>
+      <span className="art">{picture ? <img src={picture} alt="" /> : <span className="noArt">no picture</span>}</span>
+      <span className="effect">{item ? itemEffect(item, 'en', t) ?? 'No attribute bonus' : ''}</span>
+      <span className="price">{values.price === '' ? 'Not for sale' : values.price === '0' ? 'Free' : `● ${values.price}`}</span>
     </div>
   )
 }
@@ -119,22 +119,22 @@ export function EquipmentPanel({
     const id = `new-item-${n}`
     setWs({
       ...ws,
-      docs: { ...ws.docs, equipment: insertRow(ws.docs.equipment, { id, name: 'New item', type: 'shoes', level: '1', price: '50', description: '', name_es: 'Nuevo artículo' }) },
+      docs: { ...ws.docs, equipment: insertRow(ws.docs.equipment, { id, name: 'New item', type: 'shoes', level: '1', price: '50', description: '', name_es: 'Artículo nuevo' }) },
     })
     select(id)
   }
 
   return (
     <div className="split">
-      <section className="listPane" aria-label="Equipamiento">
+      <section className="listPane" aria-label="Equipment">
         <div className="paneHead">
-          <h2>Equipamiento ({itemRows.length})</h2>
+          <h2>Equipment ({itemRows.length})</h2>
           <button type="button" className="ghost" onClick={addItem}>
-            + Nuevo artículo
+            + New item
           </button>
         </div>
-        <div className="chips" role="group" aria-label="Tipo">
-          {[{ value: 'all', label: 'Todo' }, ...TYPES.filter((ty) => itemRows.some((r) => r.values.type === ty.value))].map((ty) => (
+        <div className="chips" role="group" aria-label="Type">
+          {[{ value: 'all', label: 'All' }, ...TYPES.filter((ty) => itemRows.some((r) => r.values.type === ty.value))].map((ty) => (
             <button key={ty.value} type="button" aria-pressed={filter === ty.value} onClick={() => setFilter(ty.value)}>
               {ty.label}
             </button>
@@ -144,7 +144,7 @@ export function EquipmentPanel({
           {shownRows.map((row) => (
             <li key={row.values.id}>
               <button type="button" aria-pressed={row.values.id === v?.id} onClick={() => select(row.values.id!)}>
-                {baseRows.get(row.values.id!) !== JSON.stringify(row.values) && <span className="dot" title="Cambiado" />}
+                {baseRows.get(row.values.id!) !== JSON.stringify(row.values) && <span className="dot" title="Changed" />}
                 <Card values={row.values} item={readItem(ws.docs.equipment, row.values).item} picture={pictureFor(row.values)} />
               </button>
             </li>
@@ -153,38 +153,37 @@ export function EquipmentPanel({
       </section>
 
       {v && (
-        <section className="editPane" aria-label={`Editar ${v.name}`}>
+        <section className="editPane" aria-label={`Edit ${v.name}`}>
           <div className="editHead">
             <div>
               <span className="eyebrow">{v.id}</span>
-              <h2>{v.name_es || v.name}</h2>
+              <h2>{v.name || v.name_es}</h2>
             </div>
           </div>
           <div className="previewRow">
             <Card values={v} item={read.item} picture={pictureFor(v)} />
             <div className="previewNote">
-              <p>Así se verá en la tienda (en español).</p>
-              {read.item?.effectText && <p className="muted">English: {read.item.effectText.replace(/^Races: /, '')}</p>}
+              <p>How it looks in the shop (in English).</p>
             </div>
           </div>
-          {read.error && <p className="error">El juego no aceptaría este artículo: {read.error}</p>}
+          {read.error && <p className="error">The game would refuse this item: {read.error}</p>}
 
-          <h3>Tienda</h3>
+          <h3>Shop</h3>
           <div className="form">
-            <SelectField label="Tipo" value={v.type!} options={TYPES} onChange={(x) => setItem({ type: x })} />
-            <NumberField label="Nivel" value={v.level!} min={1} onChange={(x) => setItem({ level: x })} hint="Vacío: sin nivel" />
-            <NumberField label="Precio (monedas)" value={v.price!} min={0} onChange={(x) => setItem({ price: x })} hint="Vacío: no se vende · 0: gratis" />
+            <SelectField label="Type" value={v.type!} options={TYPES} onChange={(x) => setItem({ type: x })} />
+            <NumberField label="Level" value={v.level!} min={1} onChange={(x) => setItem({ level: x })} hint="Empty: no level" />
+            <NumberField label="Price (coins)" value={v.price!} min={0} onChange={(x) => setItem({ price: x })} hint="Empty: not for sale · 0: free" />
             {['gel', 'bar', 'nutrition'].includes(v.type!) && (
-              <NumberField label="Unidades por pack" value={v.pack!} min={1} onChange={(x) => setItem({ pack: x })} />
+              <NumberField label="Units per pack" value={v.pack!} min={1} onChange={(x) => setItem({ pack: x })} />
             )}
-            <Field label="Imagen de la tienda" hint="Sube una imagen (mejor PNG con fondo transparente) o elige un archivo de assets/ui/thumbnails ({sex} = men o women)" wide>
+            <Field label="Shop picture" hint="Upload a picture (best a PNG with a transparent background) or choose a file of assets/ui/thumbnails ({sex} = men or women)" wide>
               {(id) => (
                 <>
                   <div className="inputRow">
                     <input id={id} list="studio-thumbnails" value={v.thumbnail} onChange={(e) => setItem({ thumbnail: e.target.value })} />
                     <Picker
                       accept="image/*"
-                      label="Subir imagen"
+                      label="Upload picture"
                       onFile={async (file) => {
                         setPictureError('')
                         try {
@@ -206,13 +205,13 @@ export function EquipmentPanel({
                 </>
               )}
             </Field>
-            <TextField label="Capa en el corredor" value={v.avatar_layer!} onChange={(x) => setItem({ avatar_layer: x })} hint="Archivo de assets/runner/avatar" wide />
+            <TextField label="Layer on the runner" value={v.avatar_layer!} onChange={(x) => setItem({ avatar_layer: x })} hint="File in assets/runner/avatar" wide />
             {v.type === 'shoes' ? (
-              <p className="hint wide">Las zapatillas en el corredor las prepara Claude (pásale la imagen).</p>
+              <p className="hint wide">Claude prepares the shoes on the runner (send it the picture).</p>
             ) : (
               <Field
-                label="Imagen en el corredor"
-                hint="PNG con fondo transparente sobre el lienzo del corredor (1024 × 1536), en su sitio. Se convierte sola al publicar. {sex} en el nombre: una para hombres y otra para mujeres (la de hombres sirve a las dos si falta). {tone}: una por tono de piel (las gorras, con su cara). Gafas y gorras se venden en Apariencia › Accesorios y no llevan bonus de carrera."
+                label="Picture on the runner"
+                hint="PNG with a transparent background on the runner's canvas (1024 × 1536), in its place. Converted when published. {sex} in the name: one for men and one for women (the men's one serves both if missing). {tone}: one per skin tone (caps, with their face). Glasses and caps are sold in Look › Accessories and carry no race bonus."
                 wide
               >
                 {() => {
@@ -229,7 +228,7 @@ export function EquipmentPanel({
                               onFile={async (file) => {
                                 setLayerError('')
                                 try {
-                                  const upload = await layerPicture(path, file, `Capa en el corredor de ${v.id}${sex || tone ? ` (${[sex, tone ? `tono ${tone}` : ''].filter(Boolean).join(', ')})` : ''}`)
+                                  const upload = await layerPicture(path, file, `Runner layer of ${v.id}${sex || tone ? ` (${[sex, tone ? `tone ${tone}` : ''].filter(Boolean).join(', ')})` : ''}`)
                                   const next = withUploads(ws, { [path]: upload })
                                   setWs({ ...next, docs: { ...next.docs, equipment: updateRow(next.docs.equipment, (r) => r.values.id === v.id, { avatar_layer: layerColumn(stem) }) } })
                                 } catch (e) {
@@ -248,10 +247,10 @@ export function EquipmentPanel({
             )}
           </div>
 
-          <h3>Efecto en carrera</h3>
+          <h3>Race effect</h3>
           <div className="form">
             {ATTRIBUTE_IDS.map((id) => (
-              <NumberField key={id} label={ATTRIBUTE_LABELS[id]!} value={v[id]!} step={0.5} onChange={(x) => setItem({ [id]: x === '0' ? '' : x })} hint="+ bonus en carrera" />
+              <NumberField key={id} label={ATTRIBUTE_LABELS[id]!} value={v[id]!} step={0.5} onChange={(x) => setItem({ [id]: x === '0' ? '' : x })} hint="+ race bonus" />
             ))}
             {MULTIPLIERS.map((m) => (
               <NumberField
@@ -260,28 +259,28 @@ export function EquipmentPanel({
                 value={toPercent(v[m.column]!)}
                 step={0.5}
                 onChange={(x) => setItem({ [m.column]: fromPercent(x) })}
-                hint="negativo = más rápido / menos"
+                hint="negative = faster / less"
               />
             ))}
             <TextField
-              label="Texto del efecto propio (English)"
+              label="Own effect text (English)"
               value={v.effect_text!}
               onChange={(x) => setItem({ effect_text: x })}
-              placeholder="vacío = se escribe solo a partir de los bonus"
+              placeholder="empty = written from the bonuses"
               wide
             />
           </div>
 
-          <h3>Nombre y textos</h3>
+          <h3>Name and texts</h3>
           <div className="form">
-            <TextField label="Nombre (English)" value={v.name!} onChange={(x) => setItem({ name: x })} />
-            <TextField label="Descripción (English)" value={v.description!} onChange={(x) => setItem({ description: x })} wide multiline />
+            <TextField label="Name (English)" value={v.name!} onChange={(x) => setItem({ name: x })} />
+            <TextField label="Description (English)" value={v.description!} onChange={(x) => setItem({ description: x })} wide multiline />
             {ITEM_LANGUAGES.map((language) => (
               <div className="langBlock" key={language}>
                 <span className="langTitle">{LANGUAGE_LABELS[language]}</span>
-                <TextField label="Nombre" value={v[`name_${language}`] ?? ''} placeholder="vacío = en inglés" onChange={(x) => setItem({ [`name_${language}`]: x })} />
-                <TextField label="Descripción" value={v[`description_${language}`] ?? ''} placeholder="vacío = en inglés" onChange={(x) => setItem({ [`description_${language}`]: x })} wide multiline />
-                <TextField label="Texto del efecto propio" value={v[`effect_text_${language}`] ?? ''} placeholder="vacío = automático" onChange={(x) => setItem({ [`effect_text_${language}`]: x })} wide />
+                <TextField label="Name" value={v[`name_${language}`] ?? ''} placeholder="empty = English" onChange={(x) => setItem({ [`name_${language}`]: x })} />
+                <TextField label="Description" value={v[`description_${language}`] ?? ''} placeholder="empty = English" onChange={(x) => setItem({ [`description_${language}`]: x })} wide multiline />
+                <TextField label="Own effect text" value={v[`effect_text_${language}`] ?? ''} placeholder="empty = automatic" onChange={(x) => setItem({ [`effect_text_${language}`]: x })} wide />
               </div>
             ))}
           </div>

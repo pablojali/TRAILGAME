@@ -38,7 +38,7 @@ describe('Studio workspace', () => {
     expect(needsRankingMigration(ws)).toBe(false)
   })
 
-  it('describes race and equipment changes in Spanish and adds no migration for course changes', () => {
+  it('describes race and equipment changes and adds no migration for course changes', () => {
     let ws = openWorkspace(base)
     // The current values come from the tables, which the owner edits in Studio: the test must not pin them.
     // A race without segments (with them, the distance and elevation are the segments' sums).
@@ -51,9 +51,9 @@ describe('Studio workspace', () => {
     ws = edit(ws, 'races', (v) => v.id === race.id, { elevation_gain_m: gain, technicality })
     ws = edit(ws, 'equipment', (v) => v.id === 'poles', { climbing, price })
     expect(summary(ws).races).toEqual([
-      `**${race.id} ${race.name}**: desnivel (m) ${race.elevation_gain_m} → ${gain}; técnica ${race.technicality} → ${technicality}`,
+      `**${race.id} ${race.name}**: elevation (m) ${race.elevation_gain_m} → ${gain}; technicality ${race.technicality} → ${technicality}`,
     ])
-    expect(summary(ws).equipment[0]).toMatch(new RegExp(`^\\*\\*Bastones \\(poles\\)\\*\\*: .*precio ${poles.price || '—'} → ${price}.*Subida`))
+    expect(summary(ws).equipment[0]).toMatch(new RegExp(`^\\*\\*${poles.name} \\(poles\\)\\*\\*: .*price ${poles.price || '—'} → ${price}.*Climbing`))
     expect(validate(ws)).toEqual([])
     expect(proposalFiles(ws, new Date(0)).map((f) => f.path)).toEqual(['src/data/races.csv', 'src/data/equipment.csv'])
   })
@@ -61,7 +61,7 @@ describe('Studio workspace', () => {
   it('adds the ranking migration when a level or a difficulty changes', () => {
     let ws = openWorkspace(base)
     ws = edit(ws, 'points', (v) => v.kind === 'race' && v.key === 'RACE-005', { value: 'III' })
-    expect(summary(ws).races).toEqual(['**RACE-005 Stone Path Classic**: dificultad II → III'])
+    expect(summary(ws).races).toEqual(['**RACE-005 Stone Path Classic**: difficulty II → III'])
     const files = proposalFiles(ws, new Date(Date.UTC(2026, 10, 9)))
     expect(files.map((f) => f.path)).toEqual(['src/data/ranking_points.csv', 'supabase/migrations/20261109000000_studio_rankings.sql'])
     expect(files[1]!.text).toContain("('RACE-005', 14, 160)")
@@ -74,7 +74,7 @@ describe('Studio workspace', () => {
     ws = { ...ws, docs: { ...ws.docs, races: insertRow(ws.docs.races, { id: 'RACE-099', name: 'New', category: 'open', distance_km: '5', elevation_gain_m: '100', recommended_level: '3', technicality: '0', terrain: 'Paths' }) } }
     const errors = validate(ws)
     expect(errors.some((e) => e.includes('technicality must be 0 to 5'))).toBe(true)
-    expect(errors).toContain('Carreras: RACE-099 no tiene dificultad (I–V)')
+    expect(errors).toContain('Races: RACE-099 has no difficulty (I–V)')
   })
 
   it('describes coach, balance and text changes; NPC changes bring their migration', () => {
@@ -91,11 +91,11 @@ describe('Studio workspace', () => {
       },
     }
     const s = summary(ws)
-    expect(s.coach).toEqual(['**Coach · dashboard paso 1**: título (ES) Tus atributos → Tus fuerzas'])
-    expect(s.balance).toEqual(['**Niveles · Nivel 2**: XP 100 → 120', '**Rivales NPC del ranking · NPC-001 Ana91**: strength 68 → 70'])
+    expect(s.coach).toEqual(['**Coach · dashboard step 1**: title (ES) Tus atributos → Tus fuerzas'])
+    expect(s.balance).toEqual(['**Levels · Level 2**: XP 100 → 120', '**Ranking NPC rivals · NPC-001 Ana91**: strength 68 → 70'])
     expect(s.texts).toEqual(['**dashboard · dashboard.title (ES)**: Inicio → Panel', '**dashboard · dashboard.week (ES)**: Week {week} → Semana'])
     // "Semana" lost {week}: refused.
-    expect(validate(ws)).toEqual(['Textos ES: dashboard.week debe llevar week como el inglés'])
+    expect(validate(ws)).toEqual(['Texts ES: dashboard.week must have week like the English'])
     expect(needsRankingMigration(ws)).toBe(true)
     const files = proposalFiles(ws, new Date(Date.UTC(2026, 10, 9)))
     expect(files.map((f) => f.path)).toEqual([
@@ -112,9 +112,9 @@ describe('Studio workspace', () => {
     const ws = openWorkspace(base)
     const added = { ...ws, docs: { ...ws.docs, announcements: insertRow(ws.docs.announcements, { id: 'hello', from: '2026-11-10T09:00Z', title: 'Hi', text: 'All' }) } }
     expect(validate(added)).toEqual([])
-    expect(summary(added).announcements).toEqual(['**Aviso · hello** (nueva)'])
+    expect(summary(added).announcements).toEqual(['**Announcement · hello** (new)'])
     const wrong = { ...ws, docs: { ...ws.docs, announcements: insertRow(ws.docs.announcements, { id: 'hello', from: 'mañana', title: 'Hi', text: 'All' }) } }
-    expect(validate(wrong)[0]).toMatch(/^Avisos: .*UTC date/)
+    expect(validate(wrong)[0]).toMatch(/^Announcements: .*UTC date/)
   })
 })
 
@@ -122,9 +122,9 @@ describe('Base Camp in the Studio', () => {
   it('asks for the picture of a new piece before proposing it', () => {
     const ws = openWorkspace(base)
     const added = { ...ws, docs: { ...ws.docs, basecamp: insertRow(ws.docs.basecamp, { id: 'flag', scene: 'exterior', kind: 'decor', level: '2', price: '40', currency: 'coins', art: 'lvl2_flag', name: 'Flag' }) } }
-    expect(validate(added)).toEqual(['Base Camp: «Flag» necesita su imagen (súbela en Multimedia)'])
+    expect(validate(added)).toEqual(['Base Camp: «Flag» needs its picture (upload it in Multimedia)'])
     const withPicture = { ...added, uploads: { 'assets/ui/basecamp/source/exterior/lvl2_flag.png': { base64: 'AAAA', label: 'flag' } } }
     expect(validate(withPicture)).toEqual([])
-    expect(summary(withPicture).basecamp).toEqual(['**Base Camp · flag (flag)** (nueva)'])
+    expect(summary(withPicture).basecamp).toEqual(['**Base Camp · Flag (flag)** (new)'])
   })
 })

@@ -1,5 +1,8 @@
 # Trail Studio
 
+> Trail Studio's interface is in English since 20 November 2026 (owner request). Labels quoted below
+> in Spanish («Quitar», «Subir imagen»…) are now shown in English («Remove», «Upload picture»…).
+
 The designer's editor for the game's tables (owner request, 9 November 2026). It is a separate site
 built from this repository (`studio/index.html`, code in `src/studio`). Its interface is in Spanish.
 

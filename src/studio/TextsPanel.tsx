@@ -4,19 +4,19 @@ import { jsonText, type TextFile, type TextValue, type Workspace } from './model
 
 const LANGUAGES = ['en', 'es', 'fr', 'it', 'de'] as const
 const SCREENS: Record<string, string> = {
-  common: 'Común (menú, atributos, sesiones)',
-  dashboard: 'Inicio',
-  training: 'Entreno',
-  equipment: 'Equipo',
-  looks: 'Aspecto',
-  races: 'Carreras',
-  raceRun: 'Carrera en curso',
-  raceResult: 'Resultado de carrera',
-  career: 'Trayectoria',
-  setup: 'Crear corredor',
-  settings: 'Ajustes',
-  account: 'Cuenta y nube',
-  coach: 'Coach (bienvenida y botones)',
+  common: 'Common (menu, attributes, sessions)',
+  dashboard: 'Dashboard',
+  training: 'Training',
+  equipment: 'Equipment',
+  looks: 'Look',
+  races: 'Races',
+  raceRun: 'Race in progress',
+  raceResult: 'Race result',
+  career: 'Career',
+  setup: 'Create runner',
+  settings: 'Settings',
+  account: 'Account and cloud',
+  coach: 'Coach (welcome and buttons)',
 }
 const pathOf = (language: string, screen: string) => `src/i18n/locales/${language}/${screen}.json`
 const placeholders = (value: TextValue | undefined) =>
@@ -69,7 +69,7 @@ export function TextsPanel({
         addTexts(texts)
         setScreens(names)
       } catch (e) {
-        if (live) setError(`No pude leer los textos: ${(e as Error).message}`)
+        if (live) setError(`Could not read the texts: ${(e as Error).message}`)
       }
     })()
     return () => {
@@ -96,17 +96,17 @@ export function TextsPanel({
   }, [loaded, screens, screen, search, onlyProblems, ws.texts, only])
 
   if (error) return <p className="error">{error}</p>
-  if (!loaded || !screens) return <p className="loading">Leyendo los textos del juego (5 idiomas)…</p>
+  if (!loaded || !screens) return <p className="loading">Reading the game's texts (5 languages)…</p>
 
   const changedIn = (s: string) => LANGUAGES.filter((l) => jsonText(ws.texts[pathOf(l, s)]!.data) !== ws.texts[pathOf(l, s)]!.base).length
 
   return (
     <div className={only ? '' : 'textsLayout'}>
       {!only && (
-      <aside className="listPane screens" aria-label="Pantallas">
-        <input type="search" placeholder="Buscar en todos los textos…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <aside className="listPane screens" aria-label="Screens">
+        <input type="search" placeholder="Search every text…" value={search} onChange={(e) => setSearch(e.target.value)} />
         <label className="check">
-          <input type="checkbox" checked={onlyProblems} onChange={(e) => setOnlyProblems(e.target.checked)} /> Solo con problemas
+          <input type="checkbox" checked={onlyProblems} onChange={(e) => setOnlyProblems(e.target.checked)} /> Only with problems
         </label>
         <ul>
           {screens.map((s) => (
@@ -120,15 +120,15 @@ export function TextsPanel({
         </ul>
       </aside>
       )}
-      <section className="editPane textsTable" aria-label="Textos">
+      <section className="editPane textsTable" aria-label="Texts">
         <p className="hint">
-          {search ? `${keys.length} textos encontrados.` : `${SCREENS[screen] ?? screen}: ${keys.length} textos.`} Las palabras entre llaves, como {'{name}'}, se cambian
-          solas por un valor: mantenlas en todos los idiomas.
+          {search ? `${keys.length} texts found.` : `${SCREENS[screen] ?? screen}: ${keys.length} texts.`} Words in braces, like {'{name}'}, are replaced by a
+          value: keep them in every language.
         </p>
         <table>
           <thead>
             <tr>
-              <th>Texto</th>
+              <th>Text</th>
               {LANGUAGES.map((l) => (
                 <th key={l}>{l.toUpperCase()}</th>
               ))}

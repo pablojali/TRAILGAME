@@ -32,15 +32,15 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
     const changes: Record<string, Awaited<ReturnType<typeof asUpload>>> = {}
     for (const file of Array.from(files)) {
       if (file.type !== 'image/png') {
-        setError(`${file.name}: solo PNG (con fondo transparente).`)
+        setError(`${file.name}: PNG only (with a transparent background).`)
         continue
       }
       if (file.size > MAX_BYTES) {
-        setError(`${file.name}: ${megabytes(file.size)} es demasiado (máximo ${megabytes(MAX_BYTES)}).`)
+        setError(`${file.name}: ${megabytes(file.size)} is too big (at most ${megabytes(MAX_BYTES)}).`)
         continue
       }
       const path = `${INCOMING}/${kind.id}/${incomingName(file.name)}`
-      changes[path] = await asUpload(file, `${kind.title.slice(0, -1)} nueva: ${file.name}`)
+      changes[path] = await asUpload(file, `New ${kind.title.slice(0, -1).toLowerCase()}: ${file.name}`)
     }
     if (Object.keys(changes).length) setWs(withUploads(ws, changes))
   }
@@ -48,7 +48,7 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
   return (
     <div className="avatars">
       <section className="editPane">
-        <h2>Avatares</h2>
+        <h2>Avatars</h2>
         <p className="hint">
           Sube cuerpos y caras nuevos en PNG con fondo transparente, varios a la vez si quieres. Quedan en la propuesta (pestaña Propuestas) y, al
           publicarla, en <code>{INCOMING}</code>. Avisa a Claude: los nombra, los prepara para el juego y los añade al catálogo.
@@ -112,7 +112,7 @@ function KindSection({
                 {upload.previewUrl && <img src={upload.previewUrl} alt="" />}
                 <span>{path.slice(prefix.length)}</span>
                 <button type="button" className="link" onClick={() => setWs(withUploads(ws, { [path]: undefined }))}>
-                  Quitar
+                  Remove
                 </button>
               </li>
             ))}
@@ -122,7 +122,7 @@ function KindSection({
 
       <h4>Esperando a Claude ({waiting?.length ?? '…'})</h4>
       {waiting && waiting.length === 0 ? (
-        <p className="muted">Nada pendiente.</p>
+        <p className="muted">Nothing pending.</p>
       ) : (
         <ul className={`artGrid ${kind.id}`}>
           {(waiting ?? []).map((file) => (

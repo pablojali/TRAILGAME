@@ -35,12 +35,13 @@
 
 .panel {
   position: absolute;
-  left: max(var(--space-3), calc(50% - 230px));
-  right: max(var(--space-3), calc(50% - 230px));
+  left: max(var(--space-3), calc(50% - 190px));
+  right: max(var(--space-3), calc(50% - 190px));
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-items: flex-start;
-  padding: var(--space-3);
+  /* Compact (owner request, 19 November 2026): the screen behind stays in view. */
+  padding: var(--space-2) var(--space-3);
   border: 1px solid rgb(212 162 60 / 0.4);
   border-radius: var(--radius-lg);
   background: linear-gradient(160deg, rgb(31 74 51 / 0.92), rgb(13 16 15 / 0.95));
@@ -57,8 +58,8 @@
 
 .avatar {
   flex: none;
-  width: 64px;
-  height: 64px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 2px solid var(--color-ochre);
   background: radial-gradient(circle at 50% 30%, rgb(240 124 42 / 0.35), rgb(13 16 15) 75%);
@@ -83,15 +84,15 @@
 }
 
 .title {
-  margin: 2px 0 var(--space-1);
-  font-size: var(--font-size-lg);
+  margin: 2px 0 2px;
+  font-size: var(--font-size-md, 1rem);
   line-height: 1.2;
 }
 
 .text {
   margin: 0;
-  font-size: var(--font-size-sm);
-  line-height: 1.45;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .actions {
@@ -99,11 +100,11 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 .skip {
-  min-height: 40px;
+  min-height: 36px;
   margin-left: calc(-1 * var(--space-2));
   padding: 0 var(--space-2);
   border: none;
@@ -123,7 +124,7 @@
 }
 
 .next {
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 var(--space-4);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -133,8 +134,8 @@
 /* Small phones: a smaller face leaves the text more room. */
 @media (max-width: 400px) {
   .avatar {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
   }
 
   .panel {

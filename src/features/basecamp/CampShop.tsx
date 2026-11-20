@@ -25,7 +25,7 @@ const KIND_TITLES = {
  * Using or buying a piece closes the sheet on the scene. (Coins are exchanged for Premium Coins in
  * the wallet, from the top bar.) Everything goes through the server like the equipment shop.
  */
-export function CampShop({ scene, onClose }: { scene: CampScene; onClose(): void }) {
+export function CampShop({ scene, initialKind, onClose }: { scene: CampScene; initialKind?: CampItem['kind']; onClose(): void }) {
   const { t } = useI18n()
   const { state } = useCareer()
   const [busy, setBusy] = useState<string | null>(null)
@@ -35,7 +35,7 @@ export function CampShop({ scene, onClose }: { scene: CampScene; onClose(): void
   const tabs = CAMP_KINDS.map((kind) => ({ kind, items: campItems(scene, kind).filter((item) => !item.exclusive || ownsCampItem(state, item)) })).filter(
     ({ kind, items }) => (kind === 'cabin' || kind === 'upgrade' ? items.length > 0 : kind === 'background' ? items.length > 1 : true),
   )
-  const [tab, setTab] = useState(tabs[0]?.kind ?? 'decor')
+  const [tab, setTab] = useState(initialKind && tabs.some((x) => x.kind === initialKind) ? initialKind : (tabs[0]?.kind ?? 'decor'))
   const shown = tabs.find((x) => x.kind === tab) ?? tabs[0]
 
   /** Runs an action; with `close`, a success takes the player straight to the scene. */
@@ -216,6 +216,8 @@ function SlotPicker({
           key={n}
           type="button"
           className={styles.slotChip}
+          // The coach points at place 1 for the gear stand (owner design: the gear goes in point 1).
+          data-coach={item.action === 'gear' && n === 1 ? 'camp-gear-slot' : undefined}
           aria-pressed={current === n}
           aria-label={t('basecamp.shop.slot', { n })}
           aria-disabled={busy !== null || undefined}

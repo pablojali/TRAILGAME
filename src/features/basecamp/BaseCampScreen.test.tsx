@@ -8,7 +8,8 @@ import { readSave, renderApp, seedCareer } from '../../test/renderApp'
 describe('Base Camp (V1)', () => {
   it('opens outside the cabin, goes in, and the gear zone leads to Equipment and back', async () => {
     const user = userEvent.setup()
-    seedCareer()
+    // The free mailbox, placed by the player in place 1 (free objects show once placed).
+    seedCareer({ ...newGame(), camp: { owned: [], using: [], slots: { 'exterior:1': 'mailbox', 'interior:1': 'gear-stand' } } })
     await renderApp('/')
     // The main navigation: Base Camp in Equipment's place.
     await user.click(screen.getByRole('link', { name: 'Base Camp' }))
@@ -47,10 +48,10 @@ describe('Base Camp (V1)', () => {
     expect(within(shop).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Backgrounds', 'Upgrades', 'Cabins', 'Decorations'])
     expect(within(shop).getByText('Level 5')).toBeInTheDocument()
     await user.click(within(shop).getByRole('tab', { name: 'Decorations' }))
-    // Buying the bench puts it in the first empty place (the free mailbox has place 1) and closes the sheet.
+    // Buying the bench puts it in the first empty place and closes the sheet.
     await user.click(within(shop).getByRole('button', { name: 'Buy Bench' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(readSave()?.state).toMatchObject({ coins: 280, camp: { owned: ['bench'], using: [], slots: { 'exterior:2': 'bench' } } })
+    expect(readSave()?.state).toMatchObject({ coins: 280, camp: { owned: ['bench'], using: [], slots: { 'exterior:1': 'bench' } } })
 
     // Moving it: choosing place 3 closes the sheet on the scene too.
     await user.click(screen.getByRole('button', { name: 'Customize' }))

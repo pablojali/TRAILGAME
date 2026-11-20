@@ -48,9 +48,14 @@ describe('Trail Coach moments', () => {
     seedCareer(career())
     const { router } = await renderApp('/base-camp?view=interior')
 
+    // The refuge is empty: Customize, the free gear stand in point 1, then the gear button it brings.
     expect(await screen.findByRole('dialog', { name: 'Make it yours' })).toBeInTheDocument()
-    await user.click(within(coachPanel()).getByRole('button', { name: 'Next' }))
-    expect(screen.getByRole('dialog', { name: 'Your gear' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Gear' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Customize' }))
+    expect(await screen.findByRole('dialog', { name: 'Your gear stand' })).toBeInTheDocument()
+    await user.click(within(screen.getByRole('group', { name: 'Where Gear stand goes' })).getByRole('button', { name: 'Place 1' }))
+    await waitFor(() => expect(readSave()?.state.camp?.slots).toEqual({ 'interior:1': 'gear-stand' }))
+    expect(await screen.findByRole('dialog', { name: 'Your gear' })).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Gear' }))
 
     expect(router.state.location.pathname).toBe('/equipment')

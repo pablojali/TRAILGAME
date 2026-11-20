@@ -1,4 +1,5 @@
 import { OWNED_FROM_START } from '../../domain/equipment/items'
+import { campSpots } from '../../game-engine/camp'
 import { isEquipped } from '../../game-engine/equipment'
 import type { GameState } from '../../game-engine/gameState'
 import { isRaceDayToday } from '../../game-engine/raceSchedule'
@@ -22,13 +23,24 @@ const isNewCareer = (state: GameState) => state.week.number === 1 && state.raceE
 /** The starter gear (level 0, everyone's from the start) not worn yet. */
 const starterOff = (state: GameState) => OWNED_FROM_START.some((id) => !isEquipped(state, id))
 const query = (search: string) => new URLSearchParams(search)
+/** The gear button inside the refuge: the gear stand placed (point 1). */
+const gearPlaced = (state: GameState) => campSpots(state, 'interior').some((spot) => spot.action === 'gear')
+const inside = (p: string, q: string) => p === '/base-camp' && query(q).get('view') === 'interior'
 const inRaceFlow = (pathname: string) => pathname.startsWith('/races/run/') || pathname.startsWith('/races/results/')
 
 export const COACH_TRIGGERS: Record<string, CoachTrigger> = {
   // The first steps after the welcome (owner request, 19 November 2026): inside the refuge, then the starter gear.
   'open-camp-inside': {
-    label: 'Al entrar al interior del refugio (carrera nueva, 1ª semana)',
-    applies: (s, p, q) => p === '/base-camp' && query(q).get('view') === 'interior' && isNewCareer(s),
+    label: 'Al entrar al interior del refugio sin el soporte de equipo (carrera nueva, 1ª semana)',
+    applies: (s, p, q) => inside(p, q) && !query(q).get('customize') && isNewCareer(s) && !gearPlaced(s),
+  },
+  'open-camp-customize-gear': {
+    label: 'En Personalizar, dentro, sin el soporte de equipo puesto (carrera nueva)',
+    applies: (s, p, q) => inside(p, q) && query(q).get('customize') === '1' && isNewCareer(s) && !gearPlaced(s),
+  },
+  'camp-gear-placed': {
+    label: 'Dentro del refugio, con el soporte de equipo puesto y el equipo inicial sin poner (carrera nueva)',
+    applies: (s, p, q) => inside(p, q) && !query(q).get('customize') && isNewCareer(s) && gearPlaced(s) && starterOff(s),
   },
   'open-equipment-starter': {
     label: 'Al abrir Equipo con el equipo inicial sin poner (carrera nueva)',
@@ -79,7 +91,8 @@ export const COACH_TARGETS: Record<string, string> = {
   'go-training': 'Inicio · botón Entrenar',
   'nav-dashboard': 'Menú · Inicio',
   'camp-customize': 'Base Camp · botón Personalizar',
-  'camp-gear': 'Base Camp · botón Equipo (dentro del refugio)',
+  'camp-gear': 'Base Camp · botón Equipo (el soporte de equipo, dentro del refugio)',
+  'camp-gear-slot': 'Personalizar · punto 1 del soporte de equipo',
   'gear-shoes': 'Equipo · casilla de zapatillas',
   'gear-starter': 'Equipo · carta del equipo inicial (nivel 0)',
   'gear-equip': 'Equipo · botón Equipar de una carta',

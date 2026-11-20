@@ -9,6 +9,8 @@ describe('coach moments table (owner table, 9 November 2026)', () => {
   it('reads the owner table: moments in order, steps, targets, taps and texts with English as fallback', () => {
     expect(MOMENTS.map((m) => m.id)).toEqual([
       'camp-inside',
+      'camp-gear-place',
+      'camp-gear-open',
       'first-gear',
       'first-gear-card',
       'first-gear-equip',

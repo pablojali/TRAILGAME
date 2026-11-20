@@ -18,8 +18,8 @@ interface Box {
 /** Room left around a highlighted element. */
 const PAD = 6
 
-/** Height the speech panel needs beside a highlight (px); with less, it goes to the bottom. */
-const PANEL_ROOM = 230
+/** Height the (compact) speech panel needs beside a highlight (px); with less, it goes to the bottom. */
+const PANEL_ROOM = 170
 
 /**
  * Where the marked elements are on screen (visible ones only), re-measured as the layout moves.

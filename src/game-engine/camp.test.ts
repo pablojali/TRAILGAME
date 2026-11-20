@@ -12,9 +12,8 @@ const rich = (level = 6): GameState => ({ ...atLevel(newGame(), level), coins: 1
 describe('Base Camp pieces', () => {
   it('shows the free background of each scene to a new career', () => {
     const state = newGame()
-    expect(campScene(state, 'exterior')).toMatchObject({ background: getCampItem('lvl0-exterior'), cabin: null, decor: [getCampItem('mailbox')] })
-    // The free mailbox stands in the first empty slot.
-    expect(campScene(state, 'exterior').placed.map((p) => [p.item.id, p.slot])).toEqual([['mailbox', 1]])
+    // Free decor (the mailbox) is the player's but only shows once placed (owner request, 19 November 2026).
+    expect(campScene(state, 'exterior')).toMatchObject({ background: getCampItem('lvl0-exterior'), cabin: null, decor: [] })
     expect(campScene(state, 'interior').background.id).toBe('lvl0-interior')
   })
 
@@ -55,12 +54,14 @@ describe('Base Camp pieces', () => {
       state = next.state
     }
     const slotsOf = () => campScene(state, 'exterior').placed.map((p) => [p.item.id, p.slot])
-    // The mountain background has three slots; the free mailbox stands in the first.
+    // The mountain background has three slots; the free mailbox is placed by the player like the rest.
+    step('mailbox', true)
     step('flag', true)
     expect(slotsOf()).toEqual([['mailbox', 1], ['flag', 2]])
     step('bench', true, 1)
-    // The bench takes slot 1; the free mailbox moves to the empty slot 3.
-    expect(slotsOf()).toEqual([['bench', 1], ['flag', 2], ['mailbox', 3]])
+    // The bench takes slot 1; the mailbox makes room (it is no longer placed).
+    expect(slotsOf()).toEqual([['bench', 1], ['flag', 2]])
+    step('mailbox', true, 2)
     step('flag', true, 3)
     expect(slotsOf()).toEqual([['bench', 1], ['mailbox', 2], ['flag', 3]])
     expect(setCampItemUsed(state, 'bench', true, 4)).toEqual({ ok: false, error: 'bad-slot' })
@@ -80,7 +81,9 @@ describe('Base Camp pieces', () => {
 
   it('gives every shown piece with an action its button, the door always there', () => {
     // The mailbox's button sits on the object: slot 1 (0.6, 0.8), halfway up its 0.18 height.
-    const fresh = campSpots(newGame(), 'exterior').map((s) => [s.item.id, s.action, s.x, Number(s.y.toFixed(2))])
+    const placed = setCampItemUsed(newGame(), 'mailbox', true)
+    if (!placed.ok) throw new Error(placed.error)
+    const fresh = campSpots(placed.state, 'exterior').map((s) => [s.item.id, s.action, s.x, Number(s.y.toFixed(2))])
     expect(fresh).toEqual([
       ['lvl0-exterior', 'enter', 0.36, 0.52],
       ['mailbox', 'mailbox', 0.6, 0.71],
@@ -99,7 +102,11 @@ describe('Base Camp pieces', () => {
     const cabin = setCampItemUsed(lake.state, 'log-cabin', true)
     if (!cabin.ok) throw new Error(cabin.error)
     expect(campSpots(cabin.state, 'exterior').map((s) => [s.item.id, s.action])).toEqual([['log-cabin', 'enter']])
-    expect(campSpots(newGame(), 'interior').map((s) => s.action)).toEqual(['gear'])
+    // Inside, the gear button is the gear stand's, once placed in point 1 (owner design, 19 November 2026).
+    expect(campSpots(newGame(), 'interior')).toEqual([])
+    const stand = setCampItemUsed(newGame(), 'gear-stand', true, 1)
+    if (!stand.ok) throw new Error(stand.error)
+    expect(campSpots(stand.state, 'interior').map((s) => [s.item.id, s.action])).toEqual([['gear-stand', 'gear']])
   })
 
   it('takes a free piece out and puts it back', () => {
@@ -137,7 +144,7 @@ describe('Base Camp pieces', () => {
     expect(parseGameState(saved, T0)?.camp).toEqual({ owned: ['flag'], using: ['flag'] })
     expect(parseGameState(saved, T0)?.premiumCoins).toBe(10)
     expect(parseGameState({ ...saved, premiumCoins: -1 }, T0)).toBeNull()
-    expect(campItems('interior', 'decor').map((i) => i.id)).toEqual(['banner'])
+    expect(campItems('interior', 'decor').map((i) => i.id)).toEqual(['banner', 'gear-stand'])
   })
 })
 
@@ -165,11 +172,12 @@ describe('Base Camp upgrades (owner design, 17 November 2026)', () => {
   }
 
   it('redraws its background with another picture, keeping the background’s button and slots', () => {
-    const state = ok(setCampItemUsed(ok(buyCampItem(rich(), 'stove', { price: 30, currency: 'coins' })), 'stove', true))
+    const state = ok(setCampItemUsed(ok(setCampItemUsed(ok(buyCampItem(rich(), 'stove', { price: 30, currency: 'coins' })), 'stove', true)), 'gear-stand', true, 1))
     const shown = campScene(state, 'interior')
     expect(shown.background.id).toBe('lvl0-interior')
     expect(shown.picture.id).toBe('stove')
-    expect(campSpots(state, 'interior').map((s) => [s.item.id, s.action, s.x, s.y])).toEqual([['lvl0-interior', 'gear', 0.73, 0.62]])
+    // The gear stand keeps the background's point 1 under the upgrade.
+    expect(campSpots(state, 'interior').map((s) => [s.item.id, s.action, s.x])).toEqual([['gear-stand', 'gear', 0.3]])
     // Taken out, the background's own picture is back.
     expect(campScene(ok(setCampItemUsed(state, 'stove', false)), 'interior').picture.id).toBe('lvl0-interior')
   })

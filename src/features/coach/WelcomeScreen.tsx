@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { useGame } from '../../app/game/gameContext'
 import { backgroundImage } from '../../components/backdrop/backdrops'
 import { campItemName, campItems, type CampItem } from '../../domain/basecamp/catalog'
+import { getLevel } from '../../domain/athlete/levels'
 import { campScene, ownsCampItem } from '../../game-engine/camp'
 import type { GameState } from '../../game-engine/gameState'
 import { campArt } from '../basecamp/campArt'
@@ -14,9 +15,16 @@ import styles from './WelcomeScreen.module.css'
 /** How long the empty refuge shows alone before the coach comes in (none in tests). */
 const INTRO_MS = import.meta.env.MODE === 'test' ? 0 : 3000
 
-/** The refuges a new player can choose: the exterior backgrounds they own (free, or the admin's). */
+/**
+ * The refuges a new player can choose: the exterior backgrounds they own (free, or the admin's)
+ * and the free ones their level already opens (owner request, 19 November 2026: the River refuge,
+ * level 1), taken for free when chosen.
+ */
 function refuges(state: GameState): CampItem[] {
-  return campItems('exterior', 'background').filter((item) => ownsCampItem(state, item) && campArt(item))
+  const level = getLevel(state.athlete.xp)
+  return campItems('exterior', 'background').filter(
+    (item) => campArt(item) && (ownsCampItem(state, item) || (!item.exclusive && item.price === 0 && item.level <= level)),
+  )
 }
 
 /**
@@ -27,7 +35,7 @@ function refuges(state: GameState): CampItem[] {
  * done for good.
  */
 export function WelcomeScreen() {
-  const { phase, setCoachProgress, setCampItemUsed } = useGame()
+  const { phase, setCoachProgress, setCampItemUsed, buyCampItem } = useGame()
   const { t, locale } = useI18n()
   const [chosen, setChosen] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -72,7 +80,8 @@ export function WelcomeScreen() {
     if (id === 'camp' && selected.id !== current.id) {
       setSaving(true)
       setError('')
-      const failure = await setCampItemUsed(selected.id, true)
+      // A free refuge the level opens is taken first (free), then put in use.
+      const failure = (!ownsCampItem(state, selected) && (await buyCampItem(selected.id, { price: 0, currency: selected.currency }))) || (await setCampItemUsed(selected.id, true))
       setSaving(false)
       if (failure) return setError(t('coach.camp.error'))
     }
@@ -102,7 +111,7 @@ export function WelcomeScreen() {
         )}
       </div>
 
-      <div className={styles.stage} hidden={!revealed}>
+      <div className={`${styles.stage} ${id === 'camp' ? styles.stageEmpty : ''}`} hidden={!revealed}>
         {portrait && <img className={styles.coach} src={portrait} alt={t('coach.label')} />}
       </div>
 

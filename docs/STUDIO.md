@@ -62,7 +62,10 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     Trayectoria) or none.
   - «Quitar esta pieza del juego» removes a published piece and its picture with the next
     proposal; players who used or bought it lose it. The preview draws the piece with the
-    scene's free pieces. The free pieces must include «Entrar» outside and «Equipo» inside.
+    scene's free pieces. The free pieces must include «Entrar» outside. Inside, «Equipo» is the
+    free gear stand (decor, level 0, `interior-5`): the player places it in point 1 with the coach
+    (19 November 2026); the interior backgrounds have no button of their own. Free decor is the
+    player's from the start but only shows once placed.
   - A background has up to 4 slots for objects: choose «Hueco 1–4» and click the preview to
     place each one (where the object stands), with its size there; «Quitar» removes one.
   - Objects (buzón, banderas…) are cut-out PNGs with a height in the scene (%); the preview shows

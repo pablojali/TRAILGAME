@@ -99,7 +99,6 @@ export function BaseCampScreen() {
   const { t } = useI18n()
   const { state } = useCareer()
   const [params, setParams] = useSearchParams()
-  const [shopOpen, setShopOpen] = useState(false)
   const [mailOpen, setMailOpen] = useState(false)
   // The friends list opens from its button, or from the Inbox (`?friends=1`).
   const [friendsOpen, setFriendsOpen] = useState(false)
@@ -115,6 +114,10 @@ export function BaseCampScreen() {
   const requests = Array.isArray(friends) ? friends.filter((f) => f.relation === 'incoming').length : 0
   const view: CampScene = params.get('view') === 'interior' ? 'interior' : 'exterior'
   const show = (next: CampScene) => setParams(next === 'interior' ? { view: 'interior' } : {}, { replace: true })
+  // Customize is open while the URL says so (`?customize=1`), so the coach can guide inside it.
+  const shopOpen = params.get('customize') === '1'
+  const setShopOpen = (open: boolean) =>
+    setParams({ ...(view === 'interior' ? { view: 'interior' } : {}), ...(open ? { customize: '1' } : {}) }, { replace: true })
   const scene = campScene(state, view)
   const spots = campSpots(state, view)
   // The scene opens on the door outside; inside, on the gear button if there is one, else at the left.
@@ -168,7 +171,10 @@ export function BaseCampScreen() {
       <p className={styles.hint} aria-hidden="true">
         {t('basecamp.swipe')}
       </p>
-      {shopOpen && <CampShop scene={view} onClose={() => setShopOpen(false)} />}
+      {/* Inside without the gear stand: Customize opens on the objects, where it is (owner request, 19 November 2026). */}
+      {shopOpen && (
+        <CampShop scene={view} initialKind={view === 'interior' && !spots.some((s) => s.action === 'gear') ? 'decor' : undefined} onClose={() => setShopOpen(false)} />
+      )}
       {mailOpen && <Mailbox onClose={() => setMailOpen(false)} />}
       {friendsOpen && <FriendsSheet onClose={() => setFriendsOpen(false)} />}
     </section>

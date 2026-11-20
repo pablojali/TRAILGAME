@@ -57,8 +57,9 @@ export interface PlacedDecor {
 const slotKey = (scene: CampScene, slot: number) => `${scene}:${slot}`
 
 /**
- * Where each decor object stands in the scene: the slots the player chose, then the free decor
- * (not taken out) in the empty slots, in the table's order. Only the background's slots show.
+ * Where each decor object stands in the scene: the slots the player chose. Free decor too is only
+ * shown once placed (owner request, 19 November 2026: the player places the free gear stand in
+ * point 1 with the coach). Only the background's slots show.
  */
 export function campPlacements(state: CampHolder, scene: CampScene, background: CampItem): PlacedDecor[] {
   const camp = campOf(state)
@@ -71,13 +72,6 @@ export function campPlacements(state: CampHolder, scene: CampScene, background: 
       placed.add(item.id)
       if (n <= slots.length) taken.set(n, item)
     }
-  }
-  const off = new Set(camp.off ?? [])
-  for (const item of campItems(scene, 'decor')) {
-    if (!isFreeFromStart(item) || off.has(item.id) || placed.has(item.id)) continue
-    const empty = slots.findIndex((_, i) => !taken.has(i + 1))
-    if (empty === -1) break
-    taken.set(empty + 1, item)
   }
   return [...taken.entries()].sort(([a], [b]) => a - b).map(([slot, item]) => ({ item, slot, at: slots[slot - 1]! }))
 }

@@ -31,7 +31,8 @@ Supabase phases, `docs/GAME_DESIGN_BIBLE.md`, `docs/SUPABASE_SETUP.md`, `docs/M4
    balance finding is closed. Report only; change no values.
 2. Then wait for the PM: B-2 and B-3 depend on owner decisions (D4, D5).
 
-Do not start anything else from the backlog without the PM assigning it.
+Work on **one topic at a time** and do not start the next item, even if it is in the backlog, until
+the PM assigns it. The order is in `docs/pm/QUEUE.md`.
 
 ## How to work
 

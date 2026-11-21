@@ -32,7 +32,7 @@ These documents describe an earlier state and contradict `main`:
 | `README.md`, "Current state" | M2 accepted, Career is a placeholder, localStorage only | Career has a ranking screen, saves are in the cloud, Majors exist |
 | `DEVELOPMENT.md`, header and section 11 M4 | M4 on the working branch, not merged | The race system is in `main` and in use |
 | `DEVELOPMENT.md`, M7 | "Phase 1 done. Tables, auth and remote saves not started" | Phases 2A to 3B are implemented (sections further down the same file) |
-| `DEVELOPMENT.md`, section 2 | Product owner / PM: ChatGPT | Pending decision D1 |
+| `DEVELOPMENT.md`, section 2 | Product owner / PM: ChatGPT | Fixed: PM is Claude (decision D1, 21 Nov 2026) |
 | `docs/M4_VALIDATION.md` | Branch not merged | Merged |
 
 ## Open from the owner's earlier decisions

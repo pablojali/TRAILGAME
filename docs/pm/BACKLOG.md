@@ -9,7 +9,7 @@ read of the code, not from running the game).
 
 | ID | Decision | Why it blocks |
 |---|---|---|
-| D1 | Move the PM role in `DEVELOPMENT.md` from ChatGPT to Claude, and approve this folder and the new `CLAUDE.md` | The repository still names a different PM |
+| ~~D1~~ | ~~Move the PM role from ChatGPT to Claude~~ **Decided 21 Nov 2026: Claude is the PM.** Approving this folder and `CLAUDE.md` happens by merging its PR | Done |
 | D2 | Is M4 (Race System) accepted? If not, which part is open? | `STATUS.md` cannot be closed; B-1 depends on it |
 | D3 | Native app technology: Capacitor, Expo or Flutter | Blocks M6 and any native-specific work. A web-first game with the current React code points to Capacitor, but the PM wants a technical audit before recommending |
 | D4 | Fitness and fatigue balance: is the current feel acceptable? | B-2 |

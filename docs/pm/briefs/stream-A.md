@@ -28,7 +28,8 @@ Then inspect the code you will touch before editing.
    starting A-2.
 2. **A-2** (P1): PWA release candidate, after the owner has seen the A-1 report.
 
-Do not start anything else from the backlog without the PM assigning it.
+Work on **one topic at a time** and do not start the next item, even if it is in the backlog, until
+the PM assigns it. The order is in `docs/pm/QUEUE.md`.
 
 ## How to work
 

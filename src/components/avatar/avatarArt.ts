@@ -17,6 +17,15 @@ export function art(path: string): string | undefined {
   return ART[`/assets/runner/avatar/${path}.webp`]
 }
 
+/**
+ * The same head with its eyes closed (owner request, 21 November 2026: `…_tone{n}_blink`), shown for
+ * a moment now and then so the runner blinks; undefined while the owner has not drawn it.
+ */
+export function blinkArt(sex: Sex, hair: string, tone: number): string | undefined {
+  const file = headFile(sex, hair, tone)
+  return file === undefined ? undefined : art(`heads/${file}_blink`)
+}
+
 /** The bundled art of a head (named by the domain's head catalog) in a skin tone. */
 export function headArt(sex: Sex, hair: string, tone: number): string | undefined {
   const file = headFile(sex, hair, tone)

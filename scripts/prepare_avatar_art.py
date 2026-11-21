@@ -6,6 +6,7 @@ Reads the original PNGs (all on the same 1024x1536 transparent canvas) and write
 
     bodies/{men|women}_body_01_tone{n}.png         -> avatar/bodies/{male|female}-{n}.webp
     heads/lvl{L}_{men|women}_head_{NN}_tone{n}.png -> avatar/heads/lvl{L}_{men|women}_head_{NN}_tone{n}.webp
+    heads/..._tone{n}_blink.png                    -> avatar/heads/..._tone{n}_blink.webp (the same face, eyes closed)
     Clothing/lvl{L}_{men|women}_shirt_{NN}.png     -> avatar/clothing/lvl{L}_{men|women}_shirt_{NN}.webp
     footwear/{source}.png                          -> avatar/footwear/{item id}.webp (FOOTWEAR below)
     accesories/{name}.png                          -> avatar/accessories/{name}.webp (worn on the runner)
@@ -47,7 +48,7 @@ SIZE = (640, 960)
 QUALITY = 88
 
 BODY_NAME = re.compile(r"^(men|women)_body_01_tone(\d)\.png$")
-HEAD_NAME = re.compile(r"^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)\.png$")
+HEAD_NAME = re.compile(r"^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)(_blink)?\.png$")
 SHIRT_NAME = re.compile(r"^lvl(\d+)_(men|women)_shirt_(\d{2})\.png$")
 # Shoe art by equipment item id (owner decision, 31 October 2026; new art 5 November 2026: the
 # starting shoes are lvl0_shoes_01; lvl3_shoes_01 is the mountain trail shoes). lvl1_shoes_02 has no shop item yet; it

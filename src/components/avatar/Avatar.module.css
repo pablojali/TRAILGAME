@@ -49,7 +49,40 @@
   }
 }
 
+/* Blinking: the closed-eyes face shows for about 0.15 s, twice in a 9 s loop at uneven times. */
+.blink {
+  opacity: 0;
+  animation: blink 9s step-end infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  31% {
+    opacity: 1;
+  }
+
+  32.6% {
+    opacity: 0;
+  }
+
+  77% {
+    opacity: 1;
+  }
+
+  78.6% {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .blink {
+    animation: none;
+  }
+
   .zoom {
     transition: none;
   }

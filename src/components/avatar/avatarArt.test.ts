@@ -11,7 +11,8 @@ const names = (paths: string[]) => paths.map((path) => path.slice(path.lastIndex
 
 describe('avatar art', () => {
   it('the domain head catalog lists exactly the prepared head files', () => {
-    const files = HEAD_ASSETS.map((path) => path.slice(path.lastIndexOf('/') + 1, -'.webp'.length)).sort()
+    // The closed-eyes faces (`…_blink`) go with their head and are not heads of their own.
+    const files = HEAD_ASSETS.map((path) => path.slice(path.lastIndexOf('/') + 1, -'.webp'.length)).filter((name) => !name.endsWith('_blink')).sort()
     expect(files.length).toBeGreaterThan(0)
     expect([...HEAD_FILES].sort()).toEqual(files)
   })

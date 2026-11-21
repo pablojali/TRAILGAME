@@ -195,6 +195,7 @@ function NameStep({ headingRef, sex, appearance, replacing, onBack }: NameStepPr
           <Avatar
             sex={sex}
             appearance={appearance}
+            alive
             label={t('setup.preview', {
               profile: t(`profile.${STARTING_PROFILE}`),
               sex: t(`sex.${sex}`).toLocaleLowerCase(locale),

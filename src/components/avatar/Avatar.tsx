@@ -34,6 +34,8 @@ interface AvatarProps {
   crop?: keyof typeof VIEWBOXES
   /** With the full crop: zoom in on the face (animated, e.g. while choosing a hairstyle). */
   focus?: 'face'
+  /** A little life (owner request, 21 November 2026): the runner breathes and shifts its weight. */
+  alive?: boolean
   className?: string
 }
 
@@ -139,7 +141,7 @@ function EquipmentLayer({ id, href }: { id: string; href: string }) {
  * head, shoes, the chosen shirt, then the running vest. Without equipment the runner is as drawn:
  * barefoot.
  */
-export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', focus, className }: AvatarProps) {
+export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', focus, alive = false, className }: AvatarProps) {
   const a11y = label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true }
   const bySlot = (slot: string) => equipment.filter((id) => getEquipmentItem(id)?.slot === slot)
   const shirt = getShirt(sex, appearance.outfit)
@@ -180,6 +182,9 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
         </filter>
       </defs>
       <g className={styles.zoom} style={{ transform: zoomed ? FACE_TRANSFORM : 'none' }} filter={`url(#${glowId})`}>
+        {/* Idle: a slow weight shift around the feet, and breathing inside it (every layer moves together). */}
+        <g className={alive ? styles.sway : undefined}>
+        <g className={alive ? styles.breathe : undefined}>
         {/* Poles and backpacks: the table's art when it names one, otherwise the drawn ones. */}
         {bySlot('poles').map((id) =>
           layerOf(id, sex) ? <EquipmentLayer key={id} id={id} href={layerOf(id, sex)!} /> : POLE_COLORS[id] && <Poles key={id} id={id} />,
@@ -191,6 +196,8 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
         {bySlot('pack').map((id) =>
           layerOf(id, sex) ? <EquipmentLayer key={id} id={id} href={layerOf(id, sex)!} /> : PACK_COLORS[id] && <Vest key={id} id={id} />,
         )}
+        </g>
+        </g>
       </g>
     </svg>
   )

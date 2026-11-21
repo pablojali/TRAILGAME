@@ -17,6 +17,7 @@ import type { LiveRace as LiveRaceView, PlayerMajor } from '../../server/majorOp
 import { raceClip } from '../races/raceClips'
 import { intensityKey, intensityOptions, STOP_IDS, stopKey } from '../races/raceStrategyText'
 import { durationText, ordinal, raceTimeText } from '../races/raceText'
+import { AwardCeremony } from './AwardCeremony'
 import { LiveTracker } from './LiveTracker'
 import { visitPath } from '../basecamp/visits'
 import styles from './Majors.module.css'
@@ -43,6 +44,23 @@ export function LiveRace({ major, mediaUrl }: { major: PlayerMajor; mediaUrl(pat
   useEffect(() => {
     if (finished) void claimMajorResults()
   }, [finished, claimMajorResults])
+  // The awards show once per Major, the first time the player sees their category finished.
+  const awardsKey = `major-awards-seen:${major.id}`
+  const [awardsSeen, setAwardsSeen] = useState(() => {
+    try {
+      return window.localStorage.getItem(awardsKey) === '1'
+    } catch {
+      return false
+    }
+  })
+  const closeAwards = useCallback(() => {
+    setAwardsSeen(true)
+    try {
+      window.localStorage.setItem(awardsKey, '1')
+    } catch {
+      // Private mode: the awards simply show again next time.
+    }
+  }, [awardsKey])
   if (!race) return <p className={styles.hint}>{error ? t(`major.error.${error}` as MessageKey) : t('major.loading')}</p>
 
   const { category, me } = race
@@ -62,6 +80,9 @@ export function LiveRace({ major, mediaUrl }: { major: PlayerMajor; mediaUrl(pat
   const clipPath = category.phase === 'RUNNING' ? major.clips[String(category.segment + 1)] : undefined
   const ownClip = clipPath ? { mp4: mediaUrl(clipPath), poster: mediaUrl(clipPath.replace(/\.mp4$/, '.jpg')) } : null
   const clip = ownClip ?? (courseRace && category.phase === 'RUNNING' ? raceClip(courseRace.id, category.segment + 1) : null)
+
+  if (finished && !awardsSeen && race.standings.length > 0)
+    return <AwardCeremony majorName={major.name} race={race} onClose={closeAwards} />
 
   return (
     <div className={styles.live}>

@@ -116,5 +116,12 @@
   "major.live.gained": "Positions gained on this segment",
   "major.live.lost": "Positions lost on this segment",
   "major.map.label": "Segment {n} seen from above, with the runners",
-  "major.map.next": "Next segment seen from above"
+  "major.map.next": "Next segment seen from above",
+  "major.award.title": "Awards · {category}",
+  "major.award.podium": "Podium",
+  "major.award.you": "You",
+  "major.award.yours": "Your result",
+  "major.award.of": "of {field}",
+  "major.award.prize": "+{coins} coins · +{xp} XP · +{points} ranking points",
+  "major.award.close": "See the standings"
 }

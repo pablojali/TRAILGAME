@@ -6,7 +6,7 @@
 **Game design reference:** [`docs/GAME_DESIGN_BIBLE.md`](./docs/GAME_DESIGN_BIBLE.md) (v1.2) · UI pass: [`docs/UI_IMPROVEMENTS.md`](./docs/UI_IMPROVEMENTS.md)  
 **Product type:** Cross-platform trail-running career management game  
 **Working name:** Trail Manager  
-**Product owner / PM:** ChatGPT  
+**Product owner / PM:** Claude (chat)  
 **Developer / coder:** Claude Code  
 **Tester and final feedback:** User
 
@@ -45,7 +45,7 @@ The product should feel like a sports management game, not a spreadsheet or a fi
 
 | Role | Responsibility |
 |---|---|
-| ChatGPT — PM | Product requirements, scope, architecture decisions, task briefs, acceptance criteria, review of implementation and prioritization of feedback |
+| Claude (chat) — PM | Product requirements, scope, architecture decisions, task briefs, acceptance criteria, review of implementation and prioritization of feedback |
 | Claude Code — Developer | Implement approved tasks, run checks, update documentation and report files changed, commands run, results and known issues |
 | User — Tester / product owner | Test the running build, provide screenshots and reproducible feedback, decide product direction and approve major changes |
 

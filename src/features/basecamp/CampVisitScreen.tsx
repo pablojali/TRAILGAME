@@ -140,7 +140,7 @@ export function CampVisitScreen({ service = getCampService() }: { service?: Camp
         {/* Inside, a friend finds the owner at home: their avatar in their clothes, no equipment. */}
         {view === 'interior' && shown.avatar && (
           <div className={styles.homeRunner} style={{ left: `${runnerX * 100}%` }}>
-            <Avatar sex={shown.avatar.sex} appearance={shown.avatar.appearance} equipment={[]} label={t('basecamp.visit.atHome', { name: shown.name })} />
+            <Avatar sex={shown.avatar.sex} appearance={shown.avatar.appearance} equipment={[]} alive label={t('basecamp.visit.atHome', { name: shown.name })} />
           </div>
         )}
         {/* A friend finds the door open. */}

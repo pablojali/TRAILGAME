@@ -26,7 +26,7 @@ export function DashboardRunner({ name, sex, appearance, equipment }: DashboardR
 
   return (
     <figure className={styles.runner} role="img" aria-label={description}>
-      <Avatar sex={sex} appearance={appearance} equipment={equipment} className={styles.layer} />
+      <Avatar sex={sex} appearance={appearance} equipment={equipment} alive className={styles.layer} />
     </figure>
   )
 }

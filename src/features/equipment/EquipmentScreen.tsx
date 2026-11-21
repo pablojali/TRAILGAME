@@ -282,7 +282,7 @@ function EquippedTab({ onOpen }: { onOpen(slot: EquipmentSlot): void }) {
     <div className={styles.equippedLayout}>
       <div className={styles.previewArea}>
         <figure className={styles.preview} role="img" aria-label={t('equipment.wornBy', { name: athlete.name })}>
-          <Avatar sex={athlete.sex} appearance={athlete.appearance} equipment={state.equipment} className={styles.previewArt} />
+          <Avatar sex={athlete.sex} appearance={athlete.appearance} equipment={state.equipment} alive className={styles.previewArt} />
         </figure>
         <Link to="/appearance" className={`${button.button} ${button.secondary} ${styles.lookButton}`}>
           {t('equipment.changeLook')}

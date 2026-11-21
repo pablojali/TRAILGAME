@@ -8,8 +8,54 @@
   transition: transform 450ms ease;
 }
 
+/*
+ * A little life (owner request, 21 November 2026): the runner breathes (the body rises a touch from
+ * the feet) and slowly shifts its weight. Every layer moves together, so any clothes and gear follow.
+ */
+.sway,
+.breathe {
+  transform-box: view-box;
+  /* The feet, at the bottom middle of the shared canvas. */
+  transform-origin: 320px 905px;
+}
+
+.sway {
+  animation: sway 7s ease-in-out infinite;
+}
+
+.breathe {
+  animation: breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(-0.6deg);
+  }
+
+  50% {
+    transform: rotate(0.6deg);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+
+  45% {
+    transform: scale(1.006, 1.014);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .zoom {
     transition: none;
+  }
+
+  .sway,
+  .breathe {
+    animation: none;
   }
 }

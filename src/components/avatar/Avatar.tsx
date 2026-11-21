@@ -3,7 +3,7 @@ import { bodyId, type Appearance } from '../../domain/athlete/appearance'
 import type { Sex } from '../../domain/athlete/athlete'
 import { getShirt } from '../../domain/athlete/shirts'
 import { getEquipmentItem } from '../../domain/equipment/items'
-import { art, avatarFile, headArt } from './avatarArt'
+import { art, avatarFile, blinkArt, headArt } from './avatarArt'
 import styles from './Avatar.module.css'
 
 /** Crops of the shared canvas: the whole runner, head and shoulders, the torso, and the feet. */
@@ -152,6 +152,8 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
     { id: 'body', href: art(`bodies/${bodyId(sex, appearance.skin)}`) },
     // The chosen head is drawn over the body's basic head, in the body's skin tone.
     cap ?? { id: 'head', href: headArt(sex, appearance.hair, tone) },
+    // Alive, the same face with closed eyes shows for a moment now and then (when drawn).
+    ...(alive && !cap ? [{ id: 'blink', href: blinkArt(sex, appearance.hair, tone) }] : []),
     ...bySlot('glasses').map((id) => ({ id, href: layerOf(id, sex, tone) })),
     // Shoes: the art the equipment table names for each item (avatar_layer).
     ...bySlot('shoes').map((id) => ({ id, href: layerOf(id, sex) })),
@@ -191,7 +193,9 @@ export function Avatar({ sex, appearance, equipment = [], label, crop = 'full', 
         )}
         {layers.map(
           (layer) =>
-            layer.href && <image key={layer.id} href={layer.href} width="640" height="960" data-layer={layer.id} />,
+            layer.href && (
+              <image key={layer.id} href={layer.href} width="640" height="960" data-layer={layer.id} className={layer.id === 'blink' ? styles.blink : undefined} />
+            ),
         )}
         {bySlot('pack').map((id) =>
           layerOf(id, sex) ? <EquipmentLayer key={id} id={id} href={layerOf(id, sex)!} /> : PACK_COLORS[id] && <Vest key={id} id={id} />,

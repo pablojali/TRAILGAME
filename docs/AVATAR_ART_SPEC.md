@@ -27,6 +27,7 @@ assets/runner/
 | Part | Example | Notes |
 |---|---|---|
 | Head | `lvl1_men_head_01_tone2.png` | One file per skin tone. |
+| Head, eyes closed | `lvl1_men_head_01_tone2_blink.png` | Optional (21 November 2026): the same head with its eyes closed, same canvas and position; the runner blinks with it on the large avatars. One per skin tone. |
 | Shirt | `lvl3_men_shirt_02.png` | `men` or `women`; in `Clothing/`. |
 | Bottom | `lvl4_women_bottom_01.png` | |
 | Accessory | `lvl10_unisex_accessory_01.png` | |

@@ -116,5 +116,12 @@
   "major.live.gained": "Plätze auf diesem Abschnitt gewonnen",
   "major.live.lost": "Plätze auf diesem Abschnitt verloren",
   "major.map.label": "Abschnitt {n} von oben, mit den Läufern",
-  "major.map.next": "Nächster Abschnitt von oben"
+  "major.map.next": "Nächster Abschnitt von oben",
+  "major.award.title": "Siegerehrung · {category}",
+  "major.award.podium": "Podium",
+  "major.award.you": "Du",
+  "major.award.yours": "Dein Ergebnis",
+  "major.award.of": "von {field}",
+  "major.award.prize": "+{coins} Münzen · +{xp} XP · +{points} Ranglistenpunkte",
+  "major.award.close": "Zur Rangliste"
 }

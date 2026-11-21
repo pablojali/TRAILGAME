@@ -199,6 +199,40 @@ describe('Sunday Major for the player (phase 2)', () => {
     expect(within(table.getByText('Bea').closest('li')!).queryByText('auto')).toBeNull()
   })
 
+  it('ends with the awards: the category podium with the player\'s face, their place and prize, once', async () => {
+    const user = userEvent.setup()
+    seedCareer()
+    window.localStorage.removeItem(`major-awards-seen:${ID}`)
+    const finished = major({ status: 'RUNNING', registration: { categoryIdx: 1, level: 1, list: 'main', status: 'RACING', registeredAt: '', readyAt: 'x', plan: null } })
+    call.mockImplementation(async () => ({ ok: true, majors: [finished] }))
+    const row = (slot: number, position: number, timeS: number, extra = {}) => ({ slot, position, timeS, gapS: timeS - 1300, name: `Rival ${slot}.`, country: 'FR', me: false, intensity: 'target', auto: false, ...extra })
+    race.mockImplementation(async () => ({
+      ok: true,
+      now: new Date().toISOString(),
+      race: {
+        category: { idx: 1, name: 'Banda 1', phase: 'FINISHED', segment: 1, segments: 2, phaseEndsAt: null },
+        standings: [row(2, 1, 1300), row(1, 2, 1310, { name: 'Demo Runner', me: true }), row(3, 3, 1330, { name: 'Bea' }), row(4, 4, 1400)],
+        me: { slot: 1, elapsedS: 1310, energy: 60, fatigue: 40, next: 'target', splits: [] },
+        myDecision: null,
+        planned: null,
+        prize: { coins: 120, xp: 300, points: 45 },
+        runningS: 150,
+        windowS: 90,
+      },
+    }))
+    await renderApp(`/majors/${ID}`)
+    expect(await screen.findByRole('heading', { name: 'Awards · Banda 1' })).toBeInTheDocument()
+    const podium = within(screen.getByRole('list', { name: 'Podium' }))
+    expect(podium.getAllByRole('listitem').map((li) => li.textContent?.slice(-1))).toEqual(['2', '1', '3'])
+    expect(podium.getByText(/You$/).closest('li')).toContainElement(podium.getByText('2'))
+    const mine = screen.getByRole('region', { name: 'Your result' })
+    expect(mine).toHaveTextContent('2nd of 4')
+    expect(mine).toHaveTextContent('+120 coins · +300 XP · +45 ranking points')
+    await user.click(screen.getByRole('button', { name: 'See the standings' }))
+    expect(screen.queryByRole('heading', { name: 'Awards · Banda 1' })).toBeNull()
+    expect(window.localStorage.getItem(`major-awards-seen:${ID}`)).toBe('1')
+  })
+
   it('follows a running segment live: checkpoints on the profile, the top 5 and the player\'s place', async () => {
     seedCareer()
     const racing = major({ status: 'RUNNING', registration: { categoryIdx: 1, level: 1, list: 'main', status: 'RACING', registeredAt: '', readyAt: 'x', plan: null } })

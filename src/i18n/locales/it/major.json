@@ -116,5 +116,12 @@
   "major.live.gained": "Posizioni guadagnate in questo tratto",
   "major.live.lost": "Posizioni perse in questo tratto",
   "major.map.label": "Tratto {n} visto dall’alto, con i corridori",
-  "major.map.next": "Prossimo tratto visto dall’alto"
+  "major.map.next": "Prossimo tratto visto dall’alto",
+  "major.award.title": "Premiazione · {category}",
+  "major.award.podium": "Podio",
+  "major.award.you": "Tu",
+  "major.award.yours": "Il tuo risultato",
+  "major.award.of": "su {field}",
+  "major.award.prize": "+{coins} monete · +{xp} XP · +{points} punti ranking",
+  "major.award.close": "Vedi la classifica"
 }

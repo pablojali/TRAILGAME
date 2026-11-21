@@ -116,5 +116,12 @@
   "major.live.gained": "Puestos ganados en este tramo",
   "major.live.lost": "Puestos perdidos en este tramo",
   "major.map.label": "Tramo {n} visto desde arriba, con los corredores",
-  "major.map.next": "Próximo tramo visto desde arriba"
+  "major.map.next": "Próximo tramo visto desde arriba",
+  "major.award.title": "Premiación · {category}",
+  "major.award.podium": "Podio",
+  "major.award.you": "Tú",
+  "major.award.yours": "Tu resultado",
+  "major.award.of": "de {field}",
+  "major.award.prize": "+{coins} monedas · +{xp} XP · +{points} puntos de ranking",
+  "major.award.close": "Ver la clasificación"
 }

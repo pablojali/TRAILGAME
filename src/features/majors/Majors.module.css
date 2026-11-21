@@ -1101,3 +1101,193 @@
   stroke-width: 1.5;
 }
 
+
+/* The awards at the end of a Major: the category's podium, then the player's own place. */
+.awards {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  padding: 20px 16px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgb(255 212 59 / 0.16), rgb(0 0 0 / 0.35));
+  text-align: center;
+  animation: awardsIn 0.5s ease-out;
+}
+
+.awardsEyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.awardsTitle {
+  margin: 0;
+  font-size: 1.35rem;
+  outline: none;
+}
+
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 6px;
+  width: 100%;
+  max-width: 380px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step1,
+.step2,
+.step3 {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.podiumFace {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.12);
+  border: 3px solid rgb(255 255 255 / 0.5);
+}
+
+.step1 .podiumFace {
+  width: 80px;
+  height: 80px;
+  border-color: #ffd43b;
+}
+
+.step2 .podiumFace {
+  border-color: #ced4da;
+}
+
+.step3 .podiumFace {
+  border-color: #d9480f;
+}
+
+.podiumFace svg {
+  width: 100%;
+  height: 100%;
+}
+
+.podiumInitial {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.podiumName {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stepMe .podiumName {
+  color: #ffd43b;
+}
+
+.podiumTime {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+.podiumBlock {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.step1 .podiumBlock {
+  height: 96px;
+  background: linear-gradient(#ffe066, #fab005);
+}
+
+.step2 .podiumBlock {
+  height: 68px;
+  background: linear-gradient(#f1f3f5, #adb5bd);
+}
+
+.step3 .podiumBlock {
+  height: 48px;
+  background: linear-gradient(#ffa94d, #d9480f);
+}
+
+.awardsMine {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 380px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.35);
+  text-align: left;
+}
+
+.awardsMineFace {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 3px solid #ffd43b;
+  background: rgb(255 255 255 / 0.12);
+}
+
+.awardsMineFace svg {
+  width: 100%;
+  height: 100%;
+}
+
+.awardsPlace {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.awardsPlace span {
+  font-size: 1rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.awardsTime {
+  margin: 4px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.awardsPrize {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #ffd43b;
+}
+
+@keyframes awardsIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .awards {
+    animation: none;
+  }
+}

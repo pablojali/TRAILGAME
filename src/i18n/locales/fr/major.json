@@ -116,5 +116,12 @@
   "major.live.gained": "Places gagnées sur ce tronçon",
   "major.live.lost": "Places perdues sur ce tronçon",
   "major.map.label": "Tronçon {n} vu du dessus, avec les coureurs",
-  "major.map.next": "Prochain tronçon vu du dessus"
+  "major.map.next": "Prochain tronçon vu du dessus",
+  "major.award.title": "Remise des prix · {category}",
+  "major.award.podium": "Podium",
+  "major.award.you": "Toi",
+  "major.award.yours": "Ton résultat",
+  "major.award.of": "sur {field}",
+  "major.award.prize": "+{coins} pièces · +{xp} XP · +{points} points de classement",
+  "major.award.close": "Voir le classement"
 }

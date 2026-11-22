@@ -526,7 +526,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
         return response.ok ? null : serverError<EquipError>(response.error)
       }
       const result = setItemEquipped(state, itemId, equipped)
-      if (!result.ok) return result.error
+      // `race-in-progress` (B-6b) only happens with wear on; its text comes with A-5.
+      if (!result.ok) return result.error as EquipError
       commit({ kind: 'playing', state: result.state })
       return null
     },
@@ -549,7 +550,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
         return response.ok ? null : serverError<BuyError>(response.error)
       }
       const result = buyItem(state, itemId, confirmedPrice)
-      if (!result.ok) return result.error
+      // As for equipping: `race-in-progress` gets its text with A-5.
+      if (!result.ok) return result.error as BuyError
       commit({ kind: 'playing', state: result.state })
       return null
     },

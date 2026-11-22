@@ -231,6 +231,8 @@ function finalResults(
       splits: state.progress.splits,
       nutrition: { ...ctx.nutrition },
       rivalTimesS: table.filter((other) => other.slot !== row.slot).map((other) => other.timeS),
+      // Retired with worn-out shoes (B-6b).
+      ...(state.dnf ? { dnf: { segment: state.dnf.segment + 1, km: state.dnf.km, aidStation: state.dnf.aidStation } } : {}),
     }
     return [{ participantId: runner.id, payload }]
   })

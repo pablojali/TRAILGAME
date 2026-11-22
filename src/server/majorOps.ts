@@ -1,4 +1,5 @@
 import { raceGearError } from '../game-engine/wear'
+import { raceWearAtStart } from '../game-engine/raceWear'
 import {
   validateConfig,
   validateEventInput,
@@ -517,10 +518,15 @@ async function playerOp(request: MajorRequest, userId: string, deps: MajorOpsDep
       await deps.store.advance(now)
       const mine = (await deps.store.playerMajors(userId, now)).find((m) => m.id === request.id)?.registration
       if (!mine || (mine.status !== 'REGISTERED' && mine.status !== 'READY')) return refuse(409, 'not-registered')
+      // Equipment wear (owner decision D9, 22 November 2026): the shoes are checked again at READY.
+      const gearError = raceGearError(career)
+      if (gearError) return refuse(422, gearError)
       const { athlete } = career
+      const raceWear = raceWearAtStart(career)
       // Everything is taken again at READY (owner decision, 14 November 2026), the level and so the
       // category included: a player may register early and keep training all week.
       const snapshot: MajorRunnerSnapshot = {
+        ...(raceWear ? { wear: raceWear } : {}),
         level: getLevel(athlete.xp),
         attributes: { ...athlete.attributes },
         fitness: athlete.fitness,
@@ -577,7 +583,9 @@ export function liveRace(source: RaceView) {
         const state = hidden(r.state)
         if (!state) return []
         const split = state.progress.splits[source.category.segment]!
-        return [{ slot: r.slot, name: r.name, country: r.country, me: r.slot === source.mySlot, departS: Math.round(state.segmentStart!.elapsedS), arriveS: split.arrivalS }]
+        // B-6b: a runner whose shoes break on this segment stops at its aid station.
+        const retires = state.dnf?.segment === source.category.segment
+        return [{ slot: r.slot, name: r.name, country: r.country, me: r.slot === source.mySlot, departS: Math.round(state.segmentStart!.elapsedS), arriveS: split.arrivalS, ...(retires ? { retires: true } : {}) }]
       })
     : []
   const withState = view.runners.filter((r): r is RaceViewRunner & { state: MajorRunnerState } => r.state !== null)

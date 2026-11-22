@@ -1,5 +1,6 @@
 import { WEAR, type WearConfig } from '../domain/equipment/wear'
 import { applyWear } from './wear'
+import { dnfXp } from './races'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import { roundStat } from '../domain/athlete/athlete'
 import { GROSS_PRIZES, RACE_MIN_XP, RACE_XP_BAND_PCT, RACE_XP_BASE } from '../domain/races/categories'
@@ -56,6 +57,8 @@ export interface MajorRewardPayload {
   nutrition: Nutrition
   /** The other runners' times, whole seconds, fastest first. */
   rivalTimesS: number[]
+  /** Retired with worn-out shoes (B-6b): where. Missing: finished. */
+  dnf?: { segment: number; km: number; aidStation: number | null }
 }
 
 export interface MajorPrize {
@@ -99,12 +102,17 @@ export function applyMajorReward(state: GameState, payload: MajorRewardPayload, 
   if (state.raceEntries.some((entry) => entry.id === id)) return null
   const race = getRace(payload.raceId)
   if (!race) return null
-  const prize = majorPrize(race, payload.position)
+  const finishedPrize = majorPrize(race, payload.position)
+  // A DNF (B-6b): no prize, no ranking points, the last place's XP for the share of the distance run.
+  const dnf = payload.dnf
+  const prize = dnf
+    ? { ...finishedPrize, grossPrize: 0, coins: 0, xp: dnfXp(majorPrize(race, payload.fieldSize).xp, dnf.km, race.distanceKm) }
+    : finishedPrize
   const athlete = state.athlete
   const fatigueChange = statChange(athlete.fatigue, roundStat(payload.finishFatigue - payload.fatigue))
   const injured = athlete.fatigue + fatigueChange > INJURY_FATIGUE_THRESHOLD
   const fitnessChange = injured ? statChange(athlete.fitness, -INJURY_FITNESS_LOSS) : 0
-  const xpAwarded = injured ? RACE_MIN_XP : prize.xp
+  const xpAwarded = dnf ? prize.xp : injured ? RACE_MIN_XP : prize.xp
   const input = { attributes: payload.attributes as RaceResult['attributes'], fitness: payload.fitness, fatigue: payload.fatigue, equipment: payload.equipment }
   const field = getRaceField(race)
   const referenceTimeS = getReferenceFinishS(race, field)
@@ -140,7 +148,8 @@ export function applyMajorReward(state: GameState, payload: MajorRewardPayload, 
     rivalTimesS: [...payload.rivalTimesS],
     splits: payload.splits.map((split) => ({ ...split })),
     nutrition: { ...payload.nutrition },
-    ...(season >= 1 ? { rankingSeason: season, rankingPoints: prize.rankingPoints, rankingAt: payload.finishedAt } : {}),
+    ...(season >= 1 && !dnf ? { rankingSeason: season, rankingPoints: prize.rankingPoints, rankingAt: payload.finishedAt } : {}),
+    ...(dnf ? { dnf: { ...dnf } } : {}),
   }
   const entry: FinishedRaceEntry = {
     id,
@@ -155,7 +164,7 @@ export function applyMajorReward(state: GameState, payload: MajorRewardPayload, 
   }
   const levelBefore = getLevel(athlete.xp)
   // The gear worn in the Major wears by its distance (equipment wear, 22 November 2026).
-  const worn = applyWear(state, race.distanceKm, wear, payload.equipment)
+  const worn = applyWear(state, dnf ? dnf.km : race.distanceKm, wear, payload.equipment)
   const rewarded = applyAchievementRewards({
     ...worn,
     coins: state.coins + prize.coins,

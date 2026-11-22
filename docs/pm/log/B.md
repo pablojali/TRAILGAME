@@ -2,6 +2,106 @@
 
 Newest entry first. Only session B writes here.
 
+## 2026-11-22 — B-6b Race consequences of worn shoes: wear along the course, DNF, equipment lock
+
+Branch `stream-b/race-wear-consequences`. Brief `docs/pm/briefs/B-6b-race-wear-consequences.md`.
+Everything is active only with `wear_speed > 0`, which ships at 0.
+
+### Owner decisions given to me in the session (22 November 2026)
+- **D9:** check the shoes again at READY. **Done in this PR.**
+- **D8:** "Zapas salen barato, 20 euros". I read it as option B: the starter shoes get a price (20 coins).
+  **Not done here:** the price is an owner-table value, and option B also needs the emergency-pair
+  guard (`EQUIPMENT_WEAR_CALIBRATION.md` §7). For the PM to brief.
+- **D9, second part, still open:** what happens to a race Sunday whose shoes reach 0 % after the entry.
+  The start is refused (`shoes-worn-out`), so that day can only be completed by replacing the shoes.
+  My proposal stays the same: withdraw, or count as "did not start".
+
+### Segment rule
+- The engine already runs a race one segment at a time, so no rewrite was needed.
+- At the start, the race keeps the gear's wear (`ActiveRace.wear`: wear speed and each worn item's
+  share of life used). A Major keeps it in its READY snapshot.
+- Each segment is run with the effect left by the wear at its start:
+  - **Shoes:** the band's `effect_factor` scales their bonuses. +4 at 0.75 is +3; a 0.9 multiplier
+    at 0.75 becomes 0.925.
+  - **Other gear:** full effect while it has life left, none at 0 %.
+- The engine change is small:
+  - `getRaceEffect` takes optional per-item factors;
+  - the runner input takes `effectFactors`;
+  - solo races build them in `contextOf`, and Majors in `segmentContext`.
+
+### Aid-station rule (the PM default)
+- If the shoes' durability reaches 0 % during a segment, the runner reaches the end of that segment
+  and retires there.
+- If that is the last segment, they retire at its end (`aidStation: null`), not at the finish.
+- The step at that aid station only records the DNF, whatever was decided there.
+- I found no better rule. Breaking mid-segment would need a time for a partial segment that the
+  engine does not have.
+
+### The DNF
+- `RaceResult.dnf = { segment (1-based), km, aidStation }`.
+- **Rewards:**
+  - no prize (0 coins);
+  - no ranking fields, so the database trigger records no points;
+  - XP = **last place's XP × km run ÷ race distance**, rounded down.
+- **Fatigue:** the in-race fatigue of the km actually run. The injury rule applies as before.
+- **Wear:** the km actually run, so the shoes end at 0 %.
+- **Placing:**
+  - In solo results the player is placed last (`position` = field size), and `getStandings` marks the
+    row `dnf`.
+  - In Majors, retired runners rank after everyone still running, the furthest first.
+  - Major rewards follow the same rules.
+- **Majors live view:**
+  - the runner's live row carries `retires: true` on the segment where they stop;
+  - the standings mark `dnf` once that segment is revealed;
+  - they run nothing after.
+- **Old saves:** results and races without these fields load unchanged. No migration: careers are
+  JSON, and the ranking trigger already skips results without points. `supabase/` is untouched.
+
+### The shoes' effect in the result
+- A finished or retired race with worn shoes stores `shoeWear`:
+  - the shoes' durability at the start and at the end;
+  - `timeLostS`: the same race run again with full effect, same intensities and stops.
+- That gives the explanation a figure for "the worn shoes cost you X seconds". A-5 shows it.
+
+### Entry preview
+- `predictShoes(state, race)` gives `{ lasts: true }` or `{ lasts: false, segment, km, aidStation }`.
+- The race is deterministic from the wear and the course, so the prediction is exact unless training
+  wears the shoes further before the start.
+- The enter-race result carries `shoes` and `prediction`. The screen can call `predictShoes` before
+  the player confirms.
+
+### Equipment lock
+- With wear on, `setItemEquipped` and `buyItem` (replacing included) refuse with `race-in-progress`
+  while `activeRace` is set.
+- In Majors the READY snapshot fixes the gear that races, so changing the kit after READY does not
+  change the Major.
+- The new refusal is kept apart from the screens' error types (`RaceLockError`), so they compile.
+
+### Files
+- **Engine:**
+  - `src/game-engine/raceWear.ts` (new);
+  - `src/game-engine/{races,raceEngine,raceSimulation,majorRace,majorRewards,equipment,gameState}.ts`;
+  - `src/domain/equipment/items.ts`, `src/domain/major/major.ts`.
+- **Saves:** `src/repositories/gameRepository.ts`.
+- **Server:** `src/server/{careerOps,majorOps,majorOrchestrator}.ts`.
+- **Client glue:** `src/app/game/GameProvider.tsx`.
+- **Tests:**
+  - `src/game-engine/{raceWear,majorWear}.test.ts`;
+  - `src/server/wearOps.test.ts`: READY refused at 0 %, wear in the snapshot, the lock, the
+    prediction.
+
+### Checks
+- `npm run lint`, typecheck and `npm run build` pass.
+- 959 tests pass. Locally only `functionBundle.test.ts` fails, because the bundles are not committed;
+  it passes after `npm run build:functions`, and CI rebuilds them.
+
+### For stream A (A-5)
+- **Texts:** `race-in-progress`, `no-shoes-equipped` and `shoes-worn-out`.
+- **Results:** show `result.dnf` and `result.shoeWear`.
+- **Entry warning:** use `predictShoes`.
+- **Live Majors:** handle the `retires` flag in the live runners and `dnf` in the standings.
+- **Aid station:** `retiresHere(active, race)` says the runner retires at the station they are at.
+
 ## 2026-11-22 — B-6a Equipment wear: durability, bands, training and entry rules
 
 Branch `stream-b/equipment-wear`. Brief `docs/pm/briefs/B-6a-equipment-wear.md`. Ships dark: `wear_speed = 0`.

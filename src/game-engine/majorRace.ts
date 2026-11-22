@@ -5,6 +5,7 @@ import { RACE_STRATEGY, type AidStop, type Intensity } from '../domain/races/str
 import { getRaceField, makeStop, runSegment, typicalRunner, type RaceField, type RaceProgress, type StepContext } from './raceEngine'
 import { planRest } from './racePlan'
 import { getDayForm } from './raceSimulation'
+import { effectFactorsAt, segmentEndsKm, shoeBreak, type ShoeBreak } from './raceWear'
 
 /**
  * The Sunday Major race (owner specification §6, phase 3): the same engine as solo races
@@ -36,6 +37,11 @@ export interface MajorRunnerState {
    * stays hidden until its running phase ends.
    */
   segmentStart?: { elapsedS: number; fatigue: number }
+  /**
+   * Retired (B-6b): the shoes broke on segment `segment` (0-based) and the runner stopped at its end,
+   * `km` from the start. No more segments are run. Missing: still racing, or finished.
+   */
+  dnf?: ShoeBreak
 }
 
 export interface MajorDecision {
@@ -58,6 +64,7 @@ export function majorContext(race: Race, field: RaceField, eventId: string, runn
       runner: { attributes: s.attributes as Attributes, fitness: s.fitness, fatigue: s.fatigue, equipment: [...s.equipment] },
       dayForm: getDayForm(race.id, `${eventId}:${runner.slot}`, 0, s.attributes.consistency ?? 20),
       nutrition: { ...s.nutrition },
+      ...(s.wear ? { wear: { speed: s.wear.speed, used: { ...s.wear.used } } } : {}),
     }
   }
   const typical = typicalRunner(runner.level, race.category)
@@ -82,11 +89,26 @@ export function initialState(ctx: StepContext, runner: MajorRunner): MajorRunner
   return { progress, next: plan.segments[0]?.intensity ?? 'target' }
 }
 
-/** Positions by arrival time (whole seconds, as shown), ties by grid slot. */
+/** The context of segment `segment` (B-6b): the gear's effect as its wear leaves it when the segment starts. */
+export function segmentContext(ctx: StepContext, segment: number): StepContext {
+  if (!ctx.wear) return ctx
+  const ends = segmentEndsKm(ctx.field.segments.map((g) => g.distanceM))
+  const factors = effectFactorsAt(ctx.wear, segment === 0 ? 0 : ends[Math.min(segment, ends.length) - 1]!)
+  return { ...ctx, runner: { ...ctx.runner, effectFactors: factors } }
+}
+
+/** Orders runners: those still racing (or finished) by arrival, then the retired, furthest first. */
+function byRaceOrder(a: { slot: number; state: MajorRunnerState }, b: { slot: number; state: MajorRunnerState }): number {
+  const retiredA = a.state.dnf ? 1 : 0
+  const retiredB = b.state.dnf ? 1 : 0
+  if (retiredA !== retiredB) return retiredA - retiredB
+  if (a.state.dnf && b.state.dnf && a.state.dnf.segment !== b.state.dnf.segment) return b.state.dnf.segment - a.state.dnf.segment
+  return Math.round(a.state.progress.elapsedS) - Math.round(b.state.progress.elapsedS) || a.slot - b.slot
+}
+
+/** Positions by arrival time (whole seconds, as shown), ties by grid slot; retired runners last (B-6b). */
 export function rankByArrival(states: readonly { slot: number; state: MajorRunnerState }[]): Map<number, number> {
-  const order = [...states].sort(
-    (a, b) => Math.round(a.state.progress.elapsedS) - Math.round(b.state.progress.elapsedS) || a.slot - b.slot,
-  )
+  const order = [...states].sort(byRaceOrder)
   return new Map(order.map((entry, i) => [entry.slot, i + 1]))
 }
 
@@ -98,14 +120,23 @@ export function runMajorSegment(
   contexts: ReadonlyMap<number, StepContext>,
   runners: readonly { slot: number; state: MajorRunnerState }[],
 ): { slot: number; state: MajorRunnerState }[] {
-  const ran = runners.map(({ slot, state }) => ({
-    slot,
-    state: {
-      ...state,
-      segmentStart: { elapsedS: state.progress.elapsedS, fatigue: state.progress.fatigue },
-      progress: runSegment(contexts.get(slot)!, state.progress, state.next),
-    },
-  }))
+  const ran = runners.map(({ slot, state }) => {
+    // A retired runner runs no more (B-6b).
+    if (state.dnf) return { slot, state }
+    const ctx = contexts.get(slot)!
+    const k = state.progress.splits.length
+    const progress = runSegment(segmentContext(ctx, k), state.progress, state.next)
+    const broke = shoeBreak(ctx.wear, ctx.field.segments.map((g) => g.distanceM))
+    return {
+      slot,
+      state: {
+        ...state,
+        segmentStart: { elapsedS: state.progress.elapsedS, fatigue: state.progress.fatigue },
+        progress,
+        ...(broke && broke.segment === k ? { dnf: broke } : {}),
+      },
+    }
+  })
   const positions = rankByArrival(ran)
   return ran.map(({ slot, state }) => {
     const splits = state.progress.splits.slice()
@@ -131,10 +162,19 @@ export function applyMajorDecisions(
   contexts: ReadonlyMap<number, StepContext>,
   runners: readonly { slot: number; state: MajorRunnerState; decision: MajorDecision }[],
 ): { slot: number; state: MajorRunnerState }[] {
-  return runners.map(({ slot, state, decision }) => ({
-    slot,
-    state: { ...state, progress: makeStop(contexts.get(slot)!, state.progress, decision.stop), next: decision.intensity },
-  }))
+  return runners.map(({ slot, state, decision }) =>
+    // A retired runner stays at the aid station where they stopped (B-6b).
+    state.dnf
+      ? { slot, state }
+      : {
+          slot,
+          state: {
+            ...state,
+            progress: makeStop(segmentContext(contexts.get(slot)!, state.progress.splits.length), state.progress, decision.stop),
+            next: decision.intensity,
+          },
+        },
+  )
 }
 
 export interface MajorStandingRow {
@@ -144,17 +184,36 @@ export interface MajorStandingRow {
   timeS: number
   /** Seconds behind the leader. */
   gapS: number
+  /** Retired at an aid station (B-6b): placed after everyone still racing; `timeS` is when. */
+  dnf?: true
 }
 
-/** The provisional (or final) standings after the segments run so far. */
+/**
+ * The provisional (or final) standings after the segments run so far. A retired runner counts as
+ * such once the segment where they stopped is in the state (B-6b).
+ */
 export function majorStandings(runners: readonly { slot: number; state: MajorRunnerState }[]): MajorStandingRow[] {
+  const visible = (state: MajorRunnerState) => state.dnf !== undefined && state.progress.splits.length > state.dnf.segment
   const arrivals = runners.map(({ slot, state }) => {
     const last = state.progress.splits[state.progress.splits.length - 1]
-    return { slot, timeS: last ? last.arrivalS : 0 }
+    return { slot, timeS: last ? last.arrivalS : 0, retired: visible(state), state: visible(state) ? state : { ...state, dnf: undefined } }
   })
-  arrivals.sort((a, b) => a.timeS - b.timeS || a.slot - b.slot)
-  const leader = arrivals[0]?.timeS ?? 0
-  return arrivals.map((row, i) => ({ ...row, position: i + 1, gapS: row.timeS - leader }))
+  // As before B-6b by arrival at the last aid station; the retired after, furthest first.
+  arrivals.sort(
+    (a, b) =>
+      Number(a.retired) - Number(b.retired) ||
+      (a.retired && b.retired ? b.state.dnf!.segment - a.state.dnf!.segment : 0) ||
+      a.timeS - b.timeS ||
+      a.slot - b.slot,
+  )
+  const leader = arrivals.find((row) => !row.retired)?.timeS ?? arrivals[0]?.timeS ?? 0
+  return arrivals.map((row, i) => ({
+    slot: row.slot,
+    timeS: row.timeS,
+    position: i + 1,
+    gapS: row.timeS - leader,
+    ...(row.retired ? { dnf: true as const } : {}),
+  }))
 }
 
 /** Checkpoints along each Major segment for the live tracking (owner request, 14 November 2026). */

@@ -32,6 +32,8 @@ export interface RaceAthleteInput {
   fatigue: number
   /** Equipped item ids; their race effects apply (owner approval, 29 October 2026). */
   equipment?: readonly string[]
+  /** Equipment wear (B-6b): the share of each item's effect kept now, by item id (missing = all). */
+  effectFactors?: Readonly<Record<string, number>>
 }
 
 export interface RaceSimulationResult {
@@ -163,7 +165,7 @@ export interface PreparedRunner {
 
 export function prepareRunner(athlete: RaceAthleteInput): PreparedRunner {
   // Equipment bonuses are added for the race only; the athlete's attributes are not changed.
-  const gear = getRaceEffect(athlete.equipment ?? [])
+  const gear = getRaceEffect(athlete.equipment ?? [], athlete.effectFactors)
   const a = Object.fromEntries(
     ATTRIBUTE_IDS.map((id) => [id, athlete.attributes[id] + gear.attributes[id]]),
   ) as Attributes

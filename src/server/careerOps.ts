@@ -284,7 +284,7 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
     case 'enter-race': {
       const entered = enterRace(career, request.raceId, now)
       if (!entered.ok) return { ok: false, error: entered.error }
-      return { ok: true, state: entered.state, result: { entry: entered.entry, ...(wearOn() ? { shoes: entered.shoes } : {}) } }
+      return { ok: true, state: entered.state, result: { entry: entered.entry, ...(wearOn() ? { shoes: entered.shoes, prediction: entered.prediction } : {}) } }
     }
     case 'camp-buy': {
       const bought = buyCampItem(career, request.itemId, { price: request.price, currency: request.currency })

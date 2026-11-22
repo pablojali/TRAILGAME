@@ -7,6 +7,7 @@ import { OWNED_FROM_START } from '../domain/equipment/items'
 import type { EntryType } from '../domain/races/access'
 import type { RaceCourse } from '../domain/races/races'
 import type { Nutrition, RaceSplit } from './raceEngine'
+import type { RaceWear } from './raceWear'
 import type { ExplanationFactor } from './raceSimulation'
 import type { SessionType } from '../domain/training/sessions'
 
@@ -163,6 +164,11 @@ export interface ActiveRace {
    * keeps its course). Missing in races started before it existed: the catalog's.
    */
   course?: RaceCourse
+  /**
+   * Equipment wear (B-6b): the gear's wear when the race started and the wear speed then; it sets
+   * each segment's effect and where worn-out shoes break. Missing: wear off, or an older race.
+   */
+  wear?: RaceWear
 }
 
 export interface Consumables {
@@ -251,6 +257,17 @@ export interface RaceResult {
   rankingPoints?: number
   /** When the server finished the race (epoch ms, UTC): the Annual ranking expires results by it. */
   rankingAt?: number
+  /**
+   * Did not finish (B-6b): the shoes broke during segment `segment` (1-based) and the runner retired
+   * at its end, `km` from the start, at aid station `aidStation` (null: at the end of the last
+   * segment). No prize, no ranking points, XP for the share run. Missing: finished.
+   */
+  dnf?: { segment: number; km: number; aidStation: number | null }
+  /**
+   * What the shoes' wear did (B-6b): their durability at the start and the end of the race, and the
+   * seconds lost to their reduced effect. Missing: wear off, or no shoes that wear.
+   */
+  shoeWear?: { itemId: string; durabilityAtStart: number; durabilityAtEnd: number; timeLostS: number }
 }
 
 /** Deterministic plan used for the first week and every following week. */

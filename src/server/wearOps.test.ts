@@ -50,7 +50,7 @@ describe('career-ops with equipment wear on', () => {
     const ready = memoryStore(shod())
     expect((await handleCareerOp('t', { action: 'enter-race', operationId: op(3), baseVersion: 1, raceId: 'RACE-001' }, deps(ready.store))).body).toMatchObject({
       ok: true,
-      result: { shoes: { itemId: 'starter-shoes', durabilityPct: 100, band: { raceStart: 'ok' } } },
+      result: { shoes: { itemId: 'starter-shoes', durabilityPct: 100, band: { raceStart: 'ok' } }, prediction: { lasts: true } },
     })
   })
 
@@ -85,5 +85,47 @@ describe('major-ops with equipment wear on', () => {
     expect(registered).toEqual([])
     expect((await handleMajorOp('player', { action: 'register', id }, majorDeps(shod()))).body).toMatchObject({ ok: true })
     expect(registered).toHaveLength(1)
+  })
+})
+
+describe('major-ops READY with equipment wear on (owner decision D9)', () => {
+  const id = '11111111-1111-4111-8111-111111111111'
+  function readyStore() {
+    const readies: unknown[] = []
+    const store = {
+      advance: async () => undefined,
+      playerMajors: async () => [{ id, registration: { status: 'REGISTERED', plan: null } }],
+      setReady: async (_e: string, _u: string, snapshot: unknown) => void readies.push(snapshot),
+    } as unknown as MajorStore
+    return { store, readies }
+  }
+  const majorDeps = (store: MajorStore, career: GameState) => ({
+    store,
+    race: {} as RaceStore,
+    tickAuthorized: false,
+    authenticate: async (t: string | null) => t,
+    loadCareer: async () => career,
+    now: () => NOW,
+  })
+
+  it('refuses READY with worn-out shoes, and takes the gear\'s wear into the snapshot otherwise', async () => {
+    const worn = readyStore()
+    expect((await handleMajorOp('player', { action: 'ready', id }, majorDeps(worn.store, { ...shod(), wear: { 'starter-shoes': 1 } }))).body).toEqual({
+      ok: false,
+      error: 'shoes-worn-out',
+    })
+    expect(worn.readies).toEqual([])
+    const fine = readyStore()
+    await handleMajorOp('player', { action: 'ready', id }, majorDeps(fine.store, { ...shod(), wear: { 'starter-shoes': 0.25 } }))
+    expect(fine.readies).toEqual([expect.objectContaining({ equipment: ['starter-shoes'], wear: { speed: 1, used: { 'starter-shoes': 0.25 } } })])
+  })
+})
+
+describe('career-ops: no equipment changes during a race, with wear on', () => {
+  it('refuses equipping while a race is in progress', async () => {
+    const racing = { ...shod(), ownedEquipment: ['starter-shoes', 'trail-shoes-basic'], activeRace: {} as GameState['activeRace'] }
+    // The engine's own check (the save check would refuse this fake race, so it is called directly).
+    const { setItemEquipped } = await import('../game-engine/equipment')
+    expect(setItemEquipped(racing as GameState, 'trail-shoes-basic', true)).toEqual({ ok: false, error: 'race-in-progress' })
   })
 })

@@ -4,6 +4,7 @@ import { roundStat } from '../domain/athlete/athlete'
 import type { Race } from '../domain/races/races'
 import type { RaceCategory } from '../domain/races/categories'
 import { RACE_FIELD } from '../domain/races/raceField'
+import type { RaceWear } from './raceWear'
 import { EQUIPMENT_ITEMS, type EquipmentItem } from '../domain/equipment/items'
 import { RACE_SIMULATION as SIM } from '../domain/races/simulationConfig'
 import {
@@ -426,6 +427,11 @@ export interface StepContext {
   runner: RaceRunner
   dayForm: number
   nutrition: Nutrition
+  /**
+   * Sunday Majors (B-6b): the runner's gear wear at READY, so each segment can be run with the
+   * effect its wear leaves. Solo races set the effect in the runner instead.
+   */
+  wear?: RaceWear
 }
 
 /** How much a technical descent takes from Hard's gain: descent share × technicality / 5 × (1 − Technical / 100). */

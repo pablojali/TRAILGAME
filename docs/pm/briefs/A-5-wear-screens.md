@@ -12,7 +12,7 @@ or who can start.
 ## What to build
 
 1. **Equipment screen:** every item that wears shows a durability bar, the percentage, the band label and the
-   remaining life in game km or weeks, for example "Durability left: 108 km of 150 km" (the effective life is
+   remaining life in game km, for example "Durability left: 108 km of 150 km" (the effective life is
    the server's figure; do not recompute it). Bands are readable without colour. A worn-out item looks clearly
    worn out and has a **Replace** button with the price and a confirmation that shows the balance after. Items
    that do not wear look as today. While a race is in progress the screen is read-only and says why.

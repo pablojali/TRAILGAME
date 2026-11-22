@@ -18,7 +18,7 @@ Last updated: 22 November 2026.
 
 ## Owner's ideas not yet briefed
 
-Poles' real-life life (km or weeks) so they can wear.
+Life in km for each shoe model, the packs and the poles (owner fills the table); the watch when it is added.
 
 ## Merged
 

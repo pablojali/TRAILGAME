@@ -13,11 +13,12 @@ used up.
 
 ## Owner decisions (22 November 2026; updated at 08:48 with the durability bands)
 
-1. **Shoes wear by distance, packs by time** (game weeks; a career year is 52 weeks). **Each item has its own
-   `life`**, entered by the owner in the equipment table in game units, so one shoe model can last 150 km and
-   another 300 km. (Real-life references, which the owner scales down to game values: shoes about 500 km,
-   packs about 2 years.) **The owner supplies the values;** do not invent them. An item with no `life` never
-   wears. Poles have no life yet, so they do not wear.
+1. **All wearable gear wears by distance (km)**: shoes, packs, poles, and the watch when it is added. **Each
+   item has its own life in km** (`life_km`), entered by the owner in the equipment table, so one shoe model
+   can last 150 km and another 300 km. (Real-life reference for shoes: about 500 km, which the owner scales
+   down to game values.) **The owner supplies the values;** do not invent them. An item with no `life_km` never
+   wears. Packs, poles and the watch have no values yet, so they do not wear until the owner fills them in. A
+   new wearable item (the watch, glasses, a cap) needs only a `life_km` in its row, no new rules.
 2. **One global knob, `wear_speed`**, multiplies the wear of every item so all gear can be retuned without
    editing each row. `1` = as entered in the table; above 1 wears faster; `0` means wear is **off**. What the
    player sees is the item's life divided by `wear_speed` (for example "108 km of 150 km" at `wear_speed` 1).
@@ -43,15 +44,14 @@ used up.
 8. **No soft-lock.** The game starts with 0 coins and free starter shoes. If the runner owns no pair above the
    DNF band (above 9 %) and cannot afford the cheapest pair for sale, the game gives a **free emergency pair**.
    The exact guard is part of this task.
-9. **Packs** (and any other item that gets a life): no bands. Full effect until 0 %, then the effect is off and
+9. **Packs, poles, the watch and any other item that gets a life (not shoes)**: no bands. Full effect until 0 %, then the effect is off and
    the item shows as worn out. They never block a race. (PM assumption.)
 
 ## What to build
 
 ### Data (the owner's tables, read like the other tables)
 
-- `src/data/equipment.csv`: new optional columns `wear_unit` (`km` or `weeks`; empty = never wears) and `life`
-  (game units: km or weeks). Add the columns and read them. The owner fills the values per model (for example
+- `src/data/equipment.csv`: one new optional column, `life_km` (empty = never wears). Add the column and read it. The owner fills the values per model (for example
   150 km for one shoe model, 300 km for another); until they do, those items do not wear. Use test fixtures
   for your tests, not invented values in the real table.
 - `src/data/economy.csv`: new row `wear_speed`.
@@ -68,8 +68,9 @@ used up.
 ### Rules (`src/domain`, `src/game-engine`)
 
 - **Accrual:** shoes gain wear when a training session is completed (km from the table) and when a race
-  result is committed (the km actually run); packs gain wear when a game week passes. Each amount is
-  multiplied by `wear_speed` and divided by the item's `life`. Only equipped items wear.
+  result is committed (the km actually run). **Every equipped item that has a `life_km` wears by those same km**
+  (shoes, pack, poles, watch...). Each amount is multiplied by `wear_speed` and divided by the item's
+  `life_km`. Only equipped items wear.
 - **Bands and injury:** the band of the equipped shoes is computed from the durability left. In training,
   shoes in the 9–1 % band (and at 0 %, PM assumption) give each session an `injury_risk_pct` chance of injury,
   using the **existing injury consequence** (no XP, -15 Fitness, 5 forced Rest days; `DEVELOPMENT.md`
@@ -120,14 +121,14 @@ multiplier as training km. Write it in
 
 ## Out of scope
 
-The DNF itself, race penalties and the "no changes during a race" lock (B-6b); any screen (A-5); poles' life; a
+The DNF itself, race penalties and the "no changes during a race" lock (B-6b); any screen (A-5); the life values of packs, poles and the watch (owner); a
 shop redesign; changing prices.
 
 ## Acceptance criteria
 
 - [ ] With `wear_speed = 0` the game and its tests behave exactly as before.
-- [ ] With `wear_speed > 0`, equipped shoes wear by session km and race km, equipped packs by game weeks.
-- [ ] Unequipped gear does not wear. Items with no `life` never wear.
+- [ ] With `wear_speed > 0`, every equipped item with a `life_km` wears by session km and race km.
+- [ ] Unequipped gear does not wear. Items with no `life_km` never wear.
 - [ ] Durability left and band are available for every item that wears, from the server.
 - [ ] Training is never blocked; shoes at 9–1 % add the injury chance per session, using the existing injury rule.
 - [ ] A race cannot be started with shoes at 0 % or with no shoes equipped, and the reason is explicit.
@@ -142,4 +143,5 @@ shop redesign; changing prices.
 
 1. Shoes at 0 % also carry the training injury risk (same as the 9–1 % band).
 2. Racing now requires equipped shoes above 0 % (nothing equipped also blocks).
-3. Packs have no bands and never block racing.
+3. Only shoes have bands and can block or end a race; packs, poles and the watch have no bands, just full effect
+   until 0 % and then none, and never block racing.

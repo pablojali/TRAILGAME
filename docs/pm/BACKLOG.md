@@ -15,12 +15,20 @@ read of the code, not from running the game).
 | D4 | Fitness and fatigue balance: is the current feel acceptable? | B-2 |
 | D5 | Attribute adaptation from training (row 11) and profile change at season end (row 12): in scope for the next release? | B-3 |
 
+## Decided by the owner
+
+| ID | Decision | Date |
+|---|---|---|
+| D6 | Equipment wears out so coins are spent regularly: shoes by km (500 real), packs by game weeks (104 real), a global `wear_speed` knob, worn-out shoes block race entry (no DNF for now), a free emergency pair avoids a soft-lock, training km come from an owner table. Details in `briefs/B-6a-equipment-wear.md` | 22 Nov 2026 |
+
 ## P0
 
 | ID | Stream | Task | Acceptance |
 |---|---|---|---|
+| B-6a | B | Equipment wear: rules, server, saves, calibration report (`briefs/B-6a-equipment-wear.md`). Covers B-1 | Brief acceptance criteria; ships with `wear_speed = 0` |
+| A-5 | A | Equipment wear screens (`briefs/A-5-wear-screens.md`), after B-6a | Brief acceptance criteria |
 | PM-1 | PM | Fix the stale status text listed in `STATUS.md` (README, `DEVELOPMENT.md` header, M4 and M7 sections, `M4_VALIDATION.md`) | Each document matches `main`; no content is removed, only status lines and the Roles table (after D1) |
-| B-1 | B | Confirm the state of the M4 balance finding by re-running the season simulation against current values; write the result in `docs/` and in `log/B.md` | A short report: finding closed or still open, with numbers. No balance change without owner approval (D4) |
+| B-1 | B | **Folded into B-6a (22 Nov 2026).** Confirm the state of the M4 balance finding by re-running the season simulation against current values; write the result in `docs/` and in `log/B.md` | A short report: finding closed or still open, with numbers. No balance change without owner approval (D4) |
 | A-1 | A | Responsive test checklist (M3): document a repeatable manual checklist and run it at 360x640, 412x915, tablet and desktop on every main screen | A checklist file in `docs/`, a list of layout defects found (not all fixed in this task) |
 
 ## P1

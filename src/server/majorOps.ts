@@ -1,3 +1,4 @@
+import { raceGearError } from '../game-engine/wear'
 import {
   validateConfig,
   validateEventInput,
@@ -491,6 +492,9 @@ async function playerOp(request: MajorRequest, userId: string, deps: MajorOpsDep
     case 'register': {
       const career = await deps.loadCareer(userId)
       if (!career) return refuse(409, 'no-career')
+      // Equipment wear (B-6a): the kit is checked at registration, as for any race (null with wear off).
+      const gearError = raceGearError(career)
+      if (gearError) return refuse(422, gearError)
       await deps.store.advance(now)
       const { athlete } = career
       await deps.store.register(request.id, userId, { level: getLevel(athlete.xp), name: athlete.name, country: athlete.country ?? null }, now)

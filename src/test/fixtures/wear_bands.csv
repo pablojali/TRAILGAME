@@ -1,0 +1,9 @@
+# Shoe durability bands (owner decision, 22 November 2026). Durability left in whole percent, from_pct to to_pct (both included); the bands cover 0 to 100 once.
+# effect_factor: share of the shoes' race bonus that is kept (0 to 1). injury_risk_pct: chance of an injury in each training session (0 to 100).
+# race_start: ok, dnf (the shoes break during the race) or blocked (the runner cannot start).
+from_pct,to_pct,label,effect_factor,injury_risk_pct,race_start
+40,100,Normal,1,0,ok
+20,39,Slight penalty,0.75,0,ok
+10,19,Heavy penalty,0.4,0,ok
+1,9,High risk,0,10,dnf
+0,0,Worn out,0,10,blocked

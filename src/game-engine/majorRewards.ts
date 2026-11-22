@@ -1,3 +1,5 @@
+import { WEAR, type WearConfig } from '../domain/equipment/wear'
+import { applyWear } from './wear'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import { roundStat } from '../domain/athlete/athlete'
 import { GROSS_PRIZES, RACE_MIN_XP, RACE_XP_BAND_PCT, RACE_XP_BASE } from '../domain/races/categories'
@@ -92,7 +94,7 @@ export interface MajorRewardApplied {
 }
 
 /** Applies a Major's result to the career; null if it is already there (or the course is unknown). */
-export function applyMajorReward(state: GameState, payload: MajorRewardPayload): MajorRewardApplied | null {
+export function applyMajorReward(state: GameState, payload: MajorRewardPayload, wear: WearConfig = WEAR): MajorRewardApplied | null {
   const id = majorEntryId(payload.eventId)
   if (state.raceEntries.some((entry) => entry.id === id)) return null
   const race = getRace(payload.raceId)
@@ -152,8 +154,10 @@ export function applyMajorReward(state: GameState, payload: MajorRewardPayload):
     result,
   }
   const levelBefore = getLevel(athlete.xp)
+  // The gear worn in the Major wears by its distance (equipment wear, 22 November 2026).
+  const worn = applyWear(state, race.distanceKm, wear, payload.equipment)
   const rewarded = applyAchievementRewards({
-    ...state,
+    ...worn,
     coins: state.coins + prize.coins,
     consumables: {
       gel: Math.max(0, state.consumables.gel - (payload.nutrition.gel ? 1 : 0)),

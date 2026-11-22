@@ -23,6 +23,8 @@ export interface DayOutcome {
   consistencyGain?: number
   /** True if the session caused an injury. */
   injured?: boolean
+  /** Why: worn shoes (equipment wear, 22 November 2026) rather than Fatigue. Missing: Fatigue. */
+  injuryCause?: 'worn-shoes'
   /** Set when the day was a race instead of the planned session: the finished entry's id. */
   raceEntryId?: string
 }
@@ -95,6 +97,12 @@ export interface GameState {
   premiumCoins?: number
   /** The player's Base Camp pieces (owner design, 16 November 2026). Server-owned. Missing: none bought. */
   camp?: CampState
+  /**
+   * Equipment wear (brief B-6a, 22 November 2026): for each owned item that has worn, the share of
+   * its life used (0 to 1), after the wear speed. Server-owned. Missing: no wear (older careers, and
+   * every career while wear_speed is 0).
+   */
+  wear?: Record<string, number>
 }
 
 /**

@@ -8,9 +8,7 @@ Last updated: 22 November 2026 (D11, rewarded ad instead of the emergency pair).
 
 | Position | Topic | Brief | State |
 |---|---|---|---|
-| Now | B-6c Starter shoes at 20 coins. PR #130 must drop the emergency pair (D11) | `briefs/B-6c-starter-shoes-emergency-pair.md` | Rework requested |
-| Then | B-6d Rewarded ad for 20 coins, simulated provider | `briefs/B-6d-rewarded-ad-coins.md` | After B-6c is merged |
-| Then | A-5 Equipment wear: screens (add the ad offer screen) | `briefs/A-5-wear-screens.md` | After B-6d is merged |
+| Now | **Wear finish, one task, one PR:** rework B-6c (drop the emergency pair, starter shoes at 20) + B-6d (rewarded ad, simulated provider) + A-5 (all wear screens and the ad offer) | `briefs/B-6c-starter-shoes-emergency-pair.md`, `briefs/B-6d-rewarded-ad-coins.md`, `briefs/A-5-wear-screens.md` | Owner decision 22 Nov: all together. Continue on PR #130's branch |
 | Then | Owner switches `wear_speed` on, after calibration | owner decision | After A-5 |
 | Later | A-1 Responsive checklist and defect list | `BACKLOG.md` | Needs a brief |
 | Later | A-2 PWA release candidate | `BACKLOG.md` | After A-1 |

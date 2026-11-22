@@ -1,8 +1,7 @@
 # Brief B-6d — Rewarded ad for 20 coins
 
-**Depends on:** B-6c merged (without the emergency pair). Do not start before the PM assigns it. Read
-`docs/pm/README.md`, `docs/pm/CONTRACTS.md` and `docs/pm/briefs/B-6c-starter-shoes-emergency-pair.md`. One branch
-(`stream-b/rewarded-ad-coins`), one PR. Server work first; the screen is a small part of A-5 or a follow-up.
+**Owner decision (22 Nov 2026): B-6c rework, B-6d and A-5 are done together in one task, one PR, on the branch of PR #130 (`stream-b/starter-shoes-emergency-pair`), no splitting into parts.** Work in this order inside it, one commit per step: 1 remove the emergency pair, 2 this brief, 3 `A-5-wear-screens.md`. The log gets one entry for the whole task. Read
+`docs/pm/README.md`, `docs/pm/CONTRACTS.md` and `docs/pm/briefs/B-6c-starter-shoes-emergency-pair.md`. Server work first, then screens.
 
 ## Owner decision D11 (22 November 2026)
 

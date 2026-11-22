@@ -144,3 +144,13 @@ describe('career-ops: withdrawing from a race day whose shoes cannot start (owne
     expect(memory.state().week.number).toBe(state.week.number + 1)
   })
 })
+
+describe('career-ops: the free emergency pair (B-6c)', () => {
+  it('is part of the server\'s answer to the training day that caused it', async () => {
+    const memory = memoryStore({ ...shod(), coins: 0, wear: { 'starter-shoes': 0.88 } })
+    const response = await handleCareerOp('t', { action: 'train', operationId: op(20), baseVersion: 1, ref: { week: 1, dayIndex: 0 }, session: 'long-run' }, deps(memory.store))
+    expect(response.body).toMatchObject({ ok: true, result: { emergencyPair: true } })
+    expect(memory.state()).toMatchObject({ equipment: ['starter-shoes'], emergencyPairWeek: 1 })
+    expect(memory.state().wear?.['starter-shoes']).toBeUndefined()
+  })
+})

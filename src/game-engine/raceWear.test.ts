@@ -136,7 +136,7 @@ describe('race Sunday with worn-out shoes: the day waits until the player decide
 
   it('buying shoes lets the runner race; withdrawing is only for shoes that cannot start', () => {
     const { state, entry } = raceDay({ ...kitted('starter-shoes', { 'starter-shoes': 1 }), coins: 100 })
-    const replaced = buyItem(state, 'starter-shoes', 0, ON)
+    const replaced = buyItem(state, 'starter-shoes', 20, ON)
     if (!replaced.ok) throw new Error(replaced.error)
     expect(withdrawFromRace(replaced.state, currentRef(state), T0, ON)).toEqual({ ok: false, error: 'race-can-start' })
     expect(raceCurrentDay(replaced.state, currentRef(state), entry.id, T0, ON).ok).toBe(true)

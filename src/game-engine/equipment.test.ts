@@ -36,7 +36,7 @@ describe('equipment', () => {
 
   it('starts with the starter shoes owned but not equipped (owner decision)', () => {
     expect(EQUIPMENT_ITEMS.map((i) => [i.id, i.slot, i.level ?? null, i.price])).toEqual([
-      ['starter-shoes', 'shoes', null, 0],
+      ['starter-shoes', 'shoes', null, 20],
       ['trail-shoes-basic', 'shoes', 1, 35],
       ['trail-shoes', 'shoes', 2, 70],
       ['trail-shoes-light', 'shoes', 2, 70],

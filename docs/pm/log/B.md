@@ -2,6 +2,80 @@
 
 Newest entry first. Only session B writes here.
 
+## 2026-11-22 — B-6c Starter shoes at 20 coins and the emergency pair
+
+Branch `stream-b/starter-shoes-emergency-pair`. Brief `docs/pm/briefs/B-6c-starter-shoes-emergency-pair.md`.
+Everything new is active only with `wear_speed > 0`. It ships at 0.
+
+### What was done
+
+**Price (owner decision D8)**
+- `starter-shoes` costs 20 in `src/data/equipment.csv`, a value the owner authorised. The test copy
+  of the table was changed the same way.
+- Runners still start owning the starter shoes.
+- Buying them again is refused as "already owned" unless they have worn. A worn pair is replaced for
+  20 coins.
+- With wear off the only visible change is the price on the shop card: "Starter shoes, 20 coins,
+  Owned" instead of "free". Two shop tests and one engine test were updated for it.
+
+**Emergency pair** (`withEmergencyPair` in `src/game-engine/wear.ts`)
+- When it is checked: at the moment wear is applied, after the day or race is complete, coins
+  included. That covers a training day (`executeCurrentDay`), an NPC race finish (`finishRace`) and a
+  Sunday Major result (`applyMajorReward`).
+- When it is given: all of these must hold.
+  - Before that wear, the runner owned at least one usable pair (above the DNF band, or shoes that
+    never wear).
+  - After it, they own none.
+  - Their coins are below the cheapest shoes for sale (20 now).
+  - No pair was given in the last 8 game weeks.
+- What is given:
+  - the starter shoes, new (their wear is reset) and equipped;
+  - `emergencyPairWeek` records the week;
+  - the result of the training day or race finish carries `emergencyPair: true`.
+  - For a Major, the result is added inside `career-ops` without an answer of its own. A-5 can tell by
+    `emergencyPairWeek` changing.
+
+**Save:** `GameState.emergencyPairWeek` is optional, a whole week of 1 or more. Older saves load
+without it and are not rewritten.
+
+### Holes found in the guard (proposals, nothing coded around them)
+
+1. **Spending before the moment.** A player can spend coins just before training their last pair into
+   the band, and so qualify on purpose. Checking at the moment stops spending *after* it, not before.
+   - What limits it: the 8-week cooldown, and the prize is only a 20-coin pair. Each time, the player
+     also goes through the 9–1 % band, with its injury risk and DNF.
+   - I propose to accept it. If the owner wants it closed: also require that the coins did not drop in
+     the same game week, which needs the coins at the start of the week in the save.
+2. **No coins and the cooldown still running.** Training is never blocked, and a race day can be
+   withdrawn from (B-6b), so there is no hard soft-lock. The runner cannot race until they have 20
+   coins or the cooldown ends. Coins still come from level rewards and achievements.
+   - I propose to accept it: it is the intended pressure.
+3. **A pair already in the band when wear is switched on.** It never crosses the line, so it gets no
+   pair. This only matters on the day the owner turns wear on. Today every `life_km` is empty, so no
+   career has wear yet.
+
+### Files
+- **Tables:** `src/data/equipment.csv`, `src/test/fixtures/equipment.csv`.
+- **Engine:** `src/game-engine/{wear,training,races,majorRewards,gameState}.ts`.
+- **Saves:** `src/repositories/gameRepository.ts`.
+- **Tests:**
+  - `src/game-engine/emergencyPair.test.ts` (new): the guard, the cooldown, the race finish, wear
+    off, the save;
+  - `src/server/wearOps.test.ts`: the grant in the server's answer;
+  - price updates in `equipment.test.ts`, `raceWear.test.ts` and `EquipmentScreen.test.tsx`. The last
+    one is stream A's file; only the expected price text changed.
+
+### Checks
+- Lint, typecheck and build pass.
+- 974 tests pass. Locally only `functionBundle.test.ts` fails, because the bundles are not committed;
+  CI rebuilds them.
+- `supabase/` is untouched, so no `db:test`.
+
+### For A-5
+- Tell the player about `emergencyPair` in the training-day and race results, and about a change of
+  `emergencyPairWeek` after a Major.
+- The starter shoes now show a price of 20 in the shop.
+
 ## 2026-11-22 — B-6b Race consequences of worn shoes: wear along the course, DNF, equipment lock
 
 Branch `stream-b/race-wear-consequences`. Brief `docs/pm/briefs/B-6b-race-wear-consequences.md`.

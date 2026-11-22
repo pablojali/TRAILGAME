@@ -104,6 +104,11 @@ export interface GameState {
    * every career while wear_speed is 0).
    */
   wear?: Record<string, number>
+  /**
+   * The game week the last free emergency pair was given (brief B-6c): at most one every 8 weeks.
+   * Server-owned. Missing: none given.
+   */
+  emergencyPairWeek?: number
 }
 
 /**

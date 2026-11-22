@@ -6,7 +6,7 @@
 # effect_text: leave empty to have it written from the bonuses.
 # life_km: km of use the item lasts (empty = never wears). Shoes, packs, poles and the watch wear only while equipped; economy.csv wear_speed multiplies the wear of every item (0 = wear off).
 id,name,type,level,price,pack,thumbnail,avatar_layer,speed,endurance,climbing,technical,recovery,consistency,flat,climb,descent,technical_penalty,wear,life_km,effect_text,description
-starter-shoes,Starter shoes,shoes,,0,,,footwear/starter-shoes.webp,,,,,,,,,,,,150,,Basic trail-running shoes. Starting equipment.
+starter-shoes,Starter shoes,shoes,,20,,,footwear/starter-shoes.webp,,,,,,,,,,,,150,,Basic trail-running shoes. Starting equipment.
 trail-shoes-basic,Trail shoes,shoes,1,35,,,footwear/trail-shoes-basic.webp,1,,,1,,,,,,,,300,,A small all-round upgrade on the starter shoes.
 trail-shoes,Technical trail shoes,shoes,2,70,,,footwear/trail-shoes.webp,,,,4,,,,,,0.7,,,,Grippy shoes for rocky and technical ground.
 trail-shoes-light,Light trail shoes,shoes,2,70,,,footwear/trail-shoes-light.webp,3,,,,,,,,0.98,1.3,,,,"Fast on flats and descents, with less grip on technical ground."

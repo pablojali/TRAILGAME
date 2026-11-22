@@ -8,8 +8,9 @@ Last updated: 22 November 2026.
 
 | Position | Topic | Brief | State |
 |---|---|---|---|
-| Now | B-6a Equipment wear: rules, server, saves (also covers B-1) | `briefs/B-6a-equipment-wear.md` | Ready to paste |
-| Next | A-5 Equipment wear: screens | `briefs/A-5-wear-screens.md` | After B-6a is merged |
+| Now | B-6a Equipment wear: durability, bands, training and entry rules (also covers B-1) | `briefs/B-6a-equipment-wear.md` | Ready to paste |
+| Next | B-6b Race consequences: penalties, DNF, equipment lock | `briefs/B-6b-race-wear-consequences.md` | After B-6a is merged |
+| Then | A-5 Equipment wear: screens | `briefs/A-5-wear-screens.md` | After B-6b is merged |
 | Then | Owner switches `wear_speed` on, after calibration | owner decision | After A-5 |
 | Later | A-1 Responsive checklist and defect list | `BACKLOG.md` | Needs a brief |
 | Later | A-2 PWA release candidate | `BACKLOG.md` | After A-1 |
@@ -17,7 +18,7 @@ Last updated: 22 November 2026.
 
 ## Owner's ideas not yet briefed
 
-Poles' real-life life (km or weeks) so they can wear. DNF as a separate topic, if wanted.
+Poles' real-life life (km or weeks) so they can wear.
 
 ## Merged
 

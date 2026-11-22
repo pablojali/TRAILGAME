@@ -19,14 +19,16 @@ read of the code, not from running the game).
 
 | ID | Decision | Date |
 |---|---|---|
-| D6 | Equipment wears out so coins are spent regularly: shoes by km (500 real), packs by game weeks (104 real), a global `wear_speed` knob, worn-out shoes block race entry (no DNF for now), a free emergency pair avoids a soft-lock, training km come from an owner table. Details in `briefs/B-6a-equipment-wear.md` | 22 Nov 2026 |
+| D6 | Equipment wears out so coins are spent regularly. Shoes by km (500 real), packs by game weeks (104 real), a global `wear_speed` knob (0 = off), a free emergency pair avoids a soft-lock, training km from an owner table. Details in `briefs/B-6a-equipment-wear.md` | 22 Nov 2026 |
+| D7 | Shoe durability bands with real consequences (100–40 % normal, 39–20 % slight penalty, 19–10 % heavy, 9–1 % injury risk in training and a guaranteed DNF at an aid station in a race, 0 % cannot start). DNF: no prize, no ranking points, reduced XP. No equipment changes during a race. Replaces the earlier "worn-out shoes only block entry, no DNF". Details in `briefs/B-6a-equipment-wear.md` and `briefs/B-6b-race-wear-consequences.md` | 22 Nov 2026 |
 
 ## P0
 
 | ID | Stream | Task | Acceptance |
 |---|---|---|---|
-| B-6a | B | Equipment wear: rules, server, saves, calibration report (`briefs/B-6a-equipment-wear.md`). Covers B-1 | Brief acceptance criteria; ships with `wear_speed = 0` |
-| A-5 | A | Equipment wear screens (`briefs/A-5-wear-screens.md`), after B-6a | Brief acceptance criteria |
+| B-6a | B | Equipment wear: durability, bands, training injury risk, entry rules, calibration report (`briefs/B-6a-equipment-wear.md`). Covers B-1 | Brief acceptance criteria; ships with `wear_speed = 0` |
+| B-6b | B | Race consequences of worn shoes: penalties, guaranteed DNF, DNF in results and rankings, equipment lock during a race (`briefs/B-6b-race-wear-consequences.md`), after B-6a | Brief acceptance criteria |
+| A-5 | A | Equipment wear screens and DNF display (`briefs/A-5-wear-screens.md`), after B-6b | Brief acceptance criteria |
 | PM-1 | PM | Fix the stale status text listed in `STATUS.md` (README, `DEVELOPMENT.md` header, M4 and M7 sections, `M4_VALIDATION.md`) | Each document matches `main`; no content is removed, only status lines and the Roles table (after D1) |
 | B-1 | B | **Folded into B-6a (22 Nov 2026).** Confirm the state of the M4 balance finding by re-running the season simulation against current values; write the result in `docs/` and in `log/B.md` | A short report: finding closed or still open, with numbers. No balance change without owner approval (D4) |
 | A-1 | A | Responsive test checklist (M3): document a repeatable manual checklist and run it at 360x640, 412x915, tablet and desktop on every main screen | A checklist file in `docs/`, a list of layout defects found (not all fixed in this task) |

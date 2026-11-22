@@ -214,7 +214,7 @@ var OWNED_FROM_START = ["starter-shoes"];
 function getEquipmentItem(id) {
   return EQUIPMENT_ITEMS.find((item) => item.id === id);
 }
-function getRaceEffect(equipment) {
+function getRaceEffect(equipment, factors) {
   const effect = {
     attributes: Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, 0])),
     runnable: 1,
@@ -226,14 +226,16 @@ function getRaceEffect(equipment) {
   for (const id of equipment) {
     const item = getEquipmentItem(id)?.raceEffect;
     if (!item) continue;
+    const kept = factors?.[id] ?? 1;
+    const scaled = (multiplier) => 1 + ((multiplier ?? 1) - 1) * kept;
     for (const [attribute, bonus] of Object.entries(item.attributes ?? {})) {
-      effect.attributes[attribute] += bonus ?? 0;
+      effect.attributes[attribute] += (bonus ?? 0) * kept;
     }
-    effect.runnable *= item.runnable ?? 1;
-    effect.descent *= item.descent ?? 1;
-    effect.climb *= item.climb ?? 1;
-    effect.technicalPenalty *= item.technicalPenalty ?? 1;
-    effect.slowdown *= item.slowdown ?? 1;
+    effect.runnable *= scaled(item.runnable);
+    effect.descent *= scaled(item.descent);
+    effect.climb *= scaled(item.climb);
+    effect.technicalPenalty *= scaled(item.technicalPenalty);
+    effect.slowdown *= scaled(item.slowdown);
   }
   return effect;
 }
@@ -716,7 +718,7 @@ function segmentAbility(segment, a) {
   return runnableAbility(a);
 }
 function prepareRunner(athlete) {
-  const gear = getRaceEffect(athlete.equipment ?? []);
+  const gear = getRaceEffect(athlete.equipment ?? [], athlete.effectFactors);
   const a = Object.fromEntries(
     ATTRIBUTE_IDS.map((id) => [id, athlete.attributes[id] + gear.attributes[id]])
   );
@@ -775,6 +777,46 @@ function raceGearError(state, config2 = WEAR) {
   if (!wearOn(config2)) return null;
   if (!equippedShoes(state)) return "no-shoes-equipped";
   return shoesStatus(state, config2)?.band?.raceStart === "blocked" ? "shoes-worn-out" : null;
+}
+
+// src/game-engine/raceWear.ts
+function raceWearAtStart(state, equipment = state.equipment, config2 = WEAR) {
+  if (!wearOn(config2)) return void 0;
+  const used = {};
+  for (const id of equipment) if (wears(getEquipmentItem(id))) used[id] = usedOf(state, id);
+  return Object.keys(used).length ? { speed: config2.speed, used } : void 0;
+}
+function usedAfter(wear, itemId, km) {
+  const item = getEquipmentItem(itemId);
+  if (!wears(item)) return 0;
+  return roundUsed((wear.used[itemId] ?? 0) + km * wear.speed / item.lifeKm);
+}
+function effectFactorsAt(wear, km, config2 = WEAR) {
+  if (!wear) return void 0;
+  const factors = {};
+  for (const id of Object.keys(wear.used)) {
+    const pct = durabilityPct(usedAfter(wear, id, km));
+    factors[id] = getEquipmentItem(id)?.slot === "shoes" ? bandOf(pct, config2).effectFactor : pct > 0 ? 1 : 0;
+  }
+  return factors;
+}
+function segmentEndsKm(segmentsM) {
+  const ends = [];
+  let total = 0;
+  for (const m of segmentsM) {
+    total += m;
+    ends.push(total / 1e3);
+  }
+  return ends;
+}
+function shoeBreak(wear, segmentsM) {
+  if (!wear) return null;
+  const shoes = Object.keys(wear.used).find((id) => getEquipmentItem(id)?.slot === "shoes");
+  if (!shoes) return null;
+  const ends = segmentEndsKm(segmentsM);
+  const segment = ends.findIndex((km) => usedAfter(wear, shoes, km) >= 1);
+  if (segment === -1 || segment === ends.length - 1) return null;
+  return { segment, km: Math.round(ends[segment] * 10) / 10, aidStation: segment + 1 };
 }
 
 // src/domain/major/major.ts
@@ -1440,7 +1482,8 @@ function majorContext(race, field, eventId, runner) {
       field,
       runner: { attributes: s.attributes, fitness: s.fitness, fatigue: s.fatigue, equipment: [...s.equipment] },
       dayForm: getDayForm(race.id, `${eventId}:${runner.slot}`, 0, s.attributes.consistency ?? 20),
-      nutrition: { ...s.nutrition }
+      nutrition: { ...s.nutrition },
+      ...s.wear ? { wear: { speed: s.wear.speed, used: { ...s.wear.used } } } : {}
     };
   }
   const typical = typicalRunner(runner.level, race.category);
@@ -1462,21 +1505,40 @@ function initialState(ctx, runner) {
   const plan = runner.plan ?? defaultPlan(segments);
   return { progress, next: plan.segments[0]?.intensity ?? "target" };
 }
+function segmentContext(ctx, segment) {
+  if (!ctx.wear) return ctx;
+  const ends = segmentEndsKm(ctx.field.segments.map((g) => g.distanceM));
+  const factors = effectFactorsAt(ctx.wear, segment === 0 ? 0 : ends[Math.min(segment, ends.length) - 1]);
+  return { ...ctx, runner: { ...ctx.runner, effectFactors: factors } };
+}
+function byRaceOrder(a, b) {
+  const retiredA = a.state.dnf ? 1 : 0;
+  const retiredB = b.state.dnf ? 1 : 0;
+  if (retiredA !== retiredB) return retiredA - retiredB;
+  if (a.state.dnf && b.state.dnf && a.state.dnf.segment !== b.state.dnf.segment) return b.state.dnf.segment - a.state.dnf.segment;
+  return Math.round(a.state.progress.elapsedS) - Math.round(b.state.progress.elapsedS) || a.slot - b.slot;
+}
 function rankByArrival(states) {
-  const order = [...states].sort(
-    (a, b) => Math.round(a.state.progress.elapsedS) - Math.round(b.state.progress.elapsedS) || a.slot - b.slot
-  );
+  const order = [...states].sort(byRaceOrder);
   return new Map(order.map((entry, i) => [entry.slot, i + 1]));
 }
 function runMajorSegment(contexts, runners) {
-  const ran = runners.map(({ slot, state }) => ({
-    slot,
-    state: {
-      ...state,
-      segmentStart: { elapsedS: state.progress.elapsedS, fatigue: state.progress.fatigue },
-      progress: runSegment(contexts.get(slot), state.progress, state.next)
-    }
-  }));
+  const ran = runners.map(({ slot, state }) => {
+    if (state.dnf) return { slot, state };
+    const ctx = contexts.get(slot);
+    const k = state.progress.splits.length;
+    const progress = runSegment(segmentContext(ctx, k), state.progress, state.next);
+    const broke = shoeBreak(ctx.wear, ctx.field.segments.map((g) => g.distanceM));
+    return {
+      slot,
+      state: {
+        ...state,
+        segmentStart: { elapsedS: state.progress.elapsedS, fatigue: state.progress.fatigue },
+        progress,
+        ...broke && broke.segment === k ? { dnf: broke } : {}
+      }
+    };
+  });
   const positions2 = rankByArrival(ran);
   return ran.map(({ slot, state }) => {
     const splits = state.progress.splits.slice();
@@ -1491,19 +1553,37 @@ function automaticDecision(runner, state, segment, segments) {
   return { stop: plan.segments[segment]?.stop ?? "normal", intensity: plan.segments[segment + 1]?.intensity ?? "target" };
 }
 function applyMajorDecisions(contexts, runners) {
-  return runners.map(({ slot, state, decision }) => ({
-    slot,
-    state: { ...state, progress: makeStop(contexts.get(slot), state.progress, decision.stop), next: decision.intensity }
-  }));
+  return runners.map(
+    ({ slot, state, decision }) => (
+      // A retired runner stays at the aid station where they stopped (B-6b).
+      state.dnf ? { slot, state } : {
+        slot,
+        state: {
+          ...state,
+          progress: makeStop(segmentContext(contexts.get(slot), state.progress.splits.length), state.progress, decision.stop),
+          next: decision.intensity
+        }
+      }
+    )
+  );
 }
 function majorStandings(runners) {
+  const visible = (state) => state.dnf !== void 0 && state.progress.splits.length > state.dnf.segment;
   const arrivals = runners.map(({ slot, state }) => {
     const last = state.progress.splits[state.progress.splits.length - 1];
-    return { slot, timeS: last ? last.arrivalS : 0 };
+    return { slot, timeS: last ? last.arrivalS : 0, retired: visible(state), state: visible(state) ? state : { ...state, dnf: void 0 } };
   });
-  arrivals.sort((a, b) => a.timeS - b.timeS || a.slot - b.slot);
-  const leader = arrivals[0]?.timeS ?? 0;
-  return arrivals.map((row, i) => ({ ...row, position: i + 1, gapS: row.timeS - leader }));
+  arrivals.sort(
+    (a, b) => Number(a.retired) - Number(b.retired) || (a.retired && b.retired ? b.state.dnf.segment - a.state.dnf.segment : 0) || a.timeS - b.timeS || a.slot - b.slot
+  );
+  const leader = arrivals.find((row) => !row.retired)?.timeS ?? arrivals[0]?.timeS ?? 0;
+  return arrivals.map((row, i) => ({
+    slot: row.slot,
+    timeS: row.timeS,
+    position: i + 1,
+    gapS: row.timeS - leader,
+    ...row.retired ? { dnf: true } : {}
+  }));
 }
 
 // raw:src/data/ranking_points.csv
@@ -1577,9 +1657,6 @@ function rankingPoints(raceId, position, competition = "standard", table = RANKI
   return Math.max(earned, table.participationPoints[competition] ?? 0);
 }
 
-// src/domain/training/injury.ts
-var INJURY_REST_DAYS = 5;
-
 // raw:src/data/achievements.csv
 var achievements_default = "# Achievements (owner table, 5 November 2026). One row per achievement level, levels 1, 2, 3\u2026 in order.\n# achievement: first-steps (races finished), trail-explorer, first-summit, elite (races of that category), podium (top 3 finishes),\n# champion (wins), rising-star (total XP), level (runner level), dedicated (training weeks completed).\n# target: what the level asks for (rising in each achievement). coins and xp: the reward when the level is reached, given once.\nachievement,level,target,coins,xp\nfirst-steps,1,1,20,50\nfirst-steps,2,5,40,100\nfirst-steps,3,10,80,200\nfirst-steps,4,25,150,400\nfirst-steps,5,50,300,800\ntrail-explorer,1,1,50,100\ntrail-explorer,2,5,100,200\ntrail-explorer,3,10,200,400\ntrail-explorer,4,25,400,800\nfirst-summit,1,1,100,200\nfirst-summit,2,5,200,400\nfirst-summit,3,10,400,800\nfirst-summit,4,25,800,1600\nelite,1,1,200,400\nelite,2,5,400,800\nelite,3,10,800,1600\npodium,1,1,30,50\npodium,2,5,80,150\npodium,3,10,150,300\npodium,4,25,300,600\nchampion,1,1,50,100\nchampion,2,3,120,250\nchampion,3,10,300,600\nrising-star,1,1000,30,0\nrising-star,2,5000,80,0\nrising-star,3,20000,200,0\nrising-star,4,50000,400,0\nlevel,1,5,30,0\nlevel,2,10,60,0\nlevel,3,20,150,0\nlevel,4,30,300,0\nlevel,5,50,600,0\ndedicated,1,4,20,50\ndedicated,2,13,60,150\ndedicated,3,26,120,300\ndedicated,4,52,250,600\ndedicated,5,104,500,1200\n";
 
@@ -1587,23 +1664,26 @@ var achievements_default = "# Achievements (owner table, 5 November 2026). One r
 function medalFor(position) {
   return position === 1 ? "gold" : position === 2 ? "silver" : position === 3 ? "bronze" : null;
 }
+function isFinisher(entry) {
+  return entry.status === "finished" && entry.result.dnf === void 0;
+}
+function getFinishers(state) {
+  return finished(state).filter(({ entry }) => isFinisher(entry));
+}
 function finished(state) {
   return state.raceEntries.flatMap((entry) => {
     const race = entry.status === "finished" ? getRace(entry.raceId) : void 0;
     return entry.status === "finished" && race ? [{ entry, race }] : [];
   });
 }
-function getRaceHistory(state) {
-  return finished(state).reverse();
-}
 
 // src/game-engine/achievements.ts
 var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 function finishedIn(state, category) {
-  return getRaceHistory(state).filter(({ race }) => category === void 0 || race.category === category).length;
+  return getFinishers(state).filter(({ race }) => category === void 0 || race.category === category).length;
 }
 function positions(state) {
-  return getRaceHistory(state).map(({ entry }) => entry.result.position);
+  return getFinishers(state).map(({ entry }) => entry.result.position);
 }
 var ACHIEVEMENT_IDS = [
   "first-steps",
@@ -1726,6 +1806,9 @@ function getAchievements(state) {
 function getReachedLevels(state) {
   return Object.fromEntries(getAchievements(state).map((a) => [a.definition.id, a.reached]));
 }
+
+// src/domain/training/injury.ts
+var INJURY_REST_DAYS = 5;
 
 // src/domain/athlete/countries.ts
 var COUNTRY_CODES = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" ");
@@ -2037,7 +2120,9 @@ function finalResults(category, rows, contexts, ran) {
       finishFatigue: Math.round(state.progress.fatigue * 100) / 100,
       splits: state.progress.splits,
       nutrition: { ...ctx.nutrition },
-      rivalTimesS: table.filter((other) => other.slot !== row.slot).map((other) => other.timeS)
+      rivalTimesS: table.filter((other) => other.slot !== row.slot).map((other) => other.timeS),
+      // Retired with worn-out shoes (B-6b).
+      ...state.dnf ? { dnf: { segment: state.dnf.segment + 1, km: state.dnf.km, aidStation: state.dnf.aidStation } } : {}
     };
     return [{ participantId: runner.id, payload }];
   });
@@ -2083,7 +2168,8 @@ function careerRunnerRow(state, createdAt, updatedAt) {
     level: getLevel(xp),
     xp,
     coins: Math.floor(numberOr(game.coins, 0)),
-    racesFinished: entries.filter((e) => isRecord(e) && e.status === "finished").length,
+    // A DNF (B-6b) is not a finished race.
+    racesFinished: entries.filter((e) => isRecord(e) && e.status === "finished" && !(isRecord(e.result) && e.result.dnf)).length,
     createdAt,
     lastActiveAt: updatedAt,
     strength: null,
@@ -2303,8 +2389,12 @@ async function playerOp(request, userId, deps) {
       await deps.store.advance(now);
       const mine = (await deps.store.playerMajors(userId, now)).find((m) => m.id === request.id)?.registration;
       if (!mine || mine.status !== "REGISTERED" && mine.status !== "READY") return refuse(409, "not-registered");
+      const gearError = raceGearError(career);
+      if (gearError) return refuse(422, gearError);
       const { athlete } = career;
+      const raceWear = raceWearAtStart(career);
       const snapshot = {
+        ...raceWear ? { wear: raceWear } : {},
         level: getLevel(athlete.xp),
         attributes: { ...athlete.attributes },
         fitness: athlete.fitness,
@@ -2348,7 +2438,8 @@ function liveRace(source) {
     const state = hidden(r.state);
     if (!state) return [];
     const split = state.progress.splits[source.category.segment];
-    return [{ slot: r.slot, name: r.name, country: r.country, me: r.slot === source.mySlot, departS: Math.round(state.segmentStart.elapsedS), arriveS: split.arrivalS }];
+    const retires = state.dnf?.segment === source.category.segment;
+    return [{ slot: r.slot, name: r.name, country: r.country, me: r.slot === source.mySlot, departS: Math.round(state.segmentStart.elapsedS), arriveS: split.arrivalS, ...retires ? { retires: true } : {} }];
   }) : [];
   const withState = view.runners.filter((r) => r.state !== null);
   const table = majorStandings(withState.map((r) => ({ slot: r.slot, state: r.state })));
@@ -2715,7 +2806,19 @@ function isFactor(value) {
   return isRecord2(value) && FACTOR_IDS.includes(value.id) && isFiniteNumber(value.value) && isFiniteNumber(value.reference) && isWholeNumber(value.effectS);
 }
 function isRaceResult(value, feePaid) {
-  return isRecord2(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && (value.rankingSeason === void 0 || isInt(value.rankingSeason, 190001, 999912)) && (value.rankingPoints === void 0 || isInt(value.rankingPoints, 0)) && (value.rankingAt === void 0 || isInt(value.rankingAt, 0)) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1))) && (value.splits === void 0 || Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true)) && (value.nutrition === void 0 || isNutrition(value.nutrition));
+  return isRecord2(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && (value.rankingSeason === void 0 || isInt(value.rankingSeason, 190001, 999912)) && (value.rankingPoints === void 0 || isInt(value.rankingPoints, 0)) && (value.rankingAt === void 0 || isInt(value.rankingAt, 0)) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1))) && (value.splits === void 0 || Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true)) && (value.nutrition === void 0 || isNutrition(value.nutrition)) && (value.dnf === void 0 || isDnf(value.dnf)) && (value.shoeWear === void 0 || isShoeWear(value.shoeWear));
+}
+function isDnf(value) {
+  return isRecord2(value) && isInt(value.segment, 1) && isFiniteNumber(value.km) && value.km > 0 && isInt(value.aidStation, 1);
+}
+function isShoeWear(value) {
+  return isRecord2(value) && typeof value.itemId === "string" && getEquipmentItem(value.itemId) !== void 0 && isInt(value.durabilityAtStart, 0, 100) && isInt(value.durabilityAtEnd, 0, 100) && isInt(value.timeLostS, 0);
+}
+function parseRaceWear(value) {
+  if (!isRecord2(value) || !isFiniteNumber(value.speed) || !(value.speed > 0) || !isRecord2(value.used)) return null;
+  const used = value.used;
+  if (!Object.entries(used).every(([id, share]) => wears(getEquipmentItem(id)) && isFiniteNumber(share) && share >= 0 && share <= 1)) return null;
+  return { speed: value.speed, used: { ...used } };
 }
 function isNutrition(value) {
   return isRecord2(value) && typeof value.gel === "boolean" && typeof value.bar === "boolean";
@@ -2760,6 +2863,8 @@ function parseActiveRace(value, entries, currentDayIndex) {
   if (!entry || !race || value.entryId !== entry.id || value.raceId !== entry.raceId || currentDayIndex !== DAYS_PER_WEEK - 1 || !isFiniteNumber(value.startedAt) || !isInt(value.levelAtStart, 1) || !attributes || !isStat(value.fitness) || !isStat(value.fatigue) || !Array.isArray(equipment) || !equipment.every((id) => typeof id === "string" && getEquipmentItem(id) && !isConsumable(getEquipmentItem(id))) || !isFiniteNumber(value.dayForm) || Math.abs(value.dayForm) > 1 || !isNutrition(nutrition) || !isFiniteNumber(value.elapsedS) || value.elapsedS <= 0 || !isFiniteNumber(value.inRaceFatigue) || !Array.isArray(splits) || splits.length === 0 || splits.length >= getSegmentCount(race) || !isSplitList(splits, RACE_SIMULATION.fieldSize, false)) {
     return null;
   }
+  const raceWear = value.wear === void 0 ? void 0 : parseRaceWear(value.wear);
+  if (raceWear === null) return null;
   return {
     entryId: entry.id,
     raceId: race.id,
@@ -2774,7 +2879,8 @@ function parseActiveRace(value, entries, currentDayIndex) {
     elapsedS: value.elapsedS,
     inRaceFatigue: value.inRaceFatigue,
     splits: structuredClone(splits),
-    ...course ? { course } : {}
+    ...course ? { course } : {},
+    ...raceWear ? { wear: raceWear } : {}
   };
 }
 function isRaceEntry(value) {

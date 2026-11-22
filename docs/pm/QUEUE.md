@@ -8,7 +8,8 @@ Last updated: 22 November 2026 (after B-6a merged).
 
 | Position | Topic | Brief | State |
 |---|---|---|---|
-| Now | B-6b Race consequences: wear along the course, DNF, equipment lock | `briefs/B-6b-race-wear-consequences.md` | Ready to paste. Owner decisions D8 to D10 shape it, see `BACKLOG.md` |
+| Now | B-6b Race consequences: wear along the course, DNF, equipment lock | `briefs/B-6b-race-wear-consequences.md` | In review (PR #127): the PM asked for fixes, see the PR comments. D10 (calibration) is still open |
+| Then | B-6c Starter shoes at 20 coins and the emergency pair | `briefs/B-6c-starter-shoes-emergency-pair.md` | After B-6b is merged |
 | Then | A-5 Equipment wear: screens | `briefs/A-5-wear-screens.md` | After B-6b is merged |
 | Then | Owner switches `wear_speed` on, after calibration | owner decision | After A-5 |
 | Later | A-1 Responsive checklist and defect list | `BACKLOG.md` | Needs a brief |

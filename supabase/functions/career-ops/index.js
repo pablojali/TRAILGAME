@@ -472,18 +472,19 @@ var equipment_default = `# Equipment (owner table, 3 November 2026). One row per
 # speed\u2026consistency: race-only attribute bonuses. flat, climb, descent, technical_penalty, wear: time multipliers (empty = 1; 0.9 = 10% less, 1.01 = 1% more).
 # effect_text: leave empty to have it written from the bonuses.
 # name_es, effect_text_es, description_es (and _fr, _it, _de): the texts in Spanish, French, Italian and German. Empty = English; an empty effect text is written from the bonuses.
-id,name,type,level,price,pack,thumbnail,avatar_layer,speed,endurance,climbing,technical,recovery,consistency,flat,climb,descent,technical_penalty,wear,effect_text,description,name_es,effect_text_es,description_es,name_fr,effect_text_fr,description_fr,name_it,effect_text_it,description_it,name_de,effect_text_de,description_de
-starter-shoes,Starter shoes,shoes,,0,,thumb_lvl0_shoes_01.png,footwear/starter-shoes.webp,,,,,,,,,,,,,Basic trail-running shoes. Starting equipment.,Zapatillas b\xE1sicas,,Zapatillas de trail b\xE1sicas. Equipo inicial.,Chaussures de base,,Chaussures de trail basiques. \xC9quipement de d\xE9part.,Scarpe base,,Scarpe da trail base. Attrezzatura iniziale.,Einsteigerschuhe,,Einfache Trailschuhe. Startausr\xFCstung.
-trail-shoes-basic,Trail shoes,shoes,5,65,,thumb_lvl1_shoes_01.png,footwear/trail-shoes-basic.webp,1,,,1,,,,,,,,,A small all-round upgrade on the starter shoes.,Zapatillas de trail,,Una peque\xF1a mejora general respecto a las b\xE1sicas.,Chaussures de trail,,Une petite am\xE9lioration polyvalente par rapport aux chaussures de base.,Scarpe da trail,,Un piccolo miglioramento generale rispetto alle scarpe base.,Trailschuhe,,Ein kleines Allround-Upgrade gegen\xFCber den Einsteigerschuhen.
-trail-shoes,Technical trail shoes,shoes,9,120,,,footwear/trail-shoes.webp,,,,4,,,,,,0.7,,,Grippy shoes for rocky and technical ground.,Zapatillas t\xE9cnicas,,Zapatillas con mucho agarre para terreno rocoso y t\xE9cnico.,Chaussures techniques,,Chaussures accrocheuses pour terrain rocheux et technique.,Scarpe tecniche,,Scarpe con molto grip per terreno roccioso e tecnico.,Technische Trailschuhe,,"Griffige Schuhe f\xFCr felsiges, technisches Gel\xE4nde."
-trail-shoes-light,Light trail shoes,shoes,12,145,,thumb_lvl2_shoes_02.png,footwear/trail-shoes-light.webp,3,,,,,,,,0.98,1.3,,,"Fast on flats and descents, with less grip on technical ground.",Zapatillas ligeras,,"R\xE1pidas en llano y en bajada, con menos agarre en terreno t\xE9cnico.",Chaussures l\xE9g\xE8res,,"Rapides sur le plat et en descente, moins d'adh\xE9rence en terrain technique.",Scarpe leggere,,"Veloci in pianura e in discesa, con meno grip sul terreno tecnico.",Leichte Trailschuhe,,"Schnell auf flachen St\xFCcken und bergab, mit weniger Grip im technischen Gel\xE4nde."
-trail-shoes-3,Mountain trail shoes,shoes,20,190,,thumb_lvl3_shoes_01.png,footwear/lvl3-shoes-01.webp,2,,,3,,,,,,0.8,,,"Light, grippy shoes for long mountain races.",Zapatillas de monta\xF1a,,Ligeras y con agarre para carreras largas de monta\xF1a.,Chaussures de montagne,,L\xE9g\xE8res et accrocheuses pour les longues courses en montagne.,Scarpe da montagna,,Leggere e con grip per le lunghe gare in montagna.,Bergtrailschuhe,,Leicht und griffig f\xFCr lange Bergrennen.
-poles,Poles,poles,10,75,,thumb_lvl1_poles_01.png,accessories/lvl1_poles_01.webp,,,2,,,,1.01,,,,,,Folding poles that help on climbs.,Bastones,,Bastones plegables que ayudan en las subidas.,B\xE2tons,,B\xE2tons pliables qui aident dans les mont\xE9es.,Bastoncini,,Bastoncini pieghevoli che aiutano in salita.,St\xF6cke,,"Faltbare St\xF6cke, die am Anstieg helfen."
-poles-2,Poles,poles,15,150,,thumb_poles-2.png,,,1,3,,,,1.01,,,,,,Light carbon poles.,Bastones,,Bastones ligeros de carbono.,B\xE2tons,,B\xE2tons l\xE9gers en carbone.,Bastoncini,,Bastoncini leggeri in carbonio.,St\xF6cke,,Leichte Carbonst\xF6cke.
-hydration-backpack,Hydration backpack,pack,5,65,,thumb_lvl1_{sex}_back_01.png,accessories/lvl1_{sex}_back_01.webp,,1,,,,,,,,,0.9,,Carries water and food for long races.,Mochila de hidrataci\xF3n,,Lleva agua y comida para carreras largas.,Sac d'hydratation,,Transporte eau et nourriture pour les courses longues.,Zaino idratazione,,Porta acqua e cibo per le gare lunghe.,Trinkrucksack,,Tr\xE4gt Wasser und Essen f\xFCr lange Rennen.
-hydration-backpack-2,Hydration backpack,pack,10,130,,thumb_lvl2_{sex}_back_01.png,accessories/lvl2_{sex}_back_01.webp,,2,,,,,,,,,0.85,,"A larger, better-fitting race vest.",Mochila de hidrataci\xF3n,,Un chaleco de carrera m\xE1s grande y que se ajusta mejor.,Sac d'hydratation,,Un gilet de course plus grand et mieux ajust\xE9.,Zaino idratazione,,Un gilet da gara pi\xF9 grande e pi\xF9 aderente.,Trinkrucksack,,"Eine gr\xF6\xDFere, besser sitzende Laufweste."
-hydration-backpack-3,Race vest,pack,18,180,,thumb_lvl3_{sex}_back_01.png,accessories/lvl3_{sex}_back_01.webp,,3,,,1,,,,,,0.8,,"A light race vest with soft flasks, made for ultras.",Chaleco de carrera,,"Chaleco ligero con bidones blandos, pensado para ultras.",Gilet de course,,"Gilet l\xE9ger avec flasques souples, con\xE7u pour les ultras.",Gilet da gara,,"Gilet leggero con borracce morbide, pensato per gli ultra.",Laufweste,,"Leichte Laufweste mit Softflasks, gemacht f\xFCr Ultras."
-gels-and-bars,Gels & bars,nutrition,,10,3,thumb_lvl1_gels_01.png,,,,,,,,,,,,,"Gel: 1.5% faster; cereal bar: 1.5% less fatigue, for the whole race. A race uses one of each.",3 energy gels and 3 cereal bars. One of each is enough for a whole race.,Geles y barritas,"Gel: 1,5 % m\xE1s r\xE1pido; barrita: 1,5 % menos fatiga, toda la carrera. Cada carrera usa uno de cada.",3 geles energ\xE9ticos y 3 barritas de cereales. Con uno de cada basta para toda una carrera.,Gels et barres,"Gel : 1,5 % plus rapide ; barre : 1,5 % de fatigue en moins, toute la course. Une course en utilise un de chaque.",3 gels \xE9nerg\xE9tiques et 3 barres de c\xE9r\xE9ales. Un de chaque suffit pour toute une course.,Gel e barrette,"Gel: 1,5% pi\xF9 veloce; barretta: 1,5% di fatica in meno, per tutta la gara. Ogni gara ne usa uno di ciascuno.",3 gel energetici e 3 barrette ai cereali. Uno di ciascuno basta per tutta la gara.,Gels & Riegel,"Gel: 1,5 % schneller; Riegel: 1,5 % weniger Erm\xFCdung, im ganzen Rennen. Ein Rennen verbraucht je eins.",3 Energiegels und 3 M\xFCsliriegel. Je eins reicht f\xFCr ein ganzes Rennen.
+# life_km: km of use the item lasts (empty = never wears). Shoes, packs, poles and the watch wear only while equipped; economy.csv wear_speed multiplies the wear of every item (0 = wear off).
+id,name,type,level,price,pack,thumbnail,avatar_layer,speed,endurance,climbing,technical,recovery,consistency,flat,climb,descent,technical_penalty,wear,life_km,effect_text,description,name_es,effect_text_es,description_es,name_fr,effect_text_fr,description_fr,name_it,effect_text_it,description_it,name_de,effect_text_de,description_de
+starter-shoes,Starter shoes,shoes,,0,,thumb_lvl0_shoes_01.png,footwear/starter-shoes.webp,,,,,,,,,,,,,,Basic trail-running shoes. Starting equipment.,Zapatillas b\xE1sicas,,Zapatillas de trail b\xE1sicas. Equipo inicial.,Chaussures de base,,Chaussures de trail basiques. \xC9quipement de d\xE9part.,Scarpe base,,Scarpe da trail base. Attrezzatura iniziale.,Einsteigerschuhe,,Einfache Trailschuhe. Startausr\xFCstung.
+trail-shoes-basic,Trail shoes,shoes,5,65,,thumb_lvl1_shoes_01.png,footwear/trail-shoes-basic.webp,1,,,1,,,,,,,,,,A small all-round upgrade on the starter shoes.,Zapatillas de trail,,Una peque\xF1a mejora general respecto a las b\xE1sicas.,Chaussures de trail,,Une petite am\xE9lioration polyvalente par rapport aux chaussures de base.,Scarpe da trail,,Un piccolo miglioramento generale rispetto alle scarpe base.,Trailschuhe,,Ein kleines Allround-Upgrade gegen\xFCber den Einsteigerschuhen.
+trail-shoes,Technical trail shoes,shoes,9,120,,,footwear/trail-shoes.webp,,,,4,,,,,,0.7,,,,Grippy shoes for rocky and technical ground.,Zapatillas t\xE9cnicas,,Zapatillas con mucho agarre para terreno rocoso y t\xE9cnico.,Chaussures techniques,,Chaussures accrocheuses pour terrain rocheux et technique.,Scarpe tecniche,,Scarpe con molto grip per terreno roccioso e tecnico.,Technische Trailschuhe,,"Griffige Schuhe f\xFCr felsiges, technisches Gel\xE4nde."
+trail-shoes-light,Light trail shoes,shoes,12,145,,thumb_lvl2_shoes_02.png,footwear/trail-shoes-light.webp,3,,,,,,,,0.98,1.3,,,,"Fast on flats and descents, with less grip on technical ground.",Zapatillas ligeras,,"R\xE1pidas en llano y en bajada, con menos agarre en terreno t\xE9cnico.",Chaussures l\xE9g\xE8res,,"Rapides sur le plat et en descente, moins d'adh\xE9rence en terrain technique.",Scarpe leggere,,"Veloci in pianura e in discesa, con meno grip sul terreno tecnico.",Leichte Trailschuhe,,"Schnell auf flachen St\xFCcken und bergab, mit weniger Grip im technischen Gel\xE4nde."
+trail-shoes-3,Mountain trail shoes,shoes,20,190,,thumb_lvl3_shoes_01.png,footwear/lvl3-shoes-01.webp,2,,,3,,,,,,0.8,,,,"Light, grippy shoes for long mountain races.",Zapatillas de monta\xF1a,,Ligeras y con agarre para carreras largas de monta\xF1a.,Chaussures de montagne,,L\xE9g\xE8res et accrocheuses pour les longues courses en montagne.,Scarpe da montagna,,Leggere e con grip per le lunghe gare in montagna.,Bergtrailschuhe,,Leicht und griffig f\xFCr lange Bergrennen.
+poles,Poles,poles,10,75,,thumb_lvl1_poles_01.png,accessories/lvl1_poles_01.webp,,,2,,,,1.01,,,,,,,Folding poles that help on climbs.,Bastones,,Bastones plegables que ayudan en las subidas.,B\xE2tons,,B\xE2tons pliables qui aident dans les mont\xE9es.,Bastoncini,,Bastoncini pieghevoli che aiutano in salita.,St\xF6cke,,"Faltbare St\xF6cke, die am Anstieg helfen."
+poles-2,Poles,poles,15,150,,thumb_poles-2.png,,,1,3,,,,1.01,,,,,,,Light carbon poles.,Bastones,,Bastones ligeros de carbono.,B\xE2tons,,B\xE2tons l\xE9gers en carbone.,Bastoncini,,Bastoncini leggeri in carbonio.,St\xF6cke,,Leichte Carbonst\xF6cke.
+hydration-backpack,Hydration backpack,pack,5,65,,thumb_lvl1_{sex}_back_01.png,accessories/lvl1_{sex}_back_01.webp,,1,,,,,,,,,0.9,,,Carries water and food for long races.,Mochila de hidrataci\xF3n,,Lleva agua y comida para carreras largas.,Sac d'hydratation,,Transporte eau et nourriture pour les courses longues.,Zaino idratazione,,Porta acqua e cibo per le gare lunghe.,Trinkrucksack,,Tr\xE4gt Wasser und Essen f\xFCr lange Rennen.
+hydration-backpack-2,Hydration backpack,pack,10,130,,thumb_lvl2_{sex}_back_01.png,accessories/lvl2_{sex}_back_01.webp,,2,,,,,,,,,0.85,,,"A larger, better-fitting race vest.",Mochila de hidrataci\xF3n,,Un chaleco de carrera m\xE1s grande y que se ajusta mejor.,Sac d'hydratation,,Un gilet de course plus grand et mieux ajust\xE9.,Zaino idratazione,,Un gilet da gara pi\xF9 grande e pi\xF9 aderente.,Trinkrucksack,,"Eine gr\xF6\xDFere, besser sitzende Laufweste."
+hydration-backpack-3,Race vest,pack,18,180,,thumb_lvl3_{sex}_back_01.png,accessories/lvl3_{sex}_back_01.webp,,3,,,1,,,,,,0.8,,,"A light race vest with soft flasks, made for ultras.",Chaleco de carrera,,"Chaleco ligero con bidones blandos, pensado para ultras.",Gilet de course,,"Gilet l\xE9ger avec flasques souples, con\xE7u pour les ultras.",Gilet da gara,,"Gilet leggero con borracce morbide, pensato per gli ultra.",Laufweste,,"Leichte Laufweste mit Softflasks, gemacht f\xFCr Ultras."
+gels-and-bars,Gels & bars,nutrition,,10,3,thumb_lvl1_gels_01.png,,,,,,,,,,,,,,"Gel: 1.5% faster; cereal bar: 1.5% less fatigue, for the whole race. A race uses one of each.",3 energy gels and 3 cereal bars. One of each is enough for a whole race.,Geles y barritas,"Gel: 1,5 % m\xE1s r\xE1pido; barrita: 1,5 % menos fatiga, toda la carrera. Cada carrera usa uno de cada.",3 geles energ\xE9ticos y 3 barritas de cereales. Con uno de cada basta para toda una carrera.,Gels et barres,"Gel : 1,5 % plus rapide ; barre : 1,5 % de fatigue en moins, toute la course. Une course en utilise un de chaque.",3 gels \xE9nerg\xE9tiques et 3 barres de c\xE9r\xE9ales. Un de chaque suffit pour toute une course.,Gel e barrette,"Gel: 1,5% pi\xF9 veloce; barretta: 1,5% di fatica in meno, per tutta la gara. Ogni gara ne usa uno di ciascuno.",3 gel energetici e 3 barrette ai cereali. Uno di ciascuno basta per tutta la gara.,Gels & Riegel,"Gel: 1,5 % schneller; Riegel: 1,5 % weniger Erm\xFCdung, im ganzen Rennen. Ein Rennen verbraucht je eins.",3 Energiegels und 3 M\xFCsliriegel. Je eins reicht f\xFCr ein ganzes Rennen.
 `;
 
 // src/domain/equipment/items.ts
@@ -554,6 +555,12 @@ function parseEquipment(text) {
       throw new Error(`${where}: gel, bar and nutrition need a pack size, other types none`);
     }
     if (row.thumbnail) item.thumbnail = row.thumbnail;
+    if (row.life_km) {
+      const lifeKm = csvNumber(row.life_km, where);
+      if (!(lifeKm > 0)) throw new Error(`${where}: life_km must be above 0`);
+      if (item.packSize !== void 0) throw new Error(`${where}: gels and bars are used up, they have no life_km`);
+      item.lifeKm = lifeKm;
+    }
     if (row.avatar_layer) item.avatarLayer = row.avatar_layer;
     if (LOOK_SLOTS.includes(slot) && hasEffect) throw new Error(`${where}: glasses and caps are cosmetic, no race bonuses`);
     if (hasEffect) item.raceEffect = effect;
@@ -612,6 +619,590 @@ function getRaceEffect(equipment) {
   return effect;
 }
 
+// raw:src/data/wear_bands.csv
+var wear_bands_default = "# Shoe durability bands (owner decision, 22 November 2026). Durability left in whole percent, from_pct to to_pct (both included); the bands cover 0 to 100 once.\n# effect_factor: share of the shoes' race bonus that is kept (0 to 1). injury_risk_pct: chance of an injury in each training session (0 to 100).\n# race_start: ok, dnf (the shoes break during the race) or blocked (the runner cannot start).\nfrom_pct,to_pct,label,effect_factor,injury_risk_pct,race_start\n40,100,Normal,1,0,ok\n20,39,Slight penalty,0.75,0,ok\n10,19,Heavy penalty,0.4,0,ok\n1,9,High risk,0,10,dnf\n0,0,Worn out,0,10,blocked\n";
+
+// raw:src/data/wear_km.csv
+var wear_km_default = "# Equipment wear (owner decision, 22 November 2026): the km each training session wears the equipped gear by.\n# Races wear it by their own distance. Starting proposal, for the owner to change. Every session type has one row.\nsession,km\neasy-run,8\nintervals,6\nhills,6\nlong-run,18\ntrail-technique,4\nstrength,0\nrest,0\n";
+
+// raw:src/data/economy.csv
+var economy_default = "# Economy (owner decision, 16 November 2026). One row per value.\n# coins_per_premium: credits (coins) a player pays for 1 Premium Coin. The exchange goes one way only, coins to Premium.\n# wear_speed: multiplies the wear of every item with a life_km (equipment.csv). 1 = as in the table, above 1 wears faster, 0 = wear off (owner decision, 22 November 2026).\nkey,value\ncoins_per_premium,100\nwear_speed,0\n";
+
+// src/domain/economy/premium.ts
+function parseEconomy(text) {
+  const values = new Map(parseCsv(text).map((row) => [row.key, row.value]));
+  const coinsPerPremium = csvInt(values.get("coins_per_premium"), "economy.csv coins_per_premium");
+  if (coinsPerPremium < 1) throw new Error("economy.csv: coins_per_premium must be 1 or more");
+  const wearSpeed = csvNumber(values.get("wear_speed"), "economy.csv wear_speed", 0);
+  if (!(wearSpeed >= 0)) throw new Error("economy.csv: wear_speed must be 0 or more");
+  return { coinsPerPremium, wearSpeed };
+}
+var ECONOMY = parseEconomy(economy_default);
+var COINS_PER_PREMIUM = ECONOMY.coinsPerPremium;
+var WEAR_SPEED = ECONOMY.wearSpeed;
+var MAX_EXCHANGE = 1e3;
+
+// src/domain/equipment/wear.ts
+var RACE_STARTS = ["ok", "dnf", "blocked"];
+function parseWearBands(text) {
+  const bands = parseCsv(text).map((row, i) => {
+    const where = `wear_bands.csv row ${i + 1}`;
+    const band = {
+      fromPct: csvInt(row.from_pct, where),
+      toPct: csvInt(row.to_pct, where),
+      label: row.label ?? "",
+      effectFactor: csvNumber(row.effect_factor, where),
+      injuryRiskPct: csvNumber(row.injury_risk_pct, where),
+      raceStart: row.race_start
+    };
+    if (!(band.fromPct >= 0 && band.fromPct <= band.toPct && band.toPct <= 100)) throw new Error(`${where}: from_pct and to_pct must go from 0 to 100, from_pct first`);
+    if (!(band.effectFactor >= 0 && band.effectFactor <= 1)) throw new Error(`${where}: effect_factor must be 0 to 1`);
+    if (!(band.injuryRiskPct >= 0 && band.injuryRiskPct <= 100)) throw new Error(`${where}: injury_risk_pct must be 0 to 100`);
+    if (!RACE_STARTS.includes(band.raceStart)) throw new Error(`${where}: race_start must be ok, dnf or blocked`);
+    return band;
+  });
+  bands.sort((a, b) => b.toPct - a.toPct);
+  let next = 100;
+  for (const band of bands) {
+    if (band.toPct !== next) throw new Error(`wear_bands.csv: the bands must cover 0 to 100 once (nothing or twice at ${next}%)`);
+    next = band.fromPct - 1;
+  }
+  if (next !== -1) throw new Error("wear_bands.csv: the bands must reach 0%");
+  return bands;
+}
+function parseWearKm(text) {
+  const km = {};
+  for (const [i, row] of parseCsv(text).entries()) {
+    const where = `wear_km.csv row ${i + 1}`;
+    if (!(row.session in TRAINING_SESSIONS)) throw new Error(`${where}: unknown session "${row.session}"`);
+    const value = csvNumber(row.km, where);
+    if (!(value >= 0)) throw new Error(`${where}: km must be 0 or more`);
+    km[row.session] = value;
+  }
+  const missing = Object.keys(TRAINING_SESSIONS).find((session) => km[session] === void 0);
+  if (missing) throw new Error(`wear_km.csv: no row for "${missing}"`);
+  return km;
+}
+var WEAR = {
+  speed: WEAR_SPEED,
+  sessionKm: parseWearKm(wear_km_default),
+  bands: parseWearBands(wear_bands_default)
+};
+function wearOn(config2 = WEAR) {
+  return config2.speed > 0;
+}
+function wears(item) {
+  return item?.lifeKm !== void 0;
+}
+function durabilityPct(used) {
+  const left = Math.min(1, Math.max(0, 1 - used));
+  return Math.min(100, Math.max(0, Math.ceil(left * 100 - 1e-9)));
+}
+function bandOf(pct, config2 = WEAR) {
+  return config2.bands.find((band) => pct >= band.fromPct && pct <= band.toPct) ?? config2.bands[config2.bands.length - 1];
+}
+function roundUsed(used) {
+  return Math.min(1, Math.max(0, Math.round(used * 1e6) / 1e6));
+}
+function lifeShare(item, km, config2 = WEAR) {
+  return km * config2.speed / item.lifeKm;
+}
+function wearStatus(itemId, used, config2 = WEAR) {
+  const item = getEquipmentItem(itemId);
+  if (!wears(item) || !wearOn(config2)) return null;
+  const share = roundUsed(used);
+  const pct = durabilityPct(share);
+  const lifeKm = item.lifeKm / config2.speed;
+  return {
+    itemId,
+    used: share,
+    durabilityPct: pct,
+    lifeKm: Math.round(lifeKm * 10) / 10,
+    remainingKm: Math.round((1 - share) * lifeKm * 10) / 10,
+    ...item.slot === "shoes" ? { band: bandOf(pct, config2) } : {},
+    wornOut: pct === 0
+  };
+}
+
+// raw:src/data/races.csv
+var races_default = `# Race catalog (owner table, 5 November 2026). One row per race. Keep each id once and never rename it (saves use it).
+# category (internal: XP, coin prizes and the rivals' field; not shown): open, trail, mountain or elite.
+# distance_km and elevation_gain_m: whole numbers. recommended_level: the race's level (entry from 5 below to 2 above).
+# technicality: descent technicality 0 (none) to 5 (extreme). terrain: shown on the race (terrain_es, _fr, _it, _de: the same in each language; empty = English).
+# Each race also needs its difficulty (I-V) in ranking_points.csv. Photo (assets/ui/races/RACE-xxx.webp) and clips (assets/race/clips) are optional.
+# After adding a race or changing a recommended level, the NPC rankings need a migration: python3 scripts/ranking_tables_sql.py --points-only.
+# Optional (Trail Studio, 12 November 2026; empty = automatic): min_level and max_level, the entry levels; stop_quick_s, stop_normal_s, stop_slow_s, the seconds of each stop (all three or none);
+# kind (18 November 2026): npc (or empty) for the races players enter, major for a Sunday Major's course (only Majors run it), retired for a race no longer run (kept: saves name it; never delete a race). A race's GPX course, if any, is src/data/courses/RACE-xxx.json (Trail Studio).
+# segments: the course by hand, km:ascent:descent:technicality per segment and | between segments (an aid station between two), e.g. 6.5:420:120:2|5:0:300:3. Then distance_km and elevation_gain_m are their sums.
+id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,terrain_es,terrain_fr,terrain_it,terrain_de,min_level,max_level,stop_quick_s,stop_normal_s,stop_slow_s,kind,segments
+RACE-001,Forest First Steps,open,4.7,47,3,0,Non-technical forest paths,Caminos de bosque sin dificultad t\xE9cnica,Chemins forestiers sans difficult\xE9 technique,Sentieri nel bosco senza difficolt\xE0 tecniche,Einfache Waldwege,,,,,,,2.4:34:13:0|2.3:13:43:0
+RACE-002,Riverside Trail,open,7.9,136,6,1,"Packed dirt, rolling hills","Tierra compacta, colinas suaves","Terre battue, collines douces","Sterrato compatto, colline dolci","Fester Boden, sanfte H\xFCgel",,,,,,,3.9:115:32:0|4:21:102:1
+RACE-003,Pine Loop Challenge,open,9.8,63,8,1,"Forest trail, short climbs","Sendero de bosque, subidas cortas","Sentier forestier, mont\xE9es courtes","Sentiero nel bosco, salite brevi","Waldpfad, kurze Anstiege",,,,,,,4.9:37:16:1|4.9:26:42:0
+RACE-004,Ridge Runner,mountain,12.1,372,11,2,"Rolling ridges, mixed trail","Crestas onduladas, sendero mixto","Cr\xEAtes vallonn\xE9es, sentier mixte","Creste ondulate, sentiero misto","Wellige Grate, gemischte Pfade",,,,,,,5.6:148:264:2|6.5:224:107:2
+RACE-005,Stone Path Classic,trail,15.1,693,14,3,"Rocky sections, moderate technicality","Tramos rocosos, t\xE9cnica moderada","Passages rocheux, technicit\xE9 mod\xE9r\xE9e","Tratti rocciosi, tecnica moderata","Felsige Abschnitte, mittlere Technik",,,,,,,7.6:323:489:3|7.5:370:204:3
+RACE-006,Wildwood Ascent,trail,17.7,911,18,3,"Sustained climbs, forest terrain","Subidas largas, terreno de bosque","Longues mont\xE9es, terrain forestier","Salite lunghe, terreno boschivo","Lange Anstiege, Waldgel\xE4nde",,,,,,,5.9:407:100:1|5.9:501:216:3|5.9:3:598:1
+RACE-007,Summit Quest,mountain,22.4,1292,21,3,"Steep climbs, rocky descents","Subidas empinadas, bajadas rocosas","Mont\xE9es raides, descentes rocheuses","Salite ripide, discese rocciose","Steile Anstiege, felsige Abstiege",,,,,,,7.2:592:109:1|8:567:423:2|7.2:133:758:3
+RACE-008,Alpine Traverse,mountain,28,1700,25,5,"Alpine paths, technical descents","Senderos alpinos, bajadas t\xE9cnicas","Sentiers alpins, descentes techniques","Sentieri alpini, discese tecniche","Alpine Pfade, technische Abstiege",,,,,,,
+RACE-009,Sky Ridge Ultra,mountain,35,2200,28,3,"Exposed ridges, sustained elevation","Crestas expuestas, altitud sostenida","Cr\xEAtes expos\xE9es, altitude soutenue","Creste esposte, quota costante","Ausgesetzte Grate, viel H\xF6he",,,,,,,
+RACE-010,High Peaks Challenge,elite,42,2800,31,5,Highly technical mountain terrain,Terreno de monta\xF1a muy t\xE9cnico,Terrain de montagne tr\xE8s technique,Terreno di montagna molto tecnico,Sehr technisches Berggel\xE4nde,,,,,,,
+RACE-011,Legends of the Crest,elite,55,3600,40,5,"Long mountain ultra, technical sections","Ultra de monta\xF1a larga, tramos t\xE9cnicos","Long ultra de montagne, passages techniques","Lunga ultra di montagna, tratti tecnici","Langer Bergultra, technische Abschnitte",,,,,,,
+RACE-012,Beyond the Skyline,elite,70,4800,50,5,"Extreme ultra, long climbs and descents","Ultra extrema, subidas y bajadas largas","Ultra extr\xEAme, longues mont\xE9es et descentes","Ultra estrema, lunghe salite e discese","Extremer Ultra, lange Anstiege und Abstiege",,,,,,,
+RACE-013,Granite Spine,elite,44,3000,34,4,"Granite ridges, scrambling near the summit","Crestas de granito, trepadas cerca de la cumbre","Cr\xEAtes de granit, passages d\u2019escalade pr\xE8s du sommet","Creste di granito, passaggi di arrampicata vicino alla vetta","Granitgrate, Kletterpassagen unter dem Gipfel",,,,,,,
+RACE-014,Northern Lakes Ultra,elite,50,3200,37,2,Lake shores and long rolling climbs,Orillas de lagos y subidas largas y onduladas,Bords de lacs et longues mont\xE9es vallonn\xE9es,Rive di laghi e lunghe salite ondulate,"Seeufer und lange, wellige Anstiege",,,,,,,
+RACE-015,Glacier Line,elite,57,3800,43,5,"Glacier moraines, very technical descents","Morrenas glaciares, bajadas muy t\xE9cnicas","Moraines glaciaires, descentes tr\xE8s techniques","Morene glaciali, discese molto tecniche","Gletschermor\xE4nen, sehr technische Abstiege",,,,,,,
+RACE-016,Midnight Traverse,elite,62,4100,45,3,"Night start, long mountain ultra","Salida nocturna, ultra largo de monta\xF1a","D\xE9part de nuit, long ultra en montagne","Partenza notturna, lungo ultra in montagna","Nachtstart, langer Bergultra",,,,,,,
+RACE-017,Crown of the Range,elite,66,4500,47,4,"High mountain ultra, steep rocky passes","Ultra de alta monta\xF1a, collados rocosos empinados","Ultra de haute montagne, cols rocheux raides","Ultra d\u2019alta montagna, valichi rocciosi ripidi","Hochgebirgsultra, steile felsige P\xE4sse",,,,,,,
+`;
+
+// src/domain/races/categories.ts
+var RACE_CATEGORIES = ["open", "trail", "mountain", "elite"];
+function isRaceCategory(value) {
+  return RACE_CATEGORIES.includes(value);
+}
+var PRIZE_BANDS = [
+  { from: 1, to: 1, label: "1st" },
+  { from: 2, to: 2, label: "2nd" },
+  { from: 3, to: 3, label: "3rd" },
+  { from: 4, to: 10, label: "4th\u201310th" },
+  { from: 11, to: null, label: "11th or lower" }
+];
+var GROSS_PRIZES = {
+  open: [100, 70, 50, 25, 10],
+  trail: [300, 210, 150, 75, 30],
+  mountain: [700, 490, 350, 175, 70],
+  elite: [1500, 1050, 750, 375, 150]
+};
+var RACE_XP_BASE = { open: 300, trail: 600, mountain: 1e3, elite: 1800 };
+var RACE_MIN_XP = 18;
+var RACE_XP_BAND_PCT = [100, 70, 50, 25, 10];
+var REWARD_MULTIPLIERS = [
+  { levelDifference: 0, xp: 1, coins: 1 },
+  { levelDifference: 1, xp: 0.75, coins: 0.75 },
+  { levelDifference: 2, xp: 0.4, coins: 0.4 },
+  { levelDifference: 3, xp: 0, coins: 0 }
+];
+
+// src/domain/races/races.ts
+var RACE_LANGUAGES = ["es", "fr", "it", "de"];
+var MAX_TECHNICALITY = 5;
+var MIN_SEGMENTS = 1;
+var MAX_SEGMENTS = 20;
+function courseOf(race) {
+  return {
+    distanceKm: race.distanceKm,
+    elevationGainM: race.elevationGainM,
+    technicality: race.technicality,
+    ...race.segments ? { segments: race.segments.map((s) => ({ ...s })) } : {},
+    ...race.stopS ? { stopS: { ...race.stopS } } : {}
+  };
+}
+function withCourse(race, course) {
+  if (!course) return race;
+  const { segments, stopS, ...totals } = course;
+  const merged = { ...race, ...totals };
+  delete merged.segments;
+  delete merged.stopS;
+  return { ...merged, ...segments ? { segments } : {}, ...stopS ? { stopS } : {} };
+}
+function formatSegments(segments) {
+  return segments.map((s) => `${s.distanceKm}:${s.gainM}:${s.lossM}:${s.technicality}`).join("|");
+}
+function parseSegments(text, where) {
+  const segments = text.split("|").map((part, i) => {
+    const fields = part.split(":");
+    const at = `${where}, segment ${i + 1}`;
+    if (fields.length !== 4) throw new Error(`${at}: write km:ascent:descent:technicality`);
+    const [km, gain, loss, tech] = fields.map((f) => f.trim());
+    const spec = {
+      distanceKm: csvNumber(km, at),
+      gainM: csvInt(gain, at),
+      lossM: csvInt(loss, at),
+      technicality: csvInt(tech, at)
+    };
+    if (!(spec.distanceKm >= 0.5) || Math.round(spec.distanceKm * 10) !== spec.distanceKm * 10) {
+      throw new Error(`${at}: distance must be at least 0.5 km, with at most 1 decimal`);
+    }
+    if (spec.gainM < 0 || spec.lossM < 0) throw new Error(`${at}: ascent and descent cannot be negative`);
+    if (spec.technicality < 0 || spec.technicality > MAX_TECHNICALITY) throw new Error(`${at}: technicality must be 0 to ${MAX_TECHNICALITY}`);
+    if ((spec.gainM + spec.lossM) / (spec.distanceKm * 1e3) > MAX_SEGMENT_GRADIENT) {
+      throw new Error(`${at}: ${spec.gainM} m up and ${spec.lossM} m down do not fit in ${spec.distanceKm} km`);
+    }
+    return spec;
+  });
+  if (segments.length < MIN_SEGMENTS || segments.length > MAX_SEGMENTS) {
+    throw new Error(`${where}: a race has ${MIN_SEGMENTS} to ${MAX_SEGMENTS} segments`);
+  }
+  return segments;
+}
+var MAX_SEGMENT_GRADIENT = 0.4;
+function segmentsDistanceKm(segments) {
+  return Math.round(segments.reduce((sum, s) => sum + s.distanceKm, 0) * 10) / 10;
+}
+function parseRaces(text) {
+  const races = [];
+  const seen = /* @__PURE__ */ new Set();
+  parseCsv(text).forEach((row, i) => {
+    const where = `races.csv row ${i + 1}`;
+    const id = row.id ?? "";
+    if (!/^RACE-\d{3}$/.test(id)) throw new Error(`${where}: id must look like RACE-013`);
+    if (seen.has(id)) throw new Error(`${where}: ${id} is listed twice`);
+    seen.add(id);
+    if (!row.name) throw new Error(`${where}: name is missing`);
+    if (!isRaceCategory(row.category)) throw new Error(`${where}: category must be open, trail, mountain or elite`);
+    if (!row.terrain) throw new Error(`${where}: terrain is missing`);
+    if (row.kind && row.kind !== "npc" && row.kind !== "major" && row.kind !== "retired") throw new Error(`${where}: kind must be npc, major or retired (empty = npc)`);
+    const race = {
+      id,
+      name: row.name,
+      category: row.category,
+      distanceKm: csvNumber(row.distance_km, where),
+      elevationGainM: csvInt(row.elevation_gain_m, where),
+      terrain: row.terrain,
+      recommendedLevel: csvInt(row.recommended_level, where),
+      technicality: csvInt(row.technicality, where)
+    };
+    if (row.kind === "major") race.major = true;
+    if (row.kind === "retired") race.retired = true;
+    if (row.segments) {
+      const segments = parseSegments(row.segments, where);
+      race.segments = segments;
+      const km = segmentsDistanceKm(segments);
+      const gain = segments.reduce((sum, s) => sum + s.gainM, 0);
+      if (Math.abs(km - race.distanceKm) > 0.05 || gain !== race.elevationGainM) {
+        throw new Error(`${where}: distance_km and elevation_gain_m must be the segments' sums (${km} km, ${gain} m)`);
+      }
+      race.technicality = Math.max(...segments.map((s) => s.technicality));
+    }
+    if (race.major && race.segments && race.segments.length < 2) throw new Error(`${where}: a Major's course needs at least 2 segments (an aid station)`);
+    if (row.min_level || row.max_level) {
+      const min = row.min_level ? csvInt(row.min_level, where) : void 0;
+      const max = row.max_level ? csvInt(row.max_level, where) : void 0;
+      if (min !== void 0 && min < 1) throw new Error(`${where}: min_level must be at least 1`);
+      if (min !== void 0 && max !== void 0 && max < min) throw new Error(`${where}: max_level is below min_level`);
+      if (min !== void 0) race.minLevel = min;
+      if (max !== void 0) race.maxLevel = max;
+    }
+    if (row.stop_quick_s || row.stop_normal_s || row.stop_slow_s) {
+      const stopS = { quick: csvInt(row.stop_quick_s, where), normal: csvInt(row.stop_normal_s, where), slow: csvInt(row.stop_slow_s, where) };
+      if (!(stopS.quick >= 0 && stopS.quick <= stopS.normal && stopS.normal <= stopS.slow && stopS.slow <= 3600)) {
+        throw new Error(`${where}: stops must go quick \u2264 normal \u2264 slow, 0 to 3600 seconds (all three, or none)`);
+      }
+      race.stopS = stopS;
+    }
+    if (race.distanceKm < 1) throw new Error(`${where}: distance_km must be at least 1`);
+    if (race.elevationGainM < 0) throw new Error(`${where}: elevation_gain_m cannot be negative`);
+    if (race.recommendedLevel < 1) throw new Error(`${where}: recommended_level must be at least 1`);
+    if (race.technicality < 0 || race.technicality > MAX_TECHNICALITY) {
+      throw new Error(`${where}: technicality must be 0 to ${MAX_TECHNICALITY}`);
+    }
+    const terrains = {};
+    for (const language of RACE_LANGUAGES) {
+      const text2 = row[`terrain_${language}`];
+      if (text2) terrains[language] = text2;
+    }
+    if (Object.keys(terrains).length) race.terrains = terrains;
+    races.push(race);
+  });
+  if (races.length === 0) throw new Error("races.csv: no races");
+  return races.sort((x, y) => x.recommendedLevel - y.recommendedLevel || x.id.localeCompare(y.id));
+}
+var RACES = parseRaces(races_default);
+var NPC_RACES = RACES.filter((race) => !race.major && !race.retired);
+var BY_ID = new Map(RACES.map((race) => [race.id, race]));
+function getRace(id) {
+  return BY_ID.get(id);
+}
+function isRaceId(value) {
+  return typeof value === "string" && BY_ID.has(value);
+}
+
+// src/domain/races/simulationConfig.ts
+var RACE_SIMULATION = {
+  /** Share of the distance spent climbing, and the same again descending. */
+  climbShare: { open: 0.2, trail: 0.3, mountain: 0.35, elite: 0.38 },
+  /** No single climb gains more than this. */
+  maxGainPerClimbM: 600,
+  /** Courses steeper than this on average in any segment are invalid catalog data. */
+  maxAverageGradient: 0.4,
+  /** Minutes per effort-km for ability 20, Fitness 50, Fatigue 0, fresh. */
+  basePaceMinPerEffortKm: 6,
+  /** Ability (and Consistency) at which a factor is neutral, and the curve exponent. */
+  abilityReference: 20,
+  abilityExponent: 0.35,
+  /** Climbs at or above this gradient use the climb ability only. */
+  climbWeightFullGradient: 0.2,
+  /**
+   * Extra descent time per technicality level (0–5), reduced by the Technical attribute. 0.072 on
+   * the 0–5 scale (owner decision, 5 November 2026) is the same 0.36 at the top as 0.12 × 3 was on
+   * the earlier 0–3 scale.
+   */
+  technicalPenaltyPerLevel: 0.072,
+  /** Slowdown over distance, reduced by durability. */
+  slowdownRate: 0.25,
+  slowdownReferenceEffortKm: 50,
+  fitnessSlope: 0.2,
+  fatigueSlope: 0.3,
+  /** The athlete plus 49 rivals. */
+  fieldSize: 50,
+  /** Rival times relative to the reference: fastest + spread × q^exponent. */
+  rivalFastest: 0.85,
+  rivalSpread: 0.4,
+  rivalExponent: 1.3,
+  /** Fatigue of the reference athlete. */
+  referenceFatigue: 20,
+  /** Maximum day form (D1), narrowed by Consistency. */
+  dayFormMax: 0.04,
+  /** Effects smaller than this share of the finishing time are not shown as explanations. */
+  explanationMinShare: 5e-3,
+  /** Number of explanation factors shown. */
+  explanationCount: 3,
+  /** Fatigue added by a race (D3): round(base + perEffortKm × effort-km). */
+  raceFatigueBase: 6,
+  raceFatiguePerEffortKm: 0.6
+};
+
+// src/game-engine/raceSimulation.ts
+var InvalidCourseError = class extends Error {
+};
+function splitEvenly(total, parts) {
+  const base = Math.floor(total / parts);
+  const remainder = total - base * parts;
+  return Array.from({ length: parts }, (_, i) => base + (i < remainder ? 1 : 0));
+}
+function generateCourse(race) {
+  if (race.segments) return race.segments.flatMap((spec, i) => specCourse(spec, `${race.id} segment ${i + 1}`));
+  const distanceM = Math.round(race.distanceKm * 1e3);
+  const gainM = race.elevationGainM;
+  if (!Number.isInteger(gainM) || gainM < 0 || distanceM <= 0) {
+    throw new InvalidCourseError(`${race.id}: invalid distance or gain`);
+  }
+  if (gainM === 0) return [{ type: "runnable", lengthM: distanceM, gainM: 0, lossM: 0, technicality: 0 }];
+  const climbs = Math.ceil(gainM / RACE_SIMULATION.maxGainPerClimbM);
+  const climbTotalM = Math.round(RACE_SIMULATION.climbShare[race.category] * distanceM);
+  const runnableTotalM = distanceM - 2 * climbTotalM;
+  const climbLengths = splitEvenly(climbTotalM, climbs);
+  const descentLengths = splitEvenly(climbTotalM, climbs);
+  const runnableLengths = splitEvenly(runnableTotalM, climbs + 1);
+  const gains = splitEvenly(gainM, climbs);
+  const segments = [];
+  for (let i = 0; i < climbs; i++) {
+    segments.push({ type: "runnable", lengthM: runnableLengths[i], gainM: 0, lossM: 0, technicality: 0 });
+    segments.push({ type: "climb", lengthM: climbLengths[i], gainM: gains[i], lossM: 0, technicality: 0 });
+    segments.push({
+      type: "descent",
+      lengthM: descentLengths[i],
+      gainM: 0,
+      lossM: gains[i],
+      technicality: race.technicality
+    });
+  }
+  segments.push({ type: "runnable", lengthM: runnableLengths[climbs], gainM: 0, lossM: 0, technicality: 0 });
+  for (const s of segments) {
+    if (!(s.lengthM > 0)) throw new InvalidCourseError(`${race.id}: non-positive ${s.type} segment`);
+    if ((s.gainM + s.lossM) / s.lengthM > RACE_SIMULATION.maxAverageGradient) {
+      throw new InvalidCourseError(`${race.id}: gradient above ${RACE_SIMULATION.maxAverageGradient * 100}%`);
+    }
+  }
+  return segments;
+}
+var SPEC_GRADIENT = 0.15;
+function specCourse(spec, where) {
+  const lengthM = Math.round(spec.distanceKm * 1e3);
+  const wanted = (spec.gainM + spec.lossM) / SPEC_GRADIENT;
+  const scale = wanted > lengthM ? lengthM / wanted : 1;
+  const climbM = spec.gainM > 0 ? Math.max(1, Math.round(spec.gainM / SPEC_GRADIENT * scale)) : 0;
+  const descentM = spec.lossM > 0 ? Math.max(1, Math.min(lengthM - climbM, Math.round(spec.lossM / SPEC_GRADIENT * scale))) : 0;
+  const runnableM = lengthM - climbM - descentM;
+  const before = Math.floor(runnableM / 2);
+  const blocks = [
+    { type: "runnable", lengthM: before, gainM: 0, lossM: 0, technicality: 0 },
+    { type: "climb", lengthM: climbM, gainM: spec.gainM, lossM: 0, technicality: 0 },
+    { type: "descent", lengthM: descentM, gainM: 0, lossM: spec.lossM, technicality: spec.technicality },
+    { type: "runnable", lengthM: runnableM - before, gainM: 0, lossM: 0, technicality: 0 }
+  ].filter((b) => b.lengthM > 0);
+  for (const b of blocks) {
+    if ((b.gainM + b.lossM) / b.lengthM > RACE_SIMULATION.maxAverageGradient + 1e-9) throw new InvalidCourseError(`${where}: gradient above ${RACE_SIMULATION.maxAverageGradient * 100}%`);
+  }
+  return blocks;
+}
+function effortKm(segment) {
+  return segment.lengthM / 1e3 + segment.gainM / 100;
+}
+function courseEffortKm(course) {
+  return course.reduce((sum, s) => sum + effortKm(s), 0);
+}
+var runnableAbility = (a) => 0.75 * a.speed + 0.25 * a.endurance;
+var climbAbility = (a) => 0.7 * a.climbing + 0.3 * a.endurance;
+var technicalDescentAbility = (a) => 0.7 * a.technical + 0.3 * a.speed;
+var durability = (a) => 0.6 * a.endurance + 0.4 * a.recovery;
+function segmentAbility(segment, a) {
+  if (segment.type === "climb") {
+    const w = Math.min(1, segment.gainM / segment.lengthM / RACE_SIMULATION.climbWeightFullGradient);
+    return w * climbAbility(a) + (1 - w) * runnableAbility(a);
+  }
+  if (segment.type === "descent") {
+    const t = segment.technicality / MAX_TECHNICALITY;
+    return t * technicalDescentAbility(a) + (1 - t) * runnableAbility(a);
+  }
+  return runnableAbility(a);
+}
+function prepareRunner(athlete) {
+  const gear = getRaceEffect(athlete.equipment ?? []);
+  const a = Object.fromEntries(
+    ATTRIBUTE_IDS.map((id) => [id, athlete.attributes[id] + gear.attributes[id]])
+  );
+  return {
+    attributes: a,
+    gear,
+    fitnessFactor: 1 + RACE_SIMULATION.fitnessSlope * (50 - athlete.fitness) / 50,
+    fatigueScale: Math.pow(RACE_SIMULATION.abilityReference / a.consistency, RACE_SIMULATION.abilityExponent),
+    durabilityScore: durability(a)
+  };
+}
+function blockMinutes(runner, s, effortBefore, fatigue, dayForm = 0) {
+  const { attributes: a, gear } = runner;
+  const fatigueFactor = 1 + RACE_SIMULATION.fatigueSlope * fatigue * runner.fatigueScale / 100;
+  const e = effortKm(s);
+  const abilityFactor = Math.pow(RACE_SIMULATION.abilityReference / segmentAbility(s, a), RACE_SIMULATION.abilityExponent);
+  const technicalFactor = s.type === "descent" ? (
+    // Technical 100 or more removes the penalty; it never turns into a bonus (no attribute cap).
+    1 + RACE_SIMULATION.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * Math.max(0, 1 - a.technical / 100)
+  ) : 1;
+  const slowdown = 1 + RACE_SIMULATION.slowdownRate * gear.slowdown * (effortBefore / RACE_SIMULATION.slowdownReferenceEffortKm) * (RACE_SIMULATION.abilityReference / runner.durabilityScore);
+  const gearFactor = s.type === "climb" ? gear.climb : s.type === "descent" ? gear.descent : gear.runnable;
+  return e * RACE_SIMULATION.basePaceMinPerEffortKm * abilityFactor * technicalFactor * slowdown * gearFactor * runner.fitnessFactor * fatigueFactor * (1 + dayForm);
+}
+function raceSeconds(course, athlete, dayForm = 0) {
+  const runner = prepareRunner(athlete);
+  let minutes = 0;
+  let effortBefore = 0;
+  for (const s of course) {
+    minutes += blockMinutes(runner, s, effortBefore, athlete.fatigue, dayForm);
+    effortBefore += effortKm(s);
+  }
+  return minutes * 60;
+}
+function referenceAthlete(recommendedLevel) {
+  const value = 16 + (recommendedLevel - 1) / 3;
+  return {
+    attributes: Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, value])),
+    // Reaches Fitness 90 at level 30 (owner decision, 29 October 2026, for levels up to 50).
+    fitness: Math.min(90, 25 + 65 * (recommendedLevel - 1) / 29),
+    fatigue: RACE_SIMULATION.referenceFatigue
+  };
+}
+function fnv1a(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+function mulberry32(seed) {
+  let t = seed + 1831565813 >>> 0;
+  t = Math.imul(t ^ t >>> 15, t | 1);
+  t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+  return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+function getDayForm(raceId, entryId, enteredAt, consistency) {
+  const u = mulberry32(fnv1a(`${raceId}|${entryId}|${enteredAt}`));
+  return (2 * u - 1) * RACE_SIMULATION.dayFormMax * (1 - consistency / 100);
+}
+function explainRace(race, athlete, dayForm = 0) {
+  const course = generateCourse(race);
+  const reference = referenceAthlete(race.recommendedLevel);
+  const actual = raceSeconds(course, athlete, dayForm);
+  const referenceTime = raceSeconds(course, reference);
+  const candidates = [];
+  for (const id of ["fitness", "fatigue"]) {
+    const swapped = raceSeconds(course, { ...athlete, [id]: reference[id] }, dayForm);
+    candidates.push({ id, value: athlete[id], reference: reference[id], effectS: Math.round(actual - swapped) });
+  }
+  for (const id of ATTRIBUTE_IDS) {
+    const swapped = raceSeconds(
+      course,
+      { ...athlete, attributes: { ...athlete.attributes, [id]: reference.attributes[id] } },
+      dayForm
+    );
+    candidates.push({
+      id,
+      value: athlete.attributes[id],
+      reference: reference.attributes[id],
+      effectS: Math.round(actual - swapped)
+    });
+  }
+  if (athlete.equipment?.length) {
+    candidates.push({
+      id: "equipment",
+      value: athlete.equipment.length,
+      reference: 0,
+      effectS: Math.round(actual - raceSeconds(course, { ...athlete, equipment: [] }, dayForm))
+    });
+  }
+  if (dayForm !== 0) {
+    candidates.push({
+      id: "day-form",
+      value: dayForm,
+      reference: 0,
+      effectS: Math.round(actual - raceSeconds(course, athlete))
+    });
+  }
+  const minimum = actual * RACE_SIMULATION.explanationMinShare;
+  const factors = candidates.filter((f) => Math.abs(f.effectS) >= minimum && f.effectS !== 0).sort((x, y) => Math.abs(y.effectS) - Math.abs(x.effectS)).slice(0, RACE_SIMULATION.explanationCount);
+  return {
+    referenceTimeS: Math.round(referenceTime),
+    gapS: Math.round(actual) - Math.round(referenceTime),
+    factors
+  };
+}
+
+// src/game-engine/wear.ts
+function usedOf(state, itemId) {
+  return state.wear?.[itemId] ?? 0;
+}
+function applyWear(state, km, config2 = WEAR, itemIds = state.equipment) {
+  if (!wearOn(config2) || !(km > 0)) return state;
+  const wear = { ...state.wear };
+  let changed = false;
+  for (const id of itemIds) {
+    const item = getEquipmentItem(id);
+    if (!wears(item) || !state.ownedEquipment.includes(id)) continue;
+    const used = roundUsed((wear[id] ?? 0) + lifeShare(item, km, config2));
+    if (used === (wear[id] ?? 0)) continue;
+    wear[id] = used;
+    changed = true;
+  }
+  return changed ? { ...state, wear } : state;
+}
+function resetWear(state, itemId) {
+  if (!state.wear || !(itemId in state.wear)) return state;
+  const wear = { ...state.wear };
+  delete wear[itemId];
+  return { ...state, wear };
+}
+function equippedShoes(state) {
+  return state.equipment.find((id) => getEquipmentItem(id)?.slot === "shoes");
+}
+function shoesStatus(state, config2 = WEAR) {
+  const shoes = equippedShoes(state);
+  return shoes ? wearStatus(shoes, usedOf(state, shoes), config2) : null;
+}
+function gearStatus(state, config2 = WEAR) {
+  return state.ownedEquipment.flatMap((id) => wearStatus(id, usedOf(state, id), config2) ?? []);
+}
+function raceGearError(state, config2 = WEAR) {
+  if (!wearOn(config2)) return null;
+  if (!equippedShoes(state)) return "no-shoes-equipped";
+  return shoesStatus(state, config2)?.band?.raceStart === "blocked" ? "shoes-worn-out" : null;
+}
+function shoeInjuryRiskPct(state, config2 = WEAR) {
+  return shoesStatus(state, config2)?.band?.injuryRiskPct ?? 0;
+}
+function shoeInjuryDraw(now, week, dayIndex) {
+  return mulberry32(fnv1a(`shoe-injury|${now}|${week}|${dayIndex}`)) * 100;
+}
+
 // src/game-engine/equipment.ts
 function setItemEquipped(state, itemId, equipped) {
   const item = getEquipmentItem(itemId);
@@ -621,11 +1212,13 @@ function setItemEquipped(state, itemId, equipped) {
   const others = state.equipment.filter((id) => id !== itemId && getEquipmentItem(id)?.slot !== item.slot);
   return { ok: true, state: { ...state, equipment: equipped ? [...others, itemId] : others } };
 }
-function buyItem(state, itemId, confirmedPrice) {
+function buyItem(state, itemId, confirmedPrice, wear = WEAR) {
   const item = getEquipmentItem(itemId);
   if (!item) return { ok: false, error: "unknown-item" };
   const consumable = isConsumable(item);
-  if (!consumable && state.ownedEquipment.includes(itemId)) return { ok: false, error: "already-owned" };
+  const owned = state.ownedEquipment.includes(itemId);
+  const replacement = owned && wearOn(wear) && wears(item) && usedOf(state, itemId) > 0;
+  if (!consumable && owned && !replacement) return { ok: false, error: "already-owned" };
   if (item.price === null) return { ok: false, error: "not-for-sale" };
   if (item.price !== confirmedPrice) return { ok: false, error: "price-changed" };
   if (item.price > state.coins) return { ok: false, error: "insufficient-coins" };
@@ -634,6 +1227,7 @@ function buyItem(state, itemId, confirmedPrice) {
     for (const kind of consumableKinds(item)) consumables[kind] += item.packSize;
     return { ok: true, state: { ...state, coins: state.coins - item.price, consumables } };
   }
+  if (replacement) return { ok: true, state: { ...resetWear(state, itemId), coins: state.coins - item.price } };
   return {
     ok: true,
     state: { ...state, coins: state.coins - item.price, ownedEquipment: [...state.ownedEquipment, itemId] }
@@ -834,23 +1428,10 @@ function joinCatalogs(main, exclusive) {
 }
 var CAMP_ITEMS = joinCatalogs(parseCampCatalog(basecamp_default), parseCampCatalog(basecamp_exclusive_default, { exclusive: true }));
 var EXCLUSIVE_IDS = CAMP_ITEMS.filter((item) => item.exclusive).map((item) => item.id);
-var BY_ID = new Map(CAMP_ITEMS.map((item) => [item.id, item]));
+var BY_ID2 = new Map(CAMP_ITEMS.map((item) => [item.id, item]));
 function getCampItem(id) {
-  return BY_ID.get(id);
+  return BY_ID2.get(id);
 }
-
-// raw:src/data/economy.csv
-var economy_default = "# Economy (owner decision, 16 November 2026). One row per value.\n# coins_per_premium: credits (coins) a player pays for 1 Premium Coin. The exchange goes one way only, coins to Premium.\nkey,value\ncoins_per_premium,100\n";
-
-// src/domain/economy/premium.ts
-function parseEconomy(text) {
-  const values = new Map(parseCsv(text).map((row) => [row.key, row.value]));
-  const coinsPerPremium = csvInt(values.get("coins_per_premium"), "economy.csv coins_per_premium");
-  if (coinsPerPremium < 1) throw new Error("economy.csv: coins_per_premium must be 1 or more");
-  return { coinsPerPremium };
-}
-var COINS_PER_PREMIUM = parseEconomy(economy_default).coinsPerPremium;
-var MAX_EXCHANGE = 1e3;
 
 // src/game-engine/camp.ts
 var EMPTY = { owned: [], using: [] };
@@ -1048,198 +1629,6 @@ function getCurrentDay(week) {
 
 // raw:src/data/ranking_points.csv
 var ranking_points_default = "# Ranking points (owner tables, 5 November 2026; points system v3 the same day). kind,key,value:\n# setting best_results: how many of a runner's best results of each season count. setting first_season: the first season with points (YYYY-MM, UTC).\n# Seasons are the calendar months (UTC): Season 1 = January, Season 12 = December. setting annual_months: the Annual ranking adds up each season's best results from the last that many months.\n# Points of a result = difficulty base points x position percent x competition percent, rounded to whole points.\n# The runner's level and sex never change the points (Game Design Bible 11.1); level only sets which races a runner may enter.\n# difficulty: base points of each difficulty (I Moderate ... V Extreme). race: the difficulty of each race (distance, climb, technicality and overall demands, not distance alone).\n# position: percent for each finishing position (positions not listed, 31st and later: 0). competition: percent of each competition format (standard races, weekly Majors, the annual World Cup).\n# participation: the least points a finished race gives in a competition, whatever the place (12 November 2026: every Major runner scores). Missing: 0.\n# Reference for choosing each race's difficulty (not read by the game; the race values live in races.csv): id, name, km, D+ m, D+ per km, effort km (km + D+/100), technicality 0-5, recommended level.\n#   RACE-001 Forest First Steps: 5 km, 120 m D+, 24 m/km, effort 6.2 km, technicality 0, level 4\n#   RACE-002 Riverside Trail: 8 km, 220 m D+, 28 m/km, effort 10.2 km, technicality 0, level 6\n#   RACE-003 Pine Loop Challenge: 10 km, 350 m D+, 35 m/km, effort 13.5 km, technicality 2, level 8\n#   RACE-004 Ridge Runner: 12 km, 550 m D+, 46 m/km, effort 17.5 km, technicality 2, level 11\n#   RACE-005 Stone Path Classic: 15 km, 750 m D+, 50 m/km, effort 22.5 km, technicality 3, level 14\n#   RACE-006 Wildwood Ascent: 18 km, 950 m D+, 53 m/km, effort 27.5 km, technicality 2, level 18\n#   RACE-007 Summit Quest: 22 km, 1300 m D+, 59 m/km, effort 35 km, technicality 3, level 21\n#   RACE-008 Alpine Traverse: 28 km, 1700 m D+, 61 m/km, effort 45 km, technicality 5, level 25\n#   RACE-009 Sky Ridge Ultra: 35 km, 2200 m D+, 63 m/km, effort 57 km, technicality 3, level 28\n#   RACE-010 High Peaks Challenge: 42 km, 2800 m D+, 67 m/km, effort 70 km, technicality 5, level 31\n#   RACE-011 Legends of the Crest: 55 km, 3600 m D+, 65 m/km, effort 91 km, technicality 5, level 40\n#   RACE-012 Beyond the Skyline: 70 km, 4800 m D+, 69 m/km, effort 118 km, technicality 5, level 50\n#   RACE-013 Granite Spine: 44 km, 3000 m D+, 68 m/km, effort 74 km, technicality 4, level 34\n#   RACE-014 Northern Lakes Ultra: 50 km, 3200 m D+, 64 m/km, effort 82 km, technicality 2, level 37\n#   RACE-015 Glacier Line: 57 km, 3800 m D+, 67 m/km, effort 95 km, technicality 5, level 43\n#   RACE-016 Midnight Traverse: 62 km, 4100 m D+, 66 m/km, effort 103 km, technicality 3, level 45\n#   RACE-017 Crown of the Range: 66 km, 4500 m D+, 68 m/km, effort 111 km, technicality 4, level 47\nkind,key,value\nsetting,best_results,10\nsetting,first_season,2026-11\nsetting,annual_months,12\ndifficulty,I,100\ndifficulty,II,125\ndifficulty,III,160\ndifficulty,IV,200\ndifficulty,V,250\nrace,RACE-001,I\nrace,RACE-002,I\nrace,RACE-003,I\nrace,RACE-004,II\nrace,RACE-005,II\nrace,RACE-006,II\nrace,RACE-007,III\nrace,RACE-008,III\nrace,RACE-009,IV\nrace,RACE-010,IV\nrace,RACE-011,V\nrace,RACE-012,V\nrace,RACE-013,IV\nrace,RACE-014,IV\nrace,RACE-015,V\nrace,RACE-016,V\nrace,RACE-017,V\nposition,1,100\nposition,2,85\nposition,3,75\nposition,4,70\nposition,5,65\nposition,6,60\nposition,7,56\nposition,8,52\nposition,9,48\nposition,10,45\nposition,11,43\nposition,12,40\nposition,13,37\nposition,14,34\nposition,15,31\nposition,16,28\nposition,17,25\nposition,18,22\nposition,19,19\nposition,20,16\nposition,21,12\nposition,22,12\nposition,23,12\nposition,24,12\nposition,25,12\nposition,26,8\nposition,27,8\nposition,28,8\nposition,29,8\nposition,30,8\ncompetition,standard,100\ncompetition,major,150\ncompetition,world_cup,200\nparticipation,major,10\n";
-
-// raw:src/data/races.csv
-var races_default = `# Race catalog (owner table, 5 November 2026). One row per race. Keep each id once and never rename it (saves use it).
-# category (internal: XP, coin prizes and the rivals' field; not shown): open, trail, mountain or elite.
-# distance_km and elevation_gain_m: whole numbers. recommended_level: the race's level (entry from 5 below to 2 above).
-# technicality: descent technicality 0 (none) to 5 (extreme). terrain: shown on the race (terrain_es, _fr, _it, _de: the same in each language; empty = English).
-# Each race also needs its difficulty (I-V) in ranking_points.csv. Photo (assets/ui/races/RACE-xxx.webp) and clips (assets/race/clips) are optional.
-# After adding a race or changing a recommended level, the NPC rankings need a migration: python3 scripts/ranking_tables_sql.py --points-only.
-# Optional (Trail Studio, 12 November 2026; empty = automatic): min_level and max_level, the entry levels; stop_quick_s, stop_normal_s, stop_slow_s, the seconds of each stop (all three or none);
-# kind (18 November 2026): npc (or empty) for the races players enter, major for a Sunday Major's course (only Majors run it), retired for a race no longer run (kept: saves name it; never delete a race). A race's GPX course, if any, is src/data/courses/RACE-xxx.json (Trail Studio).
-# segments: the course by hand, km:ascent:descent:technicality per segment and | between segments (an aid station between two), e.g. 6.5:420:120:2|5:0:300:3. Then distance_km and elevation_gain_m are their sums.
-id,name,category,distance_km,elevation_gain_m,recommended_level,technicality,terrain,terrain_es,terrain_fr,terrain_it,terrain_de,min_level,max_level,stop_quick_s,stop_normal_s,stop_slow_s,kind,segments
-RACE-001,Forest First Steps,open,4.7,47,3,0,Non-technical forest paths,Caminos de bosque sin dificultad t\xE9cnica,Chemins forestiers sans difficult\xE9 technique,Sentieri nel bosco senza difficolt\xE0 tecniche,Einfache Waldwege,,,,,,,2.4:34:13:0|2.3:13:43:0
-RACE-002,Riverside Trail,open,7.9,136,6,1,"Packed dirt, rolling hills","Tierra compacta, colinas suaves","Terre battue, collines douces","Sterrato compatto, colline dolci","Fester Boden, sanfte H\xFCgel",,,,,,,3.9:115:32:0|4:21:102:1
-RACE-003,Pine Loop Challenge,open,9.8,63,8,1,"Forest trail, short climbs","Sendero de bosque, subidas cortas","Sentier forestier, mont\xE9es courtes","Sentiero nel bosco, salite brevi","Waldpfad, kurze Anstiege",,,,,,,4.9:37:16:1|4.9:26:42:0
-RACE-004,Ridge Runner,mountain,12.1,372,11,2,"Rolling ridges, mixed trail","Crestas onduladas, sendero mixto","Cr\xEAtes vallonn\xE9es, sentier mixte","Creste ondulate, sentiero misto","Wellige Grate, gemischte Pfade",,,,,,,5.6:148:264:2|6.5:224:107:2
-RACE-005,Stone Path Classic,trail,15.1,693,14,3,"Rocky sections, moderate technicality","Tramos rocosos, t\xE9cnica moderada","Passages rocheux, technicit\xE9 mod\xE9r\xE9e","Tratti rocciosi, tecnica moderata","Felsige Abschnitte, mittlere Technik",,,,,,,7.6:323:489:3|7.5:370:204:3
-RACE-006,Wildwood Ascent,trail,17.7,911,18,3,"Sustained climbs, forest terrain","Subidas largas, terreno de bosque","Longues mont\xE9es, terrain forestier","Salite lunghe, terreno boschivo","Lange Anstiege, Waldgel\xE4nde",,,,,,,5.9:407:100:1|5.9:501:216:3|5.9:3:598:1
-RACE-007,Summit Quest,mountain,22.4,1292,21,3,"Steep climbs, rocky descents","Subidas empinadas, bajadas rocosas","Mont\xE9es raides, descentes rocheuses","Salite ripide, discese rocciose","Steile Anstiege, felsige Abstiege",,,,,,,7.2:592:109:1|8:567:423:2|7.2:133:758:3
-RACE-008,Alpine Traverse,mountain,28,1700,25,5,"Alpine paths, technical descents","Senderos alpinos, bajadas t\xE9cnicas","Sentiers alpins, descentes techniques","Sentieri alpini, discese tecniche","Alpine Pfade, technische Abstiege",,,,,,,
-RACE-009,Sky Ridge Ultra,mountain,35,2200,28,3,"Exposed ridges, sustained elevation","Crestas expuestas, altitud sostenida","Cr\xEAtes expos\xE9es, altitude soutenue","Creste esposte, quota costante","Ausgesetzte Grate, viel H\xF6he",,,,,,,
-RACE-010,High Peaks Challenge,elite,42,2800,31,5,Highly technical mountain terrain,Terreno de monta\xF1a muy t\xE9cnico,Terrain de montagne tr\xE8s technique,Terreno di montagna molto tecnico,Sehr technisches Berggel\xE4nde,,,,,,,
-RACE-011,Legends of the Crest,elite,55,3600,40,5,"Long mountain ultra, technical sections","Ultra de monta\xF1a larga, tramos t\xE9cnicos","Long ultra de montagne, passages techniques","Lunga ultra di montagna, tratti tecnici","Langer Bergultra, technische Abschnitte",,,,,,,
-RACE-012,Beyond the Skyline,elite,70,4800,50,5,"Extreme ultra, long climbs and descents","Ultra extrema, subidas y bajadas largas","Ultra extr\xEAme, longues mont\xE9es et descentes","Ultra estrema, lunghe salite e discese","Extremer Ultra, lange Anstiege und Abstiege",,,,,,,
-RACE-013,Granite Spine,elite,44,3000,34,4,"Granite ridges, scrambling near the summit","Crestas de granito, trepadas cerca de la cumbre","Cr\xEAtes de granit, passages d\u2019escalade pr\xE8s du sommet","Creste di granito, passaggi di arrampicata vicino alla vetta","Granitgrate, Kletterpassagen unter dem Gipfel",,,,,,,
-RACE-014,Northern Lakes Ultra,elite,50,3200,37,2,Lake shores and long rolling climbs,Orillas de lagos y subidas largas y onduladas,Bords de lacs et longues mont\xE9es vallonn\xE9es,Rive di laghi e lunghe salite ondulate,"Seeufer und lange, wellige Anstiege",,,,,,,
-RACE-015,Glacier Line,elite,57,3800,43,5,"Glacier moraines, very technical descents","Morrenas glaciares, bajadas muy t\xE9cnicas","Moraines glaciaires, descentes tr\xE8s techniques","Morene glaciali, discese molto tecniche","Gletschermor\xE4nen, sehr technische Abstiege",,,,,,,
-RACE-016,Midnight Traverse,elite,62,4100,45,3,"Night start, long mountain ultra","Salida nocturna, ultra largo de monta\xF1a","D\xE9part de nuit, long ultra en montagne","Partenza notturna, lungo ultra in montagna","Nachtstart, langer Bergultra",,,,,,,
-RACE-017,Crown of the Range,elite,66,4500,47,4,"High mountain ultra, steep rocky passes","Ultra de alta monta\xF1a, collados rocosos empinados","Ultra de haute montagne, cols rocheux raides","Ultra d\u2019alta montagna, valichi rocciosi ripidi","Hochgebirgsultra, steile felsige P\xE4sse",,,,,,,
-`;
-
-// src/domain/races/categories.ts
-var RACE_CATEGORIES = ["open", "trail", "mountain", "elite"];
-function isRaceCategory(value) {
-  return RACE_CATEGORIES.includes(value);
-}
-var PRIZE_BANDS = [
-  { from: 1, to: 1, label: "1st" },
-  { from: 2, to: 2, label: "2nd" },
-  { from: 3, to: 3, label: "3rd" },
-  { from: 4, to: 10, label: "4th\u201310th" },
-  { from: 11, to: null, label: "11th or lower" }
-];
-var GROSS_PRIZES = {
-  open: [100, 70, 50, 25, 10],
-  trail: [300, 210, 150, 75, 30],
-  mountain: [700, 490, 350, 175, 70],
-  elite: [1500, 1050, 750, 375, 150]
-};
-var RACE_XP_BASE = { open: 300, trail: 600, mountain: 1e3, elite: 1800 };
-var RACE_MIN_XP = 18;
-var RACE_XP_BAND_PCT = [100, 70, 50, 25, 10];
-var REWARD_MULTIPLIERS = [
-  { levelDifference: 0, xp: 1, coins: 1 },
-  { levelDifference: 1, xp: 0.75, coins: 0.75 },
-  { levelDifference: 2, xp: 0.4, coins: 0.4 },
-  { levelDifference: 3, xp: 0, coins: 0 }
-];
-
-// src/domain/races/races.ts
-var RACE_LANGUAGES = ["es", "fr", "it", "de"];
-var MAX_TECHNICALITY = 5;
-var MIN_SEGMENTS = 1;
-var MAX_SEGMENTS = 20;
-function courseOf(race) {
-  return {
-    distanceKm: race.distanceKm,
-    elevationGainM: race.elevationGainM,
-    technicality: race.technicality,
-    ...race.segments ? { segments: race.segments.map((s) => ({ ...s })) } : {},
-    ...race.stopS ? { stopS: { ...race.stopS } } : {}
-  };
-}
-function withCourse(race, course) {
-  if (!course) return race;
-  const { segments, stopS, ...totals } = course;
-  const merged = { ...race, ...totals };
-  delete merged.segments;
-  delete merged.stopS;
-  return { ...merged, ...segments ? { segments } : {}, ...stopS ? { stopS } : {} };
-}
-function formatSegments(segments) {
-  return segments.map((s) => `${s.distanceKm}:${s.gainM}:${s.lossM}:${s.technicality}`).join("|");
-}
-function parseSegments(text, where) {
-  const segments = text.split("|").map((part, i) => {
-    const fields = part.split(":");
-    const at = `${where}, segment ${i + 1}`;
-    if (fields.length !== 4) throw new Error(`${at}: write km:ascent:descent:technicality`);
-    const [km, gain, loss, tech] = fields.map((f) => f.trim());
-    const spec = {
-      distanceKm: csvNumber(km, at),
-      gainM: csvInt(gain, at),
-      lossM: csvInt(loss, at),
-      technicality: csvInt(tech, at)
-    };
-    if (!(spec.distanceKm >= 0.5) || Math.round(spec.distanceKm * 10) !== spec.distanceKm * 10) {
-      throw new Error(`${at}: distance must be at least 0.5 km, with at most 1 decimal`);
-    }
-    if (spec.gainM < 0 || spec.lossM < 0) throw new Error(`${at}: ascent and descent cannot be negative`);
-    if (spec.technicality < 0 || spec.technicality > MAX_TECHNICALITY) throw new Error(`${at}: technicality must be 0 to ${MAX_TECHNICALITY}`);
-    if ((spec.gainM + spec.lossM) / (spec.distanceKm * 1e3) > MAX_SEGMENT_GRADIENT) {
-      throw new Error(`${at}: ${spec.gainM} m up and ${spec.lossM} m down do not fit in ${spec.distanceKm} km`);
-    }
-    return spec;
-  });
-  if (segments.length < MIN_SEGMENTS || segments.length > MAX_SEGMENTS) {
-    throw new Error(`${where}: a race has ${MIN_SEGMENTS} to ${MAX_SEGMENTS} segments`);
-  }
-  return segments;
-}
-var MAX_SEGMENT_GRADIENT = 0.4;
-function segmentsDistanceKm(segments) {
-  return Math.round(segments.reduce((sum, s) => sum + s.distanceKm, 0) * 10) / 10;
-}
-function parseRaces(text) {
-  const races = [];
-  const seen = /* @__PURE__ */ new Set();
-  parseCsv(text).forEach((row, i) => {
-    const where = `races.csv row ${i + 1}`;
-    const id = row.id ?? "";
-    if (!/^RACE-\d{3}$/.test(id)) throw new Error(`${where}: id must look like RACE-013`);
-    if (seen.has(id)) throw new Error(`${where}: ${id} is listed twice`);
-    seen.add(id);
-    if (!row.name) throw new Error(`${where}: name is missing`);
-    if (!isRaceCategory(row.category)) throw new Error(`${where}: category must be open, trail, mountain or elite`);
-    if (!row.terrain) throw new Error(`${where}: terrain is missing`);
-    if (row.kind && row.kind !== "npc" && row.kind !== "major" && row.kind !== "retired") throw new Error(`${where}: kind must be npc, major or retired (empty = npc)`);
-    const race = {
-      id,
-      name: row.name,
-      category: row.category,
-      distanceKm: csvNumber(row.distance_km, where),
-      elevationGainM: csvInt(row.elevation_gain_m, where),
-      terrain: row.terrain,
-      recommendedLevel: csvInt(row.recommended_level, where),
-      technicality: csvInt(row.technicality, where)
-    };
-    if (row.kind === "major") race.major = true;
-    if (row.kind === "retired") race.retired = true;
-    if (row.segments) {
-      const segments = parseSegments(row.segments, where);
-      race.segments = segments;
-      const km = segmentsDistanceKm(segments);
-      const gain = segments.reduce((sum, s) => sum + s.gainM, 0);
-      if (Math.abs(km - race.distanceKm) > 0.05 || gain !== race.elevationGainM) {
-        throw new Error(`${where}: distance_km and elevation_gain_m must be the segments' sums (${km} km, ${gain} m)`);
-      }
-      race.technicality = Math.max(...segments.map((s) => s.technicality));
-    }
-    if (race.major && race.segments && race.segments.length < 2) throw new Error(`${where}: a Major's course needs at least 2 segments (an aid station)`);
-    if (row.min_level || row.max_level) {
-      const min = row.min_level ? csvInt(row.min_level, where) : void 0;
-      const max = row.max_level ? csvInt(row.max_level, where) : void 0;
-      if (min !== void 0 && min < 1) throw new Error(`${where}: min_level must be at least 1`);
-      if (min !== void 0 && max !== void 0 && max < min) throw new Error(`${where}: max_level is below min_level`);
-      if (min !== void 0) race.minLevel = min;
-      if (max !== void 0) race.maxLevel = max;
-    }
-    if (row.stop_quick_s || row.stop_normal_s || row.stop_slow_s) {
-      const stopS = { quick: csvInt(row.stop_quick_s, where), normal: csvInt(row.stop_normal_s, where), slow: csvInt(row.stop_slow_s, where) };
-      if (!(stopS.quick >= 0 && stopS.quick <= stopS.normal && stopS.normal <= stopS.slow && stopS.slow <= 3600)) {
-        throw new Error(`${where}: stops must go quick \u2264 normal \u2264 slow, 0 to 3600 seconds (all three, or none)`);
-      }
-      race.stopS = stopS;
-    }
-    if (race.distanceKm < 1) throw new Error(`${where}: distance_km must be at least 1`);
-    if (race.elevationGainM < 0) throw new Error(`${where}: elevation_gain_m cannot be negative`);
-    if (race.recommendedLevel < 1) throw new Error(`${where}: recommended_level must be at least 1`);
-    if (race.technicality < 0 || race.technicality > MAX_TECHNICALITY) {
-      throw new Error(`${where}: technicality must be 0 to ${MAX_TECHNICALITY}`);
-    }
-    const terrains = {};
-    for (const language of RACE_LANGUAGES) {
-      const text2 = row[`terrain_${language}`];
-      if (text2) terrains[language] = text2;
-    }
-    if (Object.keys(terrains).length) race.terrains = terrains;
-    races.push(race);
-  });
-  if (races.length === 0) throw new Error("races.csv: no races");
-  return races.sort((x, y) => x.recommendedLevel - y.recommendedLevel || x.id.localeCompare(y.id));
-}
-var RACES = parseRaces(races_default);
-var NPC_RACES = RACES.filter((race) => !race.major && !race.retired);
-var BY_ID2 = new Map(RACES.map((race) => [race.id, race]));
-function getRace(id) {
-  return BY_ID2.get(id);
-}
-function isRaceId(value) {
-  return typeof value === "string" && BY_ID2.has(value);
-}
 
 // src/domain/ranking/ranking.ts
 var DIFFICULTIES = ["I", "II", "III", "IV", "V"];
@@ -1512,51 +1901,6 @@ function getRewardMultiplier(race, level) {
   return { levelDifference, xp: row.xp, coins: row.coins };
 }
 
-// src/domain/races/simulationConfig.ts
-var RACE_SIMULATION = {
-  /** Share of the distance spent climbing, and the same again descending. */
-  climbShare: { open: 0.2, trail: 0.3, mountain: 0.35, elite: 0.38 },
-  /** No single climb gains more than this. */
-  maxGainPerClimbM: 600,
-  /** Courses steeper than this on average in any segment are invalid catalog data. */
-  maxAverageGradient: 0.4,
-  /** Minutes per effort-km for ability 20, Fitness 50, Fatigue 0, fresh. */
-  basePaceMinPerEffortKm: 6,
-  /** Ability (and Consistency) at which a factor is neutral, and the curve exponent. */
-  abilityReference: 20,
-  abilityExponent: 0.35,
-  /** Climbs at or above this gradient use the climb ability only. */
-  climbWeightFullGradient: 0.2,
-  /**
-   * Extra descent time per technicality level (0–5), reduced by the Technical attribute. 0.072 on
-   * the 0–5 scale (owner decision, 5 November 2026) is the same 0.36 at the top as 0.12 × 3 was on
-   * the earlier 0–3 scale.
-   */
-  technicalPenaltyPerLevel: 0.072,
-  /** Slowdown over distance, reduced by durability. */
-  slowdownRate: 0.25,
-  slowdownReferenceEffortKm: 50,
-  fitnessSlope: 0.2,
-  fatigueSlope: 0.3,
-  /** The athlete plus 49 rivals. */
-  fieldSize: 50,
-  /** Rival times relative to the reference: fastest + spread × q^exponent. */
-  rivalFastest: 0.85,
-  rivalSpread: 0.4,
-  rivalExponent: 1.3,
-  /** Fatigue of the reference athlete. */
-  referenceFatigue: 20,
-  /** Maximum day form (D1), narrowed by Consistency. */
-  dayFormMax: 0.04,
-  /** Effects smaller than this share of the finishing time are not shown as explanations. */
-  explanationMinShare: 5e-3,
-  /** Number of explanation factors shown. */
-  explanationCount: 3,
-  /** Fatigue added by a race (D3): round(base + perEffortKm × effort-km). */
-  raceFatigueBase: 6,
-  raceFatiguePerEffortKm: 0.6
-};
-
 // src/domain/training/injury.ts
 var INJURY_FATIGUE_THRESHOLD = 95;
 var INJURY_FITNESS_LOSS = 15;
@@ -1771,202 +2115,6 @@ function parseRaceField(text) {
   return table;
 }
 var RACE_FIELD = parseRaceField(race_field_default);
-
-// src/game-engine/raceSimulation.ts
-var InvalidCourseError = class extends Error {
-};
-function splitEvenly(total, parts) {
-  const base = Math.floor(total / parts);
-  const remainder = total - base * parts;
-  return Array.from({ length: parts }, (_, i) => base + (i < remainder ? 1 : 0));
-}
-function generateCourse(race) {
-  if (race.segments) return race.segments.flatMap((spec, i) => specCourse(spec, `${race.id} segment ${i + 1}`));
-  const distanceM = Math.round(race.distanceKm * 1e3);
-  const gainM = race.elevationGainM;
-  if (!Number.isInteger(gainM) || gainM < 0 || distanceM <= 0) {
-    throw new InvalidCourseError(`${race.id}: invalid distance or gain`);
-  }
-  if (gainM === 0) return [{ type: "runnable", lengthM: distanceM, gainM: 0, lossM: 0, technicality: 0 }];
-  const climbs = Math.ceil(gainM / RACE_SIMULATION.maxGainPerClimbM);
-  const climbTotalM = Math.round(RACE_SIMULATION.climbShare[race.category] * distanceM);
-  const runnableTotalM = distanceM - 2 * climbTotalM;
-  const climbLengths = splitEvenly(climbTotalM, climbs);
-  const descentLengths = splitEvenly(climbTotalM, climbs);
-  const runnableLengths = splitEvenly(runnableTotalM, climbs + 1);
-  const gains = splitEvenly(gainM, climbs);
-  const segments = [];
-  for (let i = 0; i < climbs; i++) {
-    segments.push({ type: "runnable", lengthM: runnableLengths[i], gainM: 0, lossM: 0, technicality: 0 });
-    segments.push({ type: "climb", lengthM: climbLengths[i], gainM: gains[i], lossM: 0, technicality: 0 });
-    segments.push({
-      type: "descent",
-      lengthM: descentLengths[i],
-      gainM: 0,
-      lossM: gains[i],
-      technicality: race.technicality
-    });
-  }
-  segments.push({ type: "runnable", lengthM: runnableLengths[climbs], gainM: 0, lossM: 0, technicality: 0 });
-  for (const s of segments) {
-    if (!(s.lengthM > 0)) throw new InvalidCourseError(`${race.id}: non-positive ${s.type} segment`);
-    if ((s.gainM + s.lossM) / s.lengthM > RACE_SIMULATION.maxAverageGradient) {
-      throw new InvalidCourseError(`${race.id}: gradient above ${RACE_SIMULATION.maxAverageGradient * 100}%`);
-    }
-  }
-  return segments;
-}
-var SPEC_GRADIENT = 0.15;
-function specCourse(spec, where) {
-  const lengthM = Math.round(spec.distanceKm * 1e3);
-  const wanted = (spec.gainM + spec.lossM) / SPEC_GRADIENT;
-  const scale = wanted > lengthM ? lengthM / wanted : 1;
-  const climbM = spec.gainM > 0 ? Math.max(1, Math.round(spec.gainM / SPEC_GRADIENT * scale)) : 0;
-  const descentM = spec.lossM > 0 ? Math.max(1, Math.min(lengthM - climbM, Math.round(spec.lossM / SPEC_GRADIENT * scale))) : 0;
-  const runnableM = lengthM - climbM - descentM;
-  const before = Math.floor(runnableM / 2);
-  const blocks = [
-    { type: "runnable", lengthM: before, gainM: 0, lossM: 0, technicality: 0 },
-    { type: "climb", lengthM: climbM, gainM: spec.gainM, lossM: 0, technicality: 0 },
-    { type: "descent", lengthM: descentM, gainM: 0, lossM: spec.lossM, technicality: spec.technicality },
-    { type: "runnable", lengthM: runnableM - before, gainM: 0, lossM: 0, technicality: 0 }
-  ].filter((b) => b.lengthM > 0);
-  for (const b of blocks) {
-    if ((b.gainM + b.lossM) / b.lengthM > RACE_SIMULATION.maxAverageGradient + 1e-9) throw new InvalidCourseError(`${where}: gradient above ${RACE_SIMULATION.maxAverageGradient * 100}%`);
-  }
-  return blocks;
-}
-function effortKm(segment) {
-  return segment.lengthM / 1e3 + segment.gainM / 100;
-}
-function courseEffortKm(course) {
-  return course.reduce((sum, s) => sum + effortKm(s), 0);
-}
-var runnableAbility = (a) => 0.75 * a.speed + 0.25 * a.endurance;
-var climbAbility = (a) => 0.7 * a.climbing + 0.3 * a.endurance;
-var technicalDescentAbility = (a) => 0.7 * a.technical + 0.3 * a.speed;
-var durability = (a) => 0.6 * a.endurance + 0.4 * a.recovery;
-function segmentAbility(segment, a) {
-  if (segment.type === "climb") {
-    const w = Math.min(1, segment.gainM / segment.lengthM / RACE_SIMULATION.climbWeightFullGradient);
-    return w * climbAbility(a) + (1 - w) * runnableAbility(a);
-  }
-  if (segment.type === "descent") {
-    const t = segment.technicality / MAX_TECHNICALITY;
-    return t * technicalDescentAbility(a) + (1 - t) * runnableAbility(a);
-  }
-  return runnableAbility(a);
-}
-function prepareRunner(athlete) {
-  const gear = getRaceEffect(athlete.equipment ?? []);
-  const a = Object.fromEntries(
-    ATTRIBUTE_IDS.map((id) => [id, athlete.attributes[id] + gear.attributes[id]])
-  );
-  return {
-    attributes: a,
-    gear,
-    fitnessFactor: 1 + RACE_SIMULATION.fitnessSlope * (50 - athlete.fitness) / 50,
-    fatigueScale: Math.pow(RACE_SIMULATION.abilityReference / a.consistency, RACE_SIMULATION.abilityExponent),
-    durabilityScore: durability(a)
-  };
-}
-function blockMinutes(runner, s, effortBefore, fatigue, dayForm = 0) {
-  const { attributes: a, gear } = runner;
-  const fatigueFactor = 1 + RACE_SIMULATION.fatigueSlope * fatigue * runner.fatigueScale / 100;
-  const e = effortKm(s);
-  const abilityFactor = Math.pow(RACE_SIMULATION.abilityReference / segmentAbility(s, a), RACE_SIMULATION.abilityExponent);
-  const technicalFactor = s.type === "descent" ? (
-    // Technical 100 or more removes the penalty; it never turns into a bonus (no attribute cap).
-    1 + RACE_SIMULATION.technicalPenaltyPerLevel * gear.technicalPenalty * s.technicality * Math.max(0, 1 - a.technical / 100)
-  ) : 1;
-  const slowdown = 1 + RACE_SIMULATION.slowdownRate * gear.slowdown * (effortBefore / RACE_SIMULATION.slowdownReferenceEffortKm) * (RACE_SIMULATION.abilityReference / runner.durabilityScore);
-  const gearFactor = s.type === "climb" ? gear.climb : s.type === "descent" ? gear.descent : gear.runnable;
-  return e * RACE_SIMULATION.basePaceMinPerEffortKm * abilityFactor * technicalFactor * slowdown * gearFactor * runner.fitnessFactor * fatigueFactor * (1 + dayForm);
-}
-function raceSeconds(course, athlete, dayForm = 0) {
-  const runner = prepareRunner(athlete);
-  let minutes = 0;
-  let effortBefore = 0;
-  for (const s of course) {
-    minutes += blockMinutes(runner, s, effortBefore, athlete.fatigue, dayForm);
-    effortBefore += effortKm(s);
-  }
-  return minutes * 60;
-}
-function referenceAthlete(recommendedLevel) {
-  const value = 16 + (recommendedLevel - 1) / 3;
-  return {
-    attributes: Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, value])),
-    // Reaches Fitness 90 at level 30 (owner decision, 29 October 2026, for levels up to 50).
-    fitness: Math.min(90, 25 + 65 * (recommendedLevel - 1) / 29),
-    fatigue: RACE_SIMULATION.referenceFatigue
-  };
-}
-function fnv1a(text) {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  return h >>> 0;
-}
-function mulberry32(seed) {
-  let t = seed + 1831565813 >>> 0;
-  t = Math.imul(t ^ t >>> 15, t | 1);
-  t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-  return ((t ^ t >>> 14) >>> 0) / 4294967296;
-}
-function getDayForm(raceId, entryId, enteredAt, consistency) {
-  const u = mulberry32(fnv1a(`${raceId}|${entryId}|${enteredAt}`));
-  return (2 * u - 1) * RACE_SIMULATION.dayFormMax * (1 - consistency / 100);
-}
-function explainRace(race, athlete, dayForm = 0) {
-  const course = generateCourse(race);
-  const reference = referenceAthlete(race.recommendedLevel);
-  const actual = raceSeconds(course, athlete, dayForm);
-  const referenceTime = raceSeconds(course, reference);
-  const candidates = [];
-  for (const id of ["fitness", "fatigue"]) {
-    const swapped = raceSeconds(course, { ...athlete, [id]: reference[id] }, dayForm);
-    candidates.push({ id, value: athlete[id], reference: reference[id], effectS: Math.round(actual - swapped) });
-  }
-  for (const id of ATTRIBUTE_IDS) {
-    const swapped = raceSeconds(
-      course,
-      { ...athlete, attributes: { ...athlete.attributes, [id]: reference.attributes[id] } },
-      dayForm
-    );
-    candidates.push({
-      id,
-      value: athlete.attributes[id],
-      reference: reference.attributes[id],
-      effectS: Math.round(actual - swapped)
-    });
-  }
-  if (athlete.equipment?.length) {
-    candidates.push({
-      id: "equipment",
-      value: athlete.equipment.length,
-      reference: 0,
-      effectS: Math.round(actual - raceSeconds(course, { ...athlete, equipment: [] }, dayForm))
-    });
-  }
-  if (dayForm !== 0) {
-    candidates.push({
-      id: "day-form",
-      value: dayForm,
-      reference: 0,
-      effectS: Math.round(actual - raceSeconds(course, athlete))
-    });
-  }
-  const minimum = actual * RACE_SIMULATION.explanationMinShare;
-  const factors = candidates.filter((f) => Math.abs(f.effectS) >= minimum && f.effectS !== 0).sort((x, y) => Math.abs(y.effectS) - Math.abs(x.effectS)).slice(0, RACE_SIMULATION.explanationCount);
-  return {
-    referenceTimeS: Math.round(referenceTime),
-    gapS: Math.round(actual) - Math.round(referenceTime),
-    factors
-  };
-}
 
 // src/game-engine/raceEngine.ts
 function getSegmentCount(race) {
@@ -2360,6 +2508,18 @@ function previewSession(state, session) {
   if (rules.attribute) outcome.attributeGain = { attribute: rules.attribute, amount: ATTRIBUTE_GAIN_PER_SESSION };
   return outcome;
 }
+function withShoeInjury(state, session, outcome, now, wear) {
+  if (session === "rest" || outcome.injured) return outcome;
+  const risk = shoeInjuryRiskPct(state, wear);
+  if (!(risk > 0) || shoeInjuryDraw(now, state.week.number, state.week.currentDayIndex) >= risk) return outcome;
+  return {
+    xpGained: 0,
+    fitnessChange: statChange(state.athlete.fitness, -INJURY_FITNESS_LOSS),
+    fatigueChange: outcome.fatigueChange,
+    injured: true,
+    injuryCause: "worn-shoes"
+  };
+}
 function forceRest(week, fromIndex, count) {
   return {
     ...week,
@@ -2388,15 +2548,15 @@ function planSession(state, ref, session) {
   );
   return { ok: true, value: { ...state, week: { ...state.week, days } } };
 }
-function executeCurrentDay(state, ref, now) {
+function executeCurrentDay(state, ref, now, wear = WEAR) {
   const error = checkDay(state, ref);
   if (error) return { ok: false, error };
   if (isRaceDayToday(state)) return { ok: false, error: "race-day" };
   const day = getCurrentDay(state.week);
-  const outcome = previewSession(state, day.session);
+  const outcome = withShoeInjury(state, day.session, previewSession(state, day.session), now, wear);
   const levelBefore = getLevel(state.athlete.xp);
   const advanced = completeCurrentDay(state, outcome, day.session !== "rest", now);
-  const rewarded = applyAchievementRewards(advanced.state);
+  const rewarded = applyAchievementRewards(applyWear(advanced.state, wear.sessionKm[day.session], wear));
   const levelAfter = getLevel(rewarded.state.athlete.xp);
   return {
     ok: true,
@@ -2463,7 +2623,7 @@ function getPendingEntry(state, raceId) {
 function getEntry(state, entryId) {
   return state.raceEntries.find((entry) => entry.id === entryId);
 }
-function enterRace(state, raceId, now) {
+function enterRace(state, raceId, now, wear = WEAR) {
   const race = getRace(raceId);
   if (!race || race.major || race.retired) return { ok: false, error: "unknown-race" };
   if (getPendingEntry(state, raceId)) return { ok: false, error: "already-entered" };
@@ -2471,6 +2631,8 @@ function enterRace(state, raceId, now) {
   const level = getLevel(state.athlete.xp);
   if (level < getMinimumLevel(race)) return { ok: false, error: "level-too-low" };
   if (!canEnterAtLevel(race, level)) return { ok: false, error: "level-too-high" };
+  const gearError = raceGearError(state, wear);
+  if (gearError) return { ok: false, error: gearError };
   const entry = {
     id: `entry-${state.raceEntries.length + 1}`,
     raceId,
@@ -2480,7 +2642,7 @@ function enterRace(state, raceId, now) {
     enteredAt: now,
     status: "pending"
   };
-  return { ok: true, entry, state: { ...state, raceEntries: [...state.raceEntries, entry] } };
+  return { ok: true, entry, state: { ...state, raceEntries: [...state.raceEntries, entry] }, shoes: shoesStatus(state, wear) };
 }
 function getPrizeBand(position) {
   const index = PRIZE_BANDS.findIndex((band) => position >= band.from && (band.to === null || position <= band.to));
@@ -2514,7 +2676,7 @@ function contextOf(active, race, field = fieldOf(active, race)) {
     nutrition: active.nutrition
   };
 }
-function startRace(state, ref, entryId, decisions, now) {
+function startRace(state, ref, entryId, decisions, now, wear = WEAR) {
   if (state.activeRace) return { ok: false, error: "race-in-progress" };
   const dayError = checkDay(state, ref);
   if (dayError) return { ok: false, error: dayError };
@@ -2532,6 +2694,8 @@ function startRace(state, ref, entryId, decisions, now) {
   if (!isIntensity(decisions.intensity)) return { ok: false, error: "unknown-intensity" };
   if (decisions.gel && state.consumables.gel < 1) return { ok: false, error: "no-gel" };
   if (decisions.bar && state.consumables.bar < 1) return { ok: false, error: "no-bar" };
+  const gearError = raceGearError(state, wear);
+  if (gearError) return { ok: false, error: gearError };
   const { athlete } = state;
   const nutrition = { gel: decisions.gel === true, bar: decisions.bar === true };
   const base = {
@@ -2569,7 +2733,7 @@ function toProgress(active) {
 function withProgress(active, progress) {
   return { ...active, elapsedS: progress.elapsedS, inRaceFatigue: progress.fatigue, splits: progress.splits };
 }
-function stepRace(state, decisions, now) {
+function stepRace(state, decisions, now, wear = WEAR) {
   const active = state.activeRace;
   if (!active) return { ok: false, error: "no-race-in-progress" };
   const race = raceOfActive(active);
@@ -2579,7 +2743,7 @@ function stepRace(state, decisions, now) {
   if (!isIntensity(decisions.intensity)) return { ok: false, error: "unknown-intensity" };
   const field = fieldOf(active, race);
   if (active.splits.length >= field.segments.length) {
-    return { ok: true, value: { finished: true, value: finishRace(state, active, race, field, now) } };
+    return { ok: true, value: { finished: true, value: finishRace(state, active, race, field, now, wear) } };
   }
   const ctx = contextOf(active, race, field);
   const progress = runSegment(ctx, makeStop(ctx, toProgress(active), decisions.stop), decisions.intensity);
@@ -2587,9 +2751,9 @@ function stepRace(state, decisions, now) {
   if (progress.splits.length < field.segments.length) {
     return { ok: true, value: { finished: false, state: { ...state, activeRace: next } } };
   }
-  return { ok: true, value: { finished: true, value: finishRace({ ...state, activeRace: next }, next, race, field, now) } };
+  return { ok: true, value: { finished: true, value: finishRace({ ...state, activeRace: next }, next, race, field, now, wear) } };
 }
-function finishRace(state, active, race, field, now) {
+function finishRace(state, active, race, field, now, wear) {
   const entry = getEntry(state, active.entryId);
   const last = active.splits[active.splits.length - 1];
   const timeS = last.arrivalS;
@@ -2644,10 +2808,11 @@ function finishRace(state, active, race, field, now) {
   };
   const finished2 = { ...entry, status: "finished", result };
   const advanced = completeCurrentDay({ ...state, activeRace: null }, outcome, true, now);
+  const worn = applyWear(advanced.state, race.distanceKm, wear, active.equipment);
   const rewarded = applyAchievementRewards({
-    ...advanced.state,
-    coins: advanced.state.coins + rewards.coinsAwarded,
-    raceEntries: advanced.state.raceEntries.map((e) => e.id === entry.id ? finished2 : e)
+    ...worn,
+    coins: worn.coins + rewards.coinsAwarded,
+    raceEntries: worn.raceEntries.map((e) => e.id === entry.id ? finished2 : e)
   });
   const nextState = rewarded.state;
   const levelAfter = getLevel(nextState.athlete.xp);
@@ -2685,7 +2850,7 @@ function isAttributeGain(value) {
   return value === void 0 || isRecord(value) && isAttributeId(value.attribute) && isHundredths(value.amount, 0, 1);
 }
 function isOutcome(value) {
-  return isRecord(value) && isInt(value.xpGained, 0) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isAttributeGain(value.attributeGain) && (value.consistencyGain === void 0 || isHundredths(value.consistencyGain, 0, 1)) && (value.injured === void 0 || typeof value.injured === "boolean") && (value.raceEntryId === void 0 || typeof value.raceEntryId === "string" && value.raceEntryId.length > 0);
+  return isRecord(value) && isInt(value.xpGained, 0) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isAttributeGain(value.attributeGain) && (value.consistencyGain === void 0 || isHundredths(value.consistencyGain, 0, 1)) && (value.injured === void 0 || typeof value.injured === "boolean") && (value.injuryCause === void 0 || value.injuryCause === "worn-shoes") && (value.raceEntryId === void 0 || typeof value.raceEntryId === "string" && value.raceEntryId.length > 0);
 }
 function isTrainingDay(value, index, currentDayIndex) {
   if (!isRecord(value) || value.day !== index + 1 || !isSessionType(value.session)) return false;
@@ -2887,6 +3052,15 @@ function parseGameState(value, now) {
     if (!camp) return null;
     parsed.camp = camp;
   }
+  if (value.wear !== void 0) {
+    const wear = value.wear;
+    if (!isRecord(wear) || !Object.entries(wear).every(
+      ([id, used]) => parsed.ownedEquipment.includes(id) && wears(getEquipmentItem(id)) && isFiniteNumber(used) && used >= 0 && used <= 1
+    )) {
+      return null;
+    }
+    parsed.wear = { ...wear };
+  }
   parsed.achievementLevelsRewarded = rewarded === void 0 ? getReachedLevels(parsed) : { ...rewarded };
   const coach = parseCoachProgress(value.coach);
   if (coach) parsed.coach = coach;
@@ -2917,7 +3091,7 @@ function majorPrize(race, position) {
 function majorEntryId(eventId) {
   return `major-${eventId}`;
 }
-function applyMajorReward(state, payload) {
+function applyMajorReward(state, payload, wear = WEAR) {
   const id = majorEntryId(payload.eventId);
   if (state.raceEntries.some((entry2) => entry2.id === id)) return null;
   const race = getRace(payload.raceId);
@@ -2976,8 +3150,9 @@ function applyMajorReward(state, payload) {
     result
   };
   const levelBefore = getLevel(athlete.xp);
+  const worn = applyWear(state, race.distanceKm, wear, payload.equipment);
   const rewarded = applyAchievementRewards({
-    ...state,
+    ...worn,
     coins: state.coins + prize.coins,
     consumables: {
       gel: Math.max(0, state.consumables.gel - (payload.nutrition.gel ? 1 : 0)),
@@ -3068,6 +3243,9 @@ async function markMajorRewards(deps, rewards) {
   } catch {
   }
 }
+function gearOf(state) {
+  return wearOn() ? { gear: gearStatus(state) } : {};
+}
 function compute(request, career, now) {
   switch (request.action) {
     case "train": {
@@ -3081,7 +3259,7 @@ function compute(request, career, now) {
       const executed = executeCurrentDay(state, request.ref, now);
       if (!executed.ok) return { ok: false, error: executed.error };
       const { state: next, ...result } = executed.value;
-      return { ok: true, state: next, result: { ...result } };
+      return { ok: true, state: next, result: { ...result, ...gearOf(next) } };
     }
     case "race-start": {
       const decisions = { intensity: request.intensity, gel: request.gel, bar: request.bar };
@@ -3095,7 +3273,7 @@ function compute(request, career, now) {
       if (!stepped.ok) return { ok: false, error: stepped.error };
       if (!stepped.value.finished) return { ok: true, state: stepped.value.state, result: { finished: false } };
       const { state: next, ...result } = stepped.value.value;
-      return { ok: true, state: next, result: { finished: true, ...result } };
+      return { ok: true, state: next, result: { finished: true, ...result, ...gearOf(next) } };
     }
     case "allocate": {
       const allocated = allocateAttributePoint(career, request.attribute, request.expectedSpent);
@@ -3115,7 +3293,7 @@ function compute(request, career, now) {
     case "enter-race": {
       const entered = enterRace(career, request.raceId, now);
       if (!entered.ok) return { ok: false, error: entered.error };
-      return { ok: true, state: entered.state, result: { entry: entered.entry } };
+      return { ok: true, state: entered.state, result: { entry: entered.entry, ...wearOn() ? { shoes: entered.shoes } : {} } };
     }
     case "camp-buy": {
       const bought = buyCampItem(career, request.itemId, { price: request.price, currency: request.currency });

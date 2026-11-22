@@ -28,6 +28,8 @@ import { planRest, runRest, type RaceStyle } from './racePlan'
 import { getScheduledEntry, RACE_DAY_INDEX } from './raceSchedule'
 import { courseEffortKm, explainRace, generateCourse, getDayForm, rivalTimes } from './raceSimulation'
 import { checkDay, completeCurrentDay, statChange, type DayRef, type TrainingError } from './training'
+import { WEAR, type WearConfig, type WearStatus } from '../domain/equipment/wear'
+import { applyWear, raceGearError, shoesStatus, type RaceGearError } from './wear'
 
 export type RaceEntryError =
   | 'unknown-race'
@@ -39,7 +41,14 @@ export type RaceEntryError =
   | 'level-too-low'
   | 'level-too-high'
 
-export type RaceEntryResult = { ok: true; state: GameState; entry: RaceEntry } | { ok: false; error: RaceEntryError }
+/**
+ * `shoes`: the wear of the equipped shoes when wear is on (their band, durability and km left), for
+ * the race consequences (B-6b) and the screens (A-5).
+ */
+export type RaceEntryResult =
+  | { ok: true; state: GameState; entry: RaceEntry; shoes: WearStatus | null }
+  /** Equipment wear (22 November 2026): no shoes equipped, or shoes with no life left (A-5 shows them). */
+  | { ok: false; error: RaceEntryError | RaceGearError }
 
 export function getPendingEntry(state: GameState, raceId: string): PendingRaceEntry | undefined {
   return state.raceEntries.find(
@@ -62,7 +71,7 @@ export function getEntry(state: GameState, entryId: string): RaceEntry | undefin
  * race's minimum (2 below its recommended level). A repeated request is rejected because the race
  * already has a pending entry. Coins never change.
  */
-export function enterRace(state: GameState, raceId: string, now: number): RaceEntryResult {
+export function enterRace(state: GameState, raceId: string, now: number, wear: WearConfig = WEAR): RaceEntryResult {
   const race = getRace(raceId)
   // A Major's course is not entered here (only its Sunday Major runs it), nor a retired race.
   if (!race || race.major || race.retired) return { ok: false, error: 'unknown-race' }
@@ -71,6 +80,8 @@ export function enterRace(state: GameState, raceId: string, now: number): RaceEn
   const level = getLevel(state.athlete.xp)
   if (level < getMinimumLevel(race)) return { ok: false, error: 'level-too-low' }
   if (!canEnterAtLevel(race, level)) return { ok: false, error: 'level-too-high' }
+  const gearError = raceGearError(state, wear)
+  if (gearError) return { ok: false, error: gearError }
 
   const entry: RaceEntry = {
     id: `entry-${state.raceEntries.length + 1}`,
@@ -81,7 +92,7 @@ export function enterRace(state: GameState, raceId: string, now: number): RaceEn
     enteredAt: now,
     status: 'pending',
   }
-  return { ok: true, entry, state: { ...state, raceEntries: [...state.raceEntries, entry] } }
+  return { ok: true, entry, state: { ...state, raceEntries: [...state.raceEntries, entry] }, shoes: shoesStatus(state, wear) }
 }
 
 /** Position band index into `PRIZE_BANDS`. */
@@ -217,7 +228,9 @@ export function startRace(
   entryId: string,
   decisions: RaceStartDecisions,
   now: number,
-): { ok: true; state: GameState } | { ok: false; error: RaceStartError } {
+  wear: WearConfig = WEAR,
+  // Equipment wear: the shoes are checked again at the start (training may have worn them).
+): { ok: true; state: GameState } | { ok: false; error: RaceStartError | RaceGearError } {
   if (state.activeRace) return { ok: false, error: 'race-in-progress' }
   const dayError = checkDay(state, ref)
   if (dayError) return { ok: false, error: dayError }
@@ -238,6 +251,8 @@ export function startRace(
   if (!isIntensity(decisions.intensity)) return { ok: false, error: 'unknown-intensity' }
   if (decisions.gel && state.consumables.gel < 1) return { ok: false, error: 'no-gel' }
   if (decisions.bar && state.consumables.bar < 1) return { ok: false, error: 'no-bar' }
+  const gearError = raceGearError(state, wear)
+  if (gearError) return { ok: false, error: gearError }
 
   const { athlete } = state
   const nutrition: Nutrition = { gel: decisions.gel === true, bar: decisions.bar === true }
@@ -287,6 +302,7 @@ export function stepRace(
   state: GameState,
   decisions: RaceStepDecisions,
   now: number,
+  wear: WearConfig = WEAR,
 ): { ok: true; value: RaceStepOutcome } | { ok: false; error: RaceStepError } {
   const active = state.activeRace
   if (!active) return { ok: false, error: 'no-race-in-progress' }
@@ -300,7 +316,7 @@ export function stepRace(
   // A race without aid stations (one segment, owner request 19 November 2026) was run whole at the
   // start: the step only crosses the finish.
   if (active.splits.length >= field.segments.length) {
-    return { ok: true, value: { finished: true, value: finishRace(state, active, race, field, now) } }
+    return { ok: true, value: { finished: true, value: finishRace(state, active, race, field, now, wear) } }
   }
   const ctx = contextOf(active, race, field)
   const progress = runSegment(ctx, makeStop(ctx, toProgress(active), decisions.stop), decisions.intensity)
@@ -308,11 +324,11 @@ export function stepRace(
   if (progress.splits.length < field.segments.length) {
     return { ok: true, value: { finished: false, state: { ...state, activeRace: next } } }
   }
-  return { ok: true, value: { finished: true, value: finishRace({ ...state, activeRace: next }, next, race, field, now) } }
+  return { ok: true, value: { finished: true, value: finishRace({ ...state, activeRace: next }, next, race, field, now, wear) } }
 }
 
 /** Applies the finish: the existing rewards, Fatigue and injury rules, the result and the day. */
-function finishRace(state: GameState, active: ActiveRace, race: Race, field: RaceField, now: number): RaceDayResult {
+function finishRace(state: GameState, active: ActiveRace, race: Race, field: RaceField, now: number, wear: WearConfig): RaceDayResult {
   const entry = getEntry(state, active.entryId) as PendingRaceEntry
   const last = active.splits[active.splits.length - 1]!
   const timeS = last.arrivalS
@@ -377,10 +393,12 @@ function finishRace(state: GameState, active: ActiveRace, race: Race, field: Rac
 
   // A race is an active day: a Rest the next day is a recovery Rest. It also resets decay (D3).
   const advanced = completeCurrentDay({ ...state, activeRace: null }, outcome, true, now)
+  // The gear worn in the race wears by the race's distance (equipment wear, 22 November 2026).
+  const worn = applyWear(advanced.state, race.distanceKm, wear, active.equipment)
   const rewarded = applyAchievementRewards({
-    ...advanced.state,
-    coins: advanced.state.coins + rewards.coinsAwarded,
-    raceEntries: advanced.state.raceEntries.map((e) => (e.id === entry.id ? finished : e)),
+    ...worn,
+    coins: worn.coins + rewards.coinsAwarded,
+    raceEntries: worn.raceEntries.map((e) => (e.id === entry.id ? finished : e)),
   })
   const nextState: GameState = rewarded.state
   const levelAfter = getLevel(nextState.athlete.xp)
@@ -410,12 +428,13 @@ export function raceCurrentDay(
   ref: DayRef,
   entryId: string,
   now: number,
-): { ok: true; value: RaceDayResult } | { ok: false; error: RaceStartError } {
-  const started = startRace(state, ref, entryId, { intensity: DEFAULT_PLAN.intensity, gel: false, bar: false }, now)
+  wear: WearConfig = WEAR,
+): { ok: true; value: RaceDayResult } | { ok: false; error: RaceStartError | RaceGearError } {
+  const started = startRace(state, ref, entryId, { intensity: DEFAULT_PLAN.intensity, gel: false, bar: false }, now, wear)
   if (!started.ok) return started
   let current = started.state
   for (;;) {
-    const step = stepRace(current, { segment: current.activeRace!.splits.length, ...DEFAULT_PLAN }, now)
+    const step = stepRace(current, { segment: current.activeRace!.splits.length, ...DEFAULT_PLAN }, now, wear)
     if (!step.ok) throw new Error(step.error)
     if (step.value.finished) return { ok: true, value: step.value.value }
     current = step.value.state

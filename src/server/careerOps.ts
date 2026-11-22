@@ -14,6 +14,8 @@ import { enterRace, startRace, stepRace } from '../game-engine/races'
 import { executeCurrentDay, planSession, type DayRef } from '../game-engine/training'
 import { parseGameState, SCHEMA_VERSION } from '../repositories/gameRepository'
 import { applyMajorReward, type MajorRewardPayload } from '../game-engine/majorRewards'
+import { wearOn } from '../domain/equipment/wear'
+import { gearStatus } from '../game-engine/wear'
 
 /**
  * Server-authoritative career operations, run in the Supabase Edge Function `career-ops`.
@@ -229,6 +231,11 @@ type Computation =
   | { ok: true; state: GameState; result?: Record<string, unknown> }
   | { ok: false; error: string }
 
+/** Equipment wear (B-6a): the wear of every owned item that wears, with the result, when wear is on. */
+function gearOf(state: GameState): { gear?: ReturnType<typeof gearStatus> } {
+  return wearOn() ? { gear: gearStatus(state) } : {}
+}
+
 /** The engine step of each progression operation, on the server's (decayed) career. */
 function compute(request: CareerOpRequest, career: GameState, now: number): Computation {
   switch (request.action) {
@@ -243,7 +250,7 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       const executed = executeCurrentDay(state, request.ref, now)
       if (!executed.ok) return { ok: false, error: executed.error }
       const { state: next, ...result } = executed.value
-      return { ok: true, state: next, result: { ...result } }
+      return { ok: true, state: next, result: { ...result, ...gearOf(next) } }
     }
     case 'race-start': {
       const decisions = { intensity: request.intensity, gel: request.gel, bar: request.bar }
@@ -257,7 +264,7 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       if (!stepped.ok) return { ok: false, error: stepped.error }
       if (!stepped.value.finished) return { ok: true, state: stepped.value.state, result: { finished: false } }
       const { state: next, ...result } = stepped.value.value
-      return { ok: true, state: next, result: { finished: true, ...result } }
+      return { ok: true, state: next, result: { finished: true, ...result, ...gearOf(next) } }
     }
     case 'allocate': {
       const allocated = allocateAttributePoint(career, request.attribute, request.expectedSpent)
@@ -277,7 +284,7 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
     case 'enter-race': {
       const entered = enterRace(career, request.raceId, now)
       if (!entered.ok) return { ok: false, error: entered.error }
-      return { ok: true, state: entered.state, result: { entry: entered.entry } }
+      return { ok: true, state: entered.state, result: { entry: entered.entry, ...(wearOn() ? { shoes: entered.shoes } : {}) } }
     }
     case 'camp-buy': {
       const bought = buyCampItem(career, request.itemId, { price: request.price, currency: request.currency })

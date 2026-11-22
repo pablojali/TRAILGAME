@@ -1,0 +1,10 @@
+# Equipment wear (owner decision, 22 November 2026): the km each training session wears the equipped gear by.
+# Races wear it by their own distance. Starting proposal, for the owner to change. Every session type has one row.
+session,km
+easy-run,8
+intervals,6
+hills,6
+long-run,18
+trail-technique,4
+strength,0
+rest,0

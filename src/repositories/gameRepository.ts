@@ -1,3 +1,4 @@
+import { wears } from '../domain/equipment/wear'
 import { ACHIEVEMENT_IDS, getReachedLevels } from '../game-engine/achievements'
 import {
   ATTRIBUTE_IDS,
@@ -127,6 +128,7 @@ function isOutcome(value: unknown): value is DayOutcome {
     isAttributeGain(value.attributeGain) &&
     (value.consistencyGain === undefined || isHundredths(value.consistencyGain, 0, 1)) &&
     (value.injured === undefined || typeof value.injured === 'boolean') &&
+    (value.injuryCause === undefined || value.injuryCause === 'worn-shoes') &&
     (value.raceEntryId === undefined || (typeof value.raceEntryId === 'string' && value.raceEntryId.length > 0))
   )
 }
@@ -499,6 +501,20 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     const camp = parseCampState(value.camp)
     if (!camp) return null
     parsed.camp = camp
+  }
+  // Missing: a career from before equipment wear (22 November 2026), or one that never wore: no
+  // wear. Only owned items with a life in km, each share of life used from 0 to 1.
+  if (value.wear !== undefined) {
+    const wear = value.wear
+    if (
+      !isRecord(wear) ||
+      !Object.entries(wear).every(
+        ([id, used]) => parsed.ownedEquipment.includes(id) && wears(getEquipmentItem(id)) && isFiniteNumber(used) && used >= 0 && used <= 1,
+      )
+    ) {
+      return null
+    }
+    parsed.wear = { ...(wear as Record<string, number>) }
   }
   // Missing: a career saved before achievement rewards existed. Levels already reached count as
   // rewarded, so nothing is given for them afterwards.

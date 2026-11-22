@@ -1,5 +1,7 @@
 import { consumableKinds, getEquipmentItem, isConsumable } from '../domain/equipment/items'
 import type { GameState } from './gameState'
+import { WEAR, wearOn, wears, type WearConfig } from '../domain/equipment/wear'
+import { resetWear, usedOf } from './wear'
 
 /** `consumable`: gels and bars are counted and taken to a race, never equipped. */
 export type EquipError = 'unknown-item' | 'not-owned' | 'consumable'
@@ -39,16 +41,22 @@ export function isEquipped(state: GameState, itemId: string): boolean {
  * below 0, and a repeated request is rejected because the item is already owned. Buying does not
  * equip the item. A consumable (gel, cereal bar) is bought as a pack, any number of times: it adds
  * the pack's units to the runner's stock (a repeated request is caught by the operation id).
+ *
+ * Equipment wear (22 November 2026): an owned item that has worn can be bought again at its price.
+ * That is a replacement: the new one has no wear, and it stays equipped if the old one was.
  */
 export function buyItem(
   state: GameState,
   itemId: string,
   confirmedPrice: number,
+  wear: WearConfig = WEAR,
 ): { ok: true; state: GameState } | { ok: false; error: BuyError } {
   const item = getEquipmentItem(itemId)
   if (!item) return { ok: false, error: 'unknown-item' }
   const consumable = isConsumable(item)
-  if (!consumable && state.ownedEquipment.includes(itemId)) return { ok: false, error: 'already-owned' }
+  const owned = state.ownedEquipment.includes(itemId)
+  const replacement = owned && wearOn(wear) && wears(item) && usedOf(state, itemId) > 0
+  if (!consumable && owned && !replacement) return { ok: false, error: 'already-owned' }
   if (item.price === null) return { ok: false, error: 'not-for-sale' }
   if (item.price !== confirmedPrice) return { ok: false, error: 'price-changed' }
   if (item.price > state.coins) return { ok: false, error: 'insufficient-coins' }
@@ -57,6 +65,7 @@ export function buyItem(
     for (const kind of consumableKinds(item)) consumables[kind] += item.packSize
     return { ok: true, state: { ...state, coins: state.coins - item.price, consumables } }
   }
+  if (replacement) return { ok: true, state: { ...resetWear(state, itemId), coins: state.coins - item.price } }
   return {
     ok: true,
     state: { ...state, coins: state.coins - item.price, ownedEquipment: [...state.ownedEquipment, itemId] },

@@ -8,6 +8,7 @@ import { ACHIEVEMENT_IDS, parseAchievementTable } from '../game-engine/achieveme
 import { consumableKinds, parseEquipment } from '../domain/equipment/items'
 import { parseCampCatalog } from '../domain/basecamp/catalog'
 import { parseEconomy } from '../domain/economy/premium'
+import { parseWearBands, parseWearKm } from '../domain/equipment/wear'
 
 // The real tables, not the test copies other tests use (src/test/setup.ts).
 vi.unmock('./equipment.csv?raw')
@@ -19,6 +20,8 @@ vi.unmock('./races.csv?raw')
 vi.unmock('./basecamp.csv?raw')
 vi.unmock('./basecamp_exclusive.csv?raw')
 vi.unmock('./economy.csv?raw')
+vi.unmock('./wear_km.csv?raw')
+vi.unmock('./wear_bands.csv?raw')
 const { default: equipmentCsv } = await import('./equipment.csv?raw')
 const { default: levelsCsv } = await import('./levels.csv?raw')
 const { default: raceFieldCsv } = await import('./race_field.csv?raw')
@@ -28,6 +31,8 @@ const { default: racesCsv } = await import('./races.csv?raw')
 const { default: basecampCsv } = await import('./basecamp.csv?raw')
 const { default: exclusiveCsv } = await import('./basecamp_exclusive.csv?raw')
 const { default: economyCsv } = await import('./economy.csv?raw')
+const { default: wearKmCsv } = await import('./wear_km.csv?raw')
+const { default: wearBandsCsv } = await import('./wear_bands.csv?raw')
 const CAMP_SOURCES = import.meta.glob('/assets/ui/basecamp/source/*/*.{png,jpg,jpeg,webp}')
 
 const THUMBNAILS = import.meta.glob('/assets/ui/{thumbnails,equipment}/*.{webp,png,jpg,jpeg}')
@@ -52,6 +57,12 @@ describe("owner's tables", () => {
 
   it('economy.csv sets the Premium Coin rate', () => {
     expect(parseEconomy(economyCsv).coinsPerPremium).toBeGreaterThan(0)
+  })
+
+  it('the equipment-wear tables are valid: wear_speed, wear_km.csv and wear_bands.csv (brief B-6a)', () => {
+    expect(parseEconomy(economyCsv).wearSpeed).toBeGreaterThanOrEqual(0)
+    expect(Object.keys(parseWearKm(wearKmCsv)).length).toBeGreaterThan(0)
+    expect(parseWearBands(wearBandsCsv).length).toBeGreaterThan(0)
   })
 
   it('races.csv is a valid race catalog', () => {

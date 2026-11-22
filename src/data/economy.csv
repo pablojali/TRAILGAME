@@ -1,4 +1,6 @@
 # Economy (owner decision, 16 November 2026). One row per value.
 # coins_per_premium: credits (coins) a player pays for 1 Premium Coin. The exchange goes one way only, coins to Premium.
+# wear_speed: multiplies the wear of every item with a life_km (equipment.csv). 1 = as in the table, above 1 wears faster, 0 = wear off (owner decision, 22 November 2026).
 key,value
 coins_per_premium,100
+wear_speed,0

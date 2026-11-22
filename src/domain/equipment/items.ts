@@ -62,6 +62,11 @@ export interface EquipmentItem {
    * effect_text_fr, description_de…). Missing ones fall back to English.
    */
   translations?: Partial<Record<ItemLanguage, ItemTexts>>
+  /**
+   * Equipment wear (owner decision, 22 November 2026): the km of use the item lasts, from the
+   * table's life_km. Missing: the item never wears.
+   */
+  lifeKm?: number
 }
 
 export type ItemLanguage = 'es' | 'fr' | 'it' | 'de'
@@ -159,6 +164,12 @@ export function parseEquipment(text: string): EquipmentItem[] {
       throw new Error(`${where}: gel, bar and nutrition need a pack size, other types none`)
     }
     if (row.thumbnail) item.thumbnail = row.thumbnail
+    if (row.life_km) {
+      const lifeKm = csvNumber(row.life_km, where)
+      if (!(lifeKm > 0)) throw new Error(`${where}: life_km must be above 0`)
+      if (item.packSize !== undefined) throw new Error(`${where}: gels and bars are used up, they have no life_km`)
+      item.lifeKm = lifeKm
+    }
     if (row.avatar_layer) item.avatarLayer = row.avatar_layer
     if (LOOK_SLOTS.includes(slot) && hasEffect) throw new Error(`${where}: glasses and caps are cosmetic, no race bonuses`)
     if (hasEffect) item.raceEffect = effect

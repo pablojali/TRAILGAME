@@ -439,7 +439,9 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
         return response.ok ? null : serverError<RaceEntryError>(response.error)
       }
       const result = enterRace(state, raceId, clockRef.current())
-      if (!result.ok) return result.error
+      // The equipment-wear refusals (no-shoes-equipped, shoes-worn-out) only happen with wear on;
+      // their screen texts come with A-5, which widens this type.
+      if (!result.ok) return result.error as RaceEntryError
       commit({ kind: 'playing', state: result.state })
       return null
     },
@@ -463,7 +465,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
         return response.ok ? null : serverError<RaceStartError>(response.error)
       }
       const result = startRace(state, ref, entryId, decisions, clockRef.current())
-      if (!result.ok) return result.error
+      // As for entering: the equipment-wear refusals get their texts with A-5.
+      if (!result.ok) return result.error as RaceStartError
       commit({ kind: 'playing', state: result.state })
       return null
     },

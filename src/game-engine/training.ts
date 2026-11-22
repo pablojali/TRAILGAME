@@ -1,6 +1,8 @@
 import { applyAchievementRewards, type AchievementEarned } from './achievements'
 import { roundStat, STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
+import { WEAR, type WearConfig } from '../domain/equipment/wear'
+import { applyWear, shoeInjuryDraw, shoeInjuryRiskPct } from './wear'
 import {
   INJURY_FATIGUE_THRESHOLD,
   INJURY_FITNESS_LOSS,
@@ -134,6 +136,24 @@ export function previewSession(state: GameState, session: SessionType): DayOutco
   return outcome
 }
 
+/**
+ * Worn shoes (equipment wear, 22 November 2026): in the bands with an injury risk, each training
+ * session may injure the runner, with the existing injury's consequences (no XP, the Fitness loss,
+ * the forced Rest days). Decided by the server's draw; Rest is not a training session.
+ */
+function withShoeInjury(state: GameState, session: SessionType, outcome: DayOutcome, now: number, wear: WearConfig): DayOutcome {
+  if (session === 'rest' || outcome.injured) return outcome
+  const risk = shoeInjuryRiskPct(state, wear)
+  if (!(risk > 0) || shoeInjuryDraw(now, state.week.number, state.week.currentDayIndex) >= risk) return outcome
+  return {
+    xpGained: 0,
+    fitnessChange: statChange(state.athlete.fitness, -INJURY_FITNESS_LOSS),
+    fatigueChange: outcome.fatigueChange,
+    injured: true,
+    injuryCause: 'worn-shoes',
+  }
+}
+
 /** Plans Rest on up to `count` days of the week, starting at `fromIndex`. */
 function forceRest(week: TrainingWeek, fromIndex: number, count: number): TrainingWeek {
   return {
@@ -185,16 +205,18 @@ export function executeCurrentDay(
   state: GameState,
   ref: DayRef,
   now: number,
+  wear: WearConfig = WEAR,
 ): TrainingResult<ExecutionResult> {
   const error = checkDay(state, ref)
   if (error) return { ok: false, error }
   if (isRaceDayToday(state)) return { ok: false, error: 'race-day' }
 
   const day = getCurrentDay(state.week)
-  const outcome = previewSession(state, day.session)
+  const outcome = withShoeInjury(state, day.session, previewSession(state, day.session), now, wear)
   const levelBefore = getLevel(state.athlete.xp)
   const advanced = completeCurrentDay(state, outcome, day.session !== 'rest', now)
-  const rewarded = applyAchievementRewards(advanced.state)
+  // The equipped gear wears by the session's km (training is never blocked by it).
+  const rewarded = applyAchievementRewards(applyWear(advanced.state, wear.sessionKm[day.session], wear))
   const levelAfter = getLevel(rewarded.state.athlete.xp)
 
   return {

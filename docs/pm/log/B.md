@@ -2,79 +2,154 @@
 
 Newest entry first. Only session B writes here.
 
-## 2026-11-22 — B-6c Starter shoes at 20 coins and the emergency pair
+## 2026-11-22 — One task: B-6c rework (D11), B-6d rewarded ad, A-5 wear screens
 
-Branch `stream-b/starter-shoes-emergency-pair`. Brief `docs/pm/briefs/B-6c-starter-shoes-emergency-pair.md`.
-Everything new is active only with `wear_speed > 0`. It ships at 0.
+Branch `stream-b/starter-shoes-emergency-pair`, PR #130, one commit per step as the PM asked. Briefs:
+- `B-6c-starter-shoes-emergency-pair.md`
+- `B-6d-rewarded-ad-coins.md`
+- `A-5-wear-screens.md`
 
-### What was done
+Everything is active only when `wear_speed > 0`. It ships at 0, so the only change players see today is
+the starter shoes' shop price.
 
-**Price (owner decision D8)**
-- `starter-shoes` costs 20 in `src/data/equipment.csv`, a value the owner authorised. The test copy
-  of the table was changed the same way.
-- Runners still start owning the starter shoes.
-- Buying them again is refused as "already owned" unless they have worn. A worn pair is replaced for
-  20 coins.
-- With wear off the only visible change is the price on the shop card: "Starter shoes, 20 coins,
-  Owned" instead of "free". Two shop tests and one engine test were updated for it.
+### Step 1 — B-6c rework (owner decision D11)
 
-**Emergency pair** (`withEmergencyPair` in `src/game-engine/wear.ts`)
-- When it is checked: at the moment wear is applied, after the day or race is complete, coins
-  included. That covers a training day (`executeCurrentDay`), an NPC race finish (`finishRace`) and a
-  Sunday Major result (`applyMajorReward`).
-- When it is given: all of these must hold.
-  - Before that wear, the runner owned at least one usable pair (above the DNF band, or shoes that
-    never wear).
-  - After it, they own none.
-  - Their coins are below the cheapest shoes for sale (20 now).
-  - No pair was given in the last 8 game weeks.
-- What is given:
-  - the starter shoes, new (their wear is reset) and equipped;
-  - `emergencyPairWeek` records the week;
-  - the result of the training day or race finish carries `emergencyPair: true`.
-  - For a Major, the result is added inside `career-ops` without an answer of its own. A-5 can tell by
-    `emergencyPairWeek` changing.
+**Removed:**
+- the free emergency pair: `withEmergencyPair`, the 8-week cooldown and `EMERGENCY_PAIR_*`;
+- the `emergencyPairWeek` save field and the `emergencyPair` result flag;
+- their tests.
 
-**Save:** `GameState.emergencyPairWeek` is optional, a whole week of 1 or more. Older saves load
-without it and are not rewritten.
+`hasRaceablePair` was removed too. `cheapestShoesPrice` stays, because the ad uses it.
 
-### Holes found in the guard (proposals, nothing coded around them)
+**Kept:** the starter shoes at 20 coins (D8).
+- They are still owned from the start, and a worn pair is replaced for 20.
+- Tests: `starterShoes.test.ts`, plus the shop price tests.
 
-1. **Spending before the moment.** A player can spend coins just before training their last pair into
-   the band, and so qualify on purpose. Checking at the moment stops spending *after* it, not before.
-   - What limits it: the 8-week cooldown, and the prize is only a 20-coin pair. Each time, the player
-     also goes through the 9–1 % band, with its injury risk and DNF.
-   - I propose to accept it. If the owner wants it closed: also require that the coins did not drop in
-     the same game week, which needs the coins at the start of the week in the save.
-2. **No coins and the cooldown still running.** Training is never blocked, and a race day can be
-   withdrawn from (B-6b), so there is no hard soft-lock. The runner cannot race until they have 20
-   coins or the cooldown ends. Coins still come from level rewards and achievements.
-   - I propose to accept it: it is the intended pressure.
-3. **A pair already in the band when wear is switched on.** It never crosses the line, so it gets no
-   pair. This only matters on the day the owner turns wear on. Today every `life_km` is empty, so no
-   career has wear yet.
+`docs/EQUIPMENT_WEAR_CALIBRATION.md` §6–7 now record D8 and D11.
 
-### Files
-- **Tables:** `src/data/equipment.csv`, `src/test/fixtures/equipment.csv`.
-- **Engine:** `src/game-engine/{wear,training,races,majorRewards,gameState}.ts`.
-- **Saves:** `src/repositories/gameRepository.ts`.
-- **Tests:**
-  - `src/game-engine/emergencyPair.test.ts` (new): the guard, the cooldown, the race finish, wear
-    off, the save;
-  - `src/server/wearOps.test.ts`: the grant in the server's answer;
-  - price updates in `equipment.test.ts`, `raceWear.test.ts` and `EquipmentScreen.test.tsx`. The last
-    one is stream A's file; only the expected price text changed.
+### Step 2 — B-6d rewarded ad for 20 coins
+
+**`economy.csv`:** `ad_reward_coins` 20 and `ad_rewards_per_day` 2. They are read by `parseEconomy`;
+missing rows default to 20 and 2.
+
+**Server (`career-ops`):**
+- `ad-start`: the server keeps the ad's id (the operation id) and its start time in the career.
+- `ad-claim {adId}`: the server decides the result.
+  - Refused: an unknown or already-claimed id (`no-ad`, which catches forged and repeated claims), or
+    an ad shorter than its minimum (`ad-not-completed`, 5 s in the simulated provider).
+  - `granted`: +20 coins, only to a runner with no owned pair above 0 % and fewer coins than the
+    cheapest pair.
+  - `no-reward` with `daily-limit`: after 2 coin-granting ads on the same real UTC day. The next day
+    resets the count.
+  - `no-reward` with `not-eligible`: the runner can race or can afford shoes.
+  - The ad is used up whatever the outcome. The client's count is never trusted.
+- Both operations are recorded with the existing kind `claim`, so no migration is needed. `supabase/`
+  is untouched.
+
+**Save:** optional `ads` (`pending {id, startedAt}`, `day`, `rewarded`). Older saves load unchanged.
+
+**Client:**
+- `RewardedAdProvider` interface (`src/app/game/ads.ts`) with a simulated provider: it "plays" for
+  the minimum length and gives nothing offline.
+- `GameProvider.watchRewardedAd()` starts the ad on the server, plays it, then claims it. With no
+  server it uses the local engine.
+
+**What the real network will need** (AdMob in the native app, D3; not built):
+- The real provider behind the same interface.
+- **Server-side verification**: the network's completion callback, received by the server, must
+  confirm the ad before `ad-claim` pays. The simulated check (id plus minimum time) can be forged by a
+  client that waits without watching.
+- A consent screen (GDPR and store rules).
+
+**Tests:** `adReward.test.ts` covers:
+- the economy values;
+- eligibility;
+- 2 rewards per day, the third giving `daily-limit`, and the next day resetting;
+- forged, repeated and cut-short claims;
+- wear off;
+- saves.
+
+`wearOps.test.ts` tests the server flow, and `ads.test.ts` the simulated provider.
+
+### Step 3 — A-5 wear screens and the ad offer
+
+Shared components are in `src/features/wear/`: `WearMeter`, `GearBlock`, `AdOffer` and `wearText`.
+The new texts are in `src/i18n/locales/*/wear.json`, in five languages.
+
+**Equipment:**
+- Every owned item that wears shows a durability bar, the %, the band and the km left (card and
+  detail), for example "108 / 150 km left". The full text, "Durability left: 108 km of 150 km", is
+  read by screen readers.
+- The bar is readable without colour: its length, the number, the band name and stripes on the low
+  bands.
+- **Replace** (price) asks for a confirmation that shows the balance after.
+- During a race the screen is read-only and says why.
+- The ad offer is on the Shop tab. On the Equipped tab it squeezed the slot boxes at 360 px.
+
+**Race entry:**
+- With no shoes, or shoes at 0 %, the Enter button is inactive, the reason is shown, and there is a
+  link to Equipment (plus the ad offer when the runner is stuck).
+- When the engine predicts the shoes will break, a first tap shows "Your shoes will break at aid
+  station N, about km X: DNF, no prize or ranking points". Entering then needs an explicit
+  "Enter anyway".
+- When the shoes will last, the screen says so. It does not show the durability after the race,
+  because the server does not send that figure.
+
+**Race day with worn-out shoes:** the panel offers Go to Equipment, or Withdraw (B-6b's operation: the
+day becomes Rest), plus the ad offer.
+
+**Race run:** at the aid station where the shoes broke, a Retire screen records the DNF.
+
+**DNF elsewhere:** the result screen (title "DNF at aid station N", the km, no prize or points), the
+full standings (DNF row last), the career history, the training day's race line, and the live Majors
+(standings `dnf`; "you retire here" for the player).
+
+**Result explanation:** "Worn shoes (X % at the start) cost you m:ss", or "cost you no time".
+
+**Training:** with the shoes in an injury-risk band, today's session shows the risk warning and a link
+to Equipment.
+
+**Inbox:**
+- New kind `gear`: a notice for each equipped item that wears, at about 40 %, 20 %, 10 %, the 9–1 %
+  band and worn out. Each opens the item in Equipment.
+- It appears once per threshold and per pair. A replacement starts the thresholds again; that needed
+  a small save field, `replacements` (count per item, optional).
+- The kind can be turned off in Studio: one row in Studio's notification list and in
+  `notifications.csv`.
+
+**Engine types:** the context's errors were widened with `RaceGearError` and `RaceLockError`, so the
+casts in `GameProvider` are gone.
+
+**Checked at 360×640 and 412×915**, with wear switched on locally (not committed). There is no
+horizontal scroll on Equipment (detail and shop), race entry with the warning, race day blocked,
+the DNF result, or Training. At 360×640 the Equipment detail's action buttons sit right at the bottom
+edge, as they did before this task. Screenshots were sent in the chat.
+
+**Tests:** `src/features/wear/WearScreens.test.tsx` runs with wear on and covers:
+- the meter and Replace;
+- the ad offer;
+- the blocked entry;
+- the warning and "Enter anyway";
+- the withdrawal;
+- the DNF result and standings;
+- the training warning;
+- the Inbox thresholds.
+
+### Size
+
+The PR is large: three topics, about 40 files. The three commits can be reviewed one by one.
 
 ### Checks
-- Lint, typecheck and build pass.
-- 974 tests pass. Locally only `functionBundle.test.ts` fails, because the bundles are not committed;
-  CI rebuilds them.
-- `supabase/` is untouched, so no `db:test`.
 
-### For A-5
-- Tell the player about `emergencyPair` in the training-day and race results, and about a change of
-  `emergencyPairWeek` after a Major.
-- The starter shoes now show a price of 20 in the shop.
+- `npm run lint`, typecheck and build pass.
+- 985 tests pass. Locally only `functionBundle.test.ts` fails, because the bundles are not committed;
+  CI rebuilds them.
+
+### For the owner and PM
+
+- **The ad offer only appears while the runner is stuck** (the PM's reading of D11). Ads anywhere else
+  are a new topic.
+- **Withdrawing on race day** is a button now. Until wear is switched on, nobody sees it.
 
 ## 2026-11-22 — B-6b Race consequences of worn shoes: wear along the course, DNF, equipment lock
 

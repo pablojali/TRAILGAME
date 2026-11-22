@@ -16,6 +16,10 @@
 - DNF consequences: **no prize, no ranking points, reduced XP.**
 - **The player cannot fix the problem during the race**: no buying, replacing or changing equipment while a race
   is in progress.
+- **Race day with shoes at 0 % (or none equipped): the runner cannot race, and the day waits** until the player
+  decides: **buy shoes** (then race) or **withdraw** (the entry is dropped and the day closes as a Rest day, so the
+  game moves on to the next day, Monday). The day is never closed or the entry dropped by accident; it needs
+  an explicit withdrawal. The same applies to a Sunday Major at READY.
 
 ## What to build
 
@@ -26,8 +30,7 @@
    current engine cannot change the factor per segment, report it and propose the smallest change; do not
    rewrite the engine without the PM.
 2. **DNF at the aid station.** If the durability reaches 0 during a segment, the runner reaches that segment's
-   aid station and retires there (PM default; propose a better rule if you find one, for example if the final
-   segment has no aid station after it: the runner then retires at the end of that segment). It must work in NPC
+   aid station and retires there (Owner decision, 22 November 2026: if the shoes run out during the **last** segment the runner reaches the finish and **finishes**; there is no DNF at the finish line. The shoes end at 0 %.) It must work in NPC
    races and in the live Sunday Majors (the runner leaves at that station in the live view). The shoes' wear
    for the km actually run is saved.
 3. **DNF as a result.** A new outcome with where it happened (aid station and km). No prize, no ranking points,
@@ -55,6 +58,10 @@ Screens (A-5); changing the band thresholds or prices; DNF causes other than wor
 - [ ] A DNF gives no prize or ranking points, reduced XP, and still costs fatigue and the wear of the km run.
 - [ ] Rankings and results handle DNF; old saves load unchanged.
 - [ ] Equipment actions are rejected while a race is in progress.
+- [ ] On a race day with shoes at 0 % the day waits; buying shoes lets the runner race; an explicit withdrawal drops
+      the entry (`didNotStart`) and closes the day as Rest. Nothing closes the day or drops the entry by itself.
+- [ ] A DNF is not a finished race for achievements (no reward), races-finished counts, the medal table, the season
+      summary or personal bests (best time and position); it still appears in the history list.
 - [ ] `wear_speed = 0` leaves everything as before.
 - [ ] The race result explanation mentions the shoes' effect.
 - [ ] Tests for per-segment wear, bands, DNF position, DNF rewards, the prediction and the lock; `npm run check`,

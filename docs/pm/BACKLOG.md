@@ -12,8 +12,6 @@ read of the code, not from running the game).
 | ~~D1~~ | ~~Move the PM role from ChatGPT to Claude~~ **Decided 21 Nov 2026: Claude is the PM.** Approving this folder and `CLAUDE.md` happens by merging its PR | Done |
 | D2 | Is M4 (Race System) accepted? If not, which part is open? | `STATUS.md` cannot be closed; B-1 depends on it |
 | D3 | Native app technology: Capacitor, Expo or Flutter | Blocks M6 and any native-specific work. A web-first game with the current React code points to Capacitor, but the PM wants a technical audit before recommending |
-| D8 | **Starter shoes.** They cost 0 and are for sale, so buying them again is a free replacement: once wear is on, a runner could replace worn starter shoes for nothing and wear would cost no coins. Options: (A) keep it and give the starter shoes no `life_km`, or (B) take them off sale or price them, and add the emergency-pair guard B proposed (`docs/EQUIPMENT_WEAR_CALIBRATION.md` sections 6 and 7) | Must be decided before `wear_speed` is switched on |
-| D9 | **Sunday Majors.** Check the shoes again at READY (refuse at 0 %), as B proposes (section 8)? And what happens to a race Sunday whose shoes are at 0 % (withdraw, or "did not start"; section 9)? | B-6b |
 | D10 | **Calibration.** Accept B's proposal (`wear_speed` 1, paid shoes of 200 to 300 km, the same multiplier for race km and training km, the band numbers) or change it, and fill `life_km` in `equipment.csv` | Switching wear on |
 | D4 | Fitness and fatigue balance: is the current feel acceptable? | B-2 |
 | D5 | Attribute adaptation from training (row 11) and profile change at season end (row 12): in scope for the next release? | B-3 |
@@ -24,6 +22,8 @@ read of the code, not from running the game).
 |---|---|---|
 | D6 | Equipment wears out so coins are spent regularly. All gear (shoes, packs, poles, later the watch) by km, each item with its own life in km, a global `wear_speed` knob (0 = off), a free emergency pair avoids a soft-lock, training km from an owner table. Details in `briefs/B-6a-equipment-wear.md` | 22 Nov 2026 |
 | D7 | Shoe durability bands with real consequences (100–40 % normal, 39–20 % slight penalty, 19–10 % heavy, 9–1 % injury risk in training and in a race the shoes keep wearing along the course and break at the aid station where their life runs out, a DNF, 0 % cannot start). DNF: no prize, no ranking points, reduced XP. No equipment changes during a race. Replaces the earlier "worn-out shoes only block entry, no DNF". Details in `briefs/B-6a-equipment-wear.md` and `briefs/B-6b-race-wear-consequences.md` | 22 Nov 2026 |
+| D8 | **Starter shoes cost 20 coins** (they were 0), so replacing worn shoes always costs something; the free emergency pair stays (guard in `briefs/B-6c-starter-shoes-emergency-pair.md`) | 22 Nov 2026 |
+| D9 | **Majors and race day with worn shoes.** Shoes are checked again at READY. At 0 % (or none equipped) the runner cannot race and the day waits until the player buys shoes or withdraws, which drops the entry and moves on to Monday. If the shoes run out on the last segment the runner finishes | 22 Nov 2026 |
 
 ## P0
 

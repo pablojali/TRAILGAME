@@ -1,3 +1,4 @@
+import { isFinisher } from '../game-engine/career'
 import type { GameState } from '../game-engine/gameState'
 import { parseGameState, SCHEMA_VERSION } from './gameRepository'
 
@@ -168,7 +169,8 @@ export function summarize(state: GameState, level: (xp: number) => number): Care
     level: level(state.athlete.xp),
     week: state.week.number,
     coins: state.coins,
-    races: state.raceEntries.filter((entry) => entry.status === 'finished').length,
+    // Races finished: a DNF is not one (B-6b).
+    races: state.raceEntries.filter(isFinisher).length,
   }
 }
 

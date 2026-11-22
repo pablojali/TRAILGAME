@@ -1,6 +1,6 @@
 import { DIFFICULTIES, difficultyOf, type Difficulty } from '../domain/races/format'
 import { getRace, type Race } from '../domain/races/races'
-import type { FinishedRaceEntry, GameState } from './gameState'
+import type { FinishedRaceEntry, GameState, RaceEntry } from './gameState'
 
 /**
  * Career statistics (owner request, 30 October 2026), read from the finished race entries only:
@@ -34,6 +34,21 @@ export interface HistoryRow {
   race: Race
 }
 
+/**
+ * True for a race the runner finished (B-6b): a finished entry that is not a DNF. A DNF stays in the
+ * race history, but every statistic that means "finished" (race counts, medals, achievements, the
+ * season summary, personal bests) counts finishers only.
+ */
+export function isFinisher(entry: RaceEntry): entry is FinishedRaceEntry {
+  return entry.status === 'finished' && entry.result.dnf === undefined
+}
+
+/** The finished races (DNFs left out), oldest first. */
+export function getFinishers(state: GameState): HistoryRow[] {
+  return finished(state).filter(({ entry }) => isFinisher(entry))
+}
+
+/** Every race run to its end or to a DNF, oldest first. */
 function finished(state: GameState): HistoryRow[] {
   return state.raceEntries.flatMap((entry) => {
     const race = entry.status === 'finished' ? getRace(entry.raceId) : undefined
@@ -41,7 +56,7 @@ function finished(state: GameState): HistoryRow[] {
   })
 }
 
-/** Every finished race, newest first. */
+/** Every race run, newest first: finishers and DNFs (`isFinisher` tells them apart). */
 export function getRaceHistory(state: GameState): HistoryRow[] {
   return finished(state).reverse()
 }
@@ -51,7 +66,7 @@ export function getMedalTable(state: GameState): MedalTable {
   const empty = (): MedalCount => ({ gold: 0, silver: 0, bronze: 0, races: 0 })
   const byDifficulty = Object.fromEntries(DIFFICULTIES.map((d) => [d, empty()])) as Record<Difficulty, MedalCount>
   const total = empty()
-  for (const { entry, race } of finished(state)) {
+  for (const { entry, race } of getFinishers(state)) {
     const medal = medalFor(entry.result.position)
     for (const count of [byDifficulty[difficultyOf(race)], total]) {
       count.races++
@@ -73,10 +88,14 @@ export interface PersonalBest {
   runs: number
 }
 
-/** Best position and best time on each race run, in catalog order. */
+/**
+ * Best position and best time on each race finished, in catalog order. A DNF never sets a best
+ * (B-6b) but counts as a run of a race that has a finish; a race with DNFs only has no best yet, so
+ * it is not listed here (its runs are in the race history).
+ */
 export function getPersonalBests(state: GameState): PersonalBest[] {
   const byRace = new Map<string, PersonalBest>()
-  for (const { entry, race } of finished(state)) {
+  for (const { entry, race } of getFinishers(state)) {
     const { position, timeS } = entry.result
     const best = byRace.get(race.id)
     if (!best) {
@@ -99,6 +118,10 @@ export function getPersonalBests(state: GameState): PersonalBest[] {
       best.bestTimeS = timeS
       best.bestTimeEntry = entry
     }
+  }
+  for (const { entry, race } of finished(state)) {
+    const best = byRace.get(race.id)
+    if (best && !isFinisher(entry)) best.runs++
   }
   return [...byRace.values()].sort((a, b) => a.race.id.localeCompare(b.race.id))
 }

@@ -9,12 +9,22 @@ Everything is active only with `wear_speed > 0`, which ships at 0.
 
 ### Owner decisions given to me in the session (22 November 2026)
 - **D9:** check the shoes again at READY. **Done.**
-- **D9, second part:** a race Sunday with shoes at 0 % (or no shoes equipped): **the runner does not
-  start. Done.**
-  - The start is refused (`shoes-worn-out`).
-  - The Sunday can be played as planned, Rest by default. Completing it drops the pending entry, and
-    the day's result carries `didNotStart: <raceId>`.
-  - Replacing the shoes before completing the day still lets the runner race.
+- **D9, second part (confirmed by the owner via the PM, 22 November 2026):** race day with shoes at 0 %
+  (or none equipped): **the day waits** until the player decides.
+  - The start is refused (`shoes-worn-out`) and training that day is refused (`race-day`). Nothing
+    closes the day or drops the entry by itself.
+  - The player either buys or equips shoes and races, or **withdraws**. Withdrawing is the new
+    operation `withdraw-race` (`withdrawFromRace`, `GameProvider.withdrawRace`): it drops the entry,
+    closes the day as Rest, and the result carries `didNotStart: <raceId>`.
+  - Withdrawing is refused when the shoes can race (`race-can-start`) or on another day
+    (`not-race-day`).
+  - The operation is recorded in `career_operations` with the kind `train`, since it closes a day as
+    a training day does. The database's list of kinds therefore needs no migration.
+- **Sunday Major, same rule:**
+  - READY is refused at 0 % (`shoes-worn-out`), and nothing is done automatically.
+  - The player buys shoes and confirms READY, or withdraws with the existing Major `withdraw`.
+  - The Major's own schedule is unchanged: a player not READY when the window closes does not start.
+    That is the rule from before B-6b and is not new.
 - **Shoes running out on the last segment:** the runner **finishes** the race. Done.
 - **D8:** "Zapas salen barato, 20 euros". I read it as option B: the starter shoes get a price (20 coins).
   **Not done here:** the price is an owner-table value, and option B also needs the emergency-pair
@@ -78,6 +88,36 @@ Everything is active only with `wear_speed > 0`, which ships at 0.
 - In Majors the READY snapshot fixes the gear that races, so changing the kit after READY does not
   change the Major.
 - The new refusal is kept apart from the screens' error types (`RaceLockError`), so they compile.
+
+### PM review fixes (22 November 2026)
+
+**A DNF is not a finished race.**
+- `isFinisher(entry)` (`src/game-engine/career.ts`) tells a finisher from a DNF, and `getFinishers`
+  lists the finishers.
+- DNFs stay in `getRaceHistory`, so the career screen lists them.
+
+Readers checked:
+- **Changed to count finishers only:**
+  - `career.ts`: medal table, and personal bests. A DNF never sets a best time or position but counts
+    as a run; a race with DNFs only is not in the bests list.
+  - `achievements.ts`: races finished, positions, and the season summary. A DNF therefore pays no
+    achievement reward, because `applyAchievementRewards` reads these.
+  - `cloudSync.ts`: the summary's race count.
+  - `majorOps.ts`: `racesFinished`.
+- **Left as they are, for A-5 to show DNFs** (their files are stream A's):
+  - `inbox.ts`: the race item shows position and points; a DNF has 0 points.
+  - `Inbox.tsx`: "races run" counts DNFs, which is right for runs.
+  - `TrainingScreen.tsx`: the Sunday result line.
+  - `RaceDetailScreen.tsx`: the best and last position from `getFinishedEntries`. A DNF is position 50,
+    so it never beats a finish; with DNFs only, it shows 50.
+  - `RaceResultScreen.tsx` and `CareerScreen.tsx` history rows: position and time.
+  - `RaceRunScreen.tsx`: `status === 'finished'` to leave the run screen, which is right for a DNF too.
+  - Coach `hasFinishedRace`: true after a DNF; the first-race coach moment still makes sense.
+- **Rankings:** a DNF has no ranking fields, so the database trigger skips it, as before.
+
+**Tests:** a DNF does not add to races finished, achievements (and pays no achievement reward), the
+medal table or the season summary, and does not set or beat a best time. The same holds for a Major
+DNF. Also tested: the race-day wait and the withdrawal, in the engine and through `career-ops`.
 
 ### Files
 - **Engine:**

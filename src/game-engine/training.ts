@@ -2,7 +2,7 @@ import { applyAchievementRewards, type AchievementEarned } from './achievements'
 import { roundStat, STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import { WEAR, type WearConfig } from '../domain/equipment/wear'
-import { applyWear, raceGearError, shoeInjuryDraw, shoeInjuryRiskPct } from './wear'
+import { applyWear, shoeInjuryDraw, shoeInjuryRiskPct } from './wear'
 import {
   INJURY_FATIGUE_THRESHOLD,
   INJURY_FITNESS_LOSS,
@@ -62,8 +62,9 @@ export interface ExecutionResult {
   /** True when the session caused an injury. */
   injured: boolean
   /**
-   * B-6b (owner decision, 22 November 2026): the race scheduled today did not start because the
-   * shoes were worn out (or none were equipped); its entry is dropped. Missing: no such race.
+   * B-6b (owner decision, 22 November 2026): the player withdrew from today's race, which could not
+   * start with worn-out shoes (or none); its entry was dropped and the day closed as Rest. Missing:
+   * no withdrawal.
    */
   didNotStart?: string
   /** Achievement levels reached by this day, with their coins and XP (already added). */
@@ -214,13 +215,9 @@ export function executeCurrentDay(
 ): TrainingResult<ExecutionResult> {
   const error = checkDay(state, ref)
   if (error) return { ok: false, error }
-  // Race Sunday with shoes at 0 % (or none on): the runner does not start (owner decision,
-  // 22 November 2026); the day is played as planned and the entry is dropped. With shoes that can
-  // race, the day is the race's.
-  const notStarting = isRaceDayToday(state) && raceGearError(state, wear) !== null
-  if (isRaceDayToday(state) && !notStarting) return { ok: false, error: 'race-day' }
-  const dropped = notStarting ? getScheduledEntry(state)! : null
-  if (dropped) state = { ...state, raceEntries: state.raceEntries.filter((entry) => entry.id !== dropped.id) }
+  // Race day stays the race's, also with shoes that cannot start (B-6b): the player buys shoes or
+  // withdraws (`withdrawFromRace`); nothing closes the day by itself.
+  if (isRaceDayToday(state)) return { ok: false, error: 'race-day' }
 
   const day = getCurrentDay(state.week)
   const outcome = withShoeInjury(state, day.session, previewSession(state, day.session), now, wear)
@@ -242,7 +239,6 @@ export function executeCurrentDay(
       attributePointsAwarded: getAttributePointsBetween(levelBefore, levelAfter),
       weekCompleted: advanced.weekCompleted,
       injured: outcome.injured === true,
-      ...(dropped ? { didNotStart: dropped.raceId } : {}),
     },
   }
 }

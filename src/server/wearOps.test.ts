@@ -129,3 +129,18 @@ describe('career-ops: no equipment changes during a race, with wear on', () => {
     expect(setItemEquipped(racing as GameState, 'trail-shoes-basic', true)).toEqual({ ok: false, error: 'race-in-progress' })
   })
 })
+
+describe('career-ops: withdrawing from a race day whose shoes cannot start (owner decision, 22 November 2026)', () => {
+  it('closes the day as Rest and drops the entry; training that day is still refused', async () => {
+    const { onSunday, withEntry } = await import('../test/gameFixtures')
+    const { state } = withEntry(onSunday({ ...shod(), wear: { 'starter-shoes': 1 } }), 'RACE-001')
+    const memory = memoryStore(state)
+    const ref = { week: state.week.number, dayIndex: state.week.currentDayIndex }
+    const train = await handleCareerOp('t', { action: 'train', operationId: op(10), baseVersion: 1, ref, session: 'rest' }, deps(memory.store))
+    expect(train.body).toMatchObject({ ok: false, error: 'race-day' })
+    const withdrawn = await handleCareerOp('t', { action: 'withdraw-race', operationId: op(11), baseVersion: 1, ref }, deps(memory.store))
+    expect(withdrawn.body).toMatchObject({ ok: true, result: { didNotStart: 'RACE-001', executed: { session: 'rest' } } })
+    expect(memory.state().raceEntries).toEqual([])
+    expect(memory.state().week.number).toBe(state.week.number + 1)
+  })
+})

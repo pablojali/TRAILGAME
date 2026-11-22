@@ -10,7 +10,7 @@ import { EXCLUSIVE_IDS } from '../domain/basecamp/catalog'
 import type { Currency } from '../domain/basecamp/catalog'
 import { createInitialGameState, type AthleteIdentity, type GameState } from '../game-engine/gameState'
 import type { AidStop, Intensity } from '../domain/races/strategyConfig'
-import { enterRace, startRace, stepRace } from '../game-engine/races'
+import { enterRace, startRace, stepRace, withdrawFromRace } from '../game-engine/races'
 import { executeCurrentDay, planSession, type DayRef } from '../game-engine/training'
 import { parseGameState, SCHEMA_VERSION } from '../repositories/gameRepository'
 import { applyMajorReward, type MajorRewardPayload } from '../game-engine/majorRewards'
@@ -82,6 +82,8 @@ export type OperationKind =
   | 'camp-buy'
   | 'camp-use'
   | 'premium-exchange'
+  /** B-6b: withdraw from a race day whose shoes cannot start (recorded with the kind `train`). */
+  | 'withdraw-race'
 
 interface WithSnapshot {
   /** The cloud version the client's snapshot is based on. */
@@ -108,6 +110,11 @@ export type CareerOpRequest =
     } & WithSnapshot)
   | ({ action: 'race-step'; operationId: string; segment: number; stop: AidStop; intensity: Intensity } & WithSnapshot)
   | ({ action: 'allocate'; operationId: string; attribute: AttributeId; expectedSpent: number } & WithSnapshot)
+  /**
+   * B-6b (owner decision, 22 November 2026): on race day with shoes that cannot start, the player
+   * withdraws: the entry is dropped and the day closes as Rest.
+   */
+  | ({ action: 'withdraw-race'; operationId: string; ref: DayRef } & WithSnapshot)
   /** `price`: the price the player saw; the catalog's price is charged, and a different one refused. */
   | ({ action: 'buy'; operationId: string; itemId: string; price: number } & WithSnapshot)
   | ({ action: 'equip'; operationId: string; itemId: string; equipped: boolean } & WithSnapshot)
@@ -266,6 +273,12 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       const { state: next, ...result } = stepped.value.value
       return { ok: true, state: next, result: { finished: true, ...result, ...gearOf(next) } }
     }
+    case 'withdraw-race': {
+      const withdrawn = withdrawFromRace(career, request.ref, now)
+      if (!withdrawn.ok) return { ok: false, error: withdrawn.error }
+      const { state: next, ...result } = withdrawn.value
+      return { ok: true, state: next, result: { ...result, ...gearOf(next) } }
+    }
     case 'allocate': {
       const allocated = allocateAttributePoint(career, request.attribute, request.expectedSpent)
       if (!allocated.ok) return { ok: false, error: allocated.error }
@@ -342,6 +355,8 @@ function validRequest(body: unknown): body is CareerOpRequest {
         typeof request.stop === 'string' &&
         typeof request.intensity === 'string'
       )
+    case 'withdraw-race':
+      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && isRef(request.ref)
     case 'allocate':
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.attribute === 'string' && Number.isInteger(request.expectedSpent)
     case 'buy':
@@ -430,7 +445,9 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
       baseVersion: record.version,
       state: computed.state,
       operationId: request.operationId,
-      kind: request.action,
+      // A withdrawal closes a day like a training day: recorded as `train`, so the database's list
+      // of operation kinds needs no migration.
+      kind: request.action === 'withdraw-race' ? 'train' : request.action,
       response: computed.result ? { result: computed.result } : {},
     })
     if (committed.status === 'saved') {

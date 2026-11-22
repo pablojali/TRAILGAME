@@ -29,7 +29,7 @@ import {
 import { planRest, runRest, type RaceStyle } from './racePlan'
 import { getScheduledEntry, RACE_DAY_INDEX } from './raceSchedule'
 import { courseEffortKm, explainRace, generateCourse, getDayForm, rivalTimes } from './raceSimulation'
-import { checkDay, completeCurrentDay, statChange, type DayRef, type TrainingError } from './training'
+import { checkDay, completeCurrentDay, executeCurrentDay, statChange, type DayRef, type ExecutionResult, type TrainingError } from './training'
 import { WEAR, type WearConfig, type WearStatus } from '../domain/equipment/wear'
 import { applyWear, raceGearError, shoesStatus, type RaceGearError } from './wear'
 import { durabilityPct } from '../domain/equipment/wear'
@@ -479,6 +479,42 @@ function finishRace(
     attributePointsAwarded: getAttributePointsBetween(levelAtStart, levelAfter),
     weekCompleted: advanced.weekCompleted,
   }
+}
+
+export type WithdrawError =
+  | TrainingError
+  /** Today is not the day of a scheduled race. */
+  | 'not-race-day'
+  /** The race can start: the runner's shoes are fine (withdrawing is only for shoes that cannot race). */
+  | 'race-can-start'
+
+/**
+ * Race day with shoes that cannot start (owner decision, 22 November 2026): the day waits until the
+ * player buys shoes and races, or withdraws. Withdrawing drops the entry (did not start) and closes
+ * the day as a Rest day, so the game moves on; nothing else closes it.
+ */
+export function withdrawFromRace(
+  state: GameState,
+  ref: DayRef,
+  now: number,
+  wear: WearConfig = WEAR,
+): { ok: true; value: ExecutionResult } | { ok: false; error: WithdrawError } {
+  const dayError = checkDay(state, ref)
+  if (dayError) return { ok: false, error: dayError }
+  const entry = getScheduledEntry(state)
+  if (!entry || state.activeRace || state.week.currentDayIndex !== RACE_DAY_INDEX || state.forcedRestDays > 0) {
+    return { ok: false, error: 'not-race-day' }
+  }
+  if (raceGearError(state, wear) === null) return { ok: false, error: 'race-can-start' }
+  const index = state.week.currentDayIndex
+  const withdrawn: GameState = {
+    ...state,
+    raceEntries: state.raceEntries.filter((e) => e.id !== entry.id),
+    week: { ...state.week, days: state.week.days.map((day, i) => (i === index ? { ...day, session: 'rest' } : day)) },
+  }
+  const rested = executeCurrentDay(withdrawn, ref, now, wear)
+  if (!rested.ok) return rested
+  return { ok: true, value: { ...rested.value, didNotStart: entry.raceId } }
 }
 
 /** XP of a DNF: the last place's XP for the share of the distance run, rounded down (B-6b proposal). */

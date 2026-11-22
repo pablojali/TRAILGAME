@@ -3,7 +3,7 @@ import achievementsCsv from '../data/achievements.csv?raw'
 import { getLevel } from '../domain/athlete/levels'
 import type { RaceCategory } from '../domain/races/categories'
 import { getCareerProgress } from '../domain/training/calendar'
-import { getRaceHistory, medalFor } from './career'
+import { getFinishers, medalFor } from './career'
 import type { GameState } from './gameState'
 
 /**
@@ -27,12 +27,13 @@ export interface AchievementDefinition {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
+/** Races finished (a DNF is not one, B-6b). */
 function finishedIn(state: GameState, category?: RaceCategory): number {
-  return getRaceHistory(state).filter(({ race }) => category === undefined || race.category === category).length
+  return getFinishers(state).filter(({ race }) => category === undefined || race.category === category).length
 }
 
 function positions(state: GameState): number[] {
-  return getRaceHistory(state).map(({ entry }) => entry.result.position)
+  return getFinishers(state).map(({ entry }) => entry.result.position)
 }
 
 export interface AchievementReward {
@@ -250,7 +251,7 @@ export interface Season {
 /** The current season: the career year the runner is in, and its race results so far. */
 export function getSeason(state: GameState): Season {
   const { year, weekOfYear } = getCareerProgress(state.week.number)
-  const results = getRaceHistory(state)
+  const results = getFinishers(state)
     .map(({ entry }) => entry.result)
     .filter((result) => getCareerProgress(result.week).year === year)
   const finishes = results.map((r) => r.position)

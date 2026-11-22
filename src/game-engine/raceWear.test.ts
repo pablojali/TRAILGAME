@@ -10,6 +10,9 @@ import type { GameState } from './gameState'
 import { getRaceSegments } from './raceEngine'
 import { effectFactorsAt, raceWearAtStart, shoeBreak } from './raceWear'
 import { executeCurrentDay } from './training'
+import { getAchievements, getSeason } from './achievements'
+import { getMedalTable, getPersonalBests, getRaceHistory, isFinisher } from './career'
+import { withdrawFromRace } from './races'
 import { dnfXp, enterRace, getRaceRewards, getStandings, predictShoes, raceCurrentDay, startRace, stepRace } from './races'
 
 /**
@@ -114,20 +117,33 @@ describe('a DNF', () => {
   })
 })
 
-describe('race Sunday with worn-out shoes: the runner does not start', () => {
-  it('lets the day be played as planned and drops the entry; replacing the shoes first still races', () => {
+describe('race Sunday with worn-out shoes: the day waits until the player decides', () => {
+  it('does not close the day by itself: no start, no training, the entry stays', () => {
     const { state, entry } = raceDay(kitted('starter-shoes', { 'starter-shoes': 1 }))
     expect(startRace(state, currentRef(state), entry.id, { intensity: 'target', gel: false, bar: false }, T0, ON)).toEqual({ ok: false, error: 'shoes-worn-out' })
-    const day = executeCurrentDay(state, currentRef(state), T0, ON)
-    if (!day.ok) throw new Error(day.error)
-    expect(day.value.didNotStart).toBe('RACE-002')
-    expect(day.value.state.raceEntries.find((e) => e.id === entry.id)).toBeUndefined()
-    expect(day.value.state.week.number).toBe(state.week.number + 1)
-    // With shoes that can race, Sunday stays the race's.
-    const fine = raceDay(kitted('starter-shoes'))
-    expect(executeCurrentDay(fine.state, currentRef(fine.state), T0, ON)).toEqual({ ok: false, error: 'race-day' })
-    // Wear off: as before.
-    expect(executeCurrentDay(state, currentRef(state), T0, WEAR)).toEqual({ ok: false, error: 'race-day' })
+    expect(executeCurrentDay(state, currentRef(state), T0, ON)).toEqual({ ok: false, error: 'race-day' })
+  })
+
+  it('withdrawing drops the entry (did not start) and closes the day as Rest', () => {
+    const { state, entry } = raceDay(kitted('starter-shoes', { 'starter-shoes': 1 }))
+    const withdrawn = withdrawFromRace(state, currentRef(state), T0, ON)
+    if (!withdrawn.ok) throw new Error(withdrawn.error)
+    expect(withdrawn.value.didNotStart).toBe('RACE-002')
+    expect(withdrawn.value.executed.session).toBe('rest')
+    expect(withdrawn.value.state.raceEntries.find((e) => e.id === entry.id)).toBeUndefined()
+    expect(withdrawn.value.state.week.number).toBe(state.week.number + 1)
+  })
+
+  it('buying shoes lets the runner race; withdrawing is only for shoes that cannot start', () => {
+    const { state, entry } = raceDay({ ...kitted('starter-shoes', { 'starter-shoes': 1 }), coins: 100 })
+    const replaced = buyItem(state, 'starter-shoes', 0, ON)
+    if (!replaced.ok) throw new Error(replaced.error)
+    expect(withdrawFromRace(replaced.state, currentRef(state), T0, ON)).toEqual({ ok: false, error: 'race-can-start' })
+    expect(raceCurrentDay(replaced.state, currentRef(state), entry.id, T0, ON).ok).toBe(true)
+    // Wear off: nothing to withdraw from, as before.
+    expect(withdrawFromRace(state, currentRef(state), T0, WEAR)).toEqual({ ok: false, error: 'race-can-start' })
+    // Not race day.
+    expect(withdrawFromRace(kitted('starter-shoes', { 'starter-shoes': 1 }), currentRef(kitted('starter-shoes')), T0, ON)).toEqual({ ok: false, error: 'not-race-day' })
   })
 
   it('records the DNF whatever is decided at that aid station', () => {
@@ -181,5 +197,40 @@ describe('saves with race wear', () => {
     if (!step.ok || !step.value.finished) throw new Error('not finished')
     const done = parseSave(serializeSave(step.value.value.state), T0)
     expect(done.status === 'loaded' && done.state.raceEntries.at(-1)).toMatchObject({ result: { dnf: { aidStation: 1 } } })
+  })
+})
+
+describe('a DNF is not a finished race (PM review)', () => {
+  /** Two RACE-002 runs: a DNF, then (optionally) a finish. */
+  function careerWith(finish: boolean) {
+    const first = raceDay(kitted('starter-shoes', { 'starter-shoes': 1 - 2 / 150 }))
+    const dnf = raceCurrentDay(first.state, currentRef(first.state), first.entry.id, T0, ON)
+    if (!dnf.ok) throw new Error(dnf.error)
+    if (!finish) return dnf.value
+    const again = raceDay({ ...dnf.value.state, wear: {} })
+    const done = raceCurrentDay(again.state, currentRef(again.state), again.entry.id, T0, ON)
+    if (!done.ok) throw new Error(done.error)
+    return done.value
+  }
+
+  it('counts for no race finished, achievement (nor its reward), medal table or season summary', () => {
+    const dnf = careerWith(false)
+    expect(dnf.achievementsEarned).toEqual([])
+    expect(getAchievements(dnf.state).find((a) => a.definition.id === 'first-steps')!.value).toBe(0)
+    expect(getMedalTable(dnf.state).total.races).toBe(0)
+    expect(getSeason(dnf.state).races).toBe(0)
+    expect(getSeason(dnf.state).bestFinish).toBeNull()
+    // It stays in the history.
+    expect(getRaceHistory(dnf.state)).toHaveLength(1)
+    expect(isFinisher(getRaceHistory(dnf.state)[0]!.entry)).toBe(false)
+  })
+
+  it('never sets a best time or position; a race with DNFs only has no best', () => {
+    expect(getPersonalBests(careerWith(false).state)).toEqual([])
+    const both = careerWith(true)
+    const [best] = getPersonalBests(both.state)
+    const finish = getRaceHistory(both.state).find(({ entry }) => isFinisher(entry))!.entry
+    expect(best).toMatchObject({ runs: 2, bestTimeS: finish.result.timeS, bestPosition: finish.result.position })
+    expect(getMedalTable(both.state).total.races).toBe(1)
   })
 })

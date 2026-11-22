@@ -6,6 +6,7 @@ import { majorPayload } from '../test/majorFixtures'
 import { applyMajorReward, majorPrize } from './majorRewards'
 import { automaticDecision, applyMajorDecisions, initialState, majorContext, majorField, majorStandings, runMajorSegment, type MajorRunner } from './majorRace'
 import { dnfXp } from './races'
+import { getMedalTable, getPersonalBests } from './career'
 
 /**
  * Worn shoes in a Sunday Major (brief B-6b): the READY snapshot carries the gear's wear; each segment
@@ -87,5 +88,9 @@ describe('Sunday Major with worn shoes', () => {
     expect(result.xpAwarded).toBe(dnfXp(majorPrize(major, 50).xp, 10, major.distanceKm))
     expect(applied.state.coins).toBe(career.coins)
     expect(applied.state.wear).toEqual({ 'starter-shoes': Number((10 / 150).toFixed(6)) })
+    // A Major DNF is not a finished race either (PM review).
+    expect(applied.achievementsEarned).toEqual([])
+    expect(getMedalTable(applied.state).total.races).toBe(0)
+    expect(getPersonalBests(applied.state)).toEqual([])
   })
 })

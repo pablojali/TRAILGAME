@@ -172,7 +172,8 @@ export function careerRunnerRow(state: unknown, createdAt: string, updatedAt: st
     level: getLevel(xp),
     xp,
     coins: Math.floor(numberOr(game.coins, 0)),
-    racesFinished: entries.filter((e) => isRecord(e) && e.status === 'finished').length,
+    // A DNF (B-6b) is not a finished race.
+    racesFinished: entries.filter((e) => isRecord(e) && e.status === 'finished' && !(isRecord(e.result) && e.result.dnf)).length,
     createdAt,
     lastActiveAt: updatedAt,
     strength: null,

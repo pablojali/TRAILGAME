@@ -10,6 +10,8 @@ import { createInitialGameState, type AthleteIdentity, type CoachProgress, type 
 import type { Appearance } from '../../domain/athlete/appearance'
 import { setAppearance } from '../../game-engine/appearance'
 import { buyItem, setItemEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
+import { claimAd, startAd, type AdError, type AdOutcome } from '../../game-engine/adReward'
+import { simulatedAdProvider, type RewardedAdProvider } from './ads'
 import { buyCampItem, exchangePremium, setCampItemUsed, type CampBuyError, type CampUseError, type ExchangeError } from '../../game-engine/camp'
 import type { Currency } from '../../domain/basecamp/catalog'
 import {
@@ -47,6 +49,7 @@ import {
   type LevelUp,
   type RaceStepResponse,
   type StartCareerError,
+  type WatchAdResult,
 } from './gameContext'
 
 /** With no career on this device, how long the game waits for one in the cloud before offering a new career. */
@@ -70,6 +73,8 @@ interface GameProviderProps {
    * new careers are decided by the server; without (no Supabase), by the local engine.
    */
   ops?: CareerOpsCall | null
+  /** Rewarded ads (B-6d): defaults to the simulated provider. */
+  ads?: RewardedAdProvider
 }
 
 /** A brand-new career (nothing earned yet): the only kind a device may put in place of the cloud's. */
@@ -94,7 +99,7 @@ function serverError<T extends string>(error: string): T | ServerError {
   return error as T
 }
 
-export function GameProvider({ children, repository, clock = Date.now, identity, cloud, ops: opsProp }: GameProviderProps) {
+export function GameProvider({ children, repository, clock = Date.now, identity, cloud, ops: opsProp, ads: adsProp }: GameProviderProps) {
   // Latest clock, also read by the repository (decay reference fallback when loading).
   const clockRef = useRef(clock)
   useEffect(() => {
@@ -119,6 +124,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   const [player] = useState(() => (identity === undefined ? getPlayerIdentity() : identity))
   const [sync] = useState(() => (cloud === undefined ? getCloudSync() : cloud))
   const [ops] = useState(() => (opsProp === undefined ? getCareerOps() : opsProp))
+  const [adProvider] = useState(() => adsProp ?? simulatedAdProvider())
   /** Operation ids of server operations not yet answered, reused when the player retries. */
   const pendingOps = useRef(new Map<string, string>())
   const [syncView, setSyncView] = useState(() => ({ status: sync ? sync.status() : ('off' as const), conflict: sync?.conflict() ?? null }))
@@ -422,6 +428,49 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
     [commit, currentState, ops, runServerOp, sync, noteLevels, noteChallenges],
   )
 
+  const watchRewardedAd = useCallback(async (): Promise<WatchAdResult> => {
+    let state = currentState()
+    if (!state) return { ok: false, error: 'server-error' }
+    // 1. The server starts the ad (its id is the operation's), 2. the provider plays it, 3. the
+    // server decides the reward. A fresh id each time: every ad is a new one.
+    let adId: string
+    if (ops) {
+      const started = await runServerOp(`ad-start:${crypto.randomUUID()}`, (operationId) => ({
+        action: 'ad-start',
+        operationId,
+        baseVersion: sync?.knownVersion() ?? null,
+        snapshot: state,
+      }))
+      if (!started.ok) return { ok: false, error: serverError<AdError>(started.error) }
+      adId = (started.result as { adId: string }).adId
+    } else {
+      adId = crypto.randomUUID()
+      const started = startAd(state, adId, clockRef.current())
+      if (!started.ok) return { ok: false, error: started.error }
+      commit({ kind: 'playing', state: started.state })
+    }
+    const shown = await adProvider.show()
+    if (!shown.completed) return { ok: false, error: shown.reason === 'offline' ? 'offline' : 'ad-unavailable' }
+    if (ops) {
+      state = currentState() ?? state
+      const claimed = await runServerOp(`ad-claim:${adId}`, (operationId) => ({
+        action: 'ad-claim',
+        operationId,
+        baseVersion: sync?.knownVersion() ?? null,
+        snapshot: state,
+        adId,
+      }))
+      if (!claimed.ok) return { ok: false, error: serverError<AdError>(claimed.error) }
+      return { ok: true, outcome: claimed.result as AdOutcome }
+    }
+    const now = currentState()
+    if (!now) return { ok: false, error: 'server-error' }
+    const claimed = claimAd(now, adId, clockRef.current())
+    if (!claimed.ok) return { ok: false, error: claimed.error }
+    commit({ kind: 'playing', state: claimed.state })
+    return { ok: true, outcome: claimed.outcome }
+  }, [adProvider, commit, currentState, ops, runServerOp, sync])
+
   const allocate = useCallback(
     async (attribute: AttributeId, expectedSpent: number): Promise<AllocationError | ServerError | null> => {
       const state = currentState()
@@ -717,6 +766,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       planSession,
       executeDay,
       withdrawRace,
+      watchRewardedAd,
       allocateAttributePoint: allocate,
       enterRace: enter,
       claimMajorResults,
@@ -750,6 +800,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       planSession,
       executeDay,
       withdrawRace,
+      watchRewardedAd,
       allocate,
       enter,
       claimMajorResults,

@@ -16,6 +16,7 @@ import { parseGameState, SCHEMA_VERSION } from '../repositories/gameRepository'
 import { applyMajorReward, type MajorRewardPayload } from '../game-engine/majorRewards'
 import { wearOn } from '../domain/equipment/wear'
 import { gearStatus } from '../game-engine/wear'
+import { claimAd, startAd } from '../game-engine/adReward'
 
 /**
  * Server-authoritative career operations, run in the Supabase Edge Function `career-ops`.
@@ -84,6 +85,9 @@ export type OperationKind =
   | 'premium-exchange'
   /** B-6b: withdraw from a race day whose shoes cannot start (recorded with the kind `train`). */
   | 'withdraw-race'
+  /** B-6d: a rewarded ad starts, then its reward is claimed (both recorded with the kind `claim`). */
+  | 'ad-start'
+  | 'ad-claim'
 
 interface WithSnapshot {
   /** The cloud version the client's snapshot is based on. */
@@ -115,6 +119,13 @@ export type CareerOpRequest =
    * withdraws: the entry is dropped and the day closes as Rest.
    */
   | ({ action: 'withdraw-race'; operationId: string; ref: DayRef } & WithSnapshot)
+  /**
+   * B-6d (owner decision D11): before the provider shows a rewarded ad, the server starts it (its id
+   * is this operation's id); once the provider reports it completed, the client claims it with that
+   * id. The server decides the coins: eligibility, today's limit, the ad's minimum length.
+   */
+  | ({ action: 'ad-start'; operationId: string } & WithSnapshot)
+  | ({ action: 'ad-claim'; operationId: string; adId: string } & WithSnapshot)
   /** `price`: the price the player saw; the catalog's price is charged, and a different one refused. */
   | ({ action: 'buy'; operationId: string; itemId: string; price: number } & WithSnapshot)
   | ({ action: 'equip'; operationId: string; itemId: string; equipped: boolean } & WithSnapshot)
@@ -273,6 +284,16 @@ function compute(request: CareerOpRequest, career: GameState, now: number): Comp
       const { state: next, ...result } = stepped.value.value
       return { ok: true, state: next, result: { finished: true, ...result, ...gearOf(next) } }
     }
+    case 'ad-start': {
+      const started = startAd(career, request.operationId, now)
+      if (!started.ok) return { ok: false, error: started.error }
+      return { ok: true, state: started.state, result: { adId: request.operationId } }
+    }
+    case 'ad-claim': {
+      const claimed = claimAd(career, request.adId, now)
+      if (!claimed.ok) return { ok: false, error: claimed.error }
+      return { ok: true, state: claimed.state, result: { ...claimed.outcome } }
+    }
     case 'withdraw-race': {
       const withdrawn = withdrawFromRace(career, request.ref, now)
       if (!withdrawn.ok) return { ok: false, error: withdrawn.error }
@@ -355,6 +376,10 @@ function validRequest(body: unknown): body is CareerOpRequest {
         typeof request.stop === 'string' &&
         typeof request.intensity === 'string'
       )
+    case 'ad-start':
+      return base && typeof request.operationId === 'string' && UUID.test(request.operationId)
+    case 'ad-claim':
+      return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && typeof request.adId === 'string' && UUID.test(request.adId)
     case 'withdraw-race':
       return base && typeof request.operationId === 'string' && UUID.test(request.operationId) && isRef(request.ref)
     case 'allocate':
@@ -447,7 +472,8 @@ export async function handleCareerOp(token: string | null, body: unknown, deps: 
       operationId: request.operationId,
       // A withdrawal closes a day like a training day: recorded as `train`, so the database's list
       // of operation kinds needs no migration.
-      kind: request.action === 'withdraw-race' ? 'train' : request.action,
+      // A rewarded ad is recorded as a `claim` (B-6d), for the same reason.
+      kind: request.action === 'withdraw-race' ? 'train' : request.action === 'ad-start' || request.action === 'ad-claim' ? 'claim' : request.action,
       response: computed.result ? { result: computed.result } : {},
     })
     if (committed.status === 'saved') {

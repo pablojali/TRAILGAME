@@ -1,3 +1,4 @@
+import type { AdError, AdOutcome } from '../../game-engine/adReward'
 import type { Currency } from '../../domain/basecamp/catalog'
 import type { CampBuyError, CampUseError, ExchangeError } from '../../game-engine/camp'
 import type { AchievementEarned } from '../../game-engine/achievements'
@@ -35,6 +36,12 @@ export type GamePhase =
   | { kind: 'playing'; state: GameState }
 
 /** A career came from the cloud: restored on this device, or newer from another device. */
+/** What watching a rewarded ad gave (B-6d). */
+export type WatchAdResult =
+  | { ok: true; outcome: AdOutcome }
+  /** `ad-unavailable` / `offline`: the provider showed no ad, or it was closed early: nothing given. */
+  | { ok: false; error: AdError | 'ad-unavailable' | ServerError }
+
 export type CloudNotice = 'restored' | 'updated'
 
 /** Why a new career could not be started on the server. */
@@ -92,6 +99,11 @@ export interface GameContextValue {
    * close the day as Rest. The screens come with A-5.
    */
   withdrawRace(ref: DayRef): Promise<WithdrawError | ServerError | null>
+  /**
+   * B-6d: watch a rewarded ad (the provider plays it) and claim its reward from the server. The
+   * outcome says whether coins were given, or why not.
+   */
+  watchRewardedAd(): Promise<WatchAdResult>
   allocateAttributePoint(attribute: AttributeId, expectedSpent: number): Promise<AllocationError | ServerError | null>
   /** Enters a race (free; level checked) once. Server-decided with Supabase (Phase 3B.2). */
   enterRace(raceId: string): Promise<RaceEntryError | ServerError | null>

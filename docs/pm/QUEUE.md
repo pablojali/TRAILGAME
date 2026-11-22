@@ -9,7 +9,7 @@ Last updated: 22 November 2026 (after B-6b merged).
 | Position | Topic | Brief | State |
 |---|---|---|---|
 | Now | B-6c Starter shoes at 20 coins and the emergency pair | `briefs/B-6c-starter-shoes-emergency-pair.md` | Ready to paste |
-| Then | A-5 Equipment wear: screens | `briefs/A-5-wear-screens.md` | After B-6b is merged |
+| Then | A-5 Equipment wear: screens | `briefs/A-5-wear-screens.md` | After B-6c is merged |
 | Then | Owner switches `wear_speed` on, after calibration | owner decision | After A-5 |
 | Later | A-1 Responsive checklist and defect list | `BACKLOG.md` | Needs a brief |
 | Later | A-2 PWA release candidate | `BACKLOG.md` | After A-1 |

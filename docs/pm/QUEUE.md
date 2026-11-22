@@ -8,7 +8,8 @@ Last updated: 22 November 2026 (D11, rewarded ad instead of the emergency pair).
 
 | Position | Topic | Brief | State |
 |---|---|---|---|
-| Now | **Owner: calibrate and switch on wear.** Fill `life_km` for the shoes, poles and packs (or ask the PM for a proposal), accept or change D10, then set `wear_speed` | `docs/EQUIPMENT_WEAR_CALIBRATION.md` | Owner decision. Nothing for Code until then |
+| Now | **Owner: switch wear on.** Set `wear_speed` to 1 in `economy.csv` (via Trail Studio) and test with the testers. Packs and poles still have no `life_km` | `docs/EQUIPMENT_WEAR_CALIBRATION.md` | Owner decision. Nothing for Code until then |
+| Then | Owner switches `wear_speed` on, after calibration | owner decision | After A-5 |
 | Later | A-1 Responsive checklist and defect list | `BACKLOG.md` | Needs a brief |
 | Later | A-2 PWA release candidate | `BACKLOG.md` | After A-1 |
 | Waiting | B-2 Fitness/fatigue balance (D4), B-3 attribute adaptation (D5) | `BACKLOG.md` | Owner decisions |

@@ -12,7 +12,6 @@ read of the code, not from running the game).
 | ~~D1~~ | ~~Move the PM role from ChatGPT to Claude~~ **Decided 21 Nov 2026: Claude is the PM.** Approving this folder and `CLAUDE.md` happens by merging its PR | Done |
 | D2 | Is M4 (Race System) accepted? If not, which part is open? | `STATUS.md` cannot be closed; B-1 depends on it |
 | D3 | Native app technology: Capacitor, Expo or Flutter | Blocks M6 and any native-specific work. A web-first game with the current React code points to Capacitor, but the PM wants a technical audit before recommending |
-| D10 | **Calibration.** Accept B's proposal (`wear_speed` 1, paid shoes of 200 to 300 km, the same multiplier for race km and training km, the band numbers) or change it, and fill `life_km` in `equipment.csv` | Switching wear on |
 | D4 | Fitness and fatigue balance: is the current feel acceptable? | B-2 |
 | D5 | Attribute adaptation from training (row 11) and profile change at season end (row 12): in scope for the next release? | B-3 |
 
@@ -25,6 +24,7 @@ read of the code, not from running the game).
 | D8 | **Starter shoes cost 20 coins** (they were 0), so replacing worn shoes always costs something; the free emergency pair stays (guard in `briefs/B-6c-starter-shoes-emergency-pair.md`) | 22 Nov 2026 |
 | D9 | **Majors and race day with worn shoes.** Shoes are checked again at READY. At 0 % (or none equipped) the runner cannot race and the day waits until the player buys shoes or withdraws, which drops the entry and moves on to Monday. If the shoes run out on the last segment the runner finishes | 22 Nov 2026 |
 | D11 | **Rewarded ad replaces the emergency pair.** The free emergency pair is dropped. A runner with no raceable shoes and fewer coins than the cheapest pair (20) can watch a rewarded ad for **+20 coins**. At most **2 coin-granting ads per real day** (server clock); more ads still play and the owner still earns, but give no coins and the screen says so. If no ad can be shown the runner waits and retries, no free coins. The game is closed to testers, so the first version uses a **simulated ad provider**; the real network comes with the native build (D3). Details in `briefs/B-6d-rewarded-ad-coins.md` | 22 Nov 2026 |
+| D10 | **Calibration accepted as proposed** (`docs/EQUIPMENT_WEAR_CALIBRATION.md`): `wear_speed` 1 when switched on, the same multiplier for race and training km, the band numbers in `wear_bands.csv`, shoe lives starter 150, Trail 200, Technical 250, Light 200, Mountain 300 km (entered in `equipment.csv`). Packs and poles have no life yet (owner) | 22 Nov 2026 |
 
 ## P0
 

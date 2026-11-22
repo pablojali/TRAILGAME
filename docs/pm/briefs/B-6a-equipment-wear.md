@@ -13,12 +13,14 @@ used up.
 
 ## Owner decisions (22 November 2026; updated at 08:48 with the durability bands)
 
-1. **Shoes wear by distance** (real-life life **500 km**). **Packs wear by time** (real-life life
-   **2 years = 104 game weeks**; a career year is 52 weeks). Poles: no life given, so they do not wear until
-   the owner fills it in. Do not invent one. Each item has its own `life`, so shoe models can differ.
-2. **One global knob, `wear_speed`**, multiplies the wear so gear wears faster than real life (real life = 1).
-   `0` means wear is **off**. What the player sees is the **effective life**: real life divided by
-   `wear_speed` (for example "108 km of 150 km").
+1. **Shoes wear by distance, packs by time** (game weeks; a career year is 52 weeks). **Each item has its own
+   `life`**, entered by the owner in the equipment table in game units, so one shoe model can last 150 km and
+   another 300 km. (Real-life references, which the owner scales down to game values: shoes about 500 km,
+   packs about 2 years.) **The owner supplies the values;** do not invent them. An item with no `life` never
+   wears. Poles have no life yet, so they do not wear.
+2. **One global knob, `wear_speed`**, multiplies the wear of every item so all gear can be retuned without
+   editing each row. `1` = as entered in the table; above 1 wears faster; `0` means wear is **off**. What the
+   player sees is the item's life divided by `wear_speed` (for example "108 km of 150 km" at `wear_speed` 1).
 3. **What counts as distance.** Races count their real `distance_km`. Training sessions have no distance, so
    a new owner table gives each session type a km equivalent (starting proposal below). Gear wears **only
    while it is equipped**.
@@ -49,7 +51,9 @@ used up.
 ### Data (the owner's tables, read like the other tables)
 
 - `src/data/equipment.csv`: new optional columns `wear_unit` (`km` or `weeks`; empty = never wears) and `life`
-  (real-life units). Fill: all shoes `km` / `500`; all packs `weeks` / `104`; everything else empty.
+  (game units: km or weeks). Add the columns and read them. The owner fills the values per model (for example
+  150 km for one shoe model, 300 km for another); until they do, those items do not wear. Use test fixtures
+  for your tests, not invented values in the real table.
 - `src/data/economy.csv`: new row `wear_speed`.
 - New table `src/data/wear_km.csv` (`session,km`). **Starting proposal, for the owner to change:** easy-run 8,
   intervals 6, hills 6, long-run 18, trail-technique 4, strength 0, rest 0.
@@ -107,7 +111,9 @@ Re-run the season simulation (`docs/SEASON_SIMULATION_16W.md`) against current v
 balance finding is closed, then propose `wear_speed`, the km table and the band numbers. Suggested targets for
 the owner to accept or change: shoes need replacing roughly every 8 to 12 game weeks for a sensible player, and
 replacing worn gear costs roughly 25 to 35 % of the coins that player earns. Races wear shoes along the
-course too (B-6b): with an effective life of 150 km, a 70 km race uses nearly half a pair. State how much of
+course too (B-6b): on a 150 km pair at `wear_speed` 1, a 70 km race uses nearly half a pair. Include the **cost
+per km of each shoe model** (price divided by life), so the owner can compare a short-lived cheap pair with a
+long-lived expensive one. State how much of
 a pair each race category uses at your proposed `wear_speed`, and say whether race km should use the same
 multiplier as training km. Write it in
 `docs/EQUIPMENT_WEAR_CALIBRATION.md` with the numbers. **Apply no balance value without the owner's approval.**

@@ -4,12 +4,11 @@ The order of work, kept by the PM. **One Code session for now**, one topic at a 
 merged, the PM moves the next one up and tells the owner what to paste into the session.
 The streams A and B in `README.md` are areas of work; with one session they are simply topics in this list.
 
-Last updated: 22 November 2026.
+Last updated: 22 November 2026 (after B-6a merged).
 
 | Position | Topic | Brief | State |
 |---|---|---|---|
-| Now | B-6a Equipment wear: durability, bands, training and entry rules (also covers B-1) | `briefs/B-6a-equipment-wear.md` | Ready to paste |
-| Next | B-6b Race consequences: penalties, DNF, equipment lock | `briefs/B-6b-race-wear-consequences.md` | After B-6a is merged |
+| Now | B-6b Race consequences: wear along the course, DNF, equipment lock | `briefs/B-6b-race-wear-consequences.md` | Ready to paste. Owner decisions D8 to D10 shape it, see `BACKLOG.md` |
 | Then | A-5 Equipment wear: screens | `briefs/A-5-wear-screens.md` | After B-6b is merged |
 | Then | Owner switches `wear_speed` on, after calibration | owner decision | After A-5 |
 | Later | A-1 Responsive checklist and defect list | `BACKLOG.md` | Needs a brief |
@@ -22,4 +21,5 @@ Life in km for each shoe model, the packs and the poles (owner fills the table);
 
 ## Merged
 
-(Nothing yet.)
+- 22 Nov 2026: PR #122 PM coordination folder and briefs.
+- 22 Nov 2026: PR #125 B-6a equipment wear, shipped dark (`wear_speed = 0`, every `life_km` empty). Also closed B-1: the report says the M4 balance finding is closed (owner decision D2 still open).

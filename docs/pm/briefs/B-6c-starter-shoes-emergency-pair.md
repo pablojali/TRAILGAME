@@ -1,4 +1,4 @@
-# Brief B-6c — Starter shoes at 20 coins and the emergency pair
+# Brief B-6c — Starter shoes at 20 coins (emergency pair removed by D11)
 
 **Depends on:** B-6b merged. Do not start before the PM assigns it. Read `docs/pm/README.md`,
 `docs/pm/CONTRACTS.md`, `docs/pm/briefs/B-6a-equipment-wear.md` and `docs/EQUIPMENT_WEAR_CALIBRATION.md`
@@ -8,7 +8,12 @@
 
 - **D8:** the starter shoes cost **20 coins** (they cost 0). Buying them again, as a replacement, costs 20. The
   runner still starts owning them.
-- The **free emergency pair** stays: the game must never leave a runner with no usable shoes and no money.
+- **D11 (22 November 2026, supersedes the emergency pair):** the free emergency pair is **dropped**. The way out of
+  having no shoes and no money is a rewarded ad (brief B-6d, a separate topic). **PR #130 must be reworked:** remove
+  `withEmergencyPair`, `EMERGENCY_PAIR_ID`, the cooldown, `cheapestShoesPrice` and `hasRaceablePair` if nothing else
+  uses them, the `emergencyPairWeek` save field, the `emergencyPair` result flag and their tests and docs. Keep the
+  starter shoes at 20 and the tests for it. Update the log and `docs/EQUIPMENT_WEAR_CALIBRATION.md` section 7.
+  Ignore item 2 below and the PM review comment about the guard.
 
 ## What to build
 

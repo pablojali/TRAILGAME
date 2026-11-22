@@ -21,7 +21,7 @@ or who can start.
    last the race, the entry confirmation shows a **clear warning** that names where the runner will retire
    ("Your shoes will break at aid station 3, about km 18: DNF, no prize or ranking points") and needs an
    explicit confirmation. When the shoes will last, show their durability after the race if the server sends it.
-   When the free emergency pair is granted, the player is told what happened.
+   When the player is stuck (no raceable pair, fewer than 20 coins), show the rewarded-ad offer (B-6d): "Watch an ad for 20 coins", how many coin ads are left today, and a clear message when an ad gives no coins.
 3. **Race run and results:** the DNF appears in the live view (where the runner leaves), in the result screen
    and in the rankings lists, after the finishers. The result explanation mentions the shoes' effect.
 4. **Training:** if the equipped shoes are in the 9–1 % band (or at 0 %), the Training screen shows a short

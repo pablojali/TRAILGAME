@@ -19,6 +19,7 @@ import {
   estimateFirstSegment,
   fatigueAtFinishBeforeStart,
   getRaceReport,
+  retiresHere,
   planRaceAhead,
   planRaceBeforeStart,
   previewStep,
@@ -37,6 +38,7 @@ import {
   stopKey,
   stopDuration,
 } from './raceStrategyText'
+import type { RaceGearError } from '../../game-engine/wear'
 import { aidAdvice, roughDelta, segmentDemand, segmentKind } from './aidStation'
 import { coachPortrait } from '../coach/coach'
 import { RACE_STYLES, type RaceStyle } from '../../game-engine/racePlan'
@@ -51,7 +53,9 @@ import styles from './Races.module.css'
 import gelPicture from '../../../assets/ui/nutrition/gel.webp'
 import barPicture from '../../../assets/ui/nutrition/bar.webp'
 
-const START_ERRORS: Record<RaceStartError | ServerError, MessageKey> = {
+const START_ERRORS: Record<RaceStartError | RaceGearError | ServerError, MessageKey> = {
+  'no-shoes-equipped': 'wear.error.noShoes',
+  'shoes-worn-out': 'wear.error.shoesWornOut',
   offline: 'raceRun.startError.offline',
   'server-error': 'raceRun.startError.server-error',
   'day-completed': 'raceRun.startError.day-completed',
@@ -160,7 +164,13 @@ export function RaceRunScreen() {
     const atFinish = report !== null && report.segmentsDone >= report.segmentCount
     return (
       <>
-        {atFinish ? <CrossFinish ready={clipRun === null} present={present} /> : <AidStation race={race} present={present} />}
+        {atFinish ? (
+          <CrossFinish ready={clipRun === null} present={present} />
+        ) : retiresHere(state.activeRace, race) ? (
+          <Retire race={race} />
+        ) : (
+          <AidStation race={race} present={present} />
+        )}
         {overlay}
       </>
     )
@@ -554,6 +564,34 @@ function CrossFinish({ ready, present }: { ready: boolean; present: Present }) {
           </button>
         </>
       )}
+    </Screen>
+  )
+}
+
+/**
+ * Worn-out shoes broke on the segment just run (B-6b, A-5): the runner retires at this aid station.
+ * The step only records the DNF; the result screen follows.
+ */
+function Retire({ race }: { race: Race }) {
+  const { state, stepRace } = useCareer()
+  const { t } = useI18n()
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const station = state.activeRace?.splits.length ?? 0
+  async function retire() {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    const result = await stepRace({ segment: station, stop: 'normal', intensity: 'target' })
+    setBusy(false)
+    if (!result.ok) setError(t(STEP_ERRORS[result.error]))
+  }
+  return (
+    <Screen eyebrow={race.name} title={t('wear.dnfTitle', { station })} description={t('wear.retireHere')}>
+      {error && <p role="alert">{error}</p>}
+      <button type="button" className={`${button.button} ${button.danger}`} aria-disabled={busy || undefined} onClick={() => void retire()}>
+        {busy ? t('raceRun.running') : t('wear.retire')}
+      </button>
     </Screen>
   )
 }

@@ -8,7 +8,8 @@ import type { AttributeId } from '../../domain/athlete/athlete'
 import type { SessionType } from '../../domain/training/sessions'
 import type { AppearanceError } from '../../game-engine/appearance'
 import type { AllocationError } from '../../game-engine/attributes'
-import type { BuyError, EquipError } from '../../game-engine/equipment'
+import type { BuyError, EquipError, RaceLockError } from '../../game-engine/equipment'
+import type { RaceGearError } from '../../game-engine/wear'
 import type { AthleteIdentity, CoachProgress, GameState } from '../../game-engine/gameState'
 import type {
   RaceDayResult,
@@ -106,13 +107,13 @@ export interface GameContextValue {
   watchRewardedAd(): Promise<WatchAdResult>
   allocateAttributePoint(attribute: AttributeId, expectedSpent: number): Promise<AllocationError | ServerError | null>
   /** Enters a race (free; level checked) once. Server-decided with Supabase (Phase 3B.2). */
-  enterRace(raceId: string): Promise<RaceEntryError | ServerError | null>
+  enterRace(raceId: string): Promise<RaceEntryError | RaceGearError | ServerError | null>
   /** Asks the server for the Sunday Major results waiting for this career (phase 5). */
   claimMajorResults(): Promise<void>
   /** Buys an item once for `confirmedPrice` coins. Server-decided with Supabase (Phase 3B.2). */
-  buyItem(itemId: string, confirmedPrice: number): Promise<BuyError | ServerError | null>
+  buyItem(itemId: string, confirmedPrice: number): Promise<BuyError | RaceLockError | ServerError | null>
   /** Puts an owned item on (replacing the same slot) or takes it off. Server-decided with Supabase. */
-  setItemEquipped(itemId: string, equipped: boolean): Promise<EquipError | ServerError | null>
+  setItemEquipped(itemId: string, equipped: boolean): Promise<EquipError | RaceLockError | ServerError | null>
   /** Buys a Base Camp piece at the price and currency the player saw. Server-decided with Supabase. */
   buyCampItem(itemId: string, confirmed: { price: number; currency: Currency }): Promise<CampBuyError | ServerError | null>
   /** Puts an owned Base Camp piece in its scene or takes it out. Server-decided with Supabase. */
@@ -129,7 +130,7 @@ export interface GameContextValue {
    * Starts the scheduled race (Race Engine V1): the server runs the first segment with the chosen
    * intensity and takes the gel and bar asked for. The race in progress is then `state.activeRace`.
    */
-  startRace(ref: DayRef, entryId: string, decisions: RaceStartDecisions): Promise<RaceStartError | ServerError | null>
+  startRace(ref: DayRef, entryId: string, decisions: RaceStartDecisions): Promise<RaceStartError | RaceGearError | ServerError | null>
   /** Makes the stop at the aid station and runs the next segment; the last one finishes the race. */
   stepRace(decisions: RaceStepDecisions): Promise<RaceStepResponse>
 }

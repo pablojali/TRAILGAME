@@ -110,6 +110,11 @@ export interface GameState {
    * Server-owned. Missing: no ad watched.
    */
   ads?: AdsState
+  /**
+   * Equipment wear (A-5): how many times each item was replaced, so each new pair's wear
+   * notifications are new ones. Server-owned. Missing: none replaced.
+   */
+  replacements?: Record<string, number>
 }
 
 export interface AdsState {

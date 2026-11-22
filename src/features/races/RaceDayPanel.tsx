@@ -7,6 +7,8 @@ import { getRace, type Race } from '../../domain/races/races'
 import { getCurrentDay } from '../../game-engine/gameState'
 import { getRaceWeek, getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedule'
 import { previewRaceDay } from '../../game-engine/races'
+import { raceGearError } from '../../game-engine/wear'
+import { GearBlock } from '../wear/GearBlock'
 import styles from './Races.module.css'
 
 /**
@@ -55,6 +57,10 @@ export function RaceDayPanel({ race, entryId }: { race: Race; entryId: string })
       </>
     )
   }
+
+  // Shoes that cannot start (B-6b): the day waits until the runner replaces them or withdraws.
+  const gearError = raceGearError(state)
+  if (gearError) return <GearBlock error={gearError} raceDay raceName={race.name} />
 
   // Race day: straight to the preparation (owner request: no explanation here).
   return (

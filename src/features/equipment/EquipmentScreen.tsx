@@ -20,12 +20,18 @@ import {
   type EquipmentItem,
   type EquipmentSlot,
 } from '../../domain/equipment/items'
-import { isEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
+import { isEquipped, type BuyError, type EquipError, type RaceLockError } from '../../game-engine/equipment'
+import { wearOn, wearStatus, type WearStatus } from '../../domain/equipment/wear'
+import { usedOf } from '../../game-engine/wear'
+import { WearMeter } from '../wear/WearMeter'
+import { bandText } from '../wear/wearText'
+import { AdOffer } from '../wear/AdOffer'
 import type { GameState } from '../../game-engine/gameState'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import styles from './EquipmentScreen.module.css'
 
-const BUY_ERRORS: Record<BuyError | ServerError, MessageKey> = {
+const BUY_ERRORS: Record<BuyError | RaceLockError | ServerError, MessageKey> = {
+  'race-in-progress': 'wear.error.raceInProgress',
   'unknown-item': 'equipment.buyError.unknown-item',
   'already-owned': 'equipment.buyError.already-owned',
   'insufficient-coins': 'equipment.buyError.insufficient-coins',
@@ -35,7 +41,8 @@ const BUY_ERRORS: Record<BuyError | ServerError, MessageKey> = {
   'server-error': 'equipment.buyError.server-error',
 }
 
-const EQUIP_ERRORS: Record<EquipError | ServerError, MessageKey> = {
+const EQUIP_ERRORS: Record<EquipError | RaceLockError | ServerError, MessageKey> = {
+  'race-in-progress': 'wear.error.raceInProgress',
   'unknown-item': 'equipment.equipError.unknown-item',
   'not-owned': 'equipment.equipError.not-owned',
   consumable: 'equipment.equipError.consumable',
@@ -141,6 +148,16 @@ function thumbnailUrl(file: string, sex: Sex): string | undefined {
   return undefined
 }
 
+/** The wear of an owned item that wears (A-5), or null (not owned, never wears, or wear off). */
+function ownedWear(state: GameState, item: EquipmentItem): WearStatus | null {
+  return state.ownedEquipment.includes(item.id) ? wearStatus(item.id, usedOf(state, item.id)) : null
+}
+
+/** With wear on, nothing changes while a race is being run (B-6b): the screen says so. */
+function raceLocked(state: GameState): boolean {
+  return wearOn() && state.activeRace !== null
+}
+
 /** An item's picture: its thumbnail, the shoes on the feet, or the slot icon (also used on race day). */
 export function ItemArt({ item }: { item: EquipmentItem }) {
   const { state } = useCareer()
@@ -215,6 +232,7 @@ export function EquipmentScreen() {
     setParams(slot ? { slot, ...(item ? { item } : {}) } : {}, { replace: true })
   }
 
+  const { state } = useCareer()
   return (
     <Screen
       title={t('equipment.title')}
@@ -226,6 +244,11 @@ export function EquipmentScreen() {
         </Link>
       }
     >
+      {raceLocked(state) && (
+        <p role="note" className={styles.warning}>
+          {t('wear.raceLocked')}
+        </p>
+      )}
       <Tabs
         label={t('equipment.tabs')}
         tabs={[
@@ -414,6 +437,8 @@ function ShopTab({
   const options = SHOP_FILTERS.map((id) => ({ id, label: id === 'all' ? t('equipment.filter.all') : t(SLOT_LABELS[id]) }))
   return (
     <>
+      {/* Stuck with no shoes that can race and no coins: the rewarded ad (B-6d), where shoes are bought. */}
+      <AdOffer compact />
       {/* One row of filters that scrolls sideways on narrow phones. */}
       <div className={styles.filters}>
         <Chips label={t('equipment.filter.label')} options={options} value={filter} onChange={onFilter} />
@@ -438,6 +463,8 @@ export function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId:
   const worn = isEquipped(state, item.id)
   const { t, locale } = useI18n()
   const status = shopStatus(item, state.coins, owned, worn, t)
+  const wear = ownedWear(state, item)
+  const wearLine = wear ? t('wear.cardStatus', { pct: wear.durabilityPct, band: wear.band ? bandText(wear.band, t) : wear.wornOut ? t('wear.band.wornOut') : '' }) : ''
   const priceText =
     item.price === null ? t('equipment.priceToBeDefined') : item.price === 0 ? t('equipment.freeLower') : t('common.coins', { count: item.price })
   const itemBonuses = bonuses(item, t)
@@ -446,7 +473,7 @@ export function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId:
       type="button"
       className={styles.card}
       data-coach={OWNED_FROM_START.includes(item.id) ? 'gear-starter' : undefined}
-      aria-label={`${itemDisplayName(item, locale, t)}, ${priceText}${isConsumable(item) ? `, ${itemStockText(item, state.consumables, t)}` : ''}, ${status.text}`}
+      aria-label={`${itemDisplayName(item, locale, t)}, ${priceText}${isConsumable(item) ? `, ${itemStockText(item, state.consumables, t)}` : ''}, ${status.text}${wearLine ? `, ${wearLine}` : ''}`}
       onClick={() => onOpen(item.id)}
     >
       <span className={styles.cardTop}>
@@ -469,6 +496,12 @@ export function ItemCard({ item, onOpen }: { item: EquipmentItem; onOpen(itemId:
       <span className={styles.cardPrice}>
         {item.price === null ? t('equipment.toBeDefined') : item.price === 0 ? t('equipment.free') : <Coins amount={item.price} />}
       </span>
+      {wear && (
+        <span className={styles.cardWear} aria-hidden="true">
+          <span className={styles.cardWearFill} style={{ width: `${wear.durabilityPct}%` }} />
+          <span className={styles.cardWearText}>{wearLine}</span>
+        </span>
+      )}
       <span className={`${styles.cardStatus} ${status.tone}`}>{status.text}</span>
     </button>
   )
@@ -512,6 +545,11 @@ export function ItemDetail({
   const what = consumable ? t('equipment.packOf', { name: itemLabel(item, locale), count: item.packSize! }) : itemDisplayName(item, locale, t)
   const shortfall = price === null ? 0 : Math.max(0, price - state.coins)
   const shortfallId = `${item.id}-shortfall`
+  const wear = ownedWear(state, item)
+  // A worn item can be bought again at its price (B-6a): a replacement, as new.
+  const replaceable = wear !== null && wear.used > 0 && price !== null
+  const [confirming, setConfirming] = useState(false)
+  const locked = raceLocked(state)
 
   useEffect(() => {
     heading.current?.focus()
@@ -576,6 +614,14 @@ export function ItemDetail({
             <dt>{t('equipment.fact.raceEffect')}</dt>
             <dd className={item.effectText ? styles.effect : undefined}>{effectText(item, t, locale)}</dd>
           </div>
+          {wear && (
+            <div>
+              <dt>{t('wear.durability')}</dt>
+              <dd>
+                <WearMeter status={wear} compact />
+              </dd>
+            </div>
+          )}
           <div>
             <dt>{t('equipment.fact.price')}</dt>
             <dd>{price === null ? t('equipment.toBeDefined') : price === 0 ? t('equipment.free') : <Coins amount={price} />}</dd>
@@ -595,7 +641,63 @@ export function ItemDetail({
         </p>
       )}
 
+      {replaceable && !locked && confirming && (
+        <div className={styles.replaceBox}>
+          {
+            <>
+              <p id={`${item.id}-replace`}>
+                {t('wear.replaceConfirm', { item: what, coins: coins(price!), balance: coins(state.coins - price!) })}
+              </p>
+              <div className={styles.detailActions}>
+                <button
+                  type="button"
+                  className={`${button.button} ${button.primary}`}
+                  aria-describedby={`${item.id}-replace`}
+                  aria-disabled={busy !== null || undefined}
+                  onClick={(event) =>
+                    !isRepeatClick(event) &&
+                    void run('paying', async () => {
+                      const failure = await buyItem(item.id, price!)
+                      setConfirming(false)
+                      if (failure) return t(BUY_ERRORS[failure])
+                      onMessage(t('wear.replaced', { item: what }))
+                      return null
+                    })
+                  }
+                >
+                  {busy === 'paying' ? t('wear.replacing') : t('wear.confirmReplace')}
+                </button>
+                <button type="button" className={`${button.button} ${button.secondary}`} onClick={() => setConfirming(false)}>
+                  {t('wear.cancel')}
+                </button>
+              </div>
+            </>
+          }
+        </div>
+      )}
+      {replaceable && shortfall > 0 && !locked && (
+        <p id={shortfallId} className={styles.warning}>
+          {t('equipment.youNeed', { coins: coins(shortfall) })}
+        </p>
+      )}
+
+      {locked ? (
+        <p role="note" className={styles.muted}>
+          {t('wear.raceLocked')}
+        </p>
+      ) : confirming ? null : (
       <div className={styles.detailActions}>
+        {replaceable && (
+          <button
+            type="button"
+            className={`${button.button} ${button.secondary}`}
+            aria-disabled={shortfall > 0 || undefined}
+            aria-describedby={shortfall > 0 ? shortfallId : undefined}
+            onClick={() => shortfall === 0 && setConfirming(true)}
+          >
+            {t('wear.replaceFor', { coins: coins(price!) })}
+          </button>
+        )}
         {owned ? (
           <button
             type="button"
@@ -644,6 +746,7 @@ export function ItemDetail({
           </button>
         )}
       </div>
+      )}
     </article>
   )
 }

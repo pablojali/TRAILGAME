@@ -9,7 +9,8 @@ import { applyFitnessDecay } from '../../game-engine/fitnessDecay'
 import { createInitialGameState, type AthleteIdentity, type CoachProgress, type GameState } from '../../game-engine/gameState'
 import type { Appearance } from '../../domain/athlete/appearance'
 import { setAppearance } from '../../game-engine/appearance'
-import { buyItem, setItemEquipped, type BuyError, type EquipError } from '../../game-engine/equipment'
+import { buyItem, setItemEquipped, type BuyError, type EquipError, type RaceLockError } from '../../game-engine/equipment'
+import type { RaceGearError } from '../../game-engine/wear'
 import { claimAd, startAd, type AdError, type AdOutcome } from '../../game-engine/adReward'
 import { simulatedAdProvider, type RewardedAdProvider } from './ads'
 import { buyCampItem, exchangePremium, setCampItemUsed, type CampBuyError, type CampUseError, type ExchangeError } from '../../game-engine/camp'
@@ -506,7 +507,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   }, [currentState, ops, runServerOp, sync])
 
   const enter = useCallback(
-    async (raceId: string): Promise<RaceEntryError | ServerError | null> => {
+    async (raceId: string): Promise<RaceEntryError | RaceGearError | ServerError | null> => {
       const state = currentState()
       if (!state) return 'unknown-race'
       if (ops) {
@@ -517,12 +518,10 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
           snapshot: state,
           raceId,
         }))
-        return response.ok ? null : serverError<RaceEntryError>(response.error)
+        return response.ok ? null : serverError<RaceEntryError | RaceGearError>(response.error)
       }
       const result = enterRace(state, raceId, clockRef.current())
-      // The equipment-wear refusals (no-shoes-equipped, shoes-worn-out) only happen with wear on;
-      // their screen texts come with A-5, which widens this type.
-      if (!result.ok) return result.error as RaceEntryError
+      if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.state })
       return null
     },
@@ -530,7 +529,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   )
 
   const beginRace = useCallback(
-    async (ref: DayRef, entryId: string, decisions: RaceStartDecisions): Promise<RaceStartError | ServerError | null> => {
+    async (ref: DayRef, entryId: string, decisions: RaceStartDecisions): Promise<RaceStartError | RaceGearError | ServerError | null> => {
       const state = currentState()
       if (!state) return 'wrong-week'
       if (ops) {
@@ -543,11 +542,10 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
           entryId,
           ...decisions,
         }))
-        return response.ok ? null : serverError<RaceStartError>(response.error)
+        return response.ok ? null : serverError<RaceStartError | RaceGearError>(response.error)
       }
       const result = startRace(state, ref, entryId, decisions, clockRef.current())
-      // As for entering: the equipment-wear refusals get their texts with A-5.
-      if (!result.ok) return result.error as RaceStartError
+      if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.state })
       return null
     },
@@ -592,7 +590,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   )
 
   const equip = useCallback(
-    async (itemId: string, equipped: boolean): Promise<EquipError | ServerError | null> => {
+    async (itemId: string, equipped: boolean): Promise<EquipError | RaceLockError | ServerError | null> => {
       const state = currentState()
       if (!state) return 'unknown-item'
       if (ops) {
@@ -604,11 +602,10 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
           itemId,
           equipped,
         }))
-        return response.ok ? null : serverError<EquipError>(response.error)
+        return response.ok ? null : serverError<EquipError | RaceLockError>(response.error)
       }
       const result = setItemEquipped(state, itemId, equipped)
-      // `race-in-progress` (B-6b) only happens with wear on; its text comes with A-5.
-      if (!result.ok) return result.error as EquipError
+      if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.state })
       return null
     },
@@ -616,7 +613,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
   )
 
   const buy = useCallback(
-    async (itemId: string, confirmedPrice: number): Promise<BuyError | ServerError | null> => {
+    async (itemId: string, confirmedPrice: number): Promise<BuyError | RaceLockError | ServerError | null> => {
       const state = currentState()
       if (!state) return 'unknown-item'
       if (ops) {
@@ -628,11 +625,10 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
           itemId,
           price: confirmedPrice,
         }))
-        return response.ok ? null : serverError<BuyError>(response.error)
+        return response.ok ? null : serverError<BuyError | RaceLockError>(response.error)
       }
       const result = buyItem(state, itemId, confirmedPrice)
-      // As for equipping: `race-in-progress` gets its text with A-5.
-      if (!result.ok) return result.error as BuyError
+      if (!result.ok) return result.error
       commit({ kind: 'playing', state: result.state })
       return null
     },

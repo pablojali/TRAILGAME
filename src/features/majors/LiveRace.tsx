@@ -141,9 +141,12 @@ export function LiveRace({ major, mediaUrl }: { major: PlayerMajor; mediaUrl(pat
             {mine && !(category.phase === 'RUNNING' && race.live.length > 0) && <Gaps race={race} />}
             {category.phase === 'PA' && <NextSegment race={race} raceId={major.raceId} />}
             {category.phase === 'PA' && <Decision major={major} race={race} open={left > 0} onSent={refresh} />}
+            {mine?.dnf && category.phase !== 'FINISHED' && <p className={`${styles.entry} ${styles.warning}`}>{t('wear.retireHere')}</p>}
             {category.phase === 'FINISHED' && mine && (
               <p className={styles.entry}>
-                {t('major.live.result', { position: ordinal(mine.position, locale), field: race.standings.length, time: raceTimeText(mine.timeS) })}
+                {mine.dnf
+                  ? t('wear.dnf')
+                  : t('major.live.result', { position: ordinal(mine.position, locale), field: race.standings.length, time: raceTimeText(mine.timeS) })}
                 {race.prize && <span> {t('major.live.prize', race.prize)}</span>}
               </p>
             )}
@@ -319,7 +322,8 @@ function Standings({ race }: { race: LiveRaceView }) {
     <ol className={styles.standings} aria-label={t('major.live.tab.standings')}>
       {race.standings.map((row) => (
         <li key={row.slot} aria-current={row.me || undefined}>
-          <span className={styles.pos}>{row.position}</span>
+          {/* A retired runner (B-6b) is listed after everyone still racing, as DNF. */}
+          <span className={styles.pos}>{row.dnf ? t('wear.dnf') : row.position}</span>
           <span className={styles.who}>
             {/* Another runner's name opens their refuge (owner design, 17 November 2026). */}
             {row.me ? (
@@ -332,7 +336,7 @@ function Standings({ race }: { race: LiveRaceView }) {
             {row.me && <em> · {t('major.live.you')}</em>}
           </span>
           {row.auto && <span className={styles.tagAuto}>{t('major.live.auto')}</span>}
-          <span className={styles.gap}>{row.gapS === 0 ? raceTimeText(row.timeS) : `+${durationText(row.gapS)}`}</span>
+          <span className={styles.gap}>{row.dnf ? '—' : row.gapS === 0 ? raceTimeText(row.timeS) : `+${durationText(row.gapS)}`}</span>
         </li>
       ))}
     </ol>

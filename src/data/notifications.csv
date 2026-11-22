@@ -2,6 +2,7 @@
 # game creates in every player's Inbox. on: yes = shown; no = the game no longer shows it (nothing is lost: turning it back
 # on shows it again). The kinds are the game's (src/app/inbox/inbox.ts); keep each once.
 kind,on
+gear,yes
 race,yes
 challenge,yes
 level,yes

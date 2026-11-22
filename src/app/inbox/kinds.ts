@@ -4,6 +4,7 @@ import type { InboxKind } from './inbox'
 
 /** The notifications the game creates by itself; announcements are the owner's and always shown. */
 export const AUTOMATIC_KINDS = [
+  'gear',
   'race',
   'challenge',
   'level',

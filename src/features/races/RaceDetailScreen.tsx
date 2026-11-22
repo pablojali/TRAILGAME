@@ -15,7 +15,10 @@ import { useI18n, type MessageKey } from '../../i18n/i18n'
 
 import { weekdayShortKey } from '../../i18n/labels'
 import { getRaceWeek, getScheduledEntry } from '../../game-engine/raceSchedule'
-import { getFinishedEntries, getPendingEntry, type RaceEntryError } from '../../game-engine/races'
+import { getFinishedEntries, getPendingEntry, predictShoes, type RaceEntryError } from '../../game-engine/races'
+import { raceGearError, type RaceGearError } from '../../game-engine/wear'
+import { GearBlock } from '../wear/GearBlock'
+import { kmText as wearKm } from '../wear/wearText'
 import type { ServerError } from '../../repositories/supabase/careerOpsClient'
 import { CourseProfile } from './CourseProfile'
 import { courseMapping } from './profile'
@@ -32,7 +35,9 @@ function kmText(metres: number, locale: string): string {
   return `${(metres / 1000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`
 }
 
-const ERRORS: Record<RaceEntryError | ServerError, MessageKey> = {
+const ERRORS: Record<RaceEntryError | RaceGearError | ServerError, MessageKey> = {
+  'no-shoes-equipped': 'wear.error.noShoes',
+  'shoes-worn-out': 'wear.error.shoesWornOut',
   offline: 'races.error.offline',
   'server-error': 'races.error.server-error',
   'unknown-race': 'races.error.unknown-race',
@@ -192,7 +197,8 @@ function RaceDetail({ race }: { race: Race }) {
 function PastResults({ race }: { race: Race }) {
   const { state } = useCareer()
   const { t, locale } = useI18n()
-  const finished = getFinishedEntries(state, race.id)
+  // Finished races only: a DNF (B-6b) has no place to compare.
+  const finished = getFinishedEntries(state, race.id).filter((entry) => !entry.result.dnf)
   if (finished.length === 0) return null
   const latest = finished[finished.length - 1]!
   const best = finished.reduce((a, b) => (b.result.position < a.result.position ? b : a))
@@ -235,8 +241,12 @@ function EntryPanel({ race }: { race: Race }) {
   const [entering, setEntering] = useState(false)
   const pending = useRef(false)
   const [justEntered, setJustEntered] = useState(false)
+  // The shoes will break during this race (A-5): entering needs an explicit second tap.
+  const [warned, setWarned] = useState(false)
   const panel = useRef<HTMLHeadingElement>(null)
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const gearError = raceGearError(state)
+  const prediction = predictShoes(state, race)
 
   // Move focus to the result of entering.
   useEffect(() => {
@@ -272,8 +282,12 @@ function EntryPanel({ race }: { race: Race }) {
     )
   }
 
-  async function enter() {
-    if (blocked || pending.current) return
+  async function enter(confirmed = false) {
+    if (blocked || gearError || pending.current) return
+    if (prediction && !prediction.lasts && !confirmed) {
+      setWarned(true)
+      return
+    }
     pending.current = true
     setEntering(true)
     setMessage('')
@@ -305,16 +319,36 @@ function EntryPanel({ race }: { race: Race }) {
               : t('races.closedAbove', { level: getMaximumLevel(race), you: level })}
           </p>
         )}
+        {!blocked && gearError && <GearBlock error={gearError} />}
+        {!blocked && !gearError && prediction?.lasts && <p className={styles.muted}>{t('wear.lastsRace')}</p>}
+        {!blocked && !gearError && prediction && !prediction.lasts && warned && (
+          <div role="alert" className={styles.warning} id="shoe-warning">
+            <strong>{t('wear.breakTitle')}</strong>
+            <p>{t('wear.breakWarning', { station: prediction.aidStation, km: wearKm(prediction.km, locale) })}</p>
+          </div>
+        )}
       </div>
-      <button
-        type="button"
-        className={`${button.button} ${button.primary}`}
-        aria-disabled={blocked || entering || undefined}
-        aria-describedby={blocked ? 'race-level' : undefined}
-        onClick={() => void enter()}
-      >
-        {entering ? t('races.entering') : t('races.enter')}
-      </button>
+      {warned && prediction && !prediction.lasts && !gearError ? (
+        <button
+          type="button"
+          className={`${button.button} ${button.danger}`}
+          aria-disabled={entering || undefined}
+          aria-describedby="shoe-warning"
+          onClick={() => void enter(true)}
+        >
+          {entering ? t('races.entering') : t('wear.enterAnyway')}
+        </button>
+      ) : (
+        <button
+          type="button"
+          className={`${button.button} ${button.primary}`}
+          aria-disabled={blocked || gearError !== null || entering || undefined}
+          aria-describedby={blocked ? 'race-level' : gearError ? 'gear-block' : undefined}
+          onClick={() => void enter()}
+        >
+          {entering ? t('races.entering') : t('races.enter')}
+        </button>
+      )}
     </section>
   )
 }

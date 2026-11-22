@@ -555,6 +555,12 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     }
     parsed.wear = { ...(wear as Record<string, number>) }
   }
+  // Missing: nothing replaced yet (A-5). Owned items, whole counts.
+  if (value.replacements !== undefined) {
+    const r = value.replacements
+    if (!isRecord(r) || !Object.entries(r).every(([id, n]) => parsed.ownedEquipment.includes(id) && isInt(n, 1))) return null
+    parsed.replacements = { ...(r as Record<string, number>) }
+  }
   // Missing: no rewarded ad watched yet (B-6d).
   if (value.ads !== undefined) {
     const ads = parseAds(value.ads)

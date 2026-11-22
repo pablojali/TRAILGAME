@@ -75,7 +75,10 @@ export function buyItem(
     for (const kind of consumableKinds(item)) consumables[kind] += item.packSize
     return { ok: true, state: { ...state, coins: state.coins - item.price, consumables } }
   }
-  if (replacement) return { ok: true, state: { ...resetWear(state, itemId), coins: state.coins - item.price } }
+  if (replacement) {
+    const replacements = { ...state.replacements, [itemId]: (state.replacements?.[itemId] ?? 0) + 1 }
+    return { ok: true, state: { ...resetWear(state, itemId), coins: state.coins - item.price, replacements } }
+  }
   return {
     ok: true,
     state: { ...state, coins: state.coins - item.price, ownedEquipment: [...state.ownedEquipment, itemId] },

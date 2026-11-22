@@ -43,7 +43,7 @@ describe('Equipment', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Shoes' })).toHaveFocus()
     const cards = within(screen.getByRole('region', { name: 'Shoes cards' })).getAllByRole('button')
     expect(cards.map((c) => c.getAttribute('aria-label'))).toEqual([
-      'Starter shoes, free, Owned',
+      'Starter shoes, 20 coins, Owned',
       'Trail shoes · Lvl 1, 35 coins, Need 10 coins more',
       'Technical trail shoes · Lvl 2, 70 coins, Need 45 coins more',
       'Light trail shoes · Lvl 2, 70 coins, Need 45 coins more',
@@ -62,7 +62,7 @@ describe('Equipment', () => {
 
     // Back to the slot's cards, then to the runner, wearing the shoes.
     await user.click(screen.getByRole('button', { name: '← Shoes' }))
-    expect(within(screen.getByRole('region', { name: 'Shoes cards' })).getByRole('button', { name: 'Starter shoes, free, Equipped' })).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Shoes cards' })).getByRole('button', { name: 'Starter shoes, 20 coins, Equipped' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '← Equipped' }))
     expect(layers(/with the equipment worn/)).toEqual(['body', 'starter-shoes'])
     expect(screen.getByRole('button', { name: 'Shoes: Starter shoes. Show shoes cards' })).toBeInTheDocument()

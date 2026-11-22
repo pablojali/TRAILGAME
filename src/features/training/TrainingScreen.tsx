@@ -5,6 +5,7 @@ import { useCareer } from '../../app/game/gameContext'
 import button from '../../components/Button.module.css'
 import { formatDelta, formatStat, formatFatigue, formatFatigueDelta } from '../../components/format'
 import { appearanceUnlocks } from '../../domain/athlete/appearance'
+import { shoeInjuryRiskPct } from '../../game-engine/wear'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS, INJURY_REST_DAYS } from '../../domain/training/injury'
 import { getRestFatigueDelta, getSessionFatigueDelta, RECOVERY_REST_FITNESS } from '../../domain/training/recovery'
 import {
@@ -276,7 +277,12 @@ function DayDetail({ state, index, error, cooldown, busy, onPlan, onComplete }: 
         />
       ) : status === 'completed' && day.outcome ? (
         <>
-          {raced ? (
+          {raced?.entry.result.dnf ? (
+            <p className={styles.description}>
+              {t('wear.dnfTitle', { station: raced.entry.result.dnf.aidStation })}{' '}
+              <Link to={`/races/results/${raced.entry.id}`}>{t('training.viewResult')}</Link>
+            </p>
+          ) : raced ? (
             <p className={styles.description}>
               {t('training.racedInstead', {
                 session: sessionLabel,
@@ -325,6 +331,7 @@ function DayDetail({ state, index, error, cooldown, busy, onPlan, onComplete }: 
           <p className={styles.summary}>
             <strong>{t('training.planned')}</strong> {effectsText(plannedEffects(state, index), t)}
           </p>
+
           {error && (
             <p role="alert" className={styles.warning}>
               {error}
@@ -380,6 +387,12 @@ function TodayActions({ state, selectId, error, cooldown, busy, onPlan, onComple
             ))}
           </select>
         </div>
+        {/* Shoes almost worn out (A-5): each session may injure the runner (the figure is the engine's). */}
+        {!forced && today.session !== 'rest' && shoeInjuryRiskPct(state) > 0 && (
+          <p role="note" className={styles.warning}>
+            {t('wear.trainingRisk')} <Link to="/equipment?slot=shoes">{t('wear.goToEquipment')}</Link>
+          </p>
+        )}
         {forced ? (
           <p className={styles.injuredHint}>{t('training.injuredLeft', { count: state.forcedRestDays })}</p>
         ) : (

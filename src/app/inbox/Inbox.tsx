@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Icon } from '../../components/Icon'
 import { ordinal } from '../../features/races/raceText'
-import { useI18n, type MessageKey, type Translate } from '../../i18n/i18n'
+import { useI18n, type Locale, type MessageKey, type Translate } from '../../i18n/i18n'
 import { achievementTitleKey } from '../../i18n/labels'
 import { useGame } from '../game/gameContext'
 import { countryName } from '../../domain/athlete/countries'
@@ -12,9 +12,12 @@ import { getRankingService, type RankingService } from '../../repositories/supab
 import { getCampService, type CampService } from '../../repositories/supabase/campClient'
 import { arrange, buildInbox, friendItems, loadMemory, mailboxItems, markRead, rememberRank, saveMemory, type InboxItem, type RankingScope } from './inbox'
 import { NOTIFICATIONS_OFF } from './kinds'
+import { getEquipmentItem } from '../../domain/equipment/items'
+import { itemLabel } from '../../i18n/equipmentText'
 import styles from './Inbox.module.css'
 
 const ICON: Record<InboxItem['kind'], string> = {
+  gear: '👟',
   race: '⚑',
   challenge: '★',
   level: '▲',
@@ -38,6 +41,16 @@ function texts(item: InboxItem, t: Translate, locale: string, announcements: rea
       const a = announcements.find((x) => x.id === v.id)
       const l = locale as keyof Announcement['title']
       return { title: a?.title[l] ?? a?.title.en ?? '', body: a?.text[l] ?? a?.text.en ?? '' }
+    }
+    case 'gear': {
+      // Equipment wear (A-5): the item's durability at a threshold; worn out has its own text.
+      const item = getEquipmentItem(String(v.item))
+      const name = item ? itemLabel(item, locale as Locale) : String(v.item)
+      if (Number(v.threshold) === 0) return { title: t('inbox.gear.wornOutTitle', { item: name }), body: t('inbox.gear.wornOutBody') }
+      return {
+        title: t('inbox.gear.title', { item: name, pct: Number(v.pct) }),
+        body: Number(v.threshold) === 9 ? t('inbox.gear.riskBody') : t('inbox.gear.body'),
+      }
     }
     case 'race':
       return {

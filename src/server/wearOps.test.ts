@@ -144,3 +144,22 @@ describe('career-ops: withdrawing from a race day whose shoes cannot start (owne
     expect(memory.state().week.number).toBe(state.week.number + 1)
   })
 })
+
+
+describe('career-ops: rewarded ad (B-6d)', () => {
+  it('starts an ad, then grants 20 coins on the claim once it has lasted; a forged or early claim is refused', async () => {
+    const memory = memoryStore({ ...shod(), coins: 5, wear: { 'starter-shoes': 1 } })
+    let now = NOW
+    const clockDeps = { store: memory.store, authenticate: async () => 'ana', now: () => now }
+    const forged = await handleCareerOp('t', { action: 'ad-claim', operationId: op(30), baseVersion: 1, adId: op(99) }, clockDeps)
+    expect(forged.body).toMatchObject({ ok: false, error: 'no-ad' })
+    const started = await handleCareerOp('t', { action: 'ad-start', operationId: op(31), baseVersion: 1 }, clockDeps)
+    expect(started.body).toMatchObject({ ok: true, result: { adId: op(31) } })
+    const early = await handleCareerOp('t', { action: 'ad-claim', operationId: op(32), baseVersion: 2, adId: op(31) }, clockDeps)
+    expect(early.body).toMatchObject({ ok: false, error: 'ad-not-completed' })
+    now += 6000
+    const claimed = await handleCareerOp('t', { action: 'ad-claim', operationId: op(33), baseVersion: 2, adId: op(31) }, clockDeps)
+    expect(claimed.body).toMatchObject({ ok: true, result: { granted: true, coins: 20 } })
+    expect(memory.state().coins).toBe(25)
+  })
+})

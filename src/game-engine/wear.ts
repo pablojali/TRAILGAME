@@ -1,4 +1,4 @@
-import { getEquipmentItem } from '../domain/equipment/items'
+import { EQUIPMENT_ITEMS, getEquipmentItem } from '../domain/equipment/items'
 import { lifeShare, roundUsed, WEAR, wearOn, wears, wearStatus, type WearConfig, type WearStatus } from '../domain/equipment/wear'
 import { fnv1a, mulberry32 } from './raceSimulation'
 import type { GameState } from './gameState'
@@ -87,4 +87,10 @@ export function shoeInjuryRiskPct(state: GameState, config: WearConfig = WEAR): 
  */
 export function shoeInjuryDraw(now: number, week: number, dayIndex: number): number {
   return mulberry32(fnv1a(`shoe-injury|${now}|${week}|${dayIndex}`)) * 100
+}
+
+/** The price of the cheapest shoes for sale (the starter shoes, 20 coins, owner decision D8). */
+export function cheapestShoesPrice(): number {
+  const prices = EQUIPMENT_ITEMS.filter((item) => item.slot === 'shoes' && item.price !== null).map((item) => item.price!)
+  return prices.length ? Math.min(...prices) : 0
 }

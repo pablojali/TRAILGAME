@@ -166,8 +166,13 @@ export function CareerScreen({ rankingService = getRankingService() }: { ranking
                               {entry.major ? t('career.major') : t('career.when', { week: entry.result.week, day: t(weekdayShortKey(entry.result.day)) })}
                             </span>
                             <span className={styles.raceName}>{entry.major ? entry.major.name : race.name}</span>
-                            <Position position={entry.result.position} fieldSize={entry.result.fieldSize} />
-                            <span className={styles.time}>{raceTimeText(entry.result.timeS)}</span>
+                            {/* A DNF (B-6b) shows as such, after the finishers' places. */}
+                            {entry.result.dnf ? (
+                              <span className={styles.time}>{t('wear.dnf')}</span>
+                            ) : (
+                              <Position position={entry.result.position} fieldSize={entry.result.fieldSize} />
+                            )}
+                            <span className={styles.time}>{entry.result.dnf ? '—' : raceTimeText(entry.result.timeS)}</span>
                           </Link>
                         </li>
                       ))}

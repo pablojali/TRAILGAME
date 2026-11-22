@@ -4,13 +4,16 @@ import { getRace } from '../../domain/races/races'
 import { rankingSeason, seasonBounds } from '../../domain/ranking/ranking'
 import { getAchievements } from '../../game-engine/achievements'
 import type { GameState } from '../../game-engine/gameState'
+import { wearStatus } from '../../domain/equipment/wear'
+import { getEquipmentItem } from '../../domain/equipment/items'
+import { usedOf } from '../../game-engine/wear'
 import { getScheduledEntry, isRaceDayToday } from '../../game-engine/raceSchedule'
 
 /**
  * The Inbox (owner request, 6 November 2026): notifications built from the career itself, so the
  * server needs nothing new. Each has a stable id; the ids already read are kept in the browser.
  */
-export type InboxKind = 'race' | 'challenge' | 'level' | 'season' | 'race-day' | 'decay' | 'cloud' | 'ranking' | 'announcement' | 'visit' | 'congrats' | 'friend-request' | 'friend-accepted' | 'message'
+export type InboxKind = 'gear' | 'race' | 'challenge' | 'level' | 'season' | 'race-day' | 'decay' | 'cloud' | 'ranking' | 'announcement' | 'visit' | 'congrats' | 'friend-request' | 'friend-accepted' | 'message'
 
 export interface InboxItem {
   id: string
@@ -28,6 +31,9 @@ export interface Transient {
   cloudNotice?: 'restored' | 'updated' | null
   cloudError?: boolean
 }
+
+/** Durability left (%) at which an equipped item's wear is notified (A-5): about 40, 20, 10, the 9–1 band and 0. */
+const GEAR_THRESHOLDS = [40, 20, 10, 9, 0] as const
 
 /** At most this many notifications are kept, newest first. */
 export const INBOX_SIZE = 30
@@ -50,6 +56,24 @@ export function buildInbox(state: GameState, now: number, transient: Transient =
       link: `/races/results/${entry.id}`,
       values: { race: race.name, position: entry.result.position, field: entry.result.fieldSize, points: entry.result.rankingPoints ?? 0 },
     })
+  }
+  // Equipment wear (A-5): each equipped item that wears, once per threshold reached, for each pair
+  // (a replacement starts the thresholds again).
+  for (const id of state.equipment) {
+    const status = wearStatus(id, usedOf(state, id))
+    if (!status) continue
+    const pair = state.replacements?.[id] ?? 0
+    const risk = status.band ? status.band.raceStart !== 'ok' : false
+    for (const threshold of GEAR_THRESHOLDS) {
+      if (status.durabilityPct > threshold) continue
+      if (threshold === 9 && !risk && status.band) continue
+      items.push({
+        id: `gear:${id}:${pair}:${threshold}`,
+        kind: 'gear',
+        link: `/equipment?slot=${getEquipmentItem(id)?.slot ?? 'shoes'}&item=${id}`,
+        values: { item: id, pct: status.durabilityPct, threshold },
+      })
+    }
   }
   // Challenge levels reached.
   for (const progress of getAchievements(state)) {

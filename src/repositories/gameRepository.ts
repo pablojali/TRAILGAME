@@ -28,6 +28,7 @@ import { INJURY_REST_DAYS } from '../domain/training/injury'
 import { isSessionType } from '../domain/training/sessions'
 import {
   DAYS_PER_WEEK,
+  type AdsState,
   type CoachProgress,
   type DayOutcome,
   type GameState,
@@ -554,6 +555,18 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     }
     parsed.wear = { ...(wear as Record<string, number>) }
   }
+  // Missing: nothing replaced yet (A-5). Owned items, whole counts.
+  if (value.replacements !== undefined) {
+    const r = value.replacements
+    if (!isRecord(r) || !Object.entries(r).every(([id, n]) => parsed.ownedEquipment.includes(id) && isInt(n, 1))) return null
+    parsed.replacements = { ...(r as Record<string, number>) }
+  }
+  // Missing: no rewarded ad watched yet (B-6d).
+  if (value.ads !== undefined) {
+    const ads = parseAds(value.ads)
+    if (!ads) return null
+    parsed.ads = ads
+  }
   // Missing: a career saved before achievement rewards existed. Levels already reached count as
   // rewarded, so nothing is given for them afterwards.
   parsed.achievementLevelsRewarded =
@@ -562,6 +575,26 @@ export function parseGameState(value: unknown, now: number): GameState | null {
   const coach = parseCoachProgress(value.coach)
   if (coach) parsed.coach = coach
   return parsed
+}
+
+/** B-6d: the rewarded-ad state (an ad waiting to be claimed, today's coin-granting ads). */
+function parseAds(value: unknown): AdsState | null {
+  if (!isRecord(value)) return null
+  const ads: AdsState = {}
+  if (value.pending !== undefined) {
+    const p = value.pending
+    if (!isRecord(p) || typeof p.id !== 'string' || p.id.length === 0 || p.id.length > 64 || !isFiniteNumber(p.startedAt)) return null
+    ads.pending = { id: p.id, startedAt: p.startedAt }
+  }
+  if (value.day !== undefined) {
+    if (typeof value.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.day)) return null
+    ads.day = value.day
+  }
+  if (value.rewarded !== undefined) {
+    if (!isInt(value.rewarded, 0)) return null
+    ads.rewarded = value.rewarded
+  }
+  return ads
 }
 
 function parseCoachProgress(value: unknown): CoachProgress | null {

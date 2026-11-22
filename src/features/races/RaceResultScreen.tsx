@@ -19,6 +19,7 @@ import type { FinishedRaceEntry, RaceResult } from '../../game-engine/gameState'
 import { getEntry, getStandings } from '../../game-engine/races'
 import { formatChange, intensityKey, stopKey } from './raceStrategyText'
 import { bandLabel, durationText, ordinal, raceTimeText } from './raceText'
+import { kmText as wearKm } from '../wear/wearText'
 import styles from './Races.module.css'
 
 /**
@@ -80,7 +81,12 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
   return (
     <Screen
       eyebrow={t('result.eyebrow', { race: entry.major ? `${entry.major.name} · ${race.name}` : race.name })}
-      title={t('result.title', { position: ordinal(result.position, locale), field: result.fieldSize })}
+      // A DNF (B-6b) has no finishing place: where the runner retired instead.
+      title={
+        result.dnf
+          ? t('wear.dnfTitle', { station: result.dnf.aidStation })
+          : t('result.title', { position: ordinal(result.position, locale), field: result.fieldSize })
+      }
       description={t('result.description', {
         format: t(`format.${raceFormat(race)}`),
         difficulty: difficultyOf(race),
@@ -99,6 +105,22 @@ function Result({ race, entry }: { race: Race; entry: FinishedRaceEntry }) {
         {tab === 'result' && (
           // Tiles that fit the screen (owner request, 1 November 2026): no explanations.
           <dl className={styles.tiles} aria-label={t('result.result')}>
+            {result.dnf && (
+              <div className={`${styles.tile} ${styles.tileWide}`}>
+                <dt>{t('wear.dnf')}</dt>
+                <dd className={styles.warning}>{t('wear.dnfBody', { km: wearKm(result.dnf.km, locale) })}</dd>
+              </div>
+            )}
+            {result.shoeWear && (
+              <div className={`${styles.tile} ${styles.tileWide}`}>
+                <dt>{t('slot.shoes')}</dt>
+                <dd>
+                  {result.shoeWear.timeLostS > 0
+                    ? t('wear.shoeCost', { start: result.shoeWear.durabilityAtStart, time: durationText(result.shoeWear.timeLostS) })
+                    : t('wear.shoeCostNone', { start: result.shoeWear.durabilityAtStart })}
+                </dd>
+              </div>
+            )}
             <div className={styles.tile}>
               <dt>{t('result.time')}</dt>
               <dd className={styles.time}>{raceTimeText(result.timeS)}</dd>
@@ -264,11 +286,11 @@ function Standings({ race, entry, name }: { race: Race; entry: FinishedRaceEntry
                   className={`${row.runner === 'you' ? styles.youRow : ''} ${firstOfBand && row.position > 1 ? styles.bandStart : ''}`}
                   aria-current={row.runner === 'you' ? 'true' : undefined}
                 >
-                  <td>{row.position}</td>
+                  <td>{row.dnf ? t('wear.dnf') : row.position}</td>
                   <th scope="row">{row.runner === 'you' ? t('result.you', { name }) : t('result.rival', { number: row.runner })}</th>
-                  <td>{raceTimeText(row.timeS)}</td>
-                  <td>{row.position === 1 ? '—' : `+${durationText(row.timeS - winner)}`}</td>
-                  <td>{prizes[band]}</td>
+                  <td>{row.dnf ? t('wear.dnf') : raceTimeText(row.timeS)}</td>
+                  <td>{row.dnf || row.position === 1 ? '—' : `+${durationText(row.timeS - winner)}`}</td>
+                  <td>{row.dnf ? 0 : prizes[band]}</td>
                 </tr>
               )
             })}

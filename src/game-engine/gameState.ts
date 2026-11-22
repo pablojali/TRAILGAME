@@ -104,6 +104,24 @@ export interface GameState {
    * every career while wear_speed is 0).
    */
   wear?: Record<string, number>
+  /**
+   * Rewarded ads (B-6d, owner decision D11): the ad the server started and is waiting to be claimed,
+   * and the real (UTC) day of the last coin-granting ads with how many were given that day.
+   * Server-owned. Missing: no ad watched.
+   */
+  ads?: AdsState
+  /**
+   * Equipment wear (A-5): how many times each item was replaced, so each new pair's wear
+   * notifications are new ones. Server-owned. Missing: none replaced.
+   */
+  replacements?: Record<string, number>
+}
+
+export interface AdsState {
+  pending?: { id: string; startedAt: number }
+  /** "YYYY-MM-DD" (UTC). */
+  day?: string
+  rewarded?: number
 }
 
 /**

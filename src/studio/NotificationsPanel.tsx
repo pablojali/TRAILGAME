@@ -24,6 +24,7 @@ const LINKS = [
 ]
 /** The game's automatic notifications: kind (src/data/notifications.csv), name and when they appear. */
 const AUTOMATIC: [string, string, string][] = [
+  ['gear', 'Equipment wear', 'When equipped gear reaches about 40 %, 20 %, 10 %, the 9–1 % band and 0 % (only with wear on).'],
   ['race', 'Race result', 'After each race: place and ranking points.'],
   ['challenge', 'Challenge completed', 'On reaching each level of a challenge.'],
   ['level', 'Level up', 'On levelling up (attribute points to share out).'],

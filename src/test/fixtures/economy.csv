@@ -1,3 +1,5 @@
 key,value
 coins_per_premium,100
 wear_speed,0
+ad_reward_coins,20
+ad_rewards_per_day,2

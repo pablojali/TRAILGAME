@@ -259,10 +259,10 @@ export interface RaceResult {
   rankingAt?: number
   /**
    * Did not finish (B-6b): the shoes broke during segment `segment` (1-based) and the runner retired
-   * at its end, `km` from the start, at aid station `aidStation` (null: at the end of the last
-   * segment). No prize, no ranking points, XP for the share run. Missing: finished.
+   * at its end, `km` from the start, at aid station `aidStation`. (Running out on the last segment
+   * still finishes: no DNF.) No prize, no ranking points, XP for the share run. Missing: finished.
    */
-  dnf?: { segment: number; km: number; aidStation: number | null }
+  dnf?: { segment: number; km: number; aidStation: number }
   /**
    * What the shoes' wear did (B-6b): their durability at the start and the end of the race, and the
    * seconds lost to their reduced effect. Missing: wear off, or no shoes that wear.

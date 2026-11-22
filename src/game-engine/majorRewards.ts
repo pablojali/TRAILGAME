@@ -58,7 +58,7 @@ export interface MajorRewardPayload {
   /** The other runners' times, whole seconds, fastest first. */
   rivalTimesS: number[]
   /** Retired with worn-out shoes (B-6b): where. Missing: finished. */
-  dnf?: { segment: number; km: number; aidStation: number | null }
+  dnf?: { segment: number; km: number; aidStation: number }
 }
 
 export interface MajorPrize {

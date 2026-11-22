@@ -215,7 +215,7 @@ function isDnf(value: unknown): boolean {
     isInt(value.segment, 1) &&
     isFiniteNumber(value.km) &&
     value.km > 0 &&
-    (value.aidStation === null || isInt(value.aidStation, 1))
+    isInt(value.aidStation, 1)
   )
 }
 

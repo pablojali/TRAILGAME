@@ -8,13 +8,17 @@ Branch `stream-b/race-wear-consequences`. Brief `docs/pm/briefs/B-6b-race-wear-c
 Everything is active only with `wear_speed > 0`, which ships at 0.
 
 ### Owner decisions given to me in the session (22 November 2026)
-- **D9:** check the shoes again at READY. **Done in this PR.**
+- **D9:** check the shoes again at READY. **Done.**
+- **D9, second part:** a race Sunday with shoes at 0 % (or no shoes equipped): **the runner does not
+  start. Done.**
+  - The start is refused (`shoes-worn-out`).
+  - The Sunday can be played as planned, Rest by default. Completing it drops the pending entry, and
+    the day's result carries `didNotStart: <raceId>`.
+  - Replacing the shoes before completing the day still lets the runner race.
+- **Shoes running out on the last segment:** the runner **finishes** the race. Done.
 - **D8:** "Zapas salen barato, 20 euros". I read it as option B: the starter shoes get a price (20 coins).
   **Not done here:** the price is an owner-table value, and option B also needs the emergency-pair
   guard (`EQUIPMENT_WEAR_CALIBRATION.md` §7). For the PM to brief.
-- **D9, second part, still open:** what happens to a race Sunday whose shoes reach 0 % after the entry.
-  The start is refused (`shoes-worn-out`), so that day can only be completed by replacing the shoes.
-  My proposal stays the same: withdraw, or count as "did not start".
 
 ### Segment rule
 - The engine already runs a race one segment at a time, so no rewrite was needed.
@@ -29,16 +33,14 @@ Everything is active only with `wear_speed > 0`, which ships at 0.
   - the runner input takes `effectFactors`;
   - solo races build them in `contextOf`, and Majors in `segmentContext`.
 
-### Aid-station rule (the PM default)
+### Aid-station rule
 - If the shoes' durability reaches 0 % during a segment, the runner reaches the end of that segment
-  and retires there.
-- If that is the last segment, they retire at its end (`aidStation: null`), not at the finish.
+  and retires at that aid station.
+- Running out on the **last** segment still finishes the race (owner decision). The shoes end at 0 %.
 - The step at that aid station only records the DNF, whatever was decided there.
-- I found no better rule. Breaking mid-segment would need a time for a partial segment that the
-  engine does not have.
 
 ### The DNF
-- `RaceResult.dnf = { segment (1-based), km, aidStation }`.
+- `RaceResult.dnf = { segment (1-based), km, aidStation }`. A DNF is always at an aid station.
 - **Rewards:**
   - no prize (0 coins);
   - no ranking fields, so the database trigger records no points;

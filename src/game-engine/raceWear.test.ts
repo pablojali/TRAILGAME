@@ -9,6 +9,7 @@ import { buyItem, setItemEquipped } from './equipment'
 import type { GameState } from './gameState'
 import { getRaceSegments } from './raceEngine'
 import { effectFactorsAt, raceWearAtStart, shoeBreak } from './raceWear'
+import { executeCurrentDay } from './training'
 import { dnfXp, enterRace, getRaceRewards, getStandings, predictShoes, raceCurrentDay, startRace, stepRace } from './races'
 
 /**
@@ -55,11 +56,12 @@ describe('wear along the course', () => {
     expect(effectFactorsAt(wear, 30, ON)).toEqual({ 'trail-shoes-basic': 0.75, 'hydration-backpack': 0 })
   })
 
-  it('finds where the shoes break: the aid station after the segment where they run out, or the finish', () => {
+  it('finds where the shoes break: the aid station after the segment where they run out; the last segment still finishes', () => {
     const atFirst = raceWearAtStart(kitted('starter-shoes', { 'starter-shoes': 1 - 2 / 150 }), undefined, ON)
     expect(shoeBreak(atFirst, segmentsM)).toMatchObject({ segment: 0, aidStation: 1, km: Math.round(firstKm * 10) / 10 })
+    // Owner decision (22 November 2026): running out on the last segment still reaches the finish.
     const atLast = raceWearAtStart(kitted('starter-shoes', { 'starter-shoes': 1 - (firstKm + 1) / 150 }), undefined, ON)
-    expect(shoeBreak(atLast, segmentsM)).toMatchObject({ segment: 1, aidStation: null })
+    expect(shoeBreak(atLast, segmentsM)).toBeNull()
     expect(shoeBreak(raceWearAtStart(kitted('starter-shoes'), undefined, ON), segmentsM)).toBeNull()
     expect(raceWearAtStart(kitted('starter-shoes'), undefined, WEAR)).toBeUndefined()
   })
@@ -101,12 +103,31 @@ describe('a DNF', () => {
     expect(raced.value.state.week.currentDayIndex).not.toBe(state.week.currentDayIndex)
   })
 
-  it('retires at the end of the last segment when the shoes run out there', () => {
+  it('finishes when the shoes run out on the last segment, and they end at 0 %', () => {
     const { state, entry } = raceDay(kitted('starter-shoes', { 'starter-shoes': 1 - (firstKm + 1) / 150 }))
     const raced = raceCurrentDay(state, currentRef(state), entry.id, T0, ON)
     if (!raced.ok) throw new Error(raced.error)
-    expect(raced.value.entry.result.dnf).toMatchObject({ segment: 2, aidStation: null })
+    expect(raced.value.entry.result.dnf).toBeUndefined()
     expect(raced.value.entry.result.splits).toHaveLength(2)
+    expect(raced.value.entry.result.coinsAwarded).toBeGreaterThan(0)
+    expect(raced.value.state.wear!['starter-shoes']).toBe(1)
+  })
+})
+
+describe('race Sunday with worn-out shoes: the runner does not start', () => {
+  it('lets the day be played as planned and drops the entry; replacing the shoes first still races', () => {
+    const { state, entry } = raceDay(kitted('starter-shoes', { 'starter-shoes': 1 }))
+    expect(startRace(state, currentRef(state), entry.id, { intensity: 'target', gel: false, bar: false }, T0, ON)).toEqual({ ok: false, error: 'shoes-worn-out' })
+    const day = executeCurrentDay(state, currentRef(state), T0, ON)
+    if (!day.ok) throw new Error(day.error)
+    expect(day.value.didNotStart).toBe('RACE-002')
+    expect(day.value.state.raceEntries.find((e) => e.id === entry.id)).toBeUndefined()
+    expect(day.value.state.week.number).toBe(state.week.number + 1)
+    // With shoes that can race, Sunday stays the race's.
+    const fine = raceDay(kitted('starter-shoes'))
+    expect(executeCurrentDay(fine.state, currentRef(fine.state), T0, ON)).toEqual({ ok: false, error: 'race-day' })
+    // Wear off: as before.
+    expect(executeCurrentDay(state, currentRef(state), T0, WEAR)).toEqual({ ok: false, error: 'race-day' })
   })
 
   it('records the DNF whatever is decided at that aid station', () => {

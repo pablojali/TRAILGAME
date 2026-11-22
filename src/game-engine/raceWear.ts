@@ -7,7 +7,8 @@ import { usedOf } from './wear'
  * Equipment wear along the course (brief B-6b, owner decisions of 22 November 2026). The gear wears
  * segment by segment: the band of the shoes at the start of each segment sets how much of their race
  * bonus that segment keeps, and when the shoes' durability runs out during a segment the runner
- * retires (DNF) at the aid station at its end (or at the end of the last segment). Other gear keeps
+ * retires (DNF) at the aid station at its end. Running out on the last segment still finishes the
+ * race (owner decision, 22 November 2026). Other gear keeps
  * its full effect until its life runs out, and none after. Everything is fixed by the wear at the
  * start and the course, so the outcome can be predicted before the start.
  */
@@ -70,17 +71,20 @@ export interface ShoeBreak {
   segment: number
   /** Km at the end of that segment: where the runner retires. */
   km: number
-  /** The aid station there (1-based); null when it is the last segment (the finish). */
-  aidStation: number | null
+  /** The aid station there (1-based). */
+  aidStation: number
 }
 
-/** The segment where the shoes' durability reaches 0, or null if they last the race. */
+/**
+ * The segment where the shoes' durability reaches 0, or null if they last the race. Shoes that run
+ * out on the last segment carry the runner to the finish (owner decision, 22 November 2026).
+ */
 export function shoeBreak(wear: RaceWear | undefined, segmentsM: readonly number[]): ShoeBreak | null {
   if (!wear) return null
   const shoes = Object.keys(wear.used).find((id) => getEquipmentItem(id)?.slot === 'shoes')
   if (!shoes) return null
   const ends = segmentEndsKm(segmentsM)
   const segment = ends.findIndex((km) => usedAfter(wear, shoes, km) >= 1)
-  if (segment === -1) return null
-  return { segment, km: Math.round(ends[segment]! * 10) / 10, aidStation: segment < ends.length - 1 ? segment + 1 : null }
+  if (segment === -1 || segment === ends.length - 1) return null
+  return { segment, km: Math.round(ends[segment]! * 10) / 10, aidStation: segment + 1 }
 }

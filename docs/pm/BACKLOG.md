@@ -12,6 +12,9 @@ read of the code, not from running the game).
 | ~~D1~~ | ~~Move the PM role from ChatGPT to Claude~~ **Decided 21 Nov 2026: Claude is the PM.** Approving this folder and `CLAUDE.md` happens by merging its PR | Done |
 | D2 | Is M4 (Race System) accepted? If not, which part is open? | `STATUS.md` cannot be closed; B-1 depends on it |
 | D3 | Native app technology: Capacitor, Expo or Flutter | Blocks M6 and any native-specific work. A web-first game with the current React code points to Capacitor, but the PM wants a technical audit before recommending |
+| D8 | **Starter shoes.** They cost 0 and are for sale, so buying them again is a free replacement: once wear is on, a runner could replace worn starter shoes for nothing and wear would cost no coins. Options: (A) keep it and give the starter shoes no `life_km`, or (B) take them off sale or price them, and add the emergency-pair guard B proposed (`docs/EQUIPMENT_WEAR_CALIBRATION.md` sections 6 and 7) | Must be decided before `wear_speed` is switched on |
+| D9 | **Sunday Majors.** Check the shoes again at READY (refuse at 0 %), as B proposes (section 8)? And what happens to a race Sunday whose shoes are at 0 % (withdraw, or "did not start"; section 9)? | B-6b |
+| D10 | **Calibration.** Accept B's proposal (`wear_speed` 1, paid shoes of 200 to 300 km, the same multiplier for race km and training km, the band numbers) or change it, and fill `life_km` in `equipment.csv` | Switching wear on |
 | D4 | Fitness and fatigue balance: is the current feel acceptable? | B-2 |
 | D5 | Attribute adaptation from training (row 11) and profile change at season end (row 12): in scope for the next release? | B-3 |
 

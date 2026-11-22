@@ -230,8 +230,12 @@ export interface CombinedRaceEffect {
   slowdown: number
 }
 
-/** Combined race effect of the equipped items: attribute bonuses add up, multipliers multiply. */
-export function getRaceEffect(equipment: readonly string[]): CombinedRaceEffect {
+/**
+ * Combined race effect of the equipped items: attribute bonuses add up, multipliers multiply.
+ * `factors` (equipment wear, B-6b): the share of an item's effect that is kept, by item id (missing
+ * = 1): a bonus of +4 at 0.75 is +3, a multiplier of 0.9 at 0.75 is 0.925.
+ */
+export function getRaceEffect(equipment: readonly string[], factors?: Readonly<Record<string, number>>): CombinedRaceEffect {
   const effect: CombinedRaceEffect = {
     attributes: Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, 0])) as Attributes,
     runnable: 1,
@@ -243,14 +247,16 @@ export function getRaceEffect(equipment: readonly string[]): CombinedRaceEffect 
   for (const id of equipment) {
     const item = getEquipmentItem(id)?.raceEffect
     if (!item) continue
+    const kept = factors?.[id] ?? 1
+    const scaled = (multiplier: number | undefined) => 1 + ((multiplier ?? 1) - 1) * kept
     for (const [attribute, bonus] of Object.entries(item.attributes ?? {})) {
-      effect.attributes[attribute as AttributeId] += bonus ?? 0
+      effect.attributes[attribute as AttributeId] += (bonus ?? 0) * kept
     }
-    effect.runnable *= item.runnable ?? 1
-    effect.descent *= item.descent ?? 1
-    effect.climb *= item.climb ?? 1
-    effect.technicalPenalty *= item.technicalPenalty ?? 1
-    effect.slowdown *= item.slowdown ?? 1
+    effect.runnable *= scaled(item.runnable)
+    effect.descent *= scaled(item.descent)
+    effect.climb *= scaled(item.climb)
+    effect.technicalPenalty *= scaled(item.technicalPenalty)
+    effect.slowdown *= scaled(item.slowdown)
   }
   return effect
 }

@@ -4,6 +4,7 @@ import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import { canEnterAtLevel, getMinimumLevel, getRewardMultiplier } from '../domain/races/access'
 import { GROSS_PRIZES, PRIZE_BANDS, RACE_MIN_XP, RACE_XP_BAND_PCT, RACE_XP_BASE } from '../domain/races/categories'
 import { courseOf, getRace, withCourse, type Race } from '../domain/races/races'
+import { getEquipmentItem } from '../domain/equipment/items'
 import { RACE_SIMULATION } from '../domain/races/simulationConfig'
 import { INJURY_FATIGUE_THRESHOLD, INJURY_FITNESS_LOSS } from '../domain/training/injury'
 import { roundStat } from '../domain/athlete/athlete'
@@ -12,6 +13,7 @@ import type { ActiveRace, DayOutcome, FinishedRaceEntry, GameState, PendingRaceE
 import {
   getEditionField,
   getRaceField,
+  getRaceSegments,
   getReferenceFinishS,
   makeStop,
   runPlan,
@@ -27,9 +29,11 @@ import {
 import { planRest, runRest, type RaceStyle } from './racePlan'
 import { getScheduledEntry, RACE_DAY_INDEX } from './raceSchedule'
 import { courseEffortKm, explainRace, generateCourse, getDayForm, rivalTimes } from './raceSimulation'
-import { checkDay, completeCurrentDay, statChange, type DayRef, type TrainingError } from './training'
+import { checkDay, completeCurrentDay, executeCurrentDay, statChange, type DayRef, type ExecutionResult, type TrainingError } from './training'
 import { WEAR, type WearConfig, type WearStatus } from '../domain/equipment/wear'
 import { applyWear, raceGearError, shoesStatus, type RaceGearError } from './wear'
+import { durabilityPct } from '../domain/equipment/wear'
+import { effectFactorsAt, raceWearAtStart, segmentEndsKm, shoeBreak, usedAfter, type ShoeBreak } from './raceWear'
 
 export type RaceEntryError =
   | 'unknown-race'
@@ -46,7 +50,7 @@ export type RaceEntryError =
  * the race consequences (B-6b) and the screens (A-5).
  */
 export type RaceEntryResult =
-  | { ok: true; state: GameState; entry: RaceEntry; shoes: WearStatus | null }
+  | { ok: true; state: GameState; entry: RaceEntry; shoes: WearStatus | null; prediction: ShoePrediction | null }
   /** Equipment wear (22 November 2026): no shoes equipped, or shoes with no life left (A-5 shows them). */
   | { ok: false; error: RaceEntryError | RaceGearError }
 
@@ -92,7 +96,27 @@ export function enterRace(state: GameState, raceId: string, now: number, wear: W
     enteredAt: now,
     status: 'pending',
   }
-  return { ok: true, entry, state: { ...state, raceEntries: [...state.raceEntries, entry] }, shoes: shoesStatus(state, wear) }
+  return {
+    ok: true,
+    entry,
+    state: { ...state, raceEntries: [...state.raceEntries, entry] },
+    shoes: shoesStatus(state, wear),
+    prediction: predictShoes(state, race, wear),
+  }
+}
+
+/**
+ * Whether the equipped shoes last a race (B-6b), from their wear now and the course: the race is
+ * deterministic, so this is exactly what will happen if nothing changes before the start (training
+ * wears them further). Null with wear off or no shoes that wear.
+ */
+export type ShoePrediction = { lasts: true } | ({ lasts: false } & ShoeBreak)
+
+export function predictShoes(state: GameState, race: Race, wear: WearConfig = WEAR): ShoePrediction | null {
+  const raceWear = raceWearAtStart(state, state.equipment, wear)
+  if (!raceWear || !Object.keys(raceWear.used).some((id) => getEquipmentItem(id)?.slot === 'shoes')) return null
+  const broke = shoeBreak(raceWear, getRaceSegments(race).map((g) => g.distanceM))
+  return broke ? { lasts: false, ...broke } : { lasts: true }
 }
 
 /** Position band index into `PRIZE_BANDS`. */
@@ -202,16 +226,29 @@ export function raceOfActive(active: ActiveRace): Race | undefined {
   return race && withCourse(race, active.course)
 }
 
+/** Km of the course before segment `segment` starts. */
+function kmBefore(field: RaceField, segment: number): number {
+  return segment === 0 ? 0 : segmentEndsKm(field.segments.map((g) => g.distanceM))[Math.min(segment, field.segments.length) - 1]!
+}
+
+/** Where the shoes worn in this race break, if they do (B-6b). */
+function breakOf(active: ActiveRace, field: RaceField): ShoeBreak | null {
+  return shoeBreak(active.wear, field.segments.map((g) => g.distanceM))
+}
+
 /** The rivals of this edition of the race: the runner's entry and start fix their form of the day. */
 function fieldOf(active: ActiveRace, race: Race): RaceField {
   return getEditionField(race, `${active.raceId}|${active.entryId}|${active.startedAt}`)
 }
 
-function contextOf(active: ActiveRace, race: Race, field: RaceField = fieldOf(active, race)): StepContext {
+function contextOf(active: ActiveRace, race: Race, field: RaceField = fieldOf(active, race), segment = active.splits.length): StepContext {
+  const runner = snapshotRunner(active.attributes, active.fitness, active.fatigue, active.equipment)
+  // Equipment wear (B-6b): the gear's effect on this segment, from its wear when the segment starts.
+  const factors = effectFactorsAt(active.wear, kmBefore(field, segment))
   return {
     race,
     field,
-    runner: snapshotRunner(active.attributes, active.fitness, active.fatigue, active.equipment),
+    runner: factors ? { ...runner, effectFactors: factors } : runner,
     dayForm: active.dayForm,
     nutrition: active.nutrition,
   }
@@ -272,6 +309,8 @@ export function startRace(
     splits: [],
     course: courseOf(race),
   }
+  const raceWear = raceWearAtStart(state, state.equipment, wear)
+  if (raceWear) base.wear = raceWear
   const progress = runSegment(contextOf(base, race), toProgress(base), decisions.intensity)
   return {
     ok: true,
@@ -284,6 +323,15 @@ export function startRace(
       activeRace: withProgress(base, progress),
     },
   }
+}
+
+/**
+ * True when the runner retires at the aid station they just reached: their shoes broke on the
+ * segment just run (B-6b).
+ */
+export function retiresHere(active: ActiveRace, race: Race): boolean {
+  const broke = breakOf(active, fieldOf(active, race))
+  return broke !== null && broke.segment === active.splits.length - 1
 }
 
 function toProgress(active: ActiveRace): RaceProgress {
@@ -313,6 +361,12 @@ export function stepRace(
   if (!isIntensity(decisions.intensity)) return { ok: false, error: 'unknown-intensity' }
 
   const field = fieldOf(active, race)
+  // Worn-out shoes (B-6b): the runner retires at the aid station where they broke; the step only
+  // records it, whatever was decided there.
+  const broke = breakOf(active, field)
+  if (broke && broke.segment === active.splits.length - 1) {
+    return { ok: true, value: { finished: true, value: finishRace(state, active, race, field, now, wear, broke) } }
+  }
   // A race without aid stations (one segment, owner request 19 November 2026) was run whole at the
   // start: the step only crosses the finish.
   if (active.splits.length >= field.segments.length) {
@@ -324,22 +378,33 @@ export function stepRace(
   if (progress.splits.length < field.segments.length) {
     return { ok: true, value: { finished: false, state: { ...state, activeRace: next } } }
   }
-  return { ok: true, value: { finished: true, value: finishRace({ ...state, activeRace: next }, next, race, field, now, wear) } }
+  return { ok: true, value: { finished: true, value: finishRace({ ...state, activeRace: next }, next, race, field, now, wear, broke?.segment === next.splits.length - 1 ? broke : null) } }
 }
 
 /** Applies the finish: the existing rewards, Fatigue and injury rules, the result and the day. */
-function finishRace(state: GameState, active: ActiveRace, race: Race, field: RaceField, now: number, wear: WearConfig): RaceDayResult {
+function finishRace(
+  state: GameState,
+  active: ActiveRace,
+  race: Race,
+  field: RaceField,
+  now: number,
+  wear: WearConfig,
+  dnf: ShoeBreak | null = null,
+): RaceDayResult {
   const entry = getEntry(state, active.entryId) as PendingRaceEntry
   const last = active.splits[active.splits.length - 1]!
   const timeS = last.arrivalS
-  const position = last.position
+  // A retired runner (B-6b) is placed after every finisher.
+  const position = dnf ? RACE_STRATEGY.fieldSize : last.position
   const levelAtStart = active.levelAtStart
   const input = { attributes: active.attributes, fitness: active.fitness, fatigue: active.fatigue, equipment: active.equipment }
   // The "Why" explanation compares abilities with the typical runner on the same course (one shot,
   // without strategy); the gap is measured on the real times, aid stations included.
   const explanation = explainRace(race, input, active.dayForm)
   const referenceTimeS = getReferenceFinishS(race, field)
-  const rewards = getRaceRewards(race, position, levelAtStart)
+  const finishedRewards = getRaceRewards(race, position, levelAtStart)
+  // A DNF: no prize, and the XP of the last place in proportion to the distance run (B-6b).
+  const rewards = dnf ? { ...finishedRewards, grossPrize: 0, coinsAwarded: 0, xp: dnfXp(finishedRewards.xp, dnf.km, race.distanceKm) } : finishedRewards
 
   // Fatigue = in-race fatigue at the finish (calibrated so Target pace with Normal stops adds what a
   // race added before). Injury after a race (D4): the existing rule.
@@ -348,7 +413,7 @@ function finishRace(state: GameState, active: ActiveRace, race: Race, field: Rac
   const fitnessChange = injured ? statChange(state.athlete.fitness, -INJURY_FITNESS_LOSS) : 0
   // An injury no longer costs the race XP: a finished race always gives at least RACE_MIN_XP
   // (owner decision, 1 November 2026).
-  const xpAwarded = injured ? RACE_MIN_XP : rewards.xp
+  const xpAwarded = dnf ? rewards.xp : injured ? RACE_MIN_XP : rewards.xp
   const outcome: DayOutcome = {
     xpGained: xpAwarded,
     fitnessChange,
@@ -385,16 +450,19 @@ function finishRace(state: GameState, active: ActiveRace, race: Race, field: Rac
     factors: explanation.factors.map((f) => ({ ...f, effectS: Math.round(f.effectS * field.timeScale) })),
     rivalTimesS: field.rivalFinishS,
     // Rankings (owner request, 5 November 2026): the month the race is finished in, and its points.
-    ...rankingFields(race.id, position, now),
+    // A DNF scores none (B-6b).
+    ...(dnf ? {} : rankingFields(race.id, position, now)),
     splits: active.splits,
     nutrition: active.nutrition,
+    ...(dnf ? { dnf: { segment: dnf.segment + 1, km: dnf.km, aidStation: dnf.aidStation } } : {}),
+    ...shoeWearOf(active, race, field, dnf),
   }
   const finished: FinishedRaceEntry = { ...entry, status: 'finished', result }
 
   // A race is an active day: a Rest the next day is a recovery Rest. It also resets decay (D3).
   const advanced = completeCurrentDay({ ...state, activeRace: null }, outcome, true, now)
   // The gear worn in the race wears by the race's distance (equipment wear, 22 November 2026).
-  const worn = applyWear(advanced.state, race.distanceKm, wear, active.equipment)
+  const worn = applyWear(advanced.state, dnf ? dnf.km : race.distanceKm, wear, active.equipment)
   const rewarded = applyAchievementRewards({
     ...worn,
     coins: worn.coins + rewards.coinsAwarded,
@@ -410,6 +478,74 @@ function finishRace(state: GameState, active: ActiveRace, race: Race, field: Rac
     levelAfter,
     attributePointsAwarded: getAttributePointsBetween(levelAtStart, levelAfter),
     weekCompleted: advanced.weekCompleted,
+  }
+}
+
+export type WithdrawError =
+  | TrainingError
+  /** Today is not the day of a scheduled race. */
+  | 'not-race-day'
+  /** The race can start: the runner's shoes are fine (withdrawing is only for shoes that cannot race). */
+  | 'race-can-start'
+
+/**
+ * Race day with shoes that cannot start (owner decision, 22 November 2026): the day waits until the
+ * player buys shoes and races, or withdraws. Withdrawing drops the entry (did not start) and closes
+ * the day as a Rest day, so the game moves on; nothing else closes it.
+ */
+export function withdrawFromRace(
+  state: GameState,
+  ref: DayRef,
+  now: number,
+  wear: WearConfig = WEAR,
+): { ok: true; value: ExecutionResult } | { ok: false; error: WithdrawError } {
+  const dayError = checkDay(state, ref)
+  if (dayError) return { ok: false, error: dayError }
+  const entry = getScheduledEntry(state)
+  if (!entry || state.activeRace || state.week.currentDayIndex !== RACE_DAY_INDEX || state.forcedRestDays > 0) {
+    return { ok: false, error: 'not-race-day' }
+  }
+  if (raceGearError(state, wear) === null) return { ok: false, error: 'race-can-start' }
+  const index = state.week.currentDayIndex
+  const withdrawn: GameState = {
+    ...state,
+    raceEntries: state.raceEntries.filter((e) => e.id !== entry.id),
+    week: { ...state.week, days: state.week.days.map((day, i) => (i === index ? { ...day, session: 'rest' } : day)) },
+  }
+  const rested = executeCurrentDay(withdrawn, ref, now, wear)
+  if (!rested.ok) return rested
+  return { ok: true, value: { ...rested.value, didNotStart: entry.raceId } }
+}
+
+/** XP of a DNF: the last place's XP for the share of the distance run, rounded down (B-6b proposal). */
+export function dnfXp(lastPlaceXp: number, kmRun: number, distanceKm: number): number {
+  return Math.floor((lastPlaceXp * Math.min(kmRun, distanceKm)) / distanceKm)
+}
+
+/**
+ * What the shoes' wear did in this race (B-6b), for the result's explanation: their durability at
+ * the start and the end, and the seconds lost to the reduced effect (the same race run again with
+ * the full effect, same intensities and stops).
+ */
+function shoeWearOf(active: ActiveRace, race: Race, field: RaceField, dnf: ShoeBreak | null): Pick<RaceResult, 'shoeWear'> {
+  const wearAtStart = active.wear
+  const shoes = wearAtStart && Object.keys(wearAtStart.used).find((id) => getEquipmentItem(id)?.slot === 'shoes')
+  if (!wearAtStart || !shoes) return {}
+  const runKm = dnf ? dnf.km : race.distanceKm
+  const full: ActiveRace = { ...active, wear: undefined }
+  let progress: RaceProgress = { elapsedS: 0, fatigue: active.fatigue, splits: [] }
+  active.splits.forEach((split, k) => {
+    progress = runSegment(contextOf(full, race, field, k), progress, split.intensity)
+    if (split.stop) progress = makeStop(contextOf(full, race, field, k + 1), progress, split.stop)
+  })
+  const fullS = progress.splits[progress.splits.length - 1]!.arrivalS
+  return {
+    shoeWear: {
+      itemId: shoes,
+      durabilityAtStart: durabilityPct(wearAtStart.used[shoes]!),
+      durabilityAtEnd: durabilityPct(usedAfter(wearAtStart, shoes, runKm)),
+      timeLostS: Math.max(0, active.splits[active.splits.length - 1]!.arrivalS - fullS),
+    },
   }
 }
 
@@ -642,6 +778,8 @@ export interface StandingRow {
   /** `you` for the athlete; otherwise the rival's number in the field (1 = fastest rival). */
   runner: 'you' | number
   timeS: number
+  /** The athlete did not finish (B-6b): placed after every finisher, `timeS` is when they retired. */
+  dnf?: true
 }
 
 /**
@@ -652,7 +790,7 @@ export function getStandings(race: Race, result: RaceResult): StandingRow[] {
   const rivals = result.rivalTimesS ?? rivalTimes(race)
   const rows: StandingRow[] = rivals.map((timeS, i) => ({ position: 0, runner: i + 1, timeS }))
   // Ties go to the athlete, as in the simulation: they are placed before rivals with the same time.
-  rows.splice(result.position - 1, 0, { position: 0, runner: 'you', timeS: result.timeS })
+  rows.splice(result.position - 1, 0, { position: 0, runner: 'you', timeS: result.timeS, ...(result.dnf ? { dnf: true as const } : {}) })
   return rows.map((row, i) => ({ ...row, position: i + 1 }))
 }
 

@@ -6,6 +6,12 @@ import { resetWear, usedOf } from './wear'
 /** `consumable`: gels and bars are counted and taken to a race, never equipped. */
 export type EquipError = 'unknown-item' | 'not-owned' | 'consumable'
 
+/**
+ * B-6b: with wear on, nothing can be bought, replaced, put on or taken off while a race is being
+ * run. Kept apart from the screens' error lists until A-5 adds its text.
+ */
+export type RaceLockError = 'race-in-progress'
+
 export type BuyError =
   | 'unknown-item'
   | 'already-owned'
@@ -23,9 +29,11 @@ export function setItemEquipped(
   state: GameState,
   itemId: string,
   equipped: boolean,
-): { ok: true; state: GameState } | { ok: false; error: EquipError } {
+  wear: WearConfig = WEAR,
+): { ok: true; state: GameState } | { ok: false; error: EquipError | RaceLockError } {
   const item = getEquipmentItem(itemId)
   if (!item) return { ok: false, error: 'unknown-item' }
+  if (wearOn(wear) && state.activeRace) return { ok: false, error: 'race-in-progress' }
   if (isConsumable(item)) return { ok: false, error: 'consumable' }
   if (!state.ownedEquipment.includes(itemId)) return { ok: false, error: 'not-owned' }
   const others = state.equipment.filter((id) => id !== itemId && getEquipmentItem(id)?.slot !== item.slot)
@@ -50,9 +58,11 @@ export function buyItem(
   itemId: string,
   confirmedPrice: number,
   wear: WearConfig = WEAR,
-): { ok: true; state: GameState } | { ok: false; error: BuyError } {
+): { ok: true; state: GameState } | { ok: false; error: BuyError | RaceLockError } {
   const item = getEquipmentItem(itemId)
   if (!item) return { ok: false, error: 'unknown-item' }
+  // No fixing the kit mid-race (owner decision, 22 November 2026): gels and bars included.
+  if (wearOn(wear) && state.activeRace) return { ok: false, error: 'race-in-progress' }
   const consumable = isConsumable(item)
   const owned = state.ownedEquipment.includes(itemId)
   const replacement = owned && wearOn(wear) && wears(item) && usedOf(state, itemId) > 0

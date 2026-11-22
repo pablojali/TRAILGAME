@@ -2,6 +2,148 @@
 
 Newest entry first. Only session B writes here.
 
+## 2026-11-22 — B-6b Race consequences of worn shoes: wear along the course, DNF, equipment lock
+
+Branch `stream-b/race-wear-consequences`. Brief `docs/pm/briefs/B-6b-race-wear-consequences.md`.
+Everything is active only with `wear_speed > 0`, which ships at 0.
+
+### Owner decisions given to me in the session (22 November 2026)
+- **D9:** check the shoes again at READY. **Done.**
+- **D9, second part (confirmed by the owner via the PM, 22 November 2026):** race day with shoes at 0 %
+  (or none equipped): **the day waits** until the player decides.
+  - The start is refused (`shoes-worn-out`) and training that day is refused (`race-day`). Nothing
+    closes the day or drops the entry by itself.
+  - The player either buys or equips shoes and races, or **withdraws**. Withdrawing is the new
+    operation `withdraw-race` (`withdrawFromRace`, `GameProvider.withdrawRace`): it drops the entry,
+    closes the day as Rest, and the result carries `didNotStart: <raceId>`.
+  - Withdrawing is refused when the shoes can race (`race-can-start`) or on another day
+    (`not-race-day`).
+  - The operation is recorded in `career_operations` with the kind `train`, since it closes a day as
+    a training day does. The database's list of kinds therefore needs no migration.
+- **Sunday Major, same rule:**
+  - READY is refused at 0 % (`shoes-worn-out`), and nothing is done automatically.
+  - The player buys shoes and confirms READY, or withdraws with the existing Major `withdraw`.
+  - The Major's own schedule is unchanged: a player not READY when the window closes does not start.
+    That is the rule from before B-6b and is not new.
+- **Shoes running out on the last segment:** the runner **finishes** the race. Done.
+- **D8:** "Zapas salen barato, 20 euros". I read it as option B: the starter shoes get a price (20 coins).
+  **Not done here:** the price is an owner-table value, and option B also needs the emergency-pair
+  guard (`EQUIPMENT_WEAR_CALIBRATION.md` §7). For the PM to brief.
+
+### Segment rule
+- The engine already runs a race one segment at a time, so no rewrite was needed.
+- At the start, the race keeps the gear's wear (`ActiveRace.wear`: wear speed and each worn item's
+  share of life used). A Major keeps it in its READY snapshot.
+- Each segment is run with the effect left by the wear at its start:
+  - **Shoes:** the band's `effect_factor` scales their bonuses. +4 at 0.75 is +3; a 0.9 multiplier
+    at 0.75 becomes 0.925.
+  - **Other gear:** full effect while it has life left, none at 0 %.
+- The engine change is small:
+  - `getRaceEffect` takes optional per-item factors;
+  - the runner input takes `effectFactors`;
+  - solo races build them in `contextOf`, and Majors in `segmentContext`.
+
+### Aid-station rule
+- If the shoes' durability reaches 0 % during a segment, the runner reaches the end of that segment
+  and retires at that aid station.
+- Running out on the **last** segment still finishes the race (owner decision). The shoes end at 0 %.
+- The step at that aid station only records the DNF, whatever was decided there.
+
+### The DNF
+- `RaceResult.dnf = { segment (1-based), km, aidStation }`. A DNF is always at an aid station.
+- **Rewards:**
+  - no prize (0 coins);
+  - no ranking fields, so the database trigger records no points;
+  - XP = **last place's XP × km run ÷ race distance**, rounded down.
+- **Fatigue:** the in-race fatigue of the km actually run. The injury rule applies as before.
+- **Wear:** the km actually run, so the shoes end at 0 %.
+- **Placing:**
+  - In solo results the player is placed last (`position` = field size), and `getStandings` marks the
+    row `dnf`.
+  - In Majors, retired runners rank after everyone still running, the furthest first.
+  - Major rewards follow the same rules.
+- **Majors live view:**
+  - the runner's live row carries `retires: true` on the segment where they stop;
+  - the standings mark `dnf` once that segment is revealed;
+  - they run nothing after.
+- **Old saves:** results and races without these fields load unchanged. No migration: careers are
+  JSON, and the ranking trigger already skips results without points. `supabase/` is untouched.
+
+### The shoes' effect in the result
+- A finished or retired race with worn shoes stores `shoeWear`:
+  - the shoes' durability at the start and at the end;
+  - `timeLostS`: the same race run again with full effect, same intensities and stops.
+- That gives the explanation a figure for "the worn shoes cost you X seconds". A-5 shows it.
+
+### Entry preview
+- `predictShoes(state, race)` gives `{ lasts: true }` or `{ lasts: false, segment, km, aidStation }`.
+- The race is deterministic from the wear and the course, so the prediction is exact unless training
+  wears the shoes further before the start.
+- The enter-race result carries `shoes` and `prediction`. The screen can call `predictShoes` before
+  the player confirms.
+
+### Equipment lock
+- With wear on, `setItemEquipped` and `buyItem` (replacing included) refuse with `race-in-progress`
+  while `activeRace` is set.
+- In Majors the READY snapshot fixes the gear that races, so changing the kit after READY does not
+  change the Major.
+- The new refusal is kept apart from the screens' error types (`RaceLockError`), so they compile.
+
+### PM review fixes (22 November 2026)
+
+**A DNF is not a finished race.**
+- `isFinisher(entry)` (`src/game-engine/career.ts`) tells a finisher from a DNF, and `getFinishers`
+  lists the finishers.
+- DNFs stay in `getRaceHistory`, so the career screen lists them.
+
+Readers checked:
+- **Changed to count finishers only:**
+  - `career.ts`: medal table, and personal bests. A DNF never sets a best time or position but counts
+    as a run; a race with DNFs only is not in the bests list.
+  - `achievements.ts`: races finished, positions, and the season summary. A DNF therefore pays no
+    achievement reward, because `applyAchievementRewards` reads these.
+  - `cloudSync.ts`: the summary's race count.
+  - `majorOps.ts`: `racesFinished`.
+- **Left as they are, for A-5 to show DNFs** (their files are stream A's):
+  - `inbox.ts`: the race item shows position and points; a DNF has 0 points.
+  - `Inbox.tsx`: "races run" counts DNFs, which is right for runs.
+  - `TrainingScreen.tsx`: the Sunday result line.
+  - `RaceDetailScreen.tsx`: the best and last position from `getFinishedEntries`. A DNF is position 50,
+    so it never beats a finish; with DNFs only, it shows 50.
+  - `RaceResultScreen.tsx` and `CareerScreen.tsx` history rows: position and time.
+  - `RaceRunScreen.tsx`: `status === 'finished'` to leave the run screen, which is right for a DNF too.
+  - Coach `hasFinishedRace`: true after a DNF; the first-race coach moment still makes sense.
+- **Rankings:** a DNF has no ranking fields, so the database trigger skips it, as before.
+
+**Tests:** a DNF does not add to races finished, achievements (and pays no achievement reward), the
+medal table or the season summary, and does not set or beat a best time. The same holds for a Major
+DNF. Also tested: the race-day wait and the withdrawal, in the engine and through `career-ops`.
+
+### Files
+- **Engine:**
+  - `src/game-engine/raceWear.ts` (new);
+  - `src/game-engine/{races,raceEngine,raceSimulation,majorRace,majorRewards,equipment,gameState}.ts`;
+  - `src/domain/equipment/items.ts`, `src/domain/major/major.ts`.
+- **Saves:** `src/repositories/gameRepository.ts`.
+- **Server:** `src/server/{careerOps,majorOps,majorOrchestrator}.ts`.
+- **Client glue:** `src/app/game/GameProvider.tsx`.
+- **Tests:**
+  - `src/game-engine/{raceWear,majorWear}.test.ts`;
+  - `src/server/wearOps.test.ts`: READY refused at 0 %, wear in the snapshot, the lock, the
+    prediction.
+
+### Checks
+- `npm run lint`, typecheck and `npm run build` pass.
+- 959 tests pass. Locally only `functionBundle.test.ts` fails, because the bundles are not committed;
+  it passes after `npm run build:functions`, and CI rebuilds them.
+
+### For stream A (A-5)
+- **Texts:** `race-in-progress`, `no-shoes-equipped` and `shoes-worn-out`.
+- **Results:** show `result.dnf` and `result.shoeWear`.
+- **Entry warning:** use `predictShoes`.
+- **Live Majors:** handle the `retires` flag in the live runners and `dnf` in the standings.
+- **Aid station:** `retiresHere(active, race)` says the runner retires at the station they are at.
+
 ## 2026-11-22 — B-6a Equipment wear: durability, bands, training and entry rules
 
 Branch `stream-b/equipment-wear`. Brief `docs/pm/briefs/B-6a-equipment-wear.md`. Ships dark: `wear_speed = 0`.

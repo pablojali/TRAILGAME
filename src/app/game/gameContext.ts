@@ -14,6 +14,7 @@ import type {
   RaceEntryError,
   RaceStartDecisions,
   RaceStartError,
+  WithdrawError,
   RaceStepDecisions,
   RaceStepError,
 } from '../../game-engine/races'
@@ -86,6 +87,11 @@ export interface GameContextValue {
   planSession(ref: DayRef, session: SessionType): TrainingError | null
   /** Server-decided with Supabase: nothing is awarded unless the server confirms. */
   executeDay(ref: DayRef): Promise<TrainingError | ServerError | null>
+  /**
+   * B-6b: on race day with shoes that cannot start, withdraw from the race (it did not start) and
+   * close the day as Rest. The screens come with A-5.
+   */
+  withdrawRace(ref: DayRef): Promise<WithdrawError | ServerError | null>
   allocateAttributePoint(attribute: AttributeId, expectedSpent: number): Promise<AllocationError | ServerError | null>
   /** Enters a race (free; level checked) once. Server-decided with Supabase (Phase 3B.2). */
   enterRace(raceId: string): Promise<RaceEntryError | ServerError | null>

@@ -61,6 +61,12 @@ export interface ExecutionResult {
   weekCompleted: boolean
   /** True when the session caused an injury. */
   injured: boolean
+  /**
+   * B-6b (owner decision, 22 November 2026): the player withdrew from today's race, which could not
+   * start with worn-out shoes (or none); its entry was dropped and the day closed as Rest. Missing:
+   * no withdrawal.
+   */
+  didNotStart?: string
   /** Achievement levels reached by this day, with their coins and XP (already added). */
   achievementsEarned: AchievementEarned[]
 }
@@ -209,6 +215,8 @@ export function executeCurrentDay(
 ): TrainingResult<ExecutionResult> {
   const error = checkDay(state, ref)
   if (error) return { ok: false, error }
+  // Race day stays the race's, also with shoes that cannot start (B-6b): the player buys shoes or
+  // withdraws (`withdrawFromRace`); nothing closes the day by itself.
   if (isRaceDayToday(state)) return { ok: false, error: 'race-day' }
 
   const day = getCurrentDay(state.week)

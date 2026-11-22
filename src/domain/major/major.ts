@@ -183,4 +183,9 @@ export interface MajorRunnerSnapshot {
   equipment: string[]
   /** Taken only when in stock at READY; deducted from the career when the race starts. */
   nutrition: { gel: boolean; bar: boolean }
+  /**
+   * Equipment wear (B-6b): the gear's wear at READY and the wear speed then. It sets each segment's
+   * effect and where worn-out shoes break. Missing: wear off, or a snapshot from before B-6b.
+   */
+  wear?: { speed: number; used: Record<string, number> }
 }

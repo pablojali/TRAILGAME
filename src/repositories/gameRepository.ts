@@ -1,4 +1,5 @@
 import { wears } from '../domain/equipment/wear'
+import type { RaceWear } from '../game-engine/raceWear'
 import { ACHIEVEMENT_IDS, getReachedLevels } from '../game-engine/achievements'
 import {
   ATTRIBUTE_IDS,
@@ -201,8 +202,41 @@ function isRaceResult(value: unknown, feePaid: number): value is RaceResult {
         value.rivalTimesS.every((t) => isInt(t, 1)))) &&
     (value.splits === undefined ||
       (Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true))) &&
-    (value.nutrition === undefined || isNutrition(value.nutrition))
+    (value.nutrition === undefined || isNutrition(value.nutrition)) &&
+    (value.dnf === undefined || isDnf(value.dnf)) &&
+    (value.shoeWear === undefined || isShoeWear(value.shoeWear))
   )
+}
+
+/** B-6b: where the runner retired. */
+function isDnf(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isInt(value.segment, 1) &&
+    isFiniteNumber(value.km) &&
+    value.km > 0 &&
+    isInt(value.aidStation, 1)
+  )
+}
+
+/** B-6b: what the shoes' wear did in a race. */
+function isShoeWear(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.itemId === 'string' &&
+    getEquipmentItem(value.itemId) !== undefined &&
+    isInt(value.durabilityAtStart, 0, 100) &&
+    isInt(value.durabilityAtEnd, 0, 100) &&
+    isInt(value.timeLostS, 0)
+  )
+}
+
+/** B-6b: the gear's wear at the start of a race in progress. */
+function parseRaceWear(value: unknown): RaceWear | null {
+  if (!isRecord(value) || !isFiniteNumber(value.speed) || !(value.speed > 0) || !isRecord(value.used)) return null
+  const used = value.used
+  if (!Object.entries(used).every(([id, share]) => wears(getEquipmentItem(id)) && isFiniteNumber(share) && share >= 0 && share <= 1)) return null
+  return { speed: value.speed, used: { ...(used as Record<string, number>) } }
 }
 
 function isNutrition(value: unknown): boolean {
@@ -290,6 +324,9 @@ function parseActiveRace(value: unknown, entries: readonly RaceEntry[], currentD
   ) {
     return null
   }
+  // Missing: wear off, or a race started before B-6b.
+  const raceWear = value.wear === undefined ? undefined : parseRaceWear(value.wear)
+  if (raceWear === null) return null
   return {
     entryId: entry.id,
     raceId: race.id,
@@ -305,6 +342,7 @@ function parseActiveRace(value: unknown, entries: readonly RaceEntry[], currentD
     inRaceFatigue: value.inRaceFatigue,
     splits: structuredClone(splits as RaceSplit[]),
     ...(course ? { course } : {}),
+    ...(raceWear ? { wear: raceWear } : {}),
   }
 }
 

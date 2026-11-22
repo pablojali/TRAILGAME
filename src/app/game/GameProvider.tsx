@@ -15,11 +15,13 @@ import type { Currency } from '../../domain/basecamp/catalog'
 import {
   enterRace,
   startRace,
+  withdrawFromRace,
   stepRace,
   type RaceDayResult,
   type RaceEntryError,
   type RaceStartDecisions,
   type RaceStartError,
+  type WithdrawError,
   type RaceStepDecisions,
   type RaceStepError,
 } from '../../game-engine/races'
@@ -390,6 +392,36 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
     [commit, currentState, ops, runServerOp, sync, noteLevels, noteChallenges],
   )
 
+  const withdrawRace = useCallback(
+    async (ref: DayRef): Promise<WithdrawError | ServerError | null> => {
+      const state = currentState()
+      if (!state) return 'wrong-week'
+      if (ops) {
+        const response = await runServerOp(`withdraw:${ref.week}:${ref.dayIndex}`, (operationId) => ({
+          action: 'withdraw-race',
+          operationId,
+          baseVersion: sync?.knownVersion() ?? null,
+          snapshot: state,
+          ref,
+        }))
+        if (!response.ok) return serverError<WithdrawError>(response.error)
+        const executed = { ...(response.result as Omit<ExecutionResult, 'state'>), state: response.state }
+        setLastExecution(executed)
+        noteLevels(executed.levelBefore, executed.levelAfter)
+        noteChallenges(executed.achievementsEarned)
+        return null
+      }
+      const result = withdrawFromRace(state, ref, clockRef.current())
+      if (!result.ok) return result.error
+      commit({ kind: 'playing', state: result.value.state })
+      setLastExecution(result.value)
+      noteLevels(result.value.levelBefore, result.value.levelAfter)
+      noteChallenges(result.value.achievementsEarned)
+      return null
+    },
+    [commit, currentState, ops, runServerOp, sync, noteLevels, noteChallenges],
+  )
+
   const allocate = useCallback(
     async (attribute: AttributeId, expectedSpent: number): Promise<AllocationError | ServerError | null> => {
       const state = currentState()
@@ -526,7 +558,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
         return response.ok ? null : serverError<EquipError>(response.error)
       }
       const result = setItemEquipped(state, itemId, equipped)
-      if (!result.ok) return result.error
+      // `race-in-progress` (B-6b) only happens with wear on; its text comes with A-5.
+      if (!result.ok) return result.error as EquipError
       commit({ kind: 'playing', state: result.state })
       return null
     },
@@ -549,7 +582,8 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
         return response.ok ? null : serverError<BuyError>(response.error)
       }
       const result = buyItem(state, itemId, confirmedPrice)
-      if (!result.ok) return result.error
+      // As for equipping: `race-in-progress` gets its text with A-5.
+      if (!result.ok) return result.error as BuyError
       commit({ kind: 'playing', state: result.state })
       return null
     },
@@ -682,6 +716,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       resetCareer,
       planSession,
       executeDay,
+      withdrawRace,
       allocateAttributePoint: allocate,
       enterRace: enter,
       claimMajorResults,
@@ -714,6 +749,7 @@ export function GameProvider({ children, repository, clock = Date.now, identity,
       resetCareer,
       planSession,
       executeDay,
+      withdrawRace,
       allocate,
       enter,
       claimMajorResults,

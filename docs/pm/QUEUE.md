@@ -4,12 +4,13 @@ The order of work, kept by the PM. **One Code session for now**, one topic at a 
 merged, the PM moves the next one up and tells the owner what to paste into the session.
 The streams A and B in `README.md` are areas of work; with one session they are simply topics in this list.
 
-Last updated: 22 November 2026 (after B-6b merged).
+Last updated: 22 November 2026 (D11, rewarded ad instead of the emergency pair).
 
 | Position | Topic | Brief | State |
 |---|---|---|---|
-| Now | B-6c Starter shoes at 20 coins and the emergency pair | `briefs/B-6c-starter-shoes-emergency-pair.md` | Ready to paste |
-| Then | A-5 Equipment wear: screens | `briefs/A-5-wear-screens.md` | After B-6c is merged |
+| Now | B-6c Starter shoes at 20 coins. PR #130 must drop the emergency pair (D11) | `briefs/B-6c-starter-shoes-emergency-pair.md` | Rework requested |
+| Then | B-6d Rewarded ad for 20 coins, simulated provider | `briefs/B-6d-rewarded-ad-coins.md` | After B-6c is merged |
+| Then | A-5 Equipment wear: screens (add the ad offer screen) | `briefs/A-5-wear-screens.md` | After B-6d is merged |
 | Then | Owner switches `wear_speed` on, after calibration | owner decision | After A-5 |
 | Later | A-1 Responsive checklist and defect list | `BACKLOG.md` | Needs a brief |
 | Later | A-2 PWA release candidate | `BACKLOG.md` | After A-1 |

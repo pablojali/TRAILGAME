@@ -1,5 +1,5 @@
 import { WEAR, type WearConfig } from '../domain/equipment/wear'
-import { applyWear, withEmergencyPair } from './wear'
+import { applyWear } from './wear'
 import { dnfXp } from './races'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import { roundStat } from '../domain/athlete/athlete'
@@ -94,8 +94,6 @@ export interface MajorRewardApplied {
   levelBefore: number
   levelAfter: number
   attributePointsAwarded: number
-  /** B-6c: the Major's wear left the runner with no usable shoes and no money: a free pair was given. */
-  emergencyPair?: true
 }
 
 /** Applies a Major's result to the career; null if it is already there (or the course is unknown). */
@@ -183,12 +181,9 @@ export function applyMajorReward(state: GameState, payload: MajorRewardPayload, 
     },
     raceEntries: [...state.raceEntries, entry],
   })
-  // B-6c: the free emergency pair, checked at the moment the Major's wear is applied.
-  const emergency = withEmergencyPair(state, rewarded.state, state.week.number, wear)
   const levelAfter = getLevel(rewarded.state.athlete.xp)
   return {
-    state: emergency.state,
-    ...(emergency.granted ? { emergencyPair: true as const } : {}),
+    state: rewarded.state,
     entry,
     achievementsEarned: rewarded.earned,
     levelBefore,

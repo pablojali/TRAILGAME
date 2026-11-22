@@ -554,11 +554,6 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     }
     parsed.wear = { ...(wear as Record<string, number>) }
   }
-  // Missing: no emergency pair given yet (B-6c).
-  if (value.emergencyPairWeek !== undefined) {
-    if (!isInt(value.emergencyPairWeek, 1)) return null
-    parsed.emergencyPairWeek = value.emergencyPairWeek
-  }
   // Missing: a career saved before achievement rewards existed. Levels already reached count as
   // rewarded, so nothing is given for them afterwards.
   parsed.achievementLevelsRewarded =

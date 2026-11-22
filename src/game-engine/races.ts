@@ -31,7 +31,7 @@ import { getScheduledEntry, RACE_DAY_INDEX } from './raceSchedule'
 import { courseEffortKm, explainRace, generateCourse, getDayForm, rivalTimes } from './raceSimulation'
 import { checkDay, completeCurrentDay, executeCurrentDay, statChange, type DayRef, type ExecutionResult, type TrainingError } from './training'
 import { WEAR, type WearConfig, type WearStatus } from '../domain/equipment/wear'
-import { applyWear, raceGearError, shoesStatus, withEmergencyPair, type RaceGearError } from './wear'
+import { applyWear, raceGearError, shoesStatus, type RaceGearError } from './wear'
 import { durabilityPct } from '../domain/equipment/wear'
 import { effectFactorsAt, raceWearAtStart, segmentEndsKm, shoeBreak, usedAfter, type ShoeBreak } from './raceWear'
 
@@ -198,8 +198,6 @@ export interface RaceDayResult {
   weekCompleted: boolean
   /** Achievement levels reached by this race, with their coins and XP (already added). */
   achievementsEarned: AchievementEarned[]
-  /** B-6c: the race's wear left the runner with no usable shoes and no money: a free pair was given. */
-  emergencyPair?: true
 }
 
 /** What the runner decides before the start. */
@@ -470,9 +468,7 @@ function finishRace(
     coins: worn.coins + rewards.coinsAwarded,
     raceEntries: worn.raceEntries.map((e) => (e.id === entry.id ? finished : e)),
   })
-  // B-6c: the free emergency pair, checked at the moment the race's wear is applied.
-  const emergency = withEmergencyPair(state, rewarded.state, state.week.number, wear)
-  const nextState: GameState = emergency.state
+  const nextState: GameState = rewarded.state
   const levelAfter = getLevel(nextState.athlete.xp)
   return {
     state: nextState,
@@ -482,7 +478,6 @@ function finishRace(
     levelAfter,
     attributePointsAwarded: getAttributePointsBetween(levelAtStart, levelAfter),
     weekCompleted: advanced.weekCompleted,
-    ...(emergency.granted ? { emergencyPair: true as const } : {}),
   }
 }
 

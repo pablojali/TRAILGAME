@@ -2,7 +2,7 @@ import { applyAchievementRewards, type AchievementEarned } from './achievements'
 import { roundStat, STAT_MAX, STAT_MIN } from '../domain/athlete/athlete'
 import { getAttributePointsBetween, getLevel } from '../domain/athlete/levels'
 import { WEAR, type WearConfig } from '../domain/equipment/wear'
-import { applyWear, shoeInjuryDraw, shoeInjuryRiskPct, withEmergencyPair } from './wear'
+import { applyWear, shoeInjuryDraw, shoeInjuryRiskPct } from './wear'
 import {
   INJURY_FATIGUE_THRESHOLD,
   INJURY_FITNESS_LOSS,
@@ -61,8 +61,6 @@ export interface ExecutionResult {
   weekCompleted: boolean
   /** True when the session caused an injury. */
   injured: boolean
-  /** B-6c: the day's wear left the runner with no usable shoes and no money: a free pair was given. */
-  emergencyPair?: true
   /**
    * B-6b (owner decision, 22 November 2026): the player withdrew from today's race, which could not
    * start with worn-out shoes (or none); its entry was dropped and the day closed as Rest. Missing:
@@ -226,10 +224,7 @@ export function executeCurrentDay(
   const levelBefore = getLevel(state.athlete.xp)
   const advanced = completeCurrentDay(state, outcome, day.session !== 'rest', now)
   // The equipped gear wears by the session's km (training is never blocked by it).
-  const achieved = applyAchievementRewards(applyWear(advanced.state, wear.sessionKm[day.session], wear))
-  // B-6c: the free emergency pair, checked at the moment the day's wear is applied.
-  const emergency = withEmergencyPair(state, achieved.state, state.week.number, wear)
-  const rewarded = { ...achieved, state: emergency.state }
+  const rewarded = applyAchievementRewards(applyWear(advanced.state, wear.sessionKm[day.session], wear))
   const levelAfter = getLevel(rewarded.state.athlete.xp)
 
   return {
@@ -244,7 +239,6 @@ export function executeCurrentDay(
       attributePointsAwarded: getAttributePointsBetween(levelBefore, levelAfter),
       weekCompleted: advanced.weekCompleted,
       injured: outcome.injured === true,
-      ...(emergency.granted ? { emergencyPair: true as const } : {}),
     },
   }
 }

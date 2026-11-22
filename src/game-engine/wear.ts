@@ -89,52 +89,8 @@ export function shoeInjuryDraw(now: number, week: number, dayIndex: number): num
   return mulberry32(fnv1a(`shoe-injury|${now}|${week}|${dayIndex}`)) * 100
 }
 
-/** Owner decision (D8, 22 November 2026): the free pair is the starter shoes, new. */
-export const EMERGENCY_PAIR_ID = 'starter-shoes'
-/** At most one free pair every this many game weeks (B's guard, docs/EQUIPMENT_WEAR_CALIBRATION.md §7). */
-export const EMERGENCY_PAIR_COOLDOWN_WEEKS = 8
-
-/** The price of the cheapest shoes for sale. */
+/** The price of the cheapest shoes for sale (the starter shoes, 20 coins, owner decision D8). */
 export function cheapestShoesPrice(): number {
   const prices = EQUIPMENT_ITEMS.filter((item) => item.slot === 'shoes' && item.price !== null).map((item) => item.price!)
   return prices.length ? Math.min(...prices) : 0
-}
-
-/**
- * True when the runner owns a pair that can race without breaking: above the DNF band (a race-start
- * of `ok`), or shoes that never wear.
- */
-export function hasRaceablePair(state: GameState, config: WearConfig = WEAR): boolean {
-  return state.ownedEquipment.some((id) => {
-    const item = getEquipmentItem(id)
-    if (item?.slot !== 'shoes') return false
-    const status = wearStatus(id, usedOf(state, id), config)
-    return status === null || status.band?.raceStart === 'ok'
-  })
-}
-
-/**
- * The free emergency pair (brief B-6c, owner decision of 22 November 2026; the guard of
- * docs/EQUIPMENT_WEAR_CALIBRATION.md §7). Checked only at the moment wear is applied (a training
- * day, a race finish, a Major result): if that wear took the runner's last pair above the 9–1 %
- * band into it or below, and the coins are then below the cheapest pair for sale, the runner gets
- * new starter shoes, equipped, at most once every 8 game weeks. `before` is the career before that
- * wear, `after` the career once the day or race is done (coins included); `week` is the game week
- * of that day or race.
- */
-export function withEmergencyPair(
-  before: GameState,
-  after: GameState,
-  week: number,
-  config: WearConfig = WEAR,
-): { state: GameState; granted: boolean } {
-  const no = { state: after, granted: false }
-  if (!wearOn(config)) return no
-  if (!hasRaceablePair(before, config) || hasRaceablePair(after, config)) return no
-  if (after.coins >= cheapestShoesPrice()) return no
-  if (after.emergencyPairWeek !== undefined && week - after.emergencyPairWeek < EMERGENCY_PAIR_COOLDOWN_WEEKS) return no
-  const fresh = resetWear(after, EMERGENCY_PAIR_ID)
-  const owned = fresh.ownedEquipment.includes(EMERGENCY_PAIR_ID) ? fresh.ownedEquipment : [...fresh.ownedEquipment, EMERGENCY_PAIR_ID]
-  const equipment = [...fresh.equipment.filter((id) => getEquipmentItem(id)?.slot !== 'shoes'), EMERGENCY_PAIR_ID]
-  return { state: { ...fresh, ownedEquipment: owned, equipment, emergencyPairWeek: week }, granted: true }
 }

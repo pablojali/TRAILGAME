@@ -157,40 +157,18 @@ have no effect while `wear_speed` is 0.
 - **Effect factors:** I keep the PM's 1 / 0.75 / 0.4 / 0 / 0. They only change races, in B-6b. Their
   effect on race times will be measured there.
 
-## 6. Finding: the starter shoes are a free replacement
+## 6. The starter shoes (decided: D8, 22 November 2026)
 
-The starter shoes cost 0 and are for sale. Under the replacement rule ("buying an owned item again at
-its price resets its wear"), a worn starter pair can be renewed for nothing, at any time.
+When this report was written, the starter shoes cost 0, so a worn pair could be renewed for nothing.
+The owner chose to give them a price: **20 coins** (B-6c). Runners still start owning them; a worn pair
+is replaced for 20.
 
-In the simulation, a player who cannot afford their pair falls back to new starter shoes. No week
-ever met the soft-lock condition: no pair above 9 % and too few coins for the cheapest pair.
+## 7. No free emergency pair (decided: D11, 22 November 2026)
 
-Consequences:
-- **No soft-lock is possible.** The cheapest pair for sale costs 0, so the condition "coins below the
-  cheapest pair for sale" never holds. As written, **the emergency pair would never be given.**
-- **No coin pressure at the low end.** A player can always race in free starter shoes. They lose the
-  bonuses of better shoes, not the race.
-
-**The owner decides one of:**
-- **A (no code):** keep the starter shoes free to renew. They *are* the emergency pair, and the
-  bonus of better shoes is what costs money.
-- **B:** take the starter shoes off sale, or give them a price. Then the emergency pair needs the
-  guard in section 7.
-
-## 7. Proposal: emergency-pair guard (only needed with option B)
-
-**Give a free pair of starter shoes once, at the moment the last pair above the DNF band drops into
-it or below** (that is, to 9 % or less), **if the coins are then below the cheapest pair for
-sale.** Limit it to **once every 8 game weeks**.
-
-Reasons:
-- **Checked at the moment of wear, not on demand.** A player cannot spend coins on purpose and then
-  ask for it. The pair is given by the server during the training or race that wore the shoes out.
-- **The cooldown** stops a player farming it by running pairs into the ground. 8 weeks is about one
-  pair's life.
-- **It does not depend on the client.** The check runs in the same server operation as the wear.
-
-Not coded: it waits for the owner's approval, as the brief asks.
+This section first proposed a free emergency pair with an 8-week guard. The owner dropped it. A runner
+who cannot race (no pair above 0 %) and has fewer coins than the cheapest pair can instead watch a
+**rewarded ad for +20 coins**, at most 2 coin-granting ads per real day (B-6d; amount and limit in
+`src/data/economy.csv`).
 
 ## 8. Proposal: Sunday Majors
 

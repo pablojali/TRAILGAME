@@ -4,13 +4,12 @@ The order of work, kept by the PM. **One Code session for now**, one topic at a 
 merged, the PM moves the next one up and tells the owner what to paste into the session.
 The streams A and B in `README.md` are areas of work; with one session they are simply topics in this list.
 
-Last updated: 22 November 2026 (after B-6a merged).
+Last updated: 22 November 2026 (after B-6b merged).
 
 | Position | Topic | Brief | State |
 |---|---|---|---|
-| Now | B-6b Race consequences: wear along the course, DNF, equipment lock | `briefs/B-6b-race-wear-consequences.md` | In review (PR #127): the PM asked for fixes, see the PR comments. D10 (calibration) is still open |
-| Then | B-6c Starter shoes at 20 coins and the emergency pair | `briefs/B-6c-starter-shoes-emergency-pair.md` | After B-6b is merged |
-| Then | A-5 Equipment wear: screens | `briefs/A-5-wear-screens.md` | After B-6b is merged |
+| Now | B-6c Starter shoes at 20 coins and the emergency pair | `briefs/B-6c-starter-shoes-emergency-pair.md` | Ready to paste |
+| Then | A-5 Equipment wear: screens | `briefs/A-5-wear-screens.md` | After B-6c is merged |
 | Then | Owner switches `wear_speed` on, after calibration | owner decision | After A-5 |
 | Later | A-1 Responsive checklist and defect list | `BACKLOG.md` | Needs a brief |
 | Later | A-2 PWA release candidate | `BACKLOG.md` | After A-1 |
@@ -22,5 +21,6 @@ Life in km for each shoe model, the packs and the poles (owner fills the table);
 
 ## Merged
 
+- 22 Nov 2026: PR #127 B-6b worn shoes in races (wear per segment, DNF at the aid station, equipment lock, race day waits for buy-or-withdraw, DNF is not a finished race), shipped dark. Review fixes applied by Code.
 - 22 Nov 2026: PR #122 PM coordination folder and briefs.
 - 22 Nov 2026: PR #125 B-6a equipment wear, shipped dark (`wear_speed = 0`, every `life_km` empty). Also closed B-1: the report says the M4 balance finding is closed (owner decision D2 still open).

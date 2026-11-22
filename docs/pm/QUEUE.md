@@ -8,8 +8,7 @@ Last updated: 22 November 2026 (D11, rewarded ad instead of the emergency pair).
 
 | Position | Topic | Brief | State |
 |---|---|---|---|
-| Now | **Wear finish, one task, one PR:** rework B-6c (drop the emergency pair, starter shoes at 20) + B-6d (rewarded ad, simulated provider) + A-5 (all wear screens and the ad offer) | `briefs/B-6c-starter-shoes-emergency-pair.md`, `briefs/B-6d-rewarded-ad-coins.md`, `briefs/A-5-wear-screens.md` | Owner decision 22 Nov: all together. Continue on PR #130's branch |
-| Then | Owner switches `wear_speed` on, after calibration | owner decision | After A-5 |
+| Now | **Owner: calibrate and switch on wear.** Fill `life_km` for the shoes, poles and packs (or ask the PM for a proposal), accept or change D10, then set `wear_speed` | `docs/EQUIPMENT_WEAR_CALIBRATION.md` | Owner decision. Nothing for Code until then |
 | Later | A-1 Responsive checklist and defect list | `BACKLOG.md` | Needs a brief |
 | Later | A-2 PWA release candidate | `BACKLOG.md` | After A-1 |
 | Waiting | B-2 Fitness/fatigue balance (D4), B-3 attribute adaptation (D5) | `BACKLOG.md` | Owner decisions |
@@ -20,6 +19,7 @@ Life in km for each shoe model, the packs and the poles (owner fills the table);
 
 ## Merged
 
+- 22 Nov 2026: PR #130 B-6c + B-6d + A-5 in one task: starter shoes at 20 coins (emergency pair dropped, D11), rewarded ad for 20 coins (2 per real UTC day, simulated provider), all wear screens in 5 languages. Shipped dark (`wear_speed = 0`).
 - 22 Nov 2026: PR #127 B-6b worn shoes in races (wear per segment, DNF at the aid station, equipment lock, race day waits for buy-or-withdraw, DNF is not a finished race), shipped dark. Review fixes applied by Code.
 - 22 Nov 2026: PR #122 PM coordination folder and briefs.
 - 22 Nov 2026: PR #125 B-6a equipment wear, shipped dark (`wear_speed = 0`, every `life_km` empty). Also closed B-1: the report says the M4 balance finding is closed (owner decision D2 still open).

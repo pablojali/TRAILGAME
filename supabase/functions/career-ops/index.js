@@ -474,7 +474,7 @@ var equipment_default = `# Equipment (owner table, 3 November 2026). One row per
 # name_es, effect_text_es, description_es (and _fr, _it, _de): the texts in Spanish, French, Italian and German. Empty = English; an empty effect text is written from the bonuses.
 # life_km: km of use the item lasts (empty = never wears). Shoes, packs, poles and the watch wear only while equipped; economy.csv wear_speed multiplies the wear of every item (0 = wear off).
 id,name,type,level,price,pack,thumbnail,avatar_layer,speed,endurance,climbing,technical,recovery,consistency,flat,climb,descent,technical_penalty,wear,life_km,effect_text,description,name_es,effect_text_es,description_es,name_fr,effect_text_fr,description_fr,name_it,effect_text_it,description_it,name_de,effect_text_de,description_de
-starter-shoes,Starter shoes,shoes,,0,,thumb_lvl0_shoes_01.png,footwear/starter-shoes.webp,,,,,,,,,,,,,,Basic trail-running shoes. Starting equipment.,Zapatillas b\xE1sicas,,Zapatillas de trail b\xE1sicas. Equipo inicial.,Chaussures de base,,Chaussures de trail basiques. \xC9quipement de d\xE9part.,Scarpe base,,Scarpe da trail base. Attrezzatura iniziale.,Einsteigerschuhe,,Einfache Trailschuhe. Startausr\xFCstung.
+starter-shoes,Starter shoes,shoes,,20,,thumb_lvl0_shoes_01.png,footwear/starter-shoes.webp,,,,,,,,,,,,,,Basic trail-running shoes. Starting equipment.,Zapatillas b\xE1sicas,,Zapatillas de trail b\xE1sicas. Equipo inicial.,Chaussures de base,,Chaussures de trail basiques. \xC9quipement de d\xE9part.,Scarpe base,,Scarpe da trail base. Attrezzatura iniziale.,Einsteigerschuhe,,Einfache Trailschuhe. Startausr\xFCstung.
 trail-shoes-basic,Trail shoes,shoes,5,65,,thumb_lvl1_shoes_01.png,footwear/trail-shoes-basic.webp,1,,,1,,,,,,,,,,A small all-round upgrade on the starter shoes.,Zapatillas de trail,,Una peque\xF1a mejora general respecto a las b\xE1sicas.,Chaussures de trail,,Une petite am\xE9lioration polyvalente par rapport aux chaussures de base.,Scarpe da trail,,Un piccolo miglioramento generale rispetto alle scarpe base.,Trailschuhe,,Ein kleines Allround-Upgrade gegen\xFCber den Einsteigerschuhen.
 trail-shoes,Technical trail shoes,shoes,9,120,,,footwear/trail-shoes.webp,,,,4,,,,,,0.7,,,,Grippy shoes for rocky and technical ground.,Zapatillas t\xE9cnicas,,Zapatillas con mucho agarre para terreno rocoso y t\xE9cnico.,Chaussures techniques,,Chaussures accrocheuses pour terrain rocheux et technique.,Scarpe tecniche,,Scarpe con molto grip per terreno roccioso e tecnico.,Technische Trailschuhe,,"Griffige Schuhe f\xFCr felsiges, technisches Gel\xE4nde."
 trail-shoes-light,Light trail shoes,shoes,12,145,,thumb_lvl2_shoes_02.png,footwear/trail-shoes-light.webp,3,,,,,,,,0.98,1.3,,,,"Fast on flats and descents, with less grip on technical ground.",Zapatillas ligeras,,"R\xE1pidas en llano y en bajada, con menos agarre en terreno t\xE9cnico.",Chaussures l\xE9g\xE8res,,"Rapides sur le plat et en descente, moins d'adh\xE9rence en terrain technique.",Scarpe leggere,,"Veloci in pianura e in discesa, con meno grip sul terreno tecnico.",Leichte Trailschuhe,,"Schnell auf flachen St\xFCcken und bergab, mit weniger Grip im technischen Gel\xE4nde."
@@ -628,7 +628,7 @@ var wear_bands_default = "# Shoe durability bands (owner decision, 22 November 2
 var wear_km_default = "# Equipment wear (owner decision, 22 November 2026): the km each training session wears the equipped gear by.\n# Races wear it by their own distance. Starting proposal, for the owner to change. Every session type has one row.\nsession,km\neasy-run,8\nintervals,6\nhills,6\nlong-run,18\ntrail-technique,4\nstrength,0\nrest,0\n";
 
 // raw:src/data/economy.csv
-var economy_default = "# Economy (owner decision, 16 November 2026). One row per value.\n# coins_per_premium: credits (coins) a player pays for 1 Premium Coin. The exchange goes one way only, coins to Premium.\n# wear_speed: multiplies the wear of every item with a life_km (equipment.csv). 1 = as in the table, above 1 wears faster, 0 = wear off (owner decision, 22 November 2026).\nkey,value\ncoins_per_premium,100\nwear_speed,0\n";
+var economy_default = "# Economy (owner decision, 16 November 2026). One row per value.\n# coins_per_premium: credits (coins) a player pays for 1 Premium Coin. The exchange goes one way only, coins to Premium.\n# wear_speed: multiplies the wear of every item with a life_km (equipment.csv). 1 = as in the table, above 1 wears faster, 0 = wear off (owner decision, 22 November 2026).\n# ad_reward_coins: coins a rewarded ad gives a runner who cannot race and cannot afford the cheapest shoes. ad_rewards_per_day: most coin-granting ads per real day (UTC); more ads can be watched but give no coins (owner decision D11, 22 November 2026).\nkey,value\ncoins_per_premium,100\nwear_speed,0\nad_reward_coins,20\nad_rewards_per_day,2\n";
 
 // src/domain/economy/premium.ts
 function parseEconomy(text) {
@@ -637,11 +637,16 @@ function parseEconomy(text) {
   if (coinsPerPremium < 1) throw new Error("economy.csv: coins_per_premium must be 1 or more");
   const wearSpeed = csvNumber(values.get("wear_speed"), "economy.csv wear_speed", 0);
   if (!(wearSpeed >= 0)) throw new Error("economy.csv: wear_speed must be 0 or more");
-  return { coinsPerPremium, wearSpeed };
+  const adRewardCoins = values.has("ad_reward_coins") ? csvInt(values.get("ad_reward_coins"), "economy.csv ad_reward_coins") : 20;
+  const adRewardsPerDay = values.has("ad_rewards_per_day") ? csvInt(values.get("ad_rewards_per_day"), "economy.csv ad_rewards_per_day") : 2;
+  if (adRewardCoins < 0 || adRewardsPerDay < 0) throw new Error("economy.csv: ad_reward_coins and ad_rewards_per_day must be 0 or more");
+  return { coinsPerPremium, wearSpeed, adRewardCoins, adRewardsPerDay };
 }
 var ECONOMY = parseEconomy(economy_default);
 var COINS_PER_PREMIUM = ECONOMY.coinsPerPremium;
 var WEAR_SPEED = ECONOMY.wearSpeed;
+var AD_REWARD_COINS = ECONOMY.adRewardCoins;
+var AD_REWARDS_PER_DAY = ECONOMY.adRewardsPerDay;
 var MAX_EXCHANGE = 1e3;
 
 // src/domain/equipment/wear.ts
@@ -1204,6 +1209,10 @@ function shoeInjuryRiskPct(state, config2 = WEAR) {
 function shoeInjuryDraw(now, week, dayIndex) {
   return mulberry32(fnv1a(`shoe-injury|${now}|${week}|${dayIndex}`)) * 100;
 }
+function cheapestShoesPrice() {
+  const prices = EQUIPMENT_ITEMS.filter((item) => item.slot === "shoes" && item.price !== null).map((item) => item.price);
+  return prices.length ? Math.min(...prices) : 0;
+}
 
 // src/game-engine/equipment.ts
 function setItemEquipped(state, itemId, equipped, wear = WEAR) {
@@ -1231,7 +1240,10 @@ function buyItem(state, itemId, confirmedPrice, wear = WEAR) {
     for (const kind of consumableKinds(item)) consumables[kind] += item.packSize;
     return { ok: true, state: { ...state, coins: state.coins - item.price, consumables } };
   }
-  if (replacement) return { ok: true, state: { ...resetWear(state, itemId), coins: state.coins - item.price } };
+  if (replacement) {
+    const replacements = { ...state.replacements, [itemId]: (state.replacements?.[itemId] ?? 0) + 1 };
+    return { ok: true, state: { ...resetWear(state, itemId), coins: state.coins - item.price, replacements } };
+  }
   return {
     ok: true,
     state: { ...state, coins: state.coins - item.price, ownedEquipment: [...state.ownedEquipment, itemId] }
@@ -3195,10 +3207,38 @@ function parseGameState(value, now) {
     }
     parsed.wear = { ...wear };
   }
+  if (value.replacements !== void 0) {
+    const r = value.replacements;
+    if (!isRecord(r) || !Object.entries(r).every(([id, n]) => parsed.ownedEquipment.includes(id) && isInt(n, 1))) return null;
+    parsed.replacements = { ...r };
+  }
+  if (value.ads !== void 0) {
+    const ads = parseAds(value.ads);
+    if (!ads) return null;
+    parsed.ads = ads;
+  }
   parsed.achievementLevelsRewarded = rewarded === void 0 ? getReachedLevels(parsed) : { ...rewarded };
   const coach = parseCoachProgress(value.coach);
   if (coach) parsed.coach = coach;
   return parsed;
+}
+function parseAds(value) {
+  if (!isRecord(value)) return null;
+  const ads = {};
+  if (value.pending !== void 0) {
+    const p = value.pending;
+    if (!isRecord(p) || typeof p.id !== "string" || p.id.length === 0 || p.id.length > 64 || !isFiniteNumber(p.startedAt)) return null;
+    ads.pending = { id: p.id, startedAt: p.startedAt };
+  }
+  if (value.day !== void 0) {
+    if (typeof value.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.day)) return null;
+    ads.day = value.day;
+  }
+  if (value.rewarded !== void 0) {
+    if (!isInt(value.rewarded, 0)) return null;
+    ads.rewarded = value.rewarded;
+  }
+  return ads;
 }
 function parseCoachProgress(value) {
   if (!isRecord(value) || !isInt(value.welcomeStep, 0) || typeof value.welcomeDone !== "boolean") return null;
@@ -3315,6 +3355,46 @@ function applyMajorReward(state, payload, wear = WEAR) {
   };
 }
 
+// src/game-engine/adReward.ts
+var AD_MIN_SECONDS = 5;
+var AD_RULES = { coins: AD_REWARD_COINS, perDay: AD_REWARDS_PER_DAY };
+function adDay(now) {
+  return new Date(now).toISOString().slice(0, 10);
+}
+function canRaceWithOwnedShoes(state, config2 = WEAR) {
+  return state.ownedEquipment.some((id) => {
+    if (getEquipmentItem(id)?.slot !== "shoes") return false;
+    const status = wearStatus(id, usedOf(state, id), config2);
+    return status === null || durabilityPct(usedOf(state, id)) > 0;
+  });
+}
+function isStuckWithoutShoes(state, config2 = WEAR) {
+  return wearOn(config2) && !canRaceWithOwnedShoes(state, config2) && state.coins < cheapestShoesPrice();
+}
+function adRewardsToday(state, now) {
+  return state.ads?.day === adDay(now) ? state.ads.rewarded ?? 0 : 0;
+}
+function startAd(state, adId, now, config2 = WEAR) {
+  if (!wearOn(config2)) return { ok: false, error: "ads-off" };
+  return { ok: true, state: { ...state, ads: { ...state.ads, pending: { id: adId, startedAt: now } } } };
+}
+function claimAd(state, adId, now, config2 = WEAR, rules = AD_RULES) {
+  if (!wearOn(config2)) return { ok: false, error: "ads-off" };
+  const pending = state.ads?.pending;
+  if (!pending || pending.id !== adId) return { ok: false, error: "no-ad" };
+  if (now - pending.startedAt < AD_MIN_SECONDS * 1e3) return { ok: false, error: "ad-not-completed" };
+  const day = adDay(now);
+  const today = adRewardsToday(state, now);
+  const used = { ...state, ads: { day, rewarded: today } };
+  if (!isStuckWithoutShoes(state, config2)) return { ok: true, state: used, outcome: { granted: false, reason: "not-eligible" } };
+  if (today >= rules.perDay) return { ok: true, state: used, outcome: { granted: false, reason: "daily-limit" } };
+  return {
+    ok: true,
+    state: { ...used, coins: state.coins + rules.coins, ads: { day, rewarded: today + 1 } },
+    outcome: { granted: true, coins: rules.coins }
+  };
+}
+
 // src/server/careerOps.ts
 var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 var MAX_ATTEMPTS = 3;
@@ -3412,6 +3492,16 @@ function compute(request, career, now) {
       const { state: next, ...result } = stepped.value.value;
       return { ok: true, state: next, result: { finished: true, ...result, ...gearOf(next) } };
     }
+    case "ad-start": {
+      const started = startAd(career, request.operationId, now);
+      if (!started.ok) return { ok: false, error: started.error };
+      return { ok: true, state: started.state, result: { adId: request.operationId } };
+    }
+    case "ad-claim": {
+      const claimed = claimAd(career, request.adId, now);
+      if (!claimed.ok) return { ok: false, error: claimed.error };
+      return { ok: true, state: claimed.state, result: { ...claimed.outcome } };
+    }
     case "withdraw-race": {
       const withdrawn = withdrawFromRace(career, request.ref, now);
       if (!withdrawn.ok) return { ok: false, error: withdrawn.error };
@@ -3474,6 +3564,10 @@ function validRequest(body) {
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && isRef(request.ref) && typeof request.entryId === "string" && typeof request.intensity === "string" && typeof request.gel === "boolean" && typeof request.bar === "boolean";
     case "race-step":
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && Number.isInteger(request.segment) && typeof request.stop === "string" && typeof request.intensity === "string";
+    case "ad-start":
+      return base && typeof request.operationId === "string" && UUID.test(request.operationId);
+    case "ad-claim":
+      return base && typeof request.operationId === "string" && UUID.test(request.operationId) && typeof request.adId === "string" && UUID.test(request.adId);
     case "withdraw-race":
       return base && typeof request.operationId === "string" && UUID.test(request.operationId) && isRef(request.ref);
     case "allocate":
@@ -3539,7 +3633,8 @@ async function handleCareerOp(token, body, deps) {
       operationId: request.operationId,
       // A withdrawal closes a day like a training day: recorded as `train`, so the database's list
       // of operation kinds needs no migration.
-      kind: request.action === "withdraw-race" ? "train" : request.action,
+      // A rewarded ad is recorded as a `claim` (B-6d), for the same reason.
+      kind: request.action === "withdraw-race" ? "train" : request.action === "ad-start" || request.action === "ad-claim" ? "claim" : request.action,
       response: computed.result ? { result: computed.result } : {}
     });
     if (committed.status === "saved") {

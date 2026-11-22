@@ -17,10 +17,11 @@ or who can start.
    worn out and has a **Replace** button with the price and a confirmation that shows the balance after. Items
    that do not wear look as today. While a race is in progress the screen is read-only and says why.
 2. **Race Detail / entry:** when the server refuses entry (shoes at 0 % or none equipped), the button is
-   inactive and the screen says why, with a link to Equipment. When the server says the band is 9–1 %, the entry
-   confirmation shows a **clear warning**: the shoes will break at an aid station and the result will be a DNF
-   with no prize or ranking points; the player must confirm explicitly. When the free emergency pair is granted,
-   the player is told what happened.
+   inactive and the screen says why, with a link to Equipment. When the server predicts that the shoes will not
+   last the race, the entry confirmation shows a **clear warning** that names where the runner will retire
+   ("Your shoes will break at aid station 3, about km 18: DNF, no prize or ranking points") and needs an
+   explicit confirmation. When the shoes will last, show their durability after the race if the server sends it.
+   When the free emergency pair is granted, the player is told what happened.
 3. **Race run and results:** the DNF appears in the live view (where the runner leaves), in the result screen
    and in the rankings lists, after the finishers. The result explanation mentions the shoes' effect.
 4. **Training:** if the equipped shoes are in the 9–1 % band (or at 0 %), the Training screen shows a short
@@ -41,7 +42,8 @@ states for the replace action. No game value in a screen.
 - [ ] Durability bar, percentage, band and remaining life on every item that wears, readable without colour.
 - [ ] Replace works end to end, with confirmation, and the balance updates.
 - [ ] A blocked entry explains the reason and links to Equipment.
-- [ ] The DNF warning appears before confirming a race with shoes at 9–1 %, and needs an explicit confirmation.
+- [ ] Whenever the server predicts the shoes will not last the race, a warning names the aid station and km where
+      the runner will retire, and confirming needs an explicit tap.
 - [ ] A DNF shows correctly in the live view, the result and the rankings.
 - [ ] Equipment is read-only during a race, with the reason shown.
 - [ ] Inbox notifications appear once per threshold.

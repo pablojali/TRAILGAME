@@ -20,7 +20,7 @@ read of the code, not from running the game).
 | ID | Decision | Date |
 |---|---|---|
 | D6 | Equipment wears out so coins are spent regularly. Shoes by km (500 real), packs by game weeks (104 real), a global `wear_speed` knob (0 = off), a free emergency pair avoids a soft-lock, training km from an owner table. Details in `briefs/B-6a-equipment-wear.md` | 22 Nov 2026 |
-| D7 | Shoe durability bands with real consequences (100–40 % normal, 39–20 % slight penalty, 19–10 % heavy, 9–1 % injury risk in training and a guaranteed DNF at an aid station in a race, 0 % cannot start). DNF: no prize, no ranking points, reduced XP. No equipment changes during a race. Replaces the earlier "worn-out shoes only block entry, no DNF". Details in `briefs/B-6a-equipment-wear.md` and `briefs/B-6b-race-wear-consequences.md` | 22 Nov 2026 |
+| D7 | Shoe durability bands with real consequences (100–40 % normal, 39–20 % slight penalty, 19–10 % heavy, 9–1 % injury risk in training and in a race the shoes keep wearing along the course and break at the aid station where their life runs out, a DNF, 0 % cannot start). DNF: no prize, no ranking points, reduced XP. No equipment changes during a race. Replaces the earlier "worn-out shoes only block entry, no DNF". Details in `briefs/B-6a-equipment-wear.md` and `briefs/B-6b-race-wear-consequences.md` | 22 Nov 2026 |
 
 ## P0
 

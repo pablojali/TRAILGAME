@@ -29,7 +29,7 @@ used up.
    | 100–40 % | Normal performance |
    | 39–20 % | Slight penalty |
    | 19–10 % | Heavy penalty |
-   | 9–1 % | High risk: random chance of injury in training. In a race: guaranteed DNF (see B-6b) |
+   | 9–1 % | High risk: random chance of injury in training. In a race the shoes keep wearing along the course and break at the aid station where their remaining life runs out (see B-6b) |
    | 0 % | Not fit to race: the runner **cannot start a race** |
 
 5. **Training is never blocked.** Reaching 0 % in training does not stop it; the accumulated wear just forces
@@ -73,8 +73,8 @@ used up.
   or server value so tests and the server agree; explain your choice in the log.
 - **Race start:** `enterRace` (and the Major registration/start checks) refuse with explicit reasons when the
   equipped shoes are at 0 % (`shoes-worn-out`) or when no shoes are equipped (`no-shoes-equipped`). What
-  happens at 9–1 % is B-6b; here only expose the band and the durability on the entry result so B-6b and A-5
-  can use them.
+  happens along the course is B-6b; here only expose the band, the durability and the remaining effective
+  life in km on the entry result so B-6b and A-5 can use them.
 - **Replace:** buying an owned item again (same price) is a replacement and resets its wear. Today an owned item
   cannot be bought twice; change that only for items that wear and have wear above zero.
 - **Majors:** report how a Sunday Major behaves when the runner's shoes change band between registering and
@@ -106,7 +106,10 @@ B-6b and A-5.
 Re-run the season simulation (`docs/SEASON_SIMULATION_16W.md`) against current values, say whether the M4
 balance finding is closed, then propose `wear_speed`, the km table and the band numbers. Suggested targets for
 the owner to accept or change: shoes need replacing roughly every 8 to 12 game weeks for a sensible player, and
-replacing worn gear costs roughly 25 to 35 % of the coins that player earns. Write it in
+replacing worn gear costs roughly 25 to 35 % of the coins that player earns. Races wear shoes along the
+course too (B-6b): with an effective life of 150 km, a 70 km race uses nearly half a pair. State how much of
+a pair each race category uses at your proposed `wear_speed`, and say whether race km should use the same
+multiplier as training km. Write it in
 `docs/EQUIPMENT_WEAR_CALIBRATION.md` with the numbers. **Apply no balance value without the owner's approval.**
 
 ## Out of scope

@@ -171,10 +171,8 @@ export function BaseCampScreen() {
       <p className={styles.hint} aria-hidden="true">
         {t('basecamp.swipe')}
       </p>
-      {/* Inside without the gear stand: Customize opens on the objects, where it is (owner request, 19 November 2026). */}
-      {shopOpen && (
-        <CampShop scene={view} initialKind={view === 'interior' && !spots.some((s) => s.action === 'gear') ? 'decor' : undefined} onClose={() => setShopOpen(false)} />
-      )}
+      {/* Customize opens on the objects (mailbox, firepit…), not on the backgrounds (owner request, 23 November 2026). */}
+      {shopOpen && <CampShop scene={view} initialKind="decor" onClose={() => setShopOpen(false)} />}
       {mailOpen && <Mailbox onClose={() => setMailOpen(false)} />}
       {friendsOpen && <FriendsSheet onClose={() => setFriendsOpen(false)} />}
     </section>

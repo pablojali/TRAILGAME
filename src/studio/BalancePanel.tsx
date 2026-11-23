@@ -8,6 +8,8 @@ const TITLES: Record<string, string> = {
   points: 'Ranking points',
   raceField: 'Rivals by category',
   npcs: 'Ranking NPC rivals',
+  // Premium rate, equipment wear speed (wear_speed) and rewarded ads (owner request, 23 November 2026).
+  economy: 'Economy',
 }
 
 /** The comment lines at the top of a table: its own explanation of the columns. */
@@ -47,7 +49,7 @@ export function BalancePanel({ ws, setWs }: { ws: Workspace; setWs(ws: Workspace
       <nav className="chips" aria-label="Tablas">
         {BALANCE.map((b) => (
           <button key={b.id} type="button" aria-pressed={b.id === table} onClick={() => { setTable(b.id); setFilter('') }}>
-            {TITLES[b.id]}
+            {TITLES[b.id] ?? b.title}
           </button>
         ))}
       </nav>

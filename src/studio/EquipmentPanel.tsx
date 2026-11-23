@@ -176,6 +176,16 @@ export function EquipmentPanel({
             {['gel', 'bar', 'nutrition'].includes(v.type!) && (
               <NumberField label="Units per pack" value={v.pack!} min={1} onChange={(x) => setItem({ pack: x })} />
             )}
+            {/* Equipment wear (owner request, 23 November 2026): the km the item lasts while equipped. */}
+            {!['gel', 'bar', 'nutrition'].includes(v.type!) && (
+              <NumberField
+                label="Life (km)"
+                value={v.life_km ?? ''}
+                min={1}
+                onChange={(x) => setItem({ life_km: x })}
+                hint="Km it lasts while equipped. Empty: never wears. Wear only runs when Economy · wear_speed is above 0 (1 = these km)."
+              />
+            )}
             <Field label="Shop picture" hint="Upload a picture (best a PNG with a transparent background) or choose a file of assets/ui/thumbnails ({sex} = men or women)" wide>
               {(id) => (
                 <>

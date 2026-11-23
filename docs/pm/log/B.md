@@ -2,6 +2,18 @@
 
 Newest entry first. Only session B writes here.
 
+## 2026-11-23 — Trail Studio: Life (km) in the Equipment form (owner request, direct)
+
+The owner asked for this directly in the session, without going through the PM ("going through the PM
+means too much back and forth").
+
+- `src/studio/EquipmentPanel.tsx`: new field **Life (km)**, which writes `life_km` in `equipment.csv`.
+  - It is shown for every type except gels and bars.
+  - Leaving it empty means the item never wears.
+  - The hint explains that wear only runs when Economy · `wear_speed` is above 0.
+- `wear_speed` was already editable in Studio's Economy table.
+- Checks: lint, typecheck and build pass. No game change.
+
 ## 2026-11-22 — One task: B-6c rework (D11), B-6d rewarded ad, A-5 wear screens
 
 Branch `stream-b/starter-shoes-emergency-pair`, PR #130, one commit per step as the PM asked. Briefs:

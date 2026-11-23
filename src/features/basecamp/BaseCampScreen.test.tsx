@@ -46,6 +46,9 @@ describe('Base Camp (V1)', () => {
 
     // Tabs per kind: backgrounds, cabins and decorations.
     expect(within(shop).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Backgrounds', 'Upgrades', 'Cabins', 'Decorations'])
+    // It opens on the objects (mailbox, firepit…), not on the backgrounds.
+    expect(within(shop).getByRole('tab', { name: 'Decorations' })).toHaveAttribute('aria-selected', 'true')
+    await user.click(within(shop).getByRole('tab', { name: 'Backgrounds' }))
     expect(within(shop).getByText('Level 5')).toBeInTheDocument()
     await user.click(within(shop).getByRole('tab', { name: 'Decorations' }))
     // Buying the bench puts it in the scene and closes the sheet.

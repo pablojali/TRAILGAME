@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { LEVEL_THRESHOLDS } from '../../domain/athlete/levels'
@@ -53,7 +53,7 @@ describe('Base Camp (V1)', () => {
     await user.click(within(shop).getByRole('tab', { name: 'Decorations' }))
     // Buying the bench puts it in the scene and closes the sheet.
     await user.click(within(shop).getByRole('button', { name: 'Buy Bench' }))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(readSave()?.state).toMatchObject({ coins: 280, camp: { owned: ['bench'], using: ['bench'] } })
 
     // Taking it out: the sheet stays open.

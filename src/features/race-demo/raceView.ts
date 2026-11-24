@@ -1,6 +1,7 @@
 import { ArtLibrary, makeBackdrop, makeDecorSprites, makeForestBand } from './assets'
+import { backLayers, SpriteCache } from './backSprites'
 import { drawRunner } from './drawRunner'
-import { bendAt, clamp01, depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, PLAYER_Z, project, trailCenter, type Camera } from './projection'
+import { bendAt, clamp01, DEFAULT_FRAMING, depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, project, trailCenter, type Camera, type Framing } from './projection'
 import { advanceGait, runnerPose, STANDING, type Pose } from './runnerRig'
 import type { RaceViewSource, RunnerAppearance } from './types'
 import { DecorPool, syncRunners, type Decor, type ShownRunner } from './world'
@@ -29,11 +30,16 @@ export interface RaceViewOptions {
   onFps?: (fps: number) => void
   /** Largest device pixel ratio drawn (more is sharper but slower). */
   maxPixelRatio?: number
+  /** Where the player sits on screen (projection.ts). */
+  framing?: Framing
 }
 
 export class RaceViewEngine {
   private readonly ctx: CanvasRenderingContext2D | null
   private readonly art = new ArtLibrary()
+  private readonly sprites = new SpriteCache(this.art)
+  /** The art layers of each look, worked out once per appearance object. */
+  private readonly looks = new WeakMap<RunnerAppearance, readonly string[] | null>()
   private readonly decorSprites = makeDecorSprites()
   private readonly pool = new DecorPool()
   private readonly shown = new Map<string, ShownRunner>()
@@ -49,6 +55,9 @@ export class RaceViewEngine {
   private fpsSince = 0
   private pixelRatio = 1
   private playerAppearance: RunnerAppearance | null = null
+  private framing: Framing
+  private cssWidth = 1
+  private cssHeight = 1
 
   private readonly canvas: HTMLCanvasElement
   private readonly source: RaceViewSource
@@ -58,6 +67,7 @@ export class RaceViewEngine {
     this.canvas = canvas
     this.source = source
     this.options = options
+    this.framing = options.framing ?? DEFAULT_FRAMING
     let ctx: CanvasRenderingContext2D | null = null
     try {
       ctx = canvas.getContext('2d', { alpha: false })
@@ -73,9 +83,27 @@ export class RaceViewEngine {
     this.pixelRatio = ratio
     this.canvas.width = Math.max(1, Math.round(cssWidth * ratio))
     this.canvas.height = Math.max(1, Math.round(cssHeight * ratio))
-    this.camera = makeCamera(cssWidth, cssHeight)
+    this.cssWidth = cssWidth
+    this.cssHeight = cssHeight
+    this.camera = makeCamera(cssWidth, cssHeight, this.framing)
     this.backdrop = makeBackdrop(cssWidth, this.camera.horizonY)
     this.forest = makeForestBand(cssWidth, cssHeight * 0.05)
+  }
+
+  /** Moves the camera for a new framing of the player (debug panel). */
+  setFraming(framing: Framing): void {
+    this.framing = framing
+    this.camera = makeCamera(this.cssWidth, this.cssHeight, framing)
+  }
+
+  /** The art layers of a look, or null for the coded runner. */
+  private layersOf(appearance: RunnerAppearance): readonly string[] | null {
+    let layers = this.looks.get(appearance)
+    if (layers === undefined) {
+      layers = backLayers(appearance)
+      this.looks.set(appearance, layers)
+    }
+    return layers
   }
 
   start(): void {
@@ -168,18 +196,19 @@ export class RaceViewEngine {
       if (z > NEAR_Z && z < FAR_Z) put(z, item, null)
     }
     for (const runner of this.shown.values()) {
-      const z = gapToZ(runner.gap)
+      const z = gapToZ(runner.gap, cam.playerZ)
       if (z > NEAR_Z && z < FAR_Z) put(z, null, runner)
     }
-    put(PLAYER_Z, null, null)
+    put(cam.playerZ, null, null)
     list.length = n
     list.sort((a, b) => b.z - a.z)
     for (const d of list) {
       if (d.decor) this.drawDecor(ctx, cam, bend, d.decor, d.z)
       else if (d.runner) this.drawRival(ctx, cam, bend, d.runner, d.z)
       else if (this.playerAppearance) {
-        const p = project(cam, trailCenter(bend, PLAYER_Z), PLAYER_Z)
-        drawRunner({ ctx, art: this.art, x: p.x, y: p.y - cameraBob, scale: p.scale, pose: playerPose, appearance: this.playerAppearance, alpha: 1 })
+        const p = project(cam, trailCenter(bend, cam.playerZ), cam.playerZ)
+        const appearance = this.playerAppearance
+        drawRunner({ ctx, sprites: this.sprites, layers: this.layersOf(appearance), x: p.x, y: p.y - cameraBob, scale: p.scale, pose: playerPose, appearance, alpha: 1 })
       }
     }
     ctx.restore()
@@ -253,8 +282,8 @@ export class RaceViewEngine {
   private drawRival(ctx: CanvasRenderingContext2D, cam: Camera, bend: number, runner: ShownRunner, z: number): void {
     const p = project(cam, trailCenter(bend, z) + runner.lane, z)
     // Behind the player a rival fades as it nears the lens, so it never fills the screen.
-    const alpha = runner.presence * depthAlpha(z, PLAYER_Z * 0.75)
+    const alpha = runner.presence * depthAlpha(z, cam.playerZ * 0.75)
     const pose = runnerPose(runner.gait.phase, runner.gait.intensity)
-    drawRunner({ ctx, art: this.art, x: p.x, y: p.y, scale: p.scale, pose, appearance: runner.appearance, alpha })
+    drawRunner({ ctx, sprites: this.sprites, layers: this.layersOf(runner.appearance), x: p.x, y: p.y, scale: p.scale, pose, appearance: runner.appearance, alpha })
   }
 }

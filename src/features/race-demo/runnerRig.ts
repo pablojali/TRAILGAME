@@ -1,6 +1,6 @@
 /**
  * The runner's animation, separate from how it is drawn: a pose from a stride phase. The drawing
- * (draw.ts) only reads the pose, so a bone rig (DragonBones or other) can replace this file later
+ * (drawRunner.ts) only reads the pose, so a bone rig (DragonBones or other) can replace this file later
  * without touching the renderer.
  *
  * Seen from behind: the body bobs twice per stride, the shoulders roll, the arms swing (the hands
@@ -24,9 +24,24 @@ export interface Pose {
   armR: number
   legL: LegPose
   legR: LegPose
+  /**
+   * Which drawn frame of the runner's art to show (0–3, docs/RACE_BACK_VIEW_DEMO.md): 0 left fist
+   * high, 1 fists at the waist with the left heel up, 2 and 3 the same mirrored. The art keeps the
+   * trunk still; the bob and sway above move the whole picture.
+   */
+  frame: number
 }
 
-export const STANDING: Pose = { bob: 0, sway: 0, roll: 0, armL: 0, armR: 0, legL: { lift: 0 }, legR: { lift: 0 } }
+/** The frame shown when standing: fists at the waist. */
+export const STANDING_FRAME = 1
+
+export const STANDING: Pose = { bob: 0, sway: 0, roll: 0, armL: 0, armR: 0, legL: { lift: 0 }, legR: { lift: 0 }, frame: STANDING_FRAME }
+
+/** The drawn frame at a stride phase: frame 0 (left fist high) at a quarter of the cycle, as the coded arms. */
+export function frameAt(phase: number): number {
+  const quarter = Math.round(phase / (Math.PI / 2)) - 1
+  return ((quarter % 4) + 4) % 4
+}
 
 /** Stride cycles per second at a speed (two steps per cycle); 0 when standing. */
 export function strideHz(speed: number): number {
@@ -50,6 +65,7 @@ export function runnerPose(phase: number, intensity: number): Pose {
     armR: -intensity * s,
     legL: { lift: intensity * Math.max(0, -s) },
     legR: { lift: intensity * Math.max(0, s) },
+    frame: intensity < 0.05 ? STANDING_FRAME : frameAt(phase),
   }
 }
 

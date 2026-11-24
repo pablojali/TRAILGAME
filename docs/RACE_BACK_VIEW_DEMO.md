@@ -14,6 +14,9 @@ touch the game's races.
 
 **Debug panel (top left):**
 - **Speed:** the player's speed in m/s; 0 stops the runner.
+- **Runner size:** how much of the screen's height the player takes, from the top of the head to the
+  bottom edge, which cuts the legs at mid-thigh (owner, 24 November 2026: like the reference GIF, but
+  smaller). The camera moves to match.
 - **+ rival / − rival:** adds a rival (far ahead, or now and then coming from behind) or removes the
   selected one. Both fade in or out; nothing pops.
 - **Rival + Gap:** holds the selected rival at a gap. Negative means ahead, positive means behind.
@@ -28,10 +31,11 @@ Everything is in `src/features/race-demo/`. It uses plain 2D canvas, with no new
 | File | What it does |
 |---|---|
 | `types.ts` | The state the view draws: `{ speed, runners: [{ id, gapMetros, appearance }], player: { appearance } }`. |
-| `projection.ts` | The pseudo-3D camera. scale = FOCAL / z; a rival's z = player's z − gap; things fade in from the horizon and out near the lens; the trail's slow bends. |
+| `projection.ts` | The pseudo-3D camera. scale = FOCAL / z; a rival's z = player's z − gap; things fade in from the horizon and out near the lens; the trail's slow bends. The camera's height and the player's depth follow from the framing (where the head sits and where the bottom edge cuts the legs). |
 | `world.ts` | The scenery as a fixed pool (pines, bushes, rocks, grass, pebbles). Pieces that pass the camera go back to the horizon; none are created or destroyed per frame. Rivals ease their gap and fade in and out. |
-| `runnerRig.ts` | **Animation only:** a pose (bounce, hip sway, shoulder roll, arm swing, heel kick) from a stride phase that follows the speed. A bone rig (DragonBones or other) can replace this file without touching the drawing. |
-| `drawRunner.ts` | **Drawing only:** draws a runner from behind from a pose, part by part, using art when it exists and coded shapes otherwise. |
+| `runnerRig.ts` | **Animation only:** a pose from a stride phase that follows the speed: which drawn frame to show (one per quarter stride), the bounce and the hip sway. |
+| `backSprites.ts` | The runner's art: finds each layer's pictures per frame (mirroring frames 1 and 2 for 3 and 4), and puts each look together once per size, so a runner costs one picture per frame. |
+| `drawRunner.ts` | **Drawing only:** draws a runner from behind from a pose: the art's frame moved by the bounce and sway, or coded shapes while there is no body art. |
 | `raceView.ts` | The engine: the frame loop and the layers. Sky and mountains, then the far forest, then the ground and trail, then scenery, rivals and player sorted by depth, then the light. |
 | `RaceView.tsx` | The React component. It reads its state from a `source()` function once per frame, so React does not render each frame. |
 | `simulation.ts` | The made-up race for the demo. The real race simulation replaces it by giving `RaceView` the same state. |
@@ -70,24 +74,40 @@ drawing.
 
 ### Runner, seen from behind
 
-Each part is a separate picture, so the code can move it. Sizes and pivots are in metres in
-`PART_BOXES` (`drawRunner.ts`). Every part is drawn into its box around its pivot.
+Owner decisions of 24 November 2026: **drawn frames stacked in layers**, like the avatar of the other
+screens, instead of coded body parts.
 
-| Key | Part | ids from the appearance |
+- **Canvas:** every layer is a transparent picture on one **1024 × 1536** canvas, drawn in its place,
+  stacked with no offsets. The spine's axis is at x = 512 and the feet stand on y = 1440; the runner
+  is 1390 px tall from the top of the head to the ground (1.75 m in the view).
+- **Frames:** a running stride has 4 frames. The owner draws two, the game mirrors them for the other
+  two:
+  1. left fist high, legs apart (the left foot pushing off behind);
+  2. fists at the waist, the left heel up;
+  3. frame 1 mirrored; 4. frame 2 mirrored.
+
+  The trunk, head and shorts are the same in every frame: only the arms and legs change. The code
+  adds the bounce and the sway by moving the whole picture.
+- **Layers, back to front:** body → shirt → pack → hair. A layer with `_f1`, `_f2` (and optionally
+  `_f3`, `_f4`) has a picture per frame; without them one picture serves every frame (a tank top, a
+  pack, the hair) and is not mirrored.
+- **Feet:** the runners are barefoot and there are no shoe layers: the player's feet are below the
+  screen's edge and the rivals' are a few pixels.
+
+| Key | What | Per frame |
 |---|---|---|
-| `runner/torso-<shirt>` | Back of the shirt (rigid, rolls with the shoulders) | shirt |
-| `runner/shorts-<shorts>` | Shorts | shorts |
-| `runner/head-<skin>` | Head and neck from behind | skin (`tone-1`…`tone-4`) |
-| `runner/hair-<hair>` | Hair over the head | hair |
-| `runner/pack-<pack>` | Pack or running vest | pack |
-| `runner/arm-<skin>` | Right arm, hanging from the shoulder (the left is mirrored) | skin |
-| `runner/leg-<skin>` | Right leg, hanging from the hip (the left is mirrored) | skin |
-| `runner/leg-shoe-<shoes>` | Right shoe, on the leg's canvas | shoes |
+| `runner/bodies/{men\|women}_body_01_tone{n}_f{1,2}` | Bald, shirtless body with shorts | Yes |
+| `runner/clothing/{shirt file}` | A shirt, named like the avatar's (`lvl1_men_shirt_01`) | Sleeves: `_f1`, `_f2`. Tank top: one |
+| `runner/accessories/{pack file}` | A pack, named like the avatar's (`lvl1_men_back_01`) | No |
+| `runner/heads/{head file}` | The hair seen from behind, named like the avatar's head in that tone (`lvl1_men_head_01_tone2`) | No |
 
-The race number is drawn by the code over the back.
+While a skin tone has no body, another tone (then the other sex) stands in. A shirt, pack or hair
+with no art is left out. With no body art at all, the coded runner is drawn.
 
-**Appearance ids:**
-- The demo's ids are in `simulation.ts`: `red`, `blue`, `short-dark`, `ponytail-red`, `vest-black` and
-  so on.
-- When this view is connected to the game, the appearance will use the avatar's ids instead (skin,
-  hair, shirt, shoes and equipment).
+**In the game now:** `runner/bodies/men_body_01_tone2_f1` and `_f2` (owner art of 24 November 2026,
+background removed and placed on the canvas by Claude). The demo's player and rivals all use it, bald
+and shirtless, until hair and shirts arrive.
+
+**Appearance ids:** the demo's rivals still carry placeholder ids (`red`, `short-dark`…) with no
+art. When this view is connected to the game, the appearance will use the avatar's ids (sex, skin,
+head, shirt and pack).

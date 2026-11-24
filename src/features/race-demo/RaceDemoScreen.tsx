@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { DEFAULT_FRAMING, type Framing } from './projection'
 import { RaceView } from './RaceView'
 import { GAP_MAX, GAP_MIN, RaceSimulation } from './simulation'
 import styles from './RaceDemo.module.css'
@@ -16,6 +17,7 @@ export function RaceDemoScreen() {
   const [gap, setGap] = useState<number | null>(null)
   const [fps, setFps] = useState(0)
   const [open, setOpen] = useState(true)
+  const [framing, setFraming] = useState<Framing>(DEFAULT_FRAMING)
   const lastStep = useRef<number | null>(null)
 
   // The simulation moves on in step with the view's frames: it is stepped when the view reads it.
@@ -35,7 +37,7 @@ export function RaceDemoScreen() {
 
   return (
     <main className={styles.screen}>
-      <RaceView source={source} onFps={setFps} label="Race seen from behind the runner" />
+      <RaceView source={source} onFps={setFps} label="Race seen from behind the runner" framing={framing} />
       <section className={styles.panel} aria-label="Debug panel">
         <header className={styles.panelHead}>
           <strong>Race view demo</strong>
@@ -51,6 +53,17 @@ export function RaceDemoScreen() {
             <label>
               Speed {speed.toFixed(1)} m/s
               <input type="range" min={0} max={8} step={0.1} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} />
+            </label>
+            <label>
+              Runner size {Math.round((1 - framing.headTop) * 100)}% of the screen
+              <input
+                type="range"
+                min={20}
+                max={60}
+                step={1}
+                value={Math.round((1 - framing.headTop) * 100)}
+                onChange={(e) => setFraming({ ...framing, headTop: 1 - Number(e.target.value) / 100 })}
+              />
             </label>
             <div className={styles.row}>
               <button

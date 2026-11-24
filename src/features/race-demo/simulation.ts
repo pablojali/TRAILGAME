@@ -23,7 +23,11 @@ interface SimRival {
   appearance: RunnerAppearance
 }
 
-export const PLAYER_APPEARANCE: RunnerAppearance = { skin: 'tone-2', hair: 'short-dark', shirt: 'black', shorts: 'black', shoes: 'orange', pack: 'vest-black', bib: 7 }
+/**
+ * The player: the owner's first back-view body (men, tone 2), still bald and shirtless (24 November
+ * 2026: hair and shirts come as separate layers later).
+ */
+export const PLAYER_APPEARANCE: RunnerAppearance = { sex: 'men', skin: 'tone-2', hair: 'natural', shirt: 'none', shorts: 'black', shoes: 'orange', pack: null, bib: 7 }
 
 /** Rival gaps stay between these: far ahead (beyond the horizon) and far behind (out of sight). */
 export const GAP_MIN = -170

@@ -1,16 +1,28 @@
 /**
  * Pseudo-3D camera for the race back view. Everything stands on a flat ground; a point at depth `z`
- * metres in front of the camera and `x` metres to the side is drawn at scale = FOCAL / z.
+ * metres in front of the camera and `x` metres to the side is drawn at scale = focal / z.
  */
 
-/** Height of the camera above the ground, in metres: above and behind the player's head, looking down the trail. */
-export const CAMERA_HEIGHT = 2.17
-/** Depth of the player in front of the camera, in metres. */
-export const PLAYER_Z = 2.34
+/** Depth of the player in front of the camera, in metres, with the default framing. */
+export const PLAYER_Z = 3
 /** Closer than this, things are behind the lens and not drawn. */
 export const NEAR_Z = 0.35
 /** The horizon: things farther than this are not drawn (they fade in before it). */
 export const FAR_Z = 140
+/** The runner's height in metres (the art's scale: docs/RACE_BACK_VIEW_DEMO.md). */
+export const RUNNER_HEIGHT = 1.75
+
+/**
+ * How the player sits on screen (owner, 24 November 2026: like the reference GIF, but smaller): the
+ * top of the head at `headTop` of the screen's height, and the bottom edge cutting the body `cutAt`
+ * metres above the ground (mid-thigh), so the feet never show.
+ */
+export interface Framing {
+  headTop: number
+  cutAt: number
+}
+
+export const DEFAULT_FRAMING: Framing = { headTop: 0.62, cutAt: 0.55 }
 
 export interface Camera {
   width: number
@@ -19,10 +31,29 @@ export interface Camera {
   horizonY: number
   /** Pixels per metre at one metre of depth. */
   focal: number
+  /** Height of the camera above the ground, metres. */
+  eyeHeight: number
+  /** Depth of the player in front of the camera, metres. */
+  playerZ: number
 }
 
-export function makeCamera(width: number, height: number): Camera {
-  return { width, height, horizonY: Math.round(height * 0.38), focal: height * 0.95 }
+/**
+ * A camera for a screen size and framing: the player's scale follows from how much of the body shows
+ * between the head and the bottom edge, and the camera's height from where the head sits under the
+ * horizon.
+ */
+export function makeCamera(width: number, height: number, framing: Framing = DEFAULT_FRAMING): Camera {
+  const horizonY = Math.round(height * 0.38)
+  const focal = height * 0.95
+  const scale = ((1 - framing.headTop) * height) / (RUNNER_HEIGHT - framing.cutAt)
+  return {
+    width,
+    height,
+    horizonY,
+    focal,
+    playerZ: focal / scale,
+    eyeHeight: RUNNER_HEIGHT + (framing.headTop * height - horizonY) / scale,
+  }
 }
 
 /** Pixels per metre at depth `z`. */
@@ -33,12 +64,12 @@ export function scaleAt(camera: Camera, z: number): number {
 /** The screen point of a ground point (`y` metres above the ground; 0 = on the ground). */
 export function project(camera: Camera, x: number, z: number, y = 0): { x: number; y: number; scale: number } {
   const scale = camera.focal / z
-  return { x: camera.width / 2 + x * scale, y: camera.horizonY + (CAMERA_HEIGHT - y) * scale, scale }
+  return { x: camera.width / 2 + x * scale, y: camera.horizonY + (camera.eyeHeight - y) * scale, scale }
 }
 
 /** A rival's depth from its gap: ahead (negative gap) is farther away, behind is closer to the camera. */
-export function gapToZ(gapMetros: number): number {
-  return PLAYER_Z - gapMetros
+export function gapToZ(gapMetros: number, playerZ = PLAYER_Z): number {
+  return playerZ - gapMetros
 }
 
 /**

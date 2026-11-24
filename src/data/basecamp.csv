@@ -31,7 +31,7 @@ interior-12,interior,decor,1,0,coins,interior_12,,,,,,,0.5:0.5:3,Wood Sofa,Sofa 
 interior-13,interior,decor,1,0,coins,interior_13,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
 interior-14,interior,decor,1,0,coins,interior_14,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
 interior-15,interior,decor,1,0,coins,interior_15,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
-exterior-7,exterior,decor,1,0,coins,exterior_7,enter,,,,,,0.376:0.55:2,Beach House +,Refugio Playa +,,,,beach-house,exterior-1,exterior-8
+exterior-7,exterior,decor,1,0,coins,exterior_7,enter,,,,,,0.376:0.55:2,Beach House lvl2,Refugio Playa lvl2,,,,beach-house,exterior-1,exterior-8
 exterior-8,exterior,decor,2,0,coins,exterior_8,enter,,,,,,0.381:0.551:1.5,Beach House ++,Refugio Playa ++,,,,beach-house,exterior-7,exterior-7
 exterior-9,exterior,decor,1,0,coins,exterior_9,,,,,,,0.363:0.538:2,Desert House +,Refugio Desierto +,,,,desert-house,exterior-2,
 exterior-10,exterior,decor,2,0,coins,exterior_10,enter,,,,,,0.409:0.557:1.5,Dessert House ++,Refugio Desierto ++,,,,desert-house,exterior-9,exterior-9

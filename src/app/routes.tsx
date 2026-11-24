@@ -46,4 +46,7 @@ export const routes: RouteObject[] = [
       { path: '*', element: <NotFoundScreen /> },
     ],
   },
+  // Prototype of the race seen from behind (owner brief, 24 November 2026): outside the game frame,
+  // loaded only when opened. See docs/RACE_BACK_VIEW_DEMO.md.
+  { path: '/race-demo', lazy: async () => ({ Component: (await import('../features/race-demo/RaceDemoScreen')).RaceDemoScreen }) },
 ]

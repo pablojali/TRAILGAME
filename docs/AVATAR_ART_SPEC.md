@@ -87,9 +87,9 @@ poles → body → head → bottoms → footwear → shirt → backpack → acce
 
 ## New art from Trail Studio (13 November 2026)
 
-The owner uploads new bodies and heads in Trail Studio › Avatares; they wait in
-`assets/runner/incoming/` until Claude prepares the batch: moves them to `assets/runner/bodies` or
-`heads` with the names above, runs `scripts/prepare_avatar_art.py` (which also rewrites the head list,
+The owner uploads new bodies, heads and (since 24 November 2026) shirts in Trail Studio › Avatares; they wait in
+`assets/runner/incoming/` until Claude prepares the batch: moves them to `assets/runner/bodies`,
+`heads` or `Clothing` with the names above (shirts also go into `src/domain/athlete/shirtFiles.ts` with their name), runs `scripts/prepare_avatar_art.py` (which also rewrites the head list,
 `src/domain/athlete/headFiles.ts`) and adds new body tones to `SKIN_TONES`
 (`src/domain/athlete/appearance.ts`).
 

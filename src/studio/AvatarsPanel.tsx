@@ -19,7 +19,7 @@ function useFolder(token: string, path: string): RepoFile[] | null {
 }
 
 /**
- * Avatar art (owner request, 13 November 2026): the owner uploads new bodies and heads here, as
+ * Avatar art (owner request, 13 November 2026; shirts since 24 November 2026): the owner uploads new bodies, heads and shirts here, as
  * PNG, in batches; they go to `assets/runner/incoming/` with the next proposal. Claude then names
  * them, prepares them for the game and adds them to the catalogs. What the game uses today is shown
  * below each upload area, for reference.
@@ -50,7 +50,7 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
       <section className="editPane">
         <h2>Avatars</h2>
         <p className="hint">
-          Sube cuerpos y caras nuevos en PNG con fondo transparente, varios a la vez si quieres. Quedan en la propuesta (pestaña Propuestas) y, al
+          Sube cuerpos, caras y remeras nuevos en PNG con fondo transparente, varios a la vez si quieres. Quedan en la propuesta (pestaña Propuestas) y, al
           publicarla, en <code>{INCOMING}</code>. Avisa a Claude: los nombra, los prepara para el juego y los añade al catálogo.
         </p>
         {error && (

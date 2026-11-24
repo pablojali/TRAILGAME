@@ -89,9 +89,20 @@ poles → body → head → bottoms → footwear → shirt → backpack → acce
 
 The owner uploads new bodies and heads in Trail Studio › Avatares; they wait in
 `assets/runner/incoming/` until Claude prepares the batch: moves them to `assets/runner/bodies` or
-`heads` with the names above, runs `scripts/prepare_avatar_art.py`, adds the heads to `HEAD_FILES`
-(`src/domain/athlete/heads.ts`) and new body tones to `SKIN_TONES`
+`heads` with the names above, runs `scripts/prepare_avatar_art.py` (which also rewrites the head list,
+`src/domain/athlete/headFiles.ts`) and adds new body tones to `SKIN_TONES`
 (`src/domain/athlete/appearance.ts`).
+
+**Deleting a head (24 November 2026):**
+- **Where:** Trail Studio › Avatares › Heads, list "En el juego". Each design has a **Borrar** button
+  that covers all its tones and its closed-eyes faces.
+- **What the proposal does:** it deletes the original files in `assets/runner/heads`.
+- **What CI does next:**
+  - `prepare_avatar_art.py` drops the prepared art and rewrites `headFiles.ts`, so the head leaves
+    the game, the server included.
+  - On `main`, CI commits those changes.
+- **Players who wore it:** their saved head becomes the basic head.
+- **Names:** the remaining hairstyles are numbered again in unlock order.
 
 First batch: the women's tone 4 body, and men's heads at levels 2, 3, 5 and 8 in all four tones.
 

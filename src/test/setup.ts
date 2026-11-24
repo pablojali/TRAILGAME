@@ -39,6 +39,7 @@ vi.mock('../data/basecamp_exclusive.csv?raw', async () => ({ default: (await imp
 vi.mock('../data/wear_km.csv?raw', async () => ({ default: (await import('./fixtures/wear_km.csv?raw')).default }))
 vi.mock('../data/wear_bands.csv?raw', async () => ({ default: (await import('./fixtures/wear_bands.csv?raw')).default }))
 vi.mock('../domain/athlete/shirtFiles', () => import('./fixtures/shirtFiles'))
+vi.mock('../domain/athlete/headFiles', () => import('./fixtures/headFiles'))
 // The owner uploads race clips (assets/race/clips): game tests run without them, so an upload never
 // changes a race flow under test; the player itself is tested with files it is given.
 vi.mock('../features/races/raceClips', async (importOriginal) => {

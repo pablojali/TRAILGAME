@@ -3,7 +3,7 @@ import { listFolder, type RepoFile } from './github'
 import { megabytes } from './media'
 import type { Workspace } from './model'
 import { asUpload, folders, withUploads } from './uploads'
-import { AVATAR_KINDS, INCOMING, incomingName, MAX_BYTES } from './avatarFiles'
+import { AVATAR_KINDS, headGroups, INCOMING, incomingName, MAX_BYTES, type HeadGroup } from './avatarFiles'
 
 function useFolder(token: string, path: string): RepoFile[] | null {
   const [files, setFiles] = useState<{ path: string; files: RepoFile[] } | null>(null)
@@ -134,15 +134,61 @@ function KindSection({
         </ul>
       )}
 
-      <h4>En el juego ({live?.length ?? '…'})</h4>
-      <ul className={`artGrid small ${kind.id}`}>
-        {(live ?? []).map((file) => (
-          <li key={file.path}>
-            <img src={file.url} alt="" loading="lazy" />
-            <span>{file.name}</span>
-          </li>
-        ))}
-      </ul>
+      {kind.id === 'heads' ? (
+        <GameHeads ws={ws} setWs={setWs} files={live} />
+      ) : (
+        <>
+          <h4>En el juego ({live?.length ?? '…'})</h4>
+          <ul className={`artGrid small ${kind.id}`}>
+            {(live ?? []).map((file) => (
+              <li key={file.path}>
+                <img src={file.url} alt="" loading="lazy" />
+                <span>{file.name}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
+  )
+}
+
+/**
+ * The heads in the game, one card per design with all its skin tones (owner request, 24 November
+ * 2026): "Borrar" deletes every file of the head with the next proposal. A runner who wore it goes
+ * back to the basic head.
+ */
+function GameHeads({ ws, setWs, files }: { ws: Workspace; setWs(ws: Workspace): void; files: RepoFile[] | null }) {
+  const groups = headGroups(files ?? [])
+  const marked = (group: HeadGroup) => group.files.every((file) => ws.uploads[file.path]?.base64 === null)
+  const toggle = (group: HeadGroup) => {
+    const remove = !marked(group)
+    const label = `Head ${group.key} (removed)`
+    setWs(withUploads(ws, Object.fromEntries(group.files.map((file) => [file.path, remove ? { base64: null, label } : undefined]))))
+  }
+  const sexName = (sex: HeadGroup['sex']) => (sex === 'men' ? 'Hombre' : 'Mujer')
+  return (
+    <>
+      <h4>En el juego ({files ? groups.length : '…'} caras)</h4>
+      <p className="hint">Borrar quita la cara del juego en todos sus tonos (y sus ojos cerrados) al publicar la propuesta. Quien la llevaba vuelve a la cabeza básica.</p>
+      <ul className="artGrid small heads">
+        {groups.map((group) => {
+          const tone1 = group.files.find((file) => file.name.endsWith('_tone1.png')) ?? group.files[0]!
+          const tones = group.files.filter((file) => !file.name.endsWith('_blink.png')).length
+          const gone = marked(group)
+          return (
+            <li key={group.key} className={gone ? 'removed' : undefined}>
+              <img src={tone1.url} alt="" loading="lazy" />
+              <span>
+                {sexName(group.sex)} · nivel {group.level} · cara {group.design} ({tones} {tones === 1 ? 'tono' : 'tonos'})
+              </span>
+              <button type="button" className="link" onClick={() => toggle(group)}>
+                {gone ? 'Deshacer' : 'Borrar'}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </>
   )
 }

@@ -148,7 +148,6 @@ export function AppearanceEditor({
             appearance={appearance}
             equipment={equipment}
             label={previewLabel}
-            alive
             focus={tab === 'hair' || tab === 'accessories' ? 'face' : undefined}
           />
         </div>

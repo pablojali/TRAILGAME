@@ -18,8 +18,8 @@ export function art(path: string): string | undefined {
 }
 
 /**
- * The same head with its eyes closed (owner request, 21 November 2026: `…_tone{n}_blink`), shown for
- * a moment now and then so the runner blinks; undefined while the owner has not drawn it.
+ * Only the closed eyes of a head (owner request, 21 November 2026; eyes only since 24 November 2026:
+ * `…_tone{n}_blink`), drawn over the open face for a moment now and then so the runner blinks; undefined while the owner has not drawn it.
  */
 export function blinkArt(sex: Sex, hair: string, tone: number): string | undefined {
   const file = headFile(sex, hair, tone)

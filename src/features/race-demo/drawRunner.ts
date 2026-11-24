@@ -1,11 +1,13 @@
-import { colorOf, type ArtLibrary } from './assets'
+import { colorOf } from './assets'
+import { BACK_CANVAS, SPRITE_SIZES, type SpriteCache } from './backSprites'
 import type { Pose } from './runnerRig'
 import type { RunnerAppearance } from './types'
 
 /**
- * Draws a runner from behind, from a pose (runnerRig.ts). Units are metres, with the origin between
- * the feet and y going up (drawn as negative screen y). Each body part is drawn from its art when the
- * owner has added it (`runner/<part>-<id>`, boxes in PART_BOXES), otherwise from coded shapes.
+ * Draws a runner from behind, from a pose (runnerRig.ts). With the owner's art (backSprites.ts) it
+ * shows the pose's drawn frame and moves the whole picture by the pose's bob and sway; without it,
+ * a coded runner. Units are metres, with the origin between the feet and y going up (drawn as
+ * negative screen y).
  */
 
 const HIP_Y = 0.95
@@ -16,26 +18,11 @@ const HEAD_Y = 1.6
 const HEAD_R = 0.105
 const LEG_X = 0.085
 
-/**
- * Where each part's art goes, in metres around its pivot (x, y of the box's top-left from the pivot,
- * then width and height; y up). Arms and legs hang from their pivot and swing about it; the left one
- * is the right one mirrored.
- */
-export const PART_BOXES = {
-  torso: { pivot: [0, HIP_Y], box: [-0.24, 0.56, 0.48, 0.6] },
-  head: { pivot: [0, HEAD_Y], box: [-0.13, 0.16, 0.26, 0.3] },
-  hair: { pivot: [0, HEAD_Y], box: [-0.14, 0.18, 0.28, 0.32] },
-  pack: { pivot: [0, HIP_Y], box: [-0.2, 0.5, 0.4, 0.44] },
-  shorts: { pivot: [0, HIP_Y], box: [-0.18, 0.06, 0.36, 0.3] },
-  arm: { pivot: [SHOULDER_HALF, SHOULDER_Y - 0.02], box: [-0.06, 0.04, 0.16, 0.5] },
-  leg: { pivot: [LEG_X, HIP_Y], box: [-0.08, 0, 0.16, 0.95] },
-} as const
-
-type PartName = keyof typeof PART_BOXES
-
 export interface RunnerDraw {
   ctx: CanvasRenderingContext2D
-  art: ArtLibrary
+  sprites: SpriteCache
+  /** The look's art layers (backSprites.ts `backLayers`), or null to draw the coded runner. */
+  layers: readonly string[] | null
   /** Screen point of the feet and pixels per metre. */
   x: number
   y: number
@@ -45,36 +32,39 @@ export interface RunnerDraw {
   alpha: number
 }
 
-export function drawRunner({ ctx, art, x, y, scale, pose, appearance, alpha }: RunnerDraw): void {
+/** Above this height on screen (CSS pixels) a runner is drawn from the large frames. */
+const LARGE_FROM = SPRITE_SIZES.small.height * 0.9
+
+export function drawRunner({ ctx, sprites, layers, x, y, scale, pose, appearance, alpha }: RunnerDraw): void {
   if (alpha <= 0.01 || scale * 1.75 < 2) return
+  if (layers) {
+    drawArt(ctx, sprites, layers, x, y, scale, pose, alpha)
+    return
+  }
   ctx.save()
   ctx.globalAlpha = alpha
   ctx.translate(x, y)
   ctx.scale(scale, scale)
-  // Shadow on the ground.
-  ctx.fillStyle = 'rgba(30, 20, 10, 0.28)'
-  ctx.beginPath()
-  ctx.ellipse(0, 0, 0.32, 0.07, 0, 0, Math.PI * 2)
-  ctx.fill()
+  shadow(ctx)
 
   ctx.translate(pose.sway, -pose.bob)
   const skin = colorOf(appearance.skin)
 
   // Legs first (behind the shorts), then the body, arms over the body's sides, then pack and head.
-  leg(ctx, art, appearance, skin, -1, pose.legL.lift)
-  leg(ctx, art, appearance, skin, 1, pose.legR.lift)
+  leg(ctx, appearance, skin, -1, pose.legL.lift)
+  leg(ctx, appearance, skin, 1, pose.legR.lift)
 
   ctx.save()
   ctx.translate(0, -HIP_Y)
   ctx.rotate(pose.roll)
   ctx.translate(0, HIP_Y)
-  if (!part(ctx, art, 'shorts', appearance.shorts)) shorts(ctx, colorOf(appearance.shorts))
-  if (!part(ctx, art, 'torso', appearance.shirt)) torso(ctx, colorOf(appearance.shirt))
-  arm(ctx, art, appearance, skin, -1, pose.armL)
-  arm(ctx, art, appearance, skin, 1, pose.armR)
-  if (appearance.pack && !part(ctx, art, 'pack', appearance.pack)) pack(ctx, colorOf(appearance.pack))
-  if (!part(ctx, art, 'head', appearance.skin)) head(ctx, skin)
-  if (!part(ctx, art, 'hair', appearance.hair)) hair(ctx, appearance.hair, colorOf(appearance.hair))
+  shorts(ctx, colorOf(appearance.shorts))
+  torso(ctx, colorOf(appearance.shirt))
+  arm(ctx, appearance, skin, -1, pose.armL)
+  arm(ctx, appearance, skin, 1, pose.armR)
+  if (appearance.pack) pack(ctx, colorOf(appearance.pack))
+  head(ctx, skin)
+  hair(ctx, appearance.hair, colorOf(appearance.hair))
   ctx.restore()
 
   ctx.restore()
@@ -98,26 +88,39 @@ export function drawRunner({ ctx, art, x, y, scale, pose, appearance, alpha }: R
   }
 }
 
-/** Draws a part from its art, if the owner has added it; false = draw the placeholder. */
-function part(ctx: CanvasRenderingContext2D, art: ArtLibrary, name: PartName, id: string, side = 1, angle = 0): boolean {
-  const image = art.image(`runner/${name}-${id}`)
-  if (!image) return false
-  const { pivot, box } = PART_BOXES[name]
-  ctx.save()
-  ctx.translate(pivot[0] * side, -pivot[1])
-  ctx.rotate(angle * side)
-  ctx.scale(side, 1)
-  ctx.drawImage(image, box[0], -box[1], box[2], box[3])
-  ctx.restore()
-  return true
+/** The runner's shadow on the ground, in metres around the feet. */
+function shadow(ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = 'rgba(30, 20, 10, 0.28)'
+  ctx.beginPath()
+  ctx.ellipse(0, 0, 0.32, 0.07, 0, 0, Math.PI * 2)
+  ctx.fill()
 }
 
-function leg(ctx: CanvasRenderingContext2D, art: ArtLibrary, appearance: RunnerAppearance, skin: string, side: number, lift: number) {
+/**
+ * The runner from the owner's art: the pose's frame, standing on its feet point and moved as a whole
+ * by the bob and sway (the art keeps the trunk still). Nothing is drawn while the pictures load.
+ */
+function drawArt(ctx: CanvasRenderingContext2D, sprites: SpriteCache, layers: readonly string[], x: number, y: number, scale: number, pose: Pose, alpha: number) {
+  const metres = scale / BACK_CANVAS.pxPerMetre
+  const height = BACK_CANVAS.height * metres
+  const frames = sprites.frames(layers, height > LARGE_FROM ? 'large' : 'small')
+  if (!frames) return
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.translate(x, y)
+  ctx.scale(scale, scale)
+  shadow(ctx)
+  ctx.restore()
+  const left = x + (pose.sway * BACK_CANVAS.pxPerMetre - BACK_CANVAS.footX) * metres
+  const top = y - (pose.bob * BACK_CANVAS.pxPerMetre + BACK_CANVAS.footY) * metres
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.drawImage(frames[pose.frame]!, left, top, BACK_CANVAS.width * metres, height)
+  ctx.restore()
+}
+
+function leg(ctx: CanvasRenderingContext2D, appearance: RunnerAppearance, skin: string, side: number, lift: number) {
   // Seen from behind, a lifted foot rises and the lower leg looks shorter; the sole shows.
-  if (part(ctx, art, 'leg', appearance.skin, side, lift * 0.25)) {
-    part(ctx, art, 'leg', `shoe-${appearance.shoes}`, side, lift * 0.25)
-    return
-  }
   const hipX = side * LEG_X
   const footX = side * (LEG_X + 0.01)
   const footY = lift * 0.34
@@ -172,8 +175,7 @@ function torso(ctx: CanvasRenderingContext2D, color: string) {
   ctx.fillRect(-0.012, -SHOULDER_Y, 0.024, SHOULDER_Y - HIP_Y)
 }
 
-function arm(ctx: CanvasRenderingContext2D, art: ArtLibrary, appearance: RunnerAppearance, skin: string, side: number, swing: number) {
-  if (part(ctx, art, 'arm', appearance.skin, side, -swing * 0.3)) return
+function arm(ctx: CanvasRenderingContext2D, appearance: RunnerAppearance, skin: string, side: number, swing: number) {
   // Bent at the elbow: swinging back lifts the elbow out; swinging forward lifts the hand in front.
   const sx = side * (SHOULDER_HALF - 0.01)
   const sy = SHOULDER_Y - 0.03

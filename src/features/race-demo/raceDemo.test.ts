@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, PLAYER_Z, project } from './projection'
-import { advanceGait, runnerPose, STANDING, strideHz } from './runnerRig'
+import { backLayers, frameArt } from './backSprites'
+import { depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, PLAYER_Z, project, RUNNER_HEIGHT } from './projection'
+import { advanceGait, frameAt, runnerPose, STANDING, STANDING_FRAME, strideHz } from './runnerRig'
 import { GAP_MAX, GAP_MIN, RaceSimulation } from './simulation'
 import type { RaceViewRunner } from './types'
 import { DecorPool, laneOf, syncRunners, type ShownRunner } from './world'
@@ -23,6 +24,16 @@ describe('race back view: projection', () => {
   it('puts a rival ahead farther away than the player, and one behind closer to the camera', () => {
     expect(gapToZ(-10)).toBe(PLAYER_Z + 10)
     expect(gapToZ(1)).toBeLessThan(PLAYER_Z)
+  })
+
+  it('frames the player with the head where asked and the bottom edge cutting the legs', () => {
+    const framing = { headTop: 0.7, cutAt: 0.55 }
+    const cam = makeCamera(400, 800, framing)
+    expect(project(cam, 0, cam.playerZ, RUNNER_HEIGHT).y).toBeCloseTo(0.7 * 800)
+    expect(project(cam, 0, cam.playerZ, 0.55).y).toBeCloseTo(800)
+    // A bigger runner on screen means a closer player.
+    expect(makeCamera(400, 800, { headTop: 0.5, cutAt: 0.55 }).playerZ).toBeLessThan(cam.playerZ)
+    expect(gapToZ(-10, cam.playerZ)).toBe(cam.playerZ + 10)
   })
 
   it('fades things in from the horizon and out before the lens, so nothing pops', () => {
@@ -92,6 +103,40 @@ describe('race back view: runner animation', () => {
     expect(pose.armL).toBeCloseTo(-pose.armR)
     expect(pose.legR.lift).toBeGreaterThan(0)
     expect(pose.legL.lift).toBe(0)
+  })
+})
+
+describe('race back view: runner art', () => {
+  const files = new Set(['runner/bodies/men_body_01_tone2_f1', 'runner/bodies/men_body_01_tone2_f2', 'runner/clothing/lvl1_women_shirt_01', 'runner/heads/lvl1_men_head_01_tone2'])
+  const has = (key: string) => files.has(key)
+
+  it('shows the four frames in order, one per quarter stride, and fists at the waist when standing', () => {
+    const quarter = Math.PI / 2
+    expect([1, 2, 3, 4].map((q) => frameAt(q * quarter))).toEqual([0, 1, 2, 3])
+    expect(frameAt(0.1)).toBe(3)
+    expect(runnerPose(quarter, 1).frame).toBe(0)
+    expect(runnerPose(quarter, 0).frame).toBe(STANDING_FRAME)
+  })
+
+  it('uses frames 1 and 2 mirrored for 3 and 4, and one picture for every frame when there are no frames', () => {
+    const body = 'runner/bodies/men_body_01_tone2'
+    expect(frameArt(body, 0, has)).toEqual({ key: `${body}_f1`, mirror: false })
+    expect(frameArt(body, 1, has)).toEqual({ key: `${body}_f2`, mirror: false })
+    expect(frameArt(body, 2, has)).toEqual({ key: `${body}_f1`, mirror: true })
+    expect(frameArt(body, 3, has)).toEqual({ key: `${body}_f2`, mirror: true })
+    expect(frameArt('runner/clothing/lvl1_women_shirt_01', 3, has)).toEqual({ key: 'runner/clothing/lvl1_women_shirt_01', mirror: false })
+    expect(frameArt('runner/clothing/none', 0, has)).toBeNull()
+  })
+
+  it('stacks body, shirt, pack and hair, lends another tone while one has no body, and leaves out what has no art', () => {
+    const look = { sex: 'men' as const, skin: 'tone-4', hair: 'lvl1_men_head_01_tone2', shirt: 'lvl1_women_shirt_01', shorts: 'black', shoes: 'grey', pack: 'lvl1_men_back_01' }
+    expect(backLayers(look, has)).toEqual(['runner/bodies/men_body_01_tone2', 'runner/clothing/lvl1_women_shirt_01', 'runner/heads/lvl1_men_head_01_tone2'])
+    expect(backLayers({ ...look, sex: 'women' }, has)?.[0]).toBe('runner/bodies/men_body_01_tone2')
+    expect(backLayers(look, () => false)).toBeNull()
+  })
+
+  it('finds the owner\'s first body in the art folder', () => {
+    expect(backLayers({ sex: 'men', skin: 'tone-2', hair: 'natural', shirt: 'none', shorts: 'black', shoes: 'grey', pack: null })).toEqual(['runner/bodies/men_body_01_tone2'])
   })
 })
 

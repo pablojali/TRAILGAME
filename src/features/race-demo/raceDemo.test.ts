@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { artUrl } from './assets'
 import { backLayers, drawnFrames, frameArt, strideFrames } from './backSprites'
 import { depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, PLAYER_Z, project, RUNNER_HEIGHT } from './projection'
 import { advanceGait, frameIndex, runnerPose, STANDING, strideAt, strideHz } from './runnerRig'
@@ -143,6 +144,15 @@ describe('race back view: runner art', () => {
     expect(backLayers(look, has)).toEqual(['runner/bodies/men_body_01_tone2', 'runner/clothing/lvl1_women_shirt_01', 'runner/heads/lvl1_men_head_01_tone2'])
     expect(backLayers({ ...look, sex: 'women' }, has)?.[0]).toBe('runner/bodies/men_body_01_tone2')
     expect(backLayers(look, () => false)).toBeNull()
+  })
+
+  it('bounces lowest when the heel is up (frame 1) and highest in between', () => {
+    expect(runnerPose(Math.PI / 2, 1).bob).toBeCloseTo(0)
+    expect(runnerPose(Math.PI, 1).bob).toBeGreaterThan(0.04)
+  })
+
+  it('reads the owner\'s three drawn frames as a stride of six', () => {
+    expect(strideFrames(drawnFrames('runner/bodies/men_body_01_tone2', (key) => artUrl(key) !== undefined))).toBe(6)
   })
 
   it('finds the owner\'s first body in the art folder', () => {

@@ -1,6 +1,6 @@
 import { colorOf } from './assets'
 import { BACK_CANVAS, SPRITE_SIZES, type SpriteCache } from './backSprites'
-import type { Pose } from './runnerRig'
+import { frameIndex, type Pose } from './runnerRig'
 import type { RunnerAppearance } from './types'
 
 /**
@@ -115,7 +115,7 @@ function drawArt(ctx: CanvasRenderingContext2D, sprites: SpriteCache, layers: re
   const top = y - (pose.bob * BACK_CANVAS.pxPerMetre + BACK_CANVAS.footY) * metres
   ctx.save()
   ctx.globalAlpha = alpha
-  ctx.drawImage(frames[pose.frame]!, left, top, BACK_CANVAS.width * metres, height)
+  ctx.drawImage(frames[frameIndex(pose.stride, frames.length)]!, left, top, BACK_CANVAS.width * metres, height)
   ctx.restore()
 }
 

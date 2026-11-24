@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { backLayers, frameArt } from './backSprites'
+import { backLayers, drawnFrames, frameArt, strideFrames } from './backSprites'
 import { depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, PLAYER_Z, project, RUNNER_HEIGHT } from './projection'
-import { advanceGait, frameAt, runnerPose, STANDING, STANDING_FRAME, strideHz } from './runnerRig'
+import { advanceGait, frameIndex, runnerPose, STANDING, strideAt, strideHz } from './runnerRig'
 import { GAP_MAX, GAP_MIN, RaceSimulation } from './simulation'
 import type { RaceViewRunner } from './types'
 import { DecorPool, laneOf, syncRunners, type ShownRunner } from './world'
@@ -110,22 +110,32 @@ describe('race back view: runner art', () => {
   const files = new Set(['runner/bodies/men_body_01_tone2_f1', 'runner/bodies/men_body_01_tone2_f2', 'runner/clothing/lvl1_women_shirt_01', 'runner/heads/lvl1_men_head_01_tone2'])
   const has = (key: string) => files.has(key)
 
-  it('shows the four frames in order, one per quarter stride, and fists at the waist when standing', () => {
+  it('shares the stride evenly among the frames, in order, and shows the fists at the waist when standing', () => {
     const quarter = Math.PI / 2
-    expect([1, 2, 3, 4].map((q) => frameAt(q * quarter))).toEqual([0, 1, 2, 3])
-    expect(frameAt(0.1)).toBe(3)
-    expect(runnerPose(quarter, 1).frame).toBe(0)
-    expect(runnerPose(quarter, 0).frame).toBe(STANDING_FRAME)
+    expect([1, 2, 3, 4].map((q) => frameIndex(strideAt(q * quarter), 4))).toEqual([0, 1, 2, 3])
+    expect([0, 1, 2, 3, 4, 5].map((n) => frameIndex(n / 6, 6))).toEqual([0, 1, 2, 3, 4, 5])
+    expect(runnerPose(quarter, 1).stride).toBeCloseTo(0)
+    expect(runnerPose(quarter, 0).stride).toBeNull()
+    expect(frameIndex(null, 4)).toBe(1)
+    expect(frameIndex(null, 6)).toBe(2)
+    expect(frameIndex(0.7, 1)).toBe(0)
   })
 
-  it('uses frames 1 and 2 mirrored for 3 and 4, and one picture for every frame when there are no frames', () => {
+  it('mirrors a half stride of 2 or 3 drawn frames, and uses 4 or more as the whole stride', () => {
     const body = 'runner/bodies/men_body_01_tone2'
-    expect(frameArt(body, 0, has)).toEqual({ key: `${body}_f1`, mirror: false })
-    expect(frameArt(body, 1, has)).toEqual({ key: `${body}_f2`, mirror: false })
-    expect(frameArt(body, 2, has)).toEqual({ key: `${body}_f1`, mirror: true })
-    expect(frameArt(body, 3, has)).toEqual({ key: `${body}_f2`, mirror: true })
-    expect(frameArt('runner/clothing/lvl1_women_shirt_01', 3, has)).toEqual({ key: 'runner/clothing/lvl1_women_shirt_01', mirror: false })
-    expect(frameArt('runner/clothing/none', 0, has)).toBeNull()
+    expect(drawnFrames(body, has)).toBe(2)
+    expect(strideFrames(2)).toBe(4)
+    expect(strideFrames(3)).toBe(6)
+    expect(strideFrames(4)).toBe(4)
+    expect(strideFrames(0)).toBe(1)
+    expect(frameArt(body, 0, 4, has)).toEqual({ key: `${body}_f1`, mirror: false })
+    expect(frameArt(body, 1, 4, has)).toEqual({ key: `${body}_f2`, mirror: false })
+    expect(frameArt(body, 2, 4, has)).toEqual({ key: `${body}_f1`, mirror: true })
+    expect(frameArt(body, 3, 4, has)).toEqual({ key: `${body}_f2`, mirror: true })
+    const three = (key: string) => /_f[123]$/.test(key)
+    expect([3, 4, 5].map((f) => frameArt('b', f, 6, three))).toEqual([1, 2, 3].map((n) => ({ key: `b_f${n}`, mirror: true })))
+    expect(frameArt('runner/clothing/lvl1_women_shirt_01', 3, 4, has)).toEqual({ key: 'runner/clothing/lvl1_women_shirt_01', mirror: false })
+    expect(frameArt('runner/clothing/none', 0, 4, has)).toBeNull()
   })
 
   it('stacks body, shirt, pack and hair, lends another tone while one has no body, and leaves out what has no art', () => {

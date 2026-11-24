@@ -59,7 +59,7 @@ export function RaceDemoScreen() {
               <input
                 type="range"
                 min={20}
-                max={60}
+                max={75}
                 step={1}
                 value={Math.round((1 - framing.headTop) * 100)}
                 onChange={(e) => setFraming({ ...framing, headTop: 1 - Number(e.target.value) / 100 })}

@@ -22,7 +22,8 @@ export interface Framing {
   cutAt: number
 }
 
-export const DEFAULT_FRAMING: Framing = { headTop: 0.62, cutAt: 0.55 }
+/** The owner's choice (24 November 2026): the runner takes 60% of the screen's height. */
+export const DEFAULT_FRAMING: Framing = { headTop: 0.4, cutAt: 0.55 }
 
 export interface Camera {
   width: number

@@ -82,14 +82,15 @@ screens, instead of coded body parts.
   stacked with no offsets. The spine's axis is at x = 512 and the feet stand on y = 1440; the runner
   is 1390 px tall from the top of the head to the ground (1.75 m in the view).
 - **Frames:** the owner draws the first half of a stride, the game mirrors it for the second half:
-  - 2 drawn frames (`_f1`, `_f2`): 1 left fist high, legs apart (the left foot pushing off behind);
-    2 fists at the waist, the left heel up. 4 frames in all.
-  - 3 drawn frames (`_f1` to `_f3`): the same with an in-between frame in the middle, for a smoother
-    stride (owner, 24 November 2026: 4 frames look mechanical). 6 frames in all.
-  - 4 or more drawn frames are the whole stride, with no mirroring.
+  - **3 drawn frames** (owner's art of 24 November 2026, a compact trail-running swing with the
+    hands low): 1 left fist forward at the waist, the left heel up; 2 the left foot coming down and
+    forward; 3 the arms crossing, the left foot landing and the right one pushing off. Then 4 to 6
+    are 1 to 3 mirrored.
+  - 2 drawn frames also work (4 in all); 4 or more drawn frames are the whole stride, not mirrored.
 
   The frames share the stride evenly. The trunk, head and shorts are the same in every frame: only
-  the arms and legs change. The code adds the bounce and the sway by moving the whole picture.
+  the arms and legs change. The code adds the bounce (lowest at frames 1 and 4) and the sway by
+  moving the whole picture.
 - **Layers, back to front:** body → shirt → pack → hair. A layer with `_f1`, `_f2`… has a picture per
   frame, as many as the body; without them one picture serves every frame (a tank top, a
   pack, the hair) and is not mirrored.
@@ -106,8 +107,8 @@ screens, instead of coded body parts.
 While a skin tone has no body, another tone (then the other sex) stands in. A shirt, pack or hair
 with no art is left out. With no body art at all, the coded runner is drawn.
 
-**In the game now:** `runner/bodies/men_body_01_tone2_f1` and `_f2` (owner art of 24 November 2026,
-background removed and placed on the canvas by Claude). The demo's player and rivals all use it, bald
+**In the game now:** `runner/bodies/men_body_01_tone2_f1` to `_f3` (owner art of 24 November 2026,
+background removed and placed on the canvas by Claude, all three with the same scale and position). The demo's player and rivals all use it, bald
 and shirtless, until hair and shirts arrive.
 
 **Appearance ids:** the demo's rivals still carry placeholder ids (`red`, `short-dark`…) with no

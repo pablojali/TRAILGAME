@@ -65,7 +65,8 @@ export function intensityAt(speed: number): number {
 export function runnerPose(phase: number, intensity: number): Pose {
   const s = Math.sin(phase)
   return {
-    bob: 0.045 * intensity * Math.abs(s),
+    // Lowest when a heel is up under the body (the drawn frame 1 and its mirror), highest in between.
+    bob: 0.045 * intensity * Math.abs(Math.cos(phase)),
     sway: 0.018 * intensity * s,
     roll: 0.07 * intensity * s,
     armL: intensity * s,

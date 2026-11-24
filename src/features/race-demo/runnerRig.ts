@@ -1,0 +1,61 @@
+/**
+ * The runner's animation, separate from how it is drawn: a pose from a stride phase. The drawing
+ * (draw.ts) only reads the pose, so a bone rig (DragonBones or other) can replace this file later
+ * without touching the renderer.
+ *
+ * Seen from behind: the body bobs twice per stride, the shoulders roll, the arms swing (the hands
+ * rise and fall) and the feet kick up in turn.
+ */
+
+export interface LegPose {
+  /** 0 = foot on the ground, 1 = heel kicked up. */
+  lift: number
+}
+
+export interface Pose {
+  /** Vertical bounce, metres. */
+  bob: number
+  /** Side-to-side shift of the hips, metres. */
+  sway: number
+  /** Shoulder roll, radians (positive = right shoulder down). */
+  roll: number
+  /** Arm swing, -1..1 (positive = hand forward, seen as raised). */
+  armL: number
+  armR: number
+  legL: LegPose
+  legR: LegPose
+}
+
+export const STANDING: Pose = { bob: 0, sway: 0, roll: 0, armL: 0, armR: 0, legL: { lift: 0 }, legR: { lift: 0 } }
+
+/** Stride cycles per second at a speed (two steps per cycle); 0 when standing. */
+export function strideHz(speed: number): number {
+  if (speed <= 0.05) return 0
+  return Math.min(1.75, 1.2 + speed * 0.1)
+}
+
+/** How much the runner moves at a speed, 0 (standing) to 1 (running hard). */
+export function intensityAt(speed: number): number {
+  return Math.min(1, speed / 3.5)
+}
+
+/** The pose at a stride phase (radians) and intensity (0..1). */
+export function runnerPose(phase: number, intensity: number): Pose {
+  const s = Math.sin(phase)
+  return {
+    bob: 0.045 * intensity * Math.abs(s),
+    sway: 0.018 * intensity * s,
+    roll: 0.07 * intensity * s,
+    armL: intensity * s,
+    armR: -intensity * s,
+    legL: { lift: intensity * Math.max(0, -s) },
+    legR: { lift: intensity * Math.max(0, s) },
+  }
+}
+
+/** Moves a runner's animation on by `dt` seconds: its stride phase and how hard it moves eases with speed. */
+export function advanceGait(gait: { phase: number; intensity: number }, speed: number, dt: number): void {
+  gait.phase = (gait.phase + 2 * Math.PI * strideHz(speed) * dt) % (2 * Math.PI)
+  const target = intensityAt(speed)
+  gait.intensity += (target - gait.intensity) * (1 - Math.exp(-dt * 5))
+}

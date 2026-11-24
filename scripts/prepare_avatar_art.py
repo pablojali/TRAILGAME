@@ -6,7 +6,7 @@ Reads the original PNGs (all on the same 1024x1536 transparent canvas) and write
 
     bodies/{men|women}_body_01_tone{n}.png         -> avatar/bodies/{male|female}-{n}.webp
     heads/lvl{L}_{men|women}_head_{NN}_tone{n}.png -> avatar/heads/lvl{L}_{men|women}_head_{NN}_tone{n}.webp
-    heads/..._tone{n}_blink.png                    -> avatar/heads/..._tone{n}_blink.webp (the same face, eyes closed)
+    heads/..._tone{n}_blink.png                    -> avatar/heads/..._tone{n}_blink.webp (only the closed eyes, kept as drawn)
     Clothing/lvl{L}_{men|women}_shirt_{NN}.png     -> avatar/clothing/lvl{L}_{men|women}_shirt_{NN}.webp
     footwear/{source}.png                          -> avatar/footwear/{item id}.webp (FOOTWEAR below)
     accesories/{name}.png                          -> avatar/accessories/{name}.webp (worn on the runner)
@@ -193,6 +193,10 @@ def main() -> None:
             print(f"skipped {path.name}: not named lvl{{L}}_{{men|women}}_head_{{NN}}_tone{{n}}.png")
             continue
         image = load(path)
+        if path.stem.endswith("_blink"):
+            # Only the closed eyes, drawn over the open face (owner decision, 24 November 2026): kept as drawn.
+            save(image, "heads", path.stem, path)
+            continue
         specks = remove_specks(image)
         defringe(image)
         fade_neck(image)

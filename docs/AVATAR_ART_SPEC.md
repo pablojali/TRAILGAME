@@ -27,7 +27,7 @@ assets/runner/
 | Part | Example | Notes |
 |---|---|---|
 | Head | `lvl1_men_head_01_tone2.png` | One file per skin tone. |
-| Head, eyes closed | `lvl1_men_head_01_tone2_blink.png` | Optional (21 November 2026): the same head with its eyes closed, same canvas and position; the runner blinks with it on the large avatars. One per skin tone. |
+| Head, eyes closed | `lvl1_men_head_01_tone2_blink.png` | Optional (21 November 2026; changed 24 November 2026): **only the closed eyes** (eyelids and the skin around them), everything else transparent, on the same canvas and in the same place as that head's eyes. It is drawn over the open face for a moment now and then, so the runner blinks on the large avatars (not while the runner is being chosen). One per skin tone. |
 | Shirt | `lvl3_men_shirt_02.png` | `men` or `women`; in `Clothing/`. |
 | Bottom | `lvl4_women_bottom_01.png` | |
 | Accessory | `lvl10_unisex_accessory_01.png` | |

@@ -14,7 +14,8 @@ touch the game's races.
 
 **Debug panel (top left):**
 - **Speed:** the player's speed in m/s; 0 stops the runner.
-- **Runner size:** how much of the screen's height the player takes, from the top of the head to the
+- **Runner size:** how much of the screen's height the player takes (60% by default, the owner's
+  choice of 24 November 2026), from the top of the head to the
   bottom edge, which cuts the legs at mid-thigh (owner, 24 November 2026: like the reference GIF, but
   smaller). The camera moves to match.
 - **+ rival / − rival:** adds a rival (far ahead, or now and then coming from behind) or removes the
@@ -80,16 +81,17 @@ screens, instead of coded body parts.
 - **Canvas:** every layer is a transparent picture on one **1024 × 1536** canvas, drawn in its place,
   stacked with no offsets. The spine's axis is at x = 512 and the feet stand on y = 1440; the runner
   is 1390 px tall from the top of the head to the ground (1.75 m in the view).
-- **Frames:** a running stride has 4 frames. The owner draws two, the game mirrors them for the other
-  two:
-  1. left fist high, legs apart (the left foot pushing off behind);
-  2. fists at the waist, the left heel up;
-  3. frame 1 mirrored; 4. frame 2 mirrored.
+- **Frames:** the owner draws the first half of a stride, the game mirrors it for the second half:
+  - 2 drawn frames (`_f1`, `_f2`): 1 left fist high, legs apart (the left foot pushing off behind);
+    2 fists at the waist, the left heel up. 4 frames in all.
+  - 3 drawn frames (`_f1` to `_f3`): the same with an in-between frame in the middle, for a smoother
+    stride (owner, 24 November 2026: 4 frames look mechanical). 6 frames in all.
+  - 4 or more drawn frames are the whole stride, with no mirroring.
 
-  The trunk, head and shorts are the same in every frame: only the arms and legs change. The code
-  adds the bounce and the sway by moving the whole picture.
-- **Layers, back to front:** body → shirt → pack → hair. A layer with `_f1`, `_f2` (and optionally
-  `_f3`, `_f4`) has a picture per frame; without them one picture serves every frame (a tank top, a
+  The frames share the stride evenly. The trunk, head and shorts are the same in every frame: only
+  the arms and legs change. The code adds the bounce and the sway by moving the whole picture.
+- **Layers, back to front:** body → shirt → pack → hair. A layer with `_f1`, `_f2`… has a picture per
+  frame, as many as the body; without them one picture serves every frame (a tank top, a
   pack, the hair) and is not mirrored.
 - **Feet:** the runners are barefoot and there are no shoe layers: the player's feet are below the
   screen's edge and the rivals' are a few pixels.

@@ -25,22 +25,29 @@ export interface Pose {
   legL: LegPose
   legR: LegPose
   /**
-   * Which drawn frame of the runner's art to show (0–3, docs/RACE_BACK_VIEW_DEMO.md): 0 left fist
-   * high, 1 fists at the waist with the left heel up, 2 and 3 the same mirrored. The art keeps the
-   * trunk still; the bob and sway above move the whole picture.
+   * Where the stride is, 0..1, with 0 at the drawn frame 1 (left fist high), or null when standing.
+   * The art's frames (docs/RACE_BACK_VIEW_DEMO.md) share the cycle evenly; `frameIndex` picks one.
+   * The art keeps the trunk still; the bob and sway above move the whole picture.
    */
-  frame: number
+  stride: number | null
 }
 
-/** The frame shown when standing: fists at the waist. */
-export const STANDING_FRAME = 1
+export const STANDING: Pose = { bob: 0, sway: 0, roll: 0, armL: 0, armR: 0, legL: { lift: 0 }, legR: { lift: 0 }, stride: null }
 
-export const STANDING: Pose = { bob: 0, sway: 0, roll: 0, armL: 0, armR: 0, legL: { lift: 0 }, legR: { lift: 0 }, frame: STANDING_FRAME }
+/** The stride (0..1) at a phase: frame 1 (left fist high) at a quarter of the cycle, as the coded arms. */
+export function strideAt(phase: number): number {
+  const t = (phase - Math.PI / 2) / (2 * Math.PI)
+  return t - Math.floor(t)
+}
 
-/** The drawn frame at a stride phase: frame 0 (left fist high) at a quarter of the cycle, as the coded arms. */
-export function frameAt(phase: number): number {
-  const quarter = Math.round(phase / (Math.PI / 2)) - 1
-  return ((quarter % 4) + 4) % 4
+/**
+ * The frame (0..count-1) to show for a stride: the nearest one, as they share the cycle evenly.
+ * Standing shows the fists-at-the-waist frame, a quarter of the cycle after the fist high.
+ */
+export function frameIndex(stride: number | null, count: number): number {
+  if (count <= 1) return 0
+  const at = stride ?? 0.25
+  return Math.round(at * count) % count
 }
 
 /** Stride cycles per second at a speed (two steps per cycle); 0 when standing. */
@@ -65,7 +72,7 @@ export function runnerPose(phase: number, intensity: number): Pose {
     armR: -intensity * s,
     legL: { lift: intensity * Math.max(0, -s) },
     legR: { lift: intensity * Math.max(0, s) },
-    frame: intensity < 0.05 ? STANDING_FRAME : frameAt(phase),
+    stride: intensity < 0.05 ? null : strideAt(phase),
   }
 }
 

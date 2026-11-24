@@ -31,20 +31,18 @@ function Harness({ onWs }: { onWs(ws: Workspace): void }) {
   )
 }
 
-describe('Trail Studio · Avatares: deleting a head', () => {
-  it('marks every file of a head for deletion, and undoes it', async () => {
+describe('Trail Studio · Avatares: deleting head art', () => {
+  it('shows every head file, and deletes one tone with its closed eyes, then undoes it', async () => {
     const user = userEvent.setup()
     let ws: Workspace | null = null
     render(<Harness onWs={(next) => (ws = next)} />)
-    const heads = await screen.findByText('En el juego (2 caras)')
-    const list = heads.parentElement!.querySelector('ul.heads') as HTMLElement
-    const card = within(list).getByText(/Hombre · nivel 1 · cara 01 \(2 tonos\)/).closest('li')!
+    const title = await screen.findByText('En el juego (4 imágenes, 2 caras)')
+    const list = title.parentElement!.querySelector('ul.heads') as HTMLElement
+    expect(within(list).getAllByRole('listitem')).toHaveLength(4)
+    const card = within(list).getByText('lvl1_men_head_01_tone1.png').closest('li')!
+    expect(within(card).getByText('Hombre · nivel 1 · cara 01 · tono 1')).toBeInTheDocument()
     await user.click(within(card).getByRole('button', { name: 'Borrar' }))
-    expect(Object.keys(ws!.uploads).sort()).toEqual([
-      'assets/runner/heads/lvl1_men_head_01_tone1.png',
-      'assets/runner/heads/lvl1_men_head_01_tone1_blink.png',
-      'assets/runner/heads/lvl1_men_head_01_tone2.png',
-    ])
+    expect(Object.keys(ws!.uploads).sort()).toEqual(['assets/runner/heads/lvl1_men_head_01_tone1.png', 'assets/runner/heads/lvl1_men_head_01_tone1_blink.png'])
     expect(Object.values(ws!.uploads).every((upload) => upload.base64 === null)).toBe(true)
     await user.click(within(card).getByRole('button', { name: 'Deshacer' }))
     expect(ws!.uploads).toEqual({})

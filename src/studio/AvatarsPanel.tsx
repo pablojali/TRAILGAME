@@ -19,7 +19,7 @@ function useFolder(token: string, path: string): RepoFile[] | null {
 }
 
 /**
- * Avatar art (owner request, 13 November 2026): the owner uploads new bodies and heads here, as
+ * Avatar art (owner request, 13 November 2026; shirts since 24 November 2026): the owner uploads new bodies, heads and shirts here, as
  * PNG, in batches; they go to `assets/runner/incoming/` with the next proposal. Claude then names
  * them, prepares them for the game and adds them to the catalogs. What the game uses today is shown
  * below each upload area, for reference.
@@ -50,7 +50,7 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
       <section className="editPane">
         <h2>Avatars</h2>
         <p className="hint">
-          Sube cuerpos y caras nuevos en PNG con fondo transparente, varios a la vez si quieres. Quedan en la propuesta (pestaña Propuestas) y, al
+          Sube cuerpos, caras y remeras nuevos en PNG con fondo transparente, varios a la vez si quieres. Quedan en la propuesta (pestaña Propuestas) y, al
           publicarla, en <code>{INCOMING}</code>. Avisa a Claude: los nombra, los prepara para el juego y los añade al catálogo.
         </p>
         {error && (
@@ -154,40 +154,41 @@ function KindSection({
 }
 
 /**
- * The heads in the game, one card per design with all its skin tones (owner request, 24 November
- * 2026): "Borrar" deletes every file of the head with the next proposal. A runner who wore it goes
- * back to the basic head.
+ * The heads in the game, one card per file (owner request, 24 November 2026: every tone shown),
+ * in unlock order. "Borrar" deletes that file with the next proposal (a tone also takes its
+ * closed-eyes face with it). A head left with no tone leaves the game; a runner who wore a deleted
+ * head or tone goes back to the basic head.
  */
 function GameHeads({ ws, setWs, files }: { ws: Workspace; setWs(ws: Workspace): void; files: RepoFile[] | null }) {
   const groups = headGroups(files ?? [])
-  const marked = (group: HeadGroup) => group.files.every((file) => ws.uploads[file.path]?.base64 === null)
-  const toggle = (group: HeadGroup) => {
-    const remove = !marked(group)
-    const label = `Head ${group.key} (removed)`
-    setWs(withUploads(ws, Object.fromEntries(group.files.map((file) => [file.path, remove ? { base64: null, label } : undefined]))))
+  const all = groups.flatMap((group) => [...group.files].sort((a, b) => a.name.localeCompare(b.name)).map((file) => ({ group, file })))
+  const gone = (file: RepoFile) => ws.uploads[file.path]?.base64 === null
+  const toggle = (group: HeadGroup, file: RepoFile) => {
+    const remove = !gone(file)
+    // A tone takes its closed-eyes face with it; the closed eyes alone can go on their own.
+    const blink = file.name.replace(/\.png$/, '_blink.png')
+    const paths = [file, ...group.files.filter((other) => other.name === blink)].map((f) => f.path)
+    setWs(withUploads(ws, Object.fromEntries(paths.map((path) => [path, remove ? { base64: null, label: `Head art ${path.slice(path.lastIndexOf('/') + 1)} (removed)` } : undefined]))))
   }
-  const sexName = (sex: HeadGroup['sex']) => (sex === 'men' ? 'Hombre' : 'Mujer')
+  const describe = (group: HeadGroup, file: RepoFile) => {
+    const tone = /_tone(\d)/.exec(file.name)?.[1]
+    return `${group.sex === 'men' ? 'Hombre' : 'Mujer'} · nivel ${group.level} · cara ${group.design} · tono ${tone}${file.name.endsWith('_blink.png') ? ' · ojos cerrados' : ''}`
+  }
   return (
     <>
-      <h4>En el juego ({files ? groups.length : '…'} caras)</h4>
-      <p className="hint">Borrar quita la cara del juego en todos sus tonos (y sus ojos cerrados) al publicar la propuesta. Quien la llevaba vuelve a la cabeza básica.</p>
+      <h4>En el juego ({files ? `${all.length} imágenes, ${groups.length} caras` : '…'})</h4>
+      <p className="hint">Borrar quita esa imagen del juego al publicar la propuesta (un tono se lleva también sus ojos cerrados). Quien la llevaba vuelve a la cabeza básica.</p>
       <ul className="artGrid small heads">
-        {groups.map((group) => {
-          const tone1 = group.files.find((file) => file.name.endsWith('_tone1.png')) ?? group.files[0]!
-          const tones = group.files.filter((file) => !file.name.endsWith('_blink.png')).length
-          const gone = marked(group)
-          return (
-            <li key={group.key} className={gone ? 'removed' : undefined}>
-              <img src={tone1.url} alt="" loading="lazy" />
-              <span>
-                {sexName(group.sex)} · nivel {group.level} · cara {group.design} ({tones} {tones === 1 ? 'tono' : 'tonos'})
-              </span>
-              <button type="button" className="link" onClick={() => toggle(group)}>
-                {gone ? 'Deshacer' : 'Borrar'}
-              </button>
-            </li>
-          )
-        })}
+        {all.map(({ group, file }) => (
+          <li key={file.path} className={gone(file) ? 'removed' : undefined}>
+            <img src={file.url} alt="" loading="lazy" />
+            <span>{describe(group, file)}</span>
+            <span>{file.name}</span>
+            <button type="button" className="link" onClick={() => toggle(group, file)}>
+              {gone(file) ? 'Deshacer' : 'Borrar'}
+            </button>
+          </li>
+        ))}
       </ul>
     </>
   )

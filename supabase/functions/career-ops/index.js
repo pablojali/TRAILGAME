@@ -628,7 +628,7 @@ var wear_bands_default = "# Shoe durability bands (owner decision, 22 November 2
 var wear_km_default = "# Equipment wear (owner decision, 22 November 2026): the km each training session wears the equipped gear by.\n# Races wear it by their own distance. Starting proposal, for the owner to change. Every session type has one row.\nsession,km\neasy-run,8\nintervals,6\nhills,6\nlong-run,18\ntrail-technique,4\nstrength,0\nrest,0\n";
 
 // raw:src/data/economy.csv
-var economy_default = "# Economy (owner decision, 16 November 2026). One row per value.\n# coins_per_premium: credits (coins) a player pays for 1 Premium Coin. The exchange goes one way only, coins to Premium.\n# wear_speed: multiplies the wear of every item with a life_km (equipment.csv). 1 = as in the table, above 1 wears faster, 0 = wear off (owner decision, 22 November 2026).\n# ad_reward_coins: coins a rewarded ad gives a runner who cannot race and cannot afford the cheapest shoes. ad_rewards_per_day: most coin-granting ads per real day (UTC); more ads can be watched but give no coins (owner decision D11, 22 November 2026).\nkey,value\ncoins_per_premium,100\nwear_speed,0\nad_reward_coins,20\nad_rewards_per_day,2\n";
+var economy_default = "# Economy (owner decision, 16 November 2026). One row per value.\n# coins_per_premium: credits (coins) a player pays for 1 Premium Coin. The exchange goes one way only, coins to Premium.\n# wear_speed: multiplies the wear of every item with a life_km (equipment.csv). 1 = as in the table, above 1 wears faster, 0 = wear off (owner decision, 22 November 2026).\n# ad_reward_coins: coins a rewarded ad gives a runner who cannot race and cannot afford the cheapest shoes. ad_rewards_per_day: most coin-granting ads per real day (UTC); more ads can be watched but give no coins (owner decision D11, 22 November 2026).\nkey,value\ncoins_per_premium,100\nwear_speed,1\nad_reward_coins,20\nad_rewards_per_day,2\n";
 
 // src/domain/economy/premium.ts
 function parseEconomy(text) {
@@ -1284,7 +1284,7 @@ interior-12,interior,decor,1,0,coins,interior_12,,,,,,,0.5:0.5:3,Wood Sofa,Sofa 
 interior-13,interior,decor,1,0,coins,interior_13,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
 interior-14,interior,decor,1,0,coins,interior_14,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
 interior-15,interior,decor,1,0,coins,interior_15,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
-exterior-7,exterior,decor,1,0,coins,exterior_7,enter,,,,,,0.376:0.55:2,Beach House +,Refugio Playa +,,,,beach-house,exterior-1,exterior-8
+exterior-7,exterior,decor,1,0,coins,exterior_7,enter,,,,,,0.376:0.55:2,Beach House lvl2,Refugio Playa lvl2,,,,beach-house,exterior-1,exterior-8
 exterior-8,exterior,decor,2,0,coins,exterior_8,enter,,,,,,0.381:0.551:1.5,Beach House ++,Refugio Playa ++,,,,beach-house,exterior-7,exterior-7
 exterior-9,exterior,decor,1,0,coins,exterior_9,,,,,,,0.363:0.538:2,Desert House +,Refugio Desierto +,,,,desert-house,exterior-2,
 exterior-10,exterior,decor,2,0,coins,exterior_10,enter,,,,,,0.409:0.557:1.5,Dessert House ++,Refugio Desierto ++,,,,desert-house,exterior-9,exterior-9

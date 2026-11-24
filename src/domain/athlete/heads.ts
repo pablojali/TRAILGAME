@@ -1,4 +1,5 @@
 import type { Sex } from './athlete'
+import { HEAD_FILES } from './headFiles'
 
 /**
  * Heads (face and hairstyle together) from the owner's artwork, drawn over the body's basic head
@@ -6,53 +7,13 @@ import type { Sex } from './athlete'
  *
  * Plain data, so the domain runs anywhere (browser, Node, a server): the names of the prepared
  * files in `assets/runner/avatar/heads`, `lvl{level}_{men|women}_head_{NN}_tone{n}.webp`, without
- * the extension. One head per sex, level and design number, offered in the skin tones it has a
- * file for. When scripts/prepare_avatar_art.py adds or removes a head file, update this list; a
- * test checks that it matches the folder. The avatar component turns a file name into its bundled
- * URL (src/components/avatar/Avatar.tsx).
+ * the extension (src/domain/athlete/headFiles.ts, written by scripts/prepare_avatar_art.py from the
+ * owner's head art, so adding or deleting a head in Trail Studio updates it). One head per sex, level
+ * and design number, offered in the skin tones it has a file for. Game tests use a fixed copy
+ * (src/test/fixtures/headFiles.ts). The avatar component turns a file name into its bundled URL
+ * (src/components/avatar/Avatar.tsx).
  */
-export const HEAD_FILES: readonly string[] = [
-  'lvl1_men_head_01_tone1',
-  'lvl1_men_head_01_tone2',
-  'lvl1_men_head_01_tone3',
-  'lvl1_men_head_01_tone4',
-  'lvl1_women_head_01_tone1',
-  'lvl1_women_head_01_tone2',
-  'lvl1_women_head_01_tone3',
-  'lvl1_women_head_01_tone4',
-  'lvl2_women_head_01_tone1',
-  'lvl2_women_head_01_tone2',
-  'lvl2_women_head_01_tone3',
-  'lvl2_women_head_01_tone4',
-  'lvl3_women_head_01_tone1',
-  'lvl3_women_head_01_tone2',
-  'lvl3_women_head_01_tone3',
-  'lvl3_women_head_01_tone4',
-  'lvl5_women_head_01_tone1',
-  'lvl5_women_head_01_tone2',
-  'lvl5_women_head_01_tone3',
-  'lvl5_women_head_01_tone4',
-  'lvl8_women_head_01_tone1',
-  'lvl8_women_head_01_tone2',
-  'lvl8_women_head_01_tone3',
-  'lvl8_women_head_01_tone4',
-  'lvl2_men_head_01_tone1',
-  'lvl2_men_head_01_tone2',
-  'lvl2_men_head_01_tone3',
-  'lvl2_men_head_01_tone4',
-  'lvl3_men_head_01_tone1',
-  'lvl3_men_head_01_tone2',
-  'lvl3_men_head_01_tone3',
-  'lvl3_men_head_01_tone4',
-  'lvl5_men_head_01_tone1',
-  'lvl5_men_head_01_tone2',
-  'lvl5_men_head_01_tone3',
-  'lvl5_men_head_01_tone4',
-  'lvl8_men_head_01_tone1',
-  'lvl8_men_head_01_tone2',
-  'lvl8_men_head_01_tone3',
-  'lvl8_men_head_01_tone4',
-]
+export { HEAD_FILES }
 
 const NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/
 

@@ -16,7 +16,9 @@ Reads the original PNGs (all on the same 1024x1536 transparent canvas) and write
 Accessories (owner request, 3 November 2026: backpacks, poles, gels, bars) keep their file name; the
 equipment table (src/data/equipment.csv) names them in its avatar_layer and thumbnail columns.
 
-Heads and shirts keep their file name: the game reads level, sex, design (and tone) from it. They are cleaned
+Heads and shirts keep their file name: the game reads level, sex, design (and tone) from it. The list of
+heads (src/domain/athlete/headFiles.ts) is written from the head art, so a head deleted in Trail
+Studio leaves the game with its art. They are cleaned
 on the way, because they were cut out of a white background:
   - loose specks (small separate blobs) are removed;
   - leftover white is taken out of the semi-transparent edge, and near-white edge pixels are
@@ -180,6 +182,22 @@ def fade_neck(image: Image.Image) -> None:
             pixels[x, y] = (r, g, b, round(a * (step + 1) / (NECK_FADE_PX + 1)))
 
 
+HEAD_LIST = ROOT / "src" / "domain" / "athlete" / "headFiles.ts"
+
+
+def write_head_list(names: list[str]) -> None:
+    """Writes the game's head catalog from the head art, so adding or deleting a head (Trail Studio) updates it."""
+    lines = "".join(f"  '{name}',\n" for name in sorted(names))
+    text = (
+        "/** Written by scripts/prepare_avatar_art.py from assets/runner/heads (do not edit by hand): "
+        "the prepared head files, without the extension. */\n"
+        f"export const HEAD_FILES: readonly string[] = [\n{lines}]\n"
+    )
+    if not HEAD_LIST.exists() or HEAD_LIST.read_text() != text:
+        HEAD_LIST.write_text(text)
+        print(f"wrote {HEAD_LIST.relative_to(ROOT)} ({len(names)} head files)")
+
+
 def main() -> None:
     for path in sorted((SOURCE / "bodies").glob("*.png")):
         match = BODY_NAME.match(path.name)
@@ -188,6 +206,7 @@ def main() -> None:
             continue
         sex, tone = match.groups()
         save(load(path), "bodies", f"{SEX[sex]}-{tone}", path)
+    heads: list[str] = []
     for path in sorted((SOURCE / "heads").glob("*.png")):
         if not HEAD_NAME.match(path.name):
             print(f"skipped {path.name}: not named lvl{{L}}_{{men|women}}_head_{{NN}}_tone{{n}}.png")
@@ -203,6 +222,8 @@ def main() -> None:
         if specks:
             print(f"  {path.name}: removed {specks} speck pixels")
         save(image, "heads", path.stem, path)
+        heads.append(path.stem)
+    write_head_list(heads)
     for path in sorted((SOURCE / "Clothing").glob("*.png")):
         if not SHIRT_NAME.match(path.name):
             print(f"skipped {path.name}: not named lvl{{L}}_{{men|women}}_shirt_{{NN}}.png")

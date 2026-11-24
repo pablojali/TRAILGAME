@@ -1422,6 +1422,21 @@ button:disabled {
   overflow: hidden;
 }
 
+/* The enlarged head picture must not cover its name and buttons. */
+.artGrid.heads li > :not(img) {
+  position: relative;
+  z-index: 1;
+}
+
+/* A head marked for deletion (Avatares · Heads): dimmed until the proposal is published. */
+.artGrid li.removed img {
+  opacity: 0.25;
+}
+
+.artGrid li.removed span {
+  text-decoration: line-through;
+}
+
 /* Corredores: totals, bar charts and the runners table (owner request, 14 November 2026). */
 .runnerTotals {
   display: grid;

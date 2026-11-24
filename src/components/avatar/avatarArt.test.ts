@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { HEAD_FILES, HEADS } from '../../domain/athlete/heads'
+import { HEADS } from '../../domain/athlete/heads'
 import { EQUIPMENT_ITEMS } from '../../domain/equipment/items'
 import { art, avatarFile, filesForSex, headArt } from './avatarArt'
 
@@ -10,11 +10,13 @@ const SHIRT_ASSETS = Object.keys(import.meta.glob('/assets/runner/avatar/clothin
 const names = (paths: string[]) => paths.map((path) => path.slice(path.lastIndexOf('/') + 1, -'.webp'.length)).sort()
 
 describe('avatar art', () => {
-  it('the domain head catalog lists exactly the prepared head files', () => {
+  it('the domain head catalog lists exactly the prepared head files', async () => {
+    // The real catalog, not the fixed copy the other tests use (src/test/setup.ts).
+    const { HEAD_FILES: real } = await vi.importActual<typeof import('../../domain/athlete/headFiles')>('../../domain/athlete/headFiles')
     // The closed-eyes faces (`…_blink`) go with their head and are not heads of their own.
     const files = HEAD_ASSETS.map((path) => path.slice(path.lastIndexOf('/') + 1, -'.webp'.length)).filter((name) => !name.endsWith('_blink')).sort()
     expect(files.length).toBeGreaterThan(0)
-    expect([...HEAD_FILES].sort()).toEqual(files)
+    expect([...real].sort()).toEqual(files)
   })
 
   it('bundles the art of every head in every tone of the catalog', () => {

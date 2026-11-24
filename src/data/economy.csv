@@ -4,6 +4,6 @@
 # ad_reward_coins: coins a rewarded ad gives a runner who cannot race and cannot afford the cheapest shoes. ad_rewards_per_day: most coin-granting ads per real day (UTC); more ads can be watched but give no coins (owner decision D11, 22 November 2026).
 key,value
 coins_per_premium,100
-wear_speed,0
+wear_speed,1
 ad_reward_coins,20
 ad_rewards_per_day,2

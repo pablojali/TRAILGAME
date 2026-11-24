@@ -94,9 +94,11 @@ The owner uploads new bodies, heads and (since 24 November 2026) shirts in Trail
 (`src/domain/athlete/appearance.ts`).
 
 **Deleting a head (24 November 2026):**
-- **Where:** Trail Studio › Avatares › Heads, list "En el juego". Each design has a **Borrar** button
-  that covers all its tones and its closed-eyes faces.
-- **What the proposal does:** it deletes the original files in `assets/runner/heads`.
+- **Where:** Trail Studio › Avatares › Heads, list "En el juego". It shows every head picture, one
+  card per tone and closed-eyes face, each with its own **Borrar** button. A tone takes its closed eyes
+  with it.
+- **What the proposal does:** it deletes the original files in `assets/runner/heads`. A head with no
+  tone left leaves the game; one with some tones stays in those.
 - **What CI does next:**
   - `prepare_avatar_art.py` drops the prepared art and rewrites `headFiles.ts`, so the head leaves
     the game, the server included.

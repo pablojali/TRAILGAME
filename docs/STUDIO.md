@@ -6,7 +6,9 @@
 The designer's editor for the game's tables (owner request, 9 November 2026). It is a separate site
 built from this repository (`studio/index.html`, code in `src/studio`). Its interface is in Spanish.
 
-- **Carreras:** every race in a table. The editor sets distance, elevation gain, technicality
+- **Races** (sub-tabs since 25 November 2026): **NPC Races** (the race table, below), **Majors**
+  (the Sunday Majors, below; it was a tab of its own) and **Motor** (the race engine's art, below).
+- **Carreras (Races › NPC Races):** every race in a table. The editor sets distance, elevation gain, technicality
   (0–5), recommended level, difficulty (I–V), internal category, name and terrain in five
   languages. It previews the race card and its profile, and shows the effort, segments, entry
   levels, reference time and aid-station stops computed by the game's engine.
@@ -89,6 +91,20 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
   `assets/runner/incoming/{bodies,heads}/`, which the game and the art script never read. The tab
   also shows what waits there and what the game uses today. Then ask Claude to prepare the batch:
   naming, moving to `assets/runner/bodies` or `heads`, catalogs (see `assets/runner/incoming/README.md`).
+  - **Shirts** (24 November 2026): same flow, to `assets/runner/incoming/shirts/`.
+  - **Deleting** (24–25 November 2026): every head and shirt in the game has **Borrar**; CI then
+    updates the game's lists (`headFiles.ts`, `shirtFiles.ts`).
+  - **Seen from behind** (25 November 2026): a head or shirt whose name ends in `_back` (`…_tone2_back.png`,
+    `…_shirt_01_back.png` or `…_back_f1.png` per frame) goes straight to the race engine,
+    `assets/race/back-view/runner/{heads,clothing}/`, without the name's `_back`, and with no Claude step.
+    It must be on the runner's canvas. Each section lists what the engine has, with **Borrar**.
+- **Races › Motor** (25 November 2026): the art of the race seen from behind
+  (docs/RACE_BACK_VIEW_DEMO.md), straight to `assets/race/back-view/`. Once the proposal is published,
+  the test screen `/race-demo` uses it; later each race will choose its own.
+  - **Corredores:** body frames named `{men|women}_body_01_tone{n}_f{k}.png` on the runner's canvas.
+  - **Fondos:** sky, mountains and far forest (`scene/{sky,mountains,forest}.png`), one slot each.
+  - **Decorado:** pine, rock, bush and grass, three of each (`decor/{kind}-{0..2}.png`).
+  - A new picture deletes a `.webp` of the same name, which the engine would read first.
 - **Corredores** (14 November 2026): every runner in the game, the players' careers and the
   ranking NPCs, read live from the database through `major-ops` (action `runners`, admins only,
   same sign-in as Majors). Totals and average level, bars by level band, country and sex (players
@@ -196,7 +212,7 @@ Drafts are kept in the browser until they are proposed or discarded.
 
 ## Majors (Sunday Major, phase 1, 10 November 2026)
 
-The **Majors** tab manages the Sunday Majors in the database (not in the repository): no pull
+The **Majors** tab (Races › Majors since 25 November 2026) manages the Sunday Majors in the database (not in the repository): no pull
 request, no code publish.
 
 - **Sign-in:** the owner's game account (the email linked in the game's Settings). Studio sends a

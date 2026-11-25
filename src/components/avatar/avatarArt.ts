@@ -6,11 +6,7 @@ import { headFile } from '../../domain/athlete/heads'
  * 640 × 960 canvas, so layers line up when stacked:
  * `bodies/{sex}-{tone}`, `heads/{file}`, `clothing/{outfit}` and `footwear/{item}`.
  */
-const ART = import.meta.glob<string>('/assets/runner/avatar/**/*.webp', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-})
+import { ART } from './avatarArtFiles'
 
 /** The bundled URL of a layer, e.g. `bodies/female-2`, or undefined if there is no such art. */
 export function art(path: string): string | undefined {

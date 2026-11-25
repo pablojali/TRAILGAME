@@ -40,6 +40,15 @@ vi.mock('../data/wear_km.csv?raw', async () => ({ default: (await import('./fixt
 vi.mock('../data/wear_bands.csv?raw', async () => ({ default: (await import('./fixtures/wear_bands.csv?raw')).default }))
 vi.mock('../domain/athlete/shirtFiles', () => import('./fixtures/shirtFiles'))
 vi.mock('../domain/athlete/headFiles', () => import('./fixtures/headFiles'))
+// The fixed heads and shirts have art in game tests even after the owner deletes or replaces theirs
+// in Trail Studio (25 November 2026): the real art plus a stand-in for each fixture file.
+vi.mock('../components/avatar/avatarArtFiles', async (importOriginal) => {
+  const { ART } = await importOriginal<typeof import('../components/avatar/avatarArtFiles')>()
+  const { HEAD_FILES } = await import('./fixtures/headFiles')
+  const { SHIRT_FILES } = await import('./fixtures/shirtFiles')
+  const standIns = [...HEAD_FILES.map((f) => `heads/${f}`), ...SHIRT_FILES.map((s) => `clothing/${s.file}`)]
+  return { ART: { ...Object.fromEntries(standIns.map((p) => [`/assets/runner/avatar/${p}.webp`, `/test-art/${p}.webp`])), ...ART } }
+})
 // The owner uploads race clips (assets/race/clips): game tests run without them, so an upload never
 // changes a race flow under test; the player itself is tested with files it is given.
 vi.mock('../features/races/raceClips', async (importOriginal) => {

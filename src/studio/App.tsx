@@ -40,6 +40,7 @@ import {
 } from './model'
 import { AvatarsPanel } from './AvatarsPanel'
 import { RacesPanel } from './RacesPanel'
+import { MotorPanel } from './MotorPanel'
 import { BaseCampPanel } from './BaseCampPanel'
 
 /** Multimedia (owner request, 16 November 2026): the art of the game, in sub-tabs. */
@@ -52,7 +53,15 @@ const MEDIA_TABS: { id: MediaTab; label: string }[] = [
 ]
 
 const DRAFT_KEY = 'trailgame.studio.draft'
-type Tab = 'races' | 'media' | 'coach' | 'notifications' | 'texts' | 'balance' | 'majors' | 'runners' | 'changes'
+type Tab = 'races' | 'media' | 'coach' | 'notifications' | 'texts' | 'balance' | 'runners' | 'changes'
+
+/** Races (owner request, 25 November 2026): NPC races, Majors and the race engine's art, in sub-tabs. */
+type RaceTab = 'npc' | 'majors' | 'motor'
+const RACE_TABS: { id: RaceTab; label: string }[] = [
+  { id: 'npc', label: 'NPC Races' },
+  { id: 'majors', label: 'Majors' },
+  { id: 'motor', label: 'Motor' },
+]
 
 interface Draft {
   base: Record<FileId, string>
@@ -102,6 +111,7 @@ export function App() {
   const [error, setError] = useState('')
   const [tab, setTab] = useState<Tab>('races')
   const [mediaTab, setMediaTab] = useState<MediaTab>('equipment')
+  const [raceTab, setRaceTab] = useState<RaceTab>('npc')
   const [raceId, setRaceId] = useState<string | null>(null)
   const [itemId, setItemId] = useState<string | null>(null)
   const [momentId, setMomentId] = useState<string | null>(null)
@@ -213,9 +223,6 @@ export function App() {
           <button type="button" aria-pressed={tab === 'balance'} onClick={() => setTab('balance')}>
             Balance
           </button>
-          <button type="button" aria-pressed={tab === 'majors'} onClick={() => setTab('majors')}>
-            Majors
-          </button>
           <button type="button" aria-pressed={tab === 'runners'} onClick={() => setTab('runners')}>
             Runners
           </button>
@@ -250,14 +257,29 @@ export function App() {
       )}
 
       <main className="body">
-        {tab === 'majors' ? (
-          <MajorsPanel />
+        {tab === 'races' ? (
+          <>
+            <nav className="subtabs" aria-label="Races">
+              {RACE_TABS.map((r) => (
+                <button key={r.id} type="button" aria-pressed={raceTab === r.id} onClick={() => setRaceTab(r.id)}>
+                  {r.label}
+                </button>
+              ))}
+            </nav>
+            {raceTab === 'majors' ? (
+              <MajorsPanel />
+            ) : !ws ? (
+              <p className="loading">Reading the game's tables…</p>
+            ) : raceTab === 'motor' ? (
+              <MotorPanel token={token} ws={ws} setWs={setWs} />
+            ) : (
+              <RacesPanel token={token} ws={ws} setWs={setWs} selected={raceId} select={setRaceId} />
+            )}
+          </>
         ) : tab === 'runners' ? (
           <RunnersPanel />
         ) : !ws ? (
           <p className="loading">Reading the game's tables…</p>
-        ) : tab === 'races' ? (
-          <RacesPanel token={token} ws={ws} setWs={setWs} selected={raceId} select={setRaceId} />
         ) : tab === 'media' ? (
           <>
             <nav className="subtabs" aria-label="Multimedia">

@@ -17,6 +17,12 @@ vi.mock('./github', () => ({
       : [],
 }))
 
+vi.mock('./media', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./media')>()),
+  imageSize: async () => ({ width: 1024, height: 1536 }),
+  fileBase64: async () => 'AAAA',
+}))
+
 const { AvatarsPanel } = await import('./AvatarsPanel')
 
 function Harness({ onWs }: { onWs(ws: Workspace): void }) {
@@ -61,5 +67,23 @@ describe('Trail Studio · Avatares: deleting a shirt', () => {
     expect(ws!.uploads).toEqual({ 'assets/runner/Clothing/lvl2_women_shirt_01.png': { base64: null, label: 'Shirt lvl2_women_shirt_01.png (removed)' } })
     await user.click(within(card).getByRole('button', { name: 'Deshacer' }))
     expect(ws!.uploads).toEqual({})
+  })
+})
+
+describe('Trail Studio · Avatares: art seen from behind', () => {
+  it('sends a head named …_back straight to the race engine, not to Claude', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:preview')
+    const user = userEvent.setup()
+    let ws: Workspace | null = null
+    render(<Harness onWs={(next) => (ws = next)} />)
+    const heads = await screen.findByRole('region', { name: 'Heads' })
+    await user.upload(within(heads).getByLabelText(/Subir heads/i), [
+      new File(['x'], 'lvl1_men_head_01_tone2_back.png', { type: 'image/png' }),
+      new File(['x'], 'lvl1_men_head_02_tone1.png', { type: 'image/png' }),
+    ])
+    expect(Object.keys(ws!.uploads).sort()).toEqual([
+      'assets/race/back-view/runner/heads/lvl1_men_head_01_tone2.png',
+      'assets/runner/incoming/heads/lvl1_men_head_02_tone1.png',
+    ])
   })
 })

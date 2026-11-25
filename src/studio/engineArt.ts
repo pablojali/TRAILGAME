@@ -1,0 +1,52 @@
+import type { RepoFile } from './github'
+import type { Upload } from './media'
+
+/**
+ * The race engine's art (the race seen from behind, docs/RACE_BACK_VIEW_DEMO.md), uploaded from
+ * Trail Studio (owner request, 25 November 2026). The engine reads these files by name from
+ * `assets/race/back-view/`, so they go straight there (no Claude step) and the next build bundles
+ * them: once the proposal is published, /race-demo uses them.
+ */
+export const ENGINE_ROOT = 'assets/race/back-view'
+
+/** A body frame of the runner seen from behind: `men_body_01_tone2_f1.png`. */
+export const BODY_FRAME = /^(men|women)_body_01_tone[1-4]_f\d+\.png$/
+
+/** The backdrop layers (sky, mountains, far forest). */
+export const SCENE_SLOTS = [
+  { id: 'sky', label: 'Cielo' },
+  { id: 'mountains', label: 'Montañas' },
+  { id: 'forest', label: 'Bosque lejano' },
+] as const
+
+/** Scenery along the trail, three drawings of each kind. */
+export const DECOR_SLOTS = (['pine', 'rock', 'bush', 'grass'] as const).flatMap((kind) =>
+  [0, 1, 2].map((n) => ({ id: `${kind}-${n}`, label: `${{ pine: 'Pino', rock: 'Roca', bush: 'Arbusto', grass: 'Hierba' }[kind]} ${n + 1}` })),
+)
+
+/**
+ * Where an Avatares upload goes when its name marks it as seen from behind (owner request, 25
+ * November 2026): `lvl1_men_head_01_tone2_back.png` (the hair from behind) and
+ * `lvl1_men_shirt_01_back.png` or `…_back_f1.png` (a shirt from behind, per frame when it has
+ * sleeves). Null: an ordinary avatar file.
+ */
+export function backViewPath(fileName: string): string | null {
+  const head = /^(lvl\d+_(?:men|women)_head_\d{2}_tone[1-4])_back\.png$/.exec(fileName)
+  if (head) return `${ENGINE_ROOT}/runner/heads/${head[1]}.png`
+  const shirt = /^(lvl\d+_(?:men|women)_shirt_\d{2})_back(_f\d+)?\.png$/.exec(fileName)
+  if (shirt) return `${ENGINE_ROOT}/runner/clothing/${shirt[1]}${shirt[2] ?? ''}.png`
+  return null
+}
+
+/**
+ * The engine prefers a .webp over a .png of the same name, so a new picture also deletes the other
+ * format of the same name already in the folder.
+ */
+export function replacing(path: string, existing: readonly RepoFile[] | null): Record<string, Upload> {
+  const stem = path.replace(/\.(png|webp)$/, '')
+  return Object.fromEntries(
+    (existing ?? [])
+      .filter((file) => file.path !== path && file.path.replace(/\.(png|webp)$/, '') === stem)
+      .map((file) => [file.path, { base64: null, label: `${file.name} (replaced)` }]),
+  )
+}

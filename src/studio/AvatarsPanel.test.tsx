@@ -6,7 +6,9 @@ import type { Workspace } from './model'
 
 vi.mock('./github', () => ({
   listFolder: async (_token: string, path: string) =>
-    path === 'assets/runner/heads'
+    path === 'assets/runner/Clothing'
+      ? ['lvl1_men_shirt_01.png', 'lvl2_women_shirt_01.png'].map((name) => ({ name, path: `${path}/${name}`, url: `https://example.test/${name}` }))
+      : path === 'assets/runner/heads'
       ? ['lvl1_men_head_01_tone1.png', 'lvl1_men_head_01_tone2.png', 'lvl1_men_head_01_tone1_blink.png', 'lvl2_women_head_01_tone1.png'].map((name) => ({
           name,
           path: `${path}/${name}`,
@@ -44,6 +46,19 @@ describe('Trail Studio · Avatares: deleting head art', () => {
     await user.click(within(card).getByRole('button', { name: 'Borrar' }))
     expect(Object.keys(ws!.uploads).sort()).toEqual(['assets/runner/heads/lvl1_men_head_01_tone1.png', 'assets/runner/heads/lvl1_men_head_01_tone1_blink.png'])
     expect(Object.values(ws!.uploads).every((upload) => upload.base64 === null)).toBe(true)
+    await user.click(within(card).getByRole('button', { name: 'Deshacer' }))
+    expect(ws!.uploads).toEqual({})
+  })
+})
+
+describe('Trail Studio · Avatares: deleting a shirt', () => {
+  it('marks one shirt for deletion and undoes it', async () => {
+    const user = userEvent.setup()
+    let ws: Workspace | null = null
+    render(<Harness onWs={(next) => (ws = next)} />)
+    const card = (await screen.findByText('lvl2_women_shirt_01.png')).closest('li')!
+    await user.click(within(card).getByRole('button', { name: 'Borrar' }))
+    expect(ws!.uploads).toEqual({ 'assets/runner/Clothing/lvl2_women_shirt_01.png': { base64: null, label: 'Shirt lvl2_women_shirt_01.png (removed)' } })
     await user.click(within(card).getByRole('button', { name: 'Deshacer' }))
     expect(ws!.uploads).toEqual({})
   })

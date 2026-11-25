@@ -136,6 +136,8 @@ function KindSection({
 
       {kind.id === 'heads' ? (
         <GameHeads ws={ws} setWs={setWs} files={live} />
+      ) : kind.id === 'shirts' ? (
+        <GameShirts ws={ws} setWs={setWs} files={live} />
       ) : (
         <>
           <h4>En el juego ({live?.length ?? '…'})</h4>
@@ -185,6 +187,34 @@ function GameHeads({ ws, setWs, files }: { ws: Workspace; setWs(ws: Workspace): 
             <span>{describe(group, file)}</span>
             <span>{file.name}</span>
             <button type="button" className="link" onClick={() => toggle(group, file)}>
+              {gone(file) ? 'Deshacer' : 'Borrar'}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
+/**
+ * The shirts in the game (owner request, 25 November 2026), each with "Borrar": the shirt leaves
+ * the game with the next proposal (CI updates the shirt list); a runner who wore it has no shirt.
+ */
+function GameShirts({ ws, setWs, files }: { ws: Workspace; setWs(ws: Workspace): void; files: RepoFile[] | null }) {
+  const shirts = (files ?? []).filter((file) => /^lvl\d+_(men|women)_shirt_\d{2}\.png$/.test(file.name))
+  const gone = (file: RepoFile) => ws.uploads[file.path]?.base64 === null
+  const toggle = (file: RepoFile) =>
+    setWs(withUploads(ws, { [file.path]: gone(file) ? undefined : { base64: null, label: `Shirt ${file.name} (removed)` } }))
+  return (
+    <>
+      <h4>En el juego ({files ? shirts.length : '…'})</h4>
+      <p className="hint">Borrar quita la remera del juego al publicar la propuesta. Quien la llevaba se queda sin remera.</p>
+      <ul className="artGrid small shirts">
+        {shirts.map((file) => (
+          <li key={file.path} className={gone(file) ? 'removed' : undefined}>
+            <img src={file.url} alt="" loading="lazy" />
+            <span>{file.name}</span>
+            <button type="button" className="link" onClick={() => toggle(file)}>
               {gone(file) ? 'Deshacer' : 'Borrar'}
             </button>
           </li>

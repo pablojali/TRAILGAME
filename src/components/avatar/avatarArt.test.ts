@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { HEADS } from '../../domain/athlete/heads'
+import { buildHeadCatalog } from '../../domain/athlete/heads'
 import { EQUIPMENT_ITEMS } from '../../domain/equipment/items'
 import { art, avatarFile, filesForSex, headArt } from './avatarArt'
 
@@ -15,14 +15,16 @@ describe('avatar art', () => {
     const { HEAD_FILES: real } = await vi.importActual<typeof import('../../domain/athlete/headFiles')>('../../domain/athlete/headFiles')
     // The closed-eyes faces (`…_blink`) go with their head and are not heads of their own.
     const files = HEAD_ASSETS.map((path) => path.slice(path.lastIndexOf('/') + 1, -'.webp'.length)).filter((name) => !name.endsWith('_blink')).sort()
-    expect(files.length).toBeGreaterThan(0)
+    // The owner may delete every head in Trail Studio: then both are empty.
     expect([...real].sort()).toEqual(files)
   })
 
-  it('bundles the art of every head in every tone of the catalog', () => {
-    for (const head of HEADS) {
-      for (const tone of Object.keys(head.files).map(Number)) {
-        expect(headArt(head.sex, head.id, tone), `${head.id} tone ${tone}`).toMatch(/\.webp$/)
+  it('bundles the art of every head in every tone of the real catalog', async () => {
+    const { HEAD_FILES: real } = await vi.importActual<typeof import('../../domain/athlete/headFiles')>('../../domain/athlete/headFiles')
+    const { ART: files } = await vi.importActual<typeof import('./avatarArtFiles')>('./avatarArtFiles')
+    for (const head of buildHeadCatalog(real)) {
+      for (const file of Object.values(head.files)) {
+        expect(files[`/assets/runner/avatar/heads/${file}.webp`], file).toMatch(/\.webp$/)
       }
     }
   })

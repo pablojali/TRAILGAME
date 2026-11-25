@@ -1,22 +1,12 @@
-import { useEffect, useState } from 'react'
-import { listFolder, type RepoFile } from './github'
-import { megabytes } from './media'
+import { useState } from 'react'
+import type { RepoFile } from './github'
+import { megabytes, type Upload } from './media'
 import type { Workspace } from './model'
-import { asUpload, folders, withUploads } from './uploads'
+import { asUpload, layerPicture, withUploads } from './uploads'
+import { backViewPath, ENGINE_ROOT, replacing } from './engineArt'
+import { FileList } from './MotorPanel'
+import { useFolder } from './useFolder'
 import { AVATAR_KINDS, headGroups, INCOMING, incomingName, MAX_BYTES, type HeadGroup } from './avatarFiles'
-
-function useFolder(token: string, path: string): RepoFile[] | null {
-  const [files, setFiles] = useState<{ path: string; files: RepoFile[] } | null>(null)
-  useEffect(() => {
-    let live = true
-    if (!folders().has(path)) folders().set(path, listFolder(token, path).catch(() => []))
-    void folders().get(path)!.then((list) => live && setFiles({ path, files: list }))
-    return () => {
-      live = false
-    }
-  }, [token, path])
-  return files?.path === path ? files.files : null
-}
 
 /**
  * Avatar art (owner request, 13 November 2026; shirts since 24 November 2026): the owner uploads new bodies, heads and shirts here, as
@@ -26,10 +16,13 @@ function useFolder(token: string, path: string): RepoFile[] | null {
  */
 export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspace; setWs(ws: Workspace): void }) {
   const [error, setError] = useState('')
+  // Heads and shirts seen from behind, for the race engine (owner request, 25 November 2026).
+  const backHeads = useFolder(token, `${ENGINE_ROOT}/runner/heads`)
+  const backShirts = useFolder(token, `${ENGINE_ROOT}/runner/clothing`)
 
-  async function add(kind: (typeof AVATAR_KINDS)[number], files: FileList) {
+  async function add(kind: (typeof AVATAR_KINDS)[number], files: globalThis.FileList) {
     setError('')
-    const changes: Record<string, Awaited<ReturnType<typeof asUpload>>> = {}
+    let changes: Record<string, Upload> = {}
     for (const file of Array.from(files)) {
       if (file.type !== 'image/png') {
         setError(`${file.name}: PNG only (with a transparent background).`)
@@ -37,6 +30,16 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
       }
       if (file.size > MAX_BYTES) {
         setError(`${file.name}: ${megabytes(file.size)} is too big (at most ${megabytes(MAX_BYTES)}).`)
+        continue
+      }
+      // `…_back.png` (seen from behind) goes straight to the race engine, on the runner's canvas.
+      const back = kind.id === 'bodies' ? null : backViewPath(incomingName(file.name))
+      if (back) {
+        try {
+          changes = { ...changes, ...replacing(back, kind.id === 'heads' ? backHeads : backShirts), [back]: await layerPicture(back, file, `Race engine: ${file.name} (seen from behind)`) }
+        } catch (e) {
+          setError(`${file.name}: ${(e as Error).message}`)
+        }
         continue
       }
       const path = `${INCOMING}/${kind.id}/${incomingName(file.name)}`
@@ -52,6 +55,11 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
         <p className="hint">
           Sube cuerpos, caras y remeras nuevos en PNG con fondo transparente, varios a la vez si quieres. Quedan en la propuesta (pestaña Propuestas) y, al
           publicarla, en <code>{INCOMING}</code>. Avisa a Claude: los nombra, los prepara para el juego y los añade al catálogo.
+        </p>
+        <p className="hint">
+          <strong>De espaldas (motor de carrera):</strong> pon <code>_back</code> al final del nombre y van directo al motor, sin esperar a Claude: el pelo{' '}
+          <code>lvl1_men_head_01_tone2_back.png</code>, una remera <code>lvl1_men_shirt_01_back.png</code> (con mangas, una por fotograma:{' '}
+          <code>lvl1_men_shirt_01_back_f1.png</code>, <code>_f2</code>…). En el lienzo de 1024 × 1536, como los cuerpos de Races › Motor.
         </p>
         {error && (
           <p className="error" role="alert">
@@ -80,6 +88,7 @@ function KindSection({
   onFiles(files: FileList): void
 }) {
   const waiting = useFolder(token, `${INCOMING}/${kind.id}`)
+  const back = useFolder(token, `${ENGINE_ROOT}/runner/${kind.id === 'shirts' ? 'clothing' : kind.id}`)
   const live = useFolder(token, kind.live)
   const prefix = `${INCOMING}/${kind.id}/`
   const pending = Object.entries(ws.uploads).filter(([path]) => path.startsWith(prefix))
@@ -151,6 +160,8 @@ function KindSection({
           </ul>
         </>
       )}
+
+      {kind.id !== 'bodies' && <FileList title="De espaldas, en el motor de carrera" files={back} ws={ws} setWs={setWs} />}
     </section>
   )
 }

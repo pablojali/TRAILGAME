@@ -106,6 +106,14 @@ The owner uploads new bodies, heads and (since 24 November 2026) shirts in Trail
 - **Players who wore it:** their saved head becomes the basic head.
 - **Names:** the remaining hairstyles are numbered again in unlock order.
 
+**Deleting a shirt (25 November 2026):**
+- **Where:** Trail Studio › Avatares › Shirts, list "En el juego". Each shirt has a **Borrar** button.
+- **What the proposal does:** it deletes the original in `assets/runner/Clothing`.
+- **What CI does next:** `prepare_avatar_art.py` drops the prepared art and removes the shirt from
+  `src/domain/athlete/shirtFiles.ts`. The other shirts keep their names, and a new shirt is added as
+  "New shirt" until Claude names it.
+- **Players who wore it:** they have no shirt, which is the game's normal starting look.
+
 First batch: the women's tone 4 body, and men's heads at levels 2, 3, 5 and 8 in all four tones.
 
 

@@ -198,6 +198,28 @@ def write_head_list(names: list[str]) -> None:
         print(f"wrote {HEAD_LIST.relative_to(ROOT)} ({len(names)} head files)")
 
 
+SHIRT_LIST = ROOT / "src" / "domain" / "athlete" / "shirtFiles.ts"
+SHIRT_ENTRY = re.compile(r"^  \{ file: '([^']+)', label: '((?:[^'\\]|\\.)*)' \},$", re.M)
+
+
+def update_shirt_list(names: list[str]) -> None:
+    """Keeps the game's shirt list in step with the shirt art (owner request, 25 November 2026: delete
+    shirts in Trail Studio): a shirt whose art is gone leaves the list, the others keep their names, and
+    a new shirt is added as "New shirt" until Claude names it."""
+    text = SHIRT_LIST.read_text()
+    head, _, _ = text.partition("export const SHIRT_FILES")
+    entries = [(m.group(1), m.group(2)) for m in SHIRT_ENTRY.finditer(text)]
+    present = set(names)
+    kept = [(file, label) for file, label in entries if file in present]
+    listed = {file for file, _ in kept}
+    kept += [(name, "New shirt") for name in sorted(present - listed)]
+    lines = "".join(f"  {{ file: '{file}', label: '{label}' }},\n" for file, label in kept)
+    new = f"{head}export const SHIRT_FILES: readonly {{ file: string; label: string }}[] = [\n{lines}]\n"
+    if new != text:
+        SHIRT_LIST.write_text(new)
+        print(f"wrote {SHIRT_LIST.relative_to(ROOT)} ({len(kept)} shirts)")
+
+
 def main() -> None:
     for path in sorted((SOURCE / "bodies").glob("*.png")):
         match = BODY_NAME.match(path.name)
@@ -224,11 +246,14 @@ def main() -> None:
         save(image, "heads", path.stem, path)
         heads.append(path.stem)
     write_head_list(heads)
+    shirts: list[str] = []
     for path in sorted((SOURCE / "Clothing").glob("*.png")):
         if not SHIRT_NAME.match(path.name):
             print(f"skipped {path.name}: not named lvl{{L}}_{{men|women}}_shirt_{{NN}}.png")
             continue
         save(load(path), "clothing", path.stem, path)
+        shirts.append(path.stem)
+    update_shirt_list(shirts)
     for name, source in FOOTWEAR.items():
         save(load(SOURCE / source), "footwear", name, SOURCE / source)
     listed = {Path(source).name for source in FOOTWEAR.values()}

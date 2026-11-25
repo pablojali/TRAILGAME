@@ -3,9 +3,10 @@
  *
  * Plain data, like the head catalog: the names of the prepared files in
  * `assets/runner/avatar/clothing`, `lvl{level}_{men|women}_shirt_{NN}.webp`, without the extension,
- * with a display name. The file name gives the sex, the unlock level and the design number. When
- * scripts/prepare_avatar_art.py adds or removes a shirt, update this list; a test checks that it
- * matches the folder. Game tests use a fixed copy (src/test/fixtures/shirtFiles.ts), so adding a
+ * with a display name. The file name gives the sex, the unlock level and the design number.
+ * scripts/prepare_avatar_art.py keeps this list in step with the shirt art: a shirt deleted in Trail
+ * Studio leaves it, a new one is added as "New shirt" (Claude names it); the names here are kept. A
+ * test checks that it matches the folder. Game tests use a fixed copy (src/test/fixtures/shirtFiles.ts), so adding a
  * shirt never breaks them.
  */
 export const SHIRT_FILES: readonly { file: string; label: string }[] = [

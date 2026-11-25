@@ -113,48 +113,7 @@ function isSessionType(value) {
 }
 
 // src/domain/athlete/headFiles.ts
-var HEAD_FILES = [
-  "lvl1_men_head_01_tone1",
-  "lvl1_men_head_01_tone2",
-  "lvl1_men_head_01_tone3",
-  "lvl1_men_head_01_tone4",
-  "lvl1_women_head_01_tone1",
-  "lvl1_women_head_01_tone2",
-  "lvl1_women_head_01_tone3",
-  "lvl1_women_head_01_tone4",
-  "lvl2_men_head_01_tone1",
-  "lvl2_men_head_01_tone2",
-  "lvl2_men_head_01_tone3",
-  "lvl2_men_head_01_tone4",
-  "lvl2_women_head_01_tone1",
-  "lvl2_women_head_01_tone2",
-  "lvl2_women_head_01_tone3",
-  "lvl2_women_head_01_tone4",
-  "lvl3_men_head_01_tone1",
-  "lvl3_men_head_01_tone2",
-  "lvl3_men_head_01_tone3",
-  "lvl3_men_head_01_tone4",
-  "lvl3_women_head_01_tone1",
-  "lvl3_women_head_01_tone2",
-  "lvl3_women_head_01_tone3",
-  "lvl3_women_head_01_tone4",
-  "lvl5_men_head_01_tone1",
-  "lvl5_men_head_01_tone2",
-  "lvl5_men_head_01_tone3",
-  "lvl5_men_head_01_tone4",
-  "lvl5_women_head_01_tone1",
-  "lvl5_women_head_01_tone2",
-  "lvl5_women_head_01_tone3",
-  "lvl5_women_head_01_tone4",
-  "lvl8_men_head_01_tone1",
-  "lvl8_men_head_01_tone2",
-  "lvl8_men_head_01_tone3",
-  "lvl8_men_head_01_tone4",
-  "lvl8_women_head_01_tone1",
-  "lvl8_women_head_01_tone2",
-  "lvl8_women_head_01_tone3",
-  "lvl8_women_head_01_tone4"
-];
+var HEAD_FILES = [];
 
 // src/domain/athlete/heads.ts
 var NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/;
@@ -184,16 +143,11 @@ function getHead(sex, id) {
 
 // src/domain/athlete/shirtFiles.ts
 var SHIRT_FILES = [
-  { file: "lvl1_men_shirt_01", label: "Charcoal T-shirt" },
-  { file: "lvl2_men_shirt_01", label: "Navy T-shirt" },
-  { file: "lvl3_men_shirt_01", label: "Burgundy T-shirt" },
   { file: "lvl3_men_shirt_02", label: "Green T-shirt" },
   { file: "lvl2_men_shirt_02", label: "Brick red T-shirt" },
   { file: "lvl3_men_shirt_03", label: "Steel blue T-shirt" },
   { file: "lvl1_women_shirt_01", label: "Blue tank top" },
   { file: "lvl2_women_shirt_01", label: "Coral tank top" },
-  { file: "lvl3_women_shirt_01", label: "Green tank top" },
-  { file: "lvl1_women_shirt_02", label: "Cream tank top" },
   { file: "lvl2_women_shirt_02", label: "Teal and grey tank top" },
   { file: "lvl3_women_shirt_03", label: "Pink and white tank top" }
 ];
@@ -1287,39 +1241,39 @@ interior-13,interior,decor,1,0,coins,interior_13,,,,,,,0.5:0.5:3,New piece,Pieza
 interior-14,interior,decor,1,0,coins,interior_14,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
 interior-15,interior,decor,1,0,coins,interior_15,,,,,,,0.5:0.5:3,New piece,Pieza nueva,,,,,,
 exterior-7,exterior,decor,1,0,coins,exterior_7,enter,,,,,,0.376:0.55:2,Beach House lvl2,Refugio Playa lvl2,,,,beach-house,exterior-1,exterior-8
-exterior-8,exterior,decor,2,0,coins,exterior_8,enter,,,,,,0.381:0.551:1.5,Beach House ++,Refugio Playa ++,,,,beach-house,exterior-7,exterior-7
-exterior-9,exterior,decor,1,0,coins,exterior_9,,,,,,,0.363:0.538:2,Desert House +,Refugio Desierto +,,,,desert-house,exterior-2,
-exterior-10,exterior,decor,2,0,coins,exterior_10,enter,,,,,,0.409:0.557:1.5,Dessert House ++,Refugio Desierto ++,,,,desert-house,exterior-9,exterior-9
-exterior-11,exterior,decor,1,0,coins,exterior_11,enter,,,,,,0.38:0.546:2,Lake House +,Refugio Lago +,,,,lake-house,exterior-3,
-exterior-12,exterior,decor,2,0,coins,exterior_12,enter,,,,,,0.409:0.515:1.5,Lake House ++,Refugio Lago ++,,,,lake-house,exterior-11,exterior-11
-exterior-13,exterior,decor,1,0,coins,exterior_13,enter,,,,,,0.346:0.535:2,River House +,Refugio Rio +,,,,river-house,exterior-5,
+exterior-8,exterior,decor,2,0,coins,exterior_8,enter,,,,,,0.381:0.551:1.5,Beach House lvl3,Refugio Playa ++,,,,beach-house,exterior-7,exterior-7
+exterior-9,exterior,decor,1,0,coins,exterior_9,,,,,,,0.363:0.538:2,Desert House lvl2,Refugio Desierto lvl2,,,,desert-house,exterior-2,
+exterior-10,exterior,decor,2,0,coins,exterior_10,enter,,,,,,0.409:0.557:1.5,Dessert House lvl3,Refugio Desierto lvl3,,,,desert-house,exterior-9,exterior-9
+exterior-11,exterior,decor,1,0,coins,exterior_11,enter,,,,,,0.38:0.546:2,Lake House lvl2,Refugio Lago lvl2,,,,lake-house,exterior-3,
+exterior-12,exterior,decor,2,0,coins,exterior_12,enter,,,,,,0.409:0.515:1.5,Lake House lvl3,Refugio Lago lvl3,,,,lake-house,exterior-11,exterior-11
+exterior-13,exterior,decor,1,0,coins,exterior_13,enter,,,,,,0.346:0.535:2,River House lvl2,Refugio Rio lvl2,,,,river-house,exterior-5,
 exterior-14,exterior,decor,2,0,coins,exterior_14,enter,,,,,,0.428:0.515:1.5,River House ++,Refugio Rio ++,,,,river-house,exterior-13,exterior-13
-exterior-15,exterior,decor,1,0,coins,exterior_15,,,,,,,0.359:0.53:2,Mountain House +,Refugio Monta\xF1a +,,,,mountain-house,exterior-4,
+exterior-15,exterior,decor,1,0,coins,exterior_15,,,,,,,0.359:0.53:2,Mountain House lvl2,Refugio Monta\xF1a lvl2,,,,mountain-house,exterior-4,
 exterior-16,exterior,decor,1,0,coins,exterior_16,mailbox,,,,,,0.082:0.792:3,MailBox,Buzon,,,,beach-house,exterior-1,
 exterior-17,exterior,decor,1,0,coins,exterior_17,mailbox,,,,,,0.076:0.765:3,MailBox,Buzon,,,,desert-house,exterior-2,
-exterior-18,exterior,decor,2,0,coins,exterior_18,mailbox,,,,,,0.064:0.755:3,MailBox +,Buzon +,,,,beach-house,exterior-8 exterior-16,exterior-16
+exterior-18,exterior,decor,2,0,coins,exterior_18,mailbox,,,,,,0.064:0.755:3,MailBox lvl2,Buzon lvl2,,,,beach-house,exterior-8 exterior-16,exterior-16
 exterior-19,exterior,decor,2,0,coins,exterior_19,,,,,,,0.717:0.888:2.5,FirePit,Fogon + +,,,,beach-house,,
-exterior-20,exterior,decor,3,0,coins,exterior_20,,,,,,,0.717:0.888:2.5,FirePit +,Fogon + + +,,,,beach-house,exterior-19 exterior-8,exterior-19
-exterior-21,exterior,decor,2,0,coins,exterior_21,mailbox,,,,,,0.076:0.765:3,MailBox +,Buzon +,,,,desert-house,exterior-17,exterior-17
+exterior-20,exterior,decor,3,0,coins,exterior_20,,,,,,,0.717:0.888:2.5,FirePit lvl2,Fogon lvl2,,,,beach-house,exterior-19 exterior-8,exterior-19
+exterior-21,exterior,decor,2,0,coins,exterior_21,mailbox,,,,,,0.076:0.765:3,MailBox lvl2,Buzon lvl2,,,,desert-house,exterior-17,exterior-17
 exterior-22,exterior,decor,2,0,coins,exterior_22,,,,,,,0.605:0.756:3,FirePit,Fogon,,,,desert-house,exterior-2 exterior-10,
-exterior-23,exterior,decor,3,0,coins,exterior_23,,,,,,,0.678:0.883:3,FirePit +,Fogon +,,,,desert-house,exterior-22 exterior-9,exterior-22
-exterior-6,exterior,decor,2,0,coins,exterior_6,enter,,,,,,0.367:0.543:1.5,Mountain House ++,Refugio Monta\xF1a ++,,,,mountain-house,exterior-15,exterior-15
+exterior-23,exterior,decor,3,0,coins,exterior_23,,,,,,,0.678:0.883:3,FirePit lvl2,Fogon lvl2,,,,desert-house,exterior-22 exterior-9,exterior-22
+exterior-6,exterior,decor,2,0,coins,exterior_6,enter,,,,,,0.367:0.543:1.5,Mountain House lvl3,Refugio Monta\xF1a lvl3,,,,mountain-house,exterior-15,exterior-15
 exterior-24,exterior,decor,1,0,coins,exterior_24,mailbox,,,,,,0.088:0.719:3,Mailbox,Buzon +,,,,lake-house,exterior-3,
-exterior-25,exterior,decor,3,0,coins,exterior_25,mailbox,,,,,,0.101:0.716:3,Mailbox +,Buzon + +,,,,lake-house,exterior-24 exterior-11,exterior-24
+exterior-25,exterior,decor,3,0,coins,exterior_25,mailbox,,,,,,0.101:0.716:3,Mailbox lvl2,Buzon lvl2,,,,lake-house,exterior-24 exterior-11,exterior-24
 exterior-26,exterior,decor,2,0,coins,exterior_26,,,,,,,0.785:0.961:3,"Firepit ",Fogon,,,,lake-house,exterior-3,
-exterior-27,exterior,decor,3,0,coins,exterior_27,,,,,,,0.767:0.916:3,Firepit +,Fogon +,,,,lake-house,exterior-26 exterior-12,exterior-26
+exterior-27,exterior,decor,3,0,coins,exterior_27,,,,,,,0.767:0.916:3,Firepit lvl2,Fogon lvl2,,,,lake-house,exterior-26 exterior-12,exterior-26
 exterior-28,exterior,decor,1,0,coins,exterior_28,mailbox,,,,,,0.08:0.755:3,Mailbox,Buzon,,,,mountain-house,exterior-4,
-exterior-29,exterior,decor,3,0,coins,exterior_29,mailbox,,,,,,0.08:0.755:3,Mailbox +,Buzon +,,,,mountain-house,exterior-28 exterior-15,exterior-28
+exterior-29,exterior,decor,3,0,coins,exterior_29,mailbox,,,,,,0.08:0.755:3,Mailbox lvl2,Buzon lvl2,,,,mountain-house,exterior-28 exterior-15,exterior-28
 exterior-30,exterior,decor,2,0,coins,exterior_30,,,,,,,0.67:0.915:3,Firepit,Fogon,,,,mountain-house,exterior-4,
-exterior-31,exterior,decor,3,0,coins,exterior_31,,,,,,,0.67:0.915:3,Firepit +,Fogon +,,,,mountain-house,exterior-30 exterior-6,exterior-30
+exterior-31,exterior,decor,3,0,coins,exterior_31,,,,,,,0.67:0.915:3,Firepit lvl1,Fogon lvl1,,,,mountain-house,exterior-30 exterior-6,exterior-30
 exterior-32,exterior,decor,1,0,coins,exterior_32,mailbox,,,,,,0.085:0.757:3,Mailbox,Buzon,,,,river-house,exterior-5,
-exterior-33,exterior,decor,3,0,coins,exterior_33,mailbox,,,,,,0.077:0.735:3,Mailbox +,Buzon +,,,,river-house,exterior-32 exterior-13,exterior-32
+exterior-33,exterior,decor,3,0,coins,exterior_33,mailbox,,,,,,0.077:0.735:3,Mailbox +lvl2,Buzon lvl2,,,,river-house,exterior-32 exterior-13,exterior-32
 exterior-34,exterior,decor,2,0,coins,exterior_34,,,,,,,0.385:0.921:4,Firebit,Fogon,,,,river-house,exterior-5,
-exterior-35,exterior,decor,3,0,coins,exterior_35,,,,,,,0.376:0.915:3.5,Firebit +,Fogon +,,,,river-house,exterior-34 exterior-14,exterior-34
+exterior-35,exterior,decor,3,0,coins,exterior_35,,,,,,,0.376:0.915:3.5,Firebit lvl2,Fogon lvl2,,,,river-house,exterior-34 exterior-14,exterior-34
 exterior-36,exterior,decor,4,0,coins,exterior_36,,,,,,,0.267:0.39:2.5,Mastil,Mastil,,,,beach-house,exterior-20 exterior-8,
 exterior-37,exterior,decor,4,0,coins,exterior_37,,,,,,,0.082:0.352:3,Mastil,Mastil,,,,desert-house,exterior-23 exterior-10,
 exterior-38,exterior,decor,4,0,coins,exterior_38,,,,,,,0.301:0.262:3,Mastil,Mastil,,,,lake-house,exterior-27 exterior-12,
-exterior-39,exterior,decor,4,0,coins,exterior_39,,,,,,,0.196:0.14:3,Firepit + +,Fogon + +,,,,mountain-house,exterior-31 exterior-6,
+exterior-39,exterior,decor,4,0,coins,exterior_39,,,,,,,0.196:0.14:3,Mastil,Mastil,,,,mountain-house,exterior-31 exterior-6,
 exterior-40,exterior,decor,4,0,coins,exterior_40,,,,,,,0.491:0.223:3.5,Mastil,Mastil,,,,river-house,exterior-35 exterior-14,
 `;
 

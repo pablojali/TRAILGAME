@@ -188,6 +188,17 @@ describe('race back view: simulated race', () => {
     }
   })
 
+  it('runs a mixed field: half the rivals are women, each in the tank top of their sex', () => {
+    const sim = new RaceSimulation(3, 4)
+    const looks = sim.state().runners.map((r) => r.appearance)
+    expect(looks.map((l) => l.sex)).toEqual(['men', 'women', 'men', 'women'])
+    for (const look of looks) {
+      const layers = backLayers(look)
+      expect(layers?.[0]).toBe(`runner/bodies/${look.sex}_body_${look.skin.replace('-', '')}`)
+      expect(layers).toContain(`runner/clothing/lvl${look.sex === 'women' ? '2_women' : '3_men'}_shirt`)
+    }
+  })
+
   it('holds a rival at the gap the debug slider sets, until it is let go', () => {
     const sim = new RaceSimulation(3, 1)
     const [id] = sim.ids

@@ -126,7 +126,11 @@ in the names any more. Trail Studio uploads with `_back` at the end of the name
 - `runner/clothing/lvl3_men_shirt_f1` to `_f3`: the level 3 tank top, one per frame. Claude moved
   `_f3` up 14 px to fit the bodies above (it was drawn on an earlier tone 3 whose trunk dropped) and
   cleared a few stray pixels left by the cut-out.
-- The demo's player is tone 3 with the hair and the tank top; each rival has its own skin tone.
+- `runner/bodies/women_body_tone1_f1` to `women_body_tone4_f3` and
+  `runner/clothing/lvl2_women_shirt_f1` to `_f3`: the owner's women's bodies and a tank top (26
+  November 2026), used as uploaded; the women's hair is being redone by the owner.
+- The demo's player is tone 3 with the hair and the tank top. Half the rivals are women; each rival
+  has its own skin tone and the tank top of their sex, and runs bald until the hair is ready.
 
 **Appearance ids:** the demo's rivals still carry placeholder ids (`red`, `short-dark`…) with no
 art. When this view is connected to the game, the appearance will use the avatar's ids (sex, skin,

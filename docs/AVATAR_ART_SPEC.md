@@ -93,6 +93,10 @@ The owner uploads new bodies, heads and (since 24 November 2026) shirts in Trail
 `src/domain/athlete/headFiles.ts`) and adds new body tones to `SKIN_TONES`
 (`src/domain/athlete/appearance.ts`).
 
+**One model per level (owner decision, 26 November 2026):** heads and shirts can be named without
+a design number, `lvl1_men_head_tone2.png` and `lvl3_men_shirt.png`. The game reads them as design 01,
+so their ids (`head-l1-01`, `shirt-l3-01`) and saved looks are the same as with `_01`.
+
 **Deleting a head (24 November 2026):**
 - **Where:** Trail Studio › Avatares › Heads, list "En el juego". It shows every head picture, one
   card per tone and closed-eyes face, each with its own **Borrar** button. A tone takes its closed eyes

@@ -94,14 +94,17 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
   - **Shirts** (24 November 2026): same flow, to `assets/runner/incoming/shirts/`.
   - **Deleting** (24–25 November 2026): every head and shirt in the game has **Borrar**; CI then
     updates the game's lists (`headFiles.ts`, `shirtFiles.ts`).
-  - **Seen from behind** (25 November 2026): a head or shirt whose name ends in `_back` (`…_tone2_back.png`,
-    `…_shirt_01_back.png` or `…_back_f1.png` per frame) goes straight to the race engine,
+  - **Seen from behind** (25 November 2026; names without a design number since 26 November 2026): a
+    head or shirt whose name ends in `_back` (`lvl1_men_head_tone2_back.png`, `lvl1_men_shirt_back.png` or
+    `…_back_f1.png` per frame) goes straight to the race engine,
     `assets/race/back-view/runner/{heads,clothing}/`, without the name's `_back`, and with no Claude step.
     It must be on the runner's canvas. Each section lists what the engine has, with **Borrar**.
 - **Races › Motor** (25 November 2026): the art of the race seen from behind
   (docs/RACE_BACK_VIEW_DEMO.md), straight to `assets/race/back-view/`. Once the proposal is published,
   the test screen `/race-demo` uses it; later each race will choose its own.
-  - **Corredores:** body frames named `{men|women}_body_01_tone{n}_f{k}.png` on the runner's canvas.
+  - **Corredores:** body frames named `{men|women}_body_tone{n}_f{k}.png` on the runner's canvas.
+  - **Mochilas de espaldas** (26 November 2026): a slot per pack of the equipment table and sex; the
+    file is named after the item's `avatar_layer` (`runner/accessories/lvl1_men_back_01.png`).
   - **Fondos:** sky, mountains and far forest (`scene/{sky,mountains,forest}.png`), one slot each.
   - **Decorado:** pine, rock, bush and grass, three of each (`decor/{kind}-{0..2}.png`).
   - A new picture deletes a `.webp` of the same name, which the engine would read first.

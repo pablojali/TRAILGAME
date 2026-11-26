@@ -118,14 +118,15 @@ in the names any more. Trail Studio uploads with `_back` at the end of the name
 (`lvl1_men_head_tone3_back.png`) and stores it without it.
 
 **In the game now:**
-- `runner/bodies/men_body_tone3_f1` to `_f3`, `runner/heads/lvl1_men_head_tone3` and
-  `runner/clothing/lvl3_men_shirt_f1` to `_f3` (a tank top, one per frame): the owner's first full
-  set of 26 November 2026, in its final style. The demo's player wears it. In `_f2` and `_f3`
-  Claude moved the head and neck down 8 and 15 px (cut at the neck, blended) so they follow the
-  shoulders, as the owner approved.
-- `runner/bodies/men_body_tone2_f1` to `_f3`: the first test body (24 November 2026), in an earlier
-  style and slightly higher on the canvas; the rivals use it until the other tones arrive in the
-  new style.
+- `runner/bodies/men_body_tone1_f1` to `men_body_tone4_f3`: the owner's men's bodies in the four skin
+  tones, three frames each (26 November 2026), with the same silhouette in every tone, so one shirt
+  fits all four. The trunk is still between frames; in `_f2` and `_f3` Claude moved the head and neck
+  down 4 to 7 px (cut at the neck, blended) so the top of the head stays where it is in `_f1`.
+- `runner/heads/lvl1_men_head_tone3`: the level 1 hair in tone 3.
+- `runner/clothing/lvl3_men_shirt_f1` to `_f3`: the level 3 tank top, one per frame. Claude moved
+  `_f3` up 14 px to fit the bodies above (it was drawn on an earlier tone 3 whose trunk dropped) and
+  cleared a few stray pixels left by the cut-out.
+- The demo's player is tone 3 with the hair and the tank top; each rival has its own skin tone.
 
 **Appearance ids:** the demo's rivals still carry placeholder ids (`red`, `short-dark`…) with no
 art. When this view is connected to the game, the appearance will use the avatar's ids (sex, skin,

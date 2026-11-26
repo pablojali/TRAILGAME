@@ -162,7 +162,7 @@ describe('race back view: runner art', () => {
   })
 
   it('reads the owner\'s three drawn frames as a stride of six', () => {
-    for (const tone of [2, 3]) expect(strideFrames(drawnFrames(`runner/bodies/men_body_tone${tone}`, (key) => artUrl(key) !== undefined))).toBe(6)
+    for (const tone of [1, 2, 3, 4]) expect(strideFrames(drawnFrames(`runner/bodies/men_body_tone${tone}`, (key) => artUrl(key) !== undefined))).toBe(6)
   })
 
   it('finds the owner\'s first body in the art folder', () => {

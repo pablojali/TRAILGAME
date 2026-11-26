@@ -107,9 +107,33 @@ export function backLayers(appearance: RunnerAppearance, has: (key: string) => b
   return layers
 }
 
+/**
+ * The first row (from the top) of a picture's central columns with an opaque pixel: the top of the
+ * runner's head. `data` is RGBA pixels, `width` × `height`. -1 when the columns are empty.
+ */
+export function topRow(data: ArrayLike<number>, width: number, height: number): number {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) if (data[(y * width + x) * 4 + 3]! > 128) return y
+  }
+  return -1
+}
+
+/** The band searched for the top of the head: the central tenth of the canvas, its top 40%. */
+const HEAD_BAND = { x: 0.45, width: 0.1, height: 0.4 }
+
+/** A part of a frame: the picture and whether it is mirrored. */
+interface Part {
+  image: HTMLImageElement
+  mirror: boolean
+  /** The layer is the hair, which follows the head of the body in that frame. */
+  hair: boolean
+}
+
 /** The frames of each look, put together once per size and kept. */
 export class SpriteCache {
   private readonly looks = new Map<string, HTMLCanvasElement[]>()
+  /** The top of the head of each body picture, in its own pixels, by art key. */
+  private readonly headTops = new Map<string, number>()
   private readonly art: ArtLibrary
   private readonly has: (key: string) => boolean
 
@@ -121,40 +145,54 @@ export class SpriteCache {
   /**
    * The frames of a look at a size (as many as the body's stride has), or null while its pictures
    * are still loading. Call `backLayers` first: a look without art never becomes ready.
+   *
+   * The hair is one picture for every frame, drawn on the body's first frame; in each frame it
+   * moves down as much as the body's head does (owner, 26 November 2026: the head bobs with the
+   * shoulders, so a still hair looked as if it lagged).
    */
   frames(layers: readonly string[], size: SpriteSize): HTMLCanvasElement[] | null {
     const id = `${size}|${layers.join('|')}`
     const cached = this.looks.get(id)
     if (cached) return cached
-    const plan: { image: HTMLImageElement; mirror: boolean }[][] = []
-    const count = strideFrames(drawnFrames(layers[0]!, this.has))
+    const body = layers[0]!
+    const plan: { parts: Part[]; bodyKey: string; bodyImage: HTMLImageElement | null }[] = []
+    const count = strideFrames(drawnFrames(body, this.has))
     for (let frame = 0; frame < count; frame++) {
-      const parts: { image: HTMLImageElement; mirror: boolean }[] = []
+      const parts: Part[] = []
+      let bodyKey = ''
+      let bodyImage: HTMLImageElement | null = null
       for (const base of layers) {
         const art = frameArt(base, frame, count, this.has)
         if (!art) continue
         const image = this.art.image(art.key)
         if (!image) return null
-        parts.push({ image, mirror: art.mirror })
+        if (base === body) {
+          bodyKey = art.key
+          bodyImage = image
+        }
+        parts.push({ image, mirror: art.mirror, hair: base.startsWith('runner/heads/') })
       }
-      plan.push(parts)
+      plan.push({ parts, bodyKey, bodyImage })
     }
     if (typeof document === 'undefined') return null
     const { width, height } = SPRITE_SIZES[size]
-    const frames = plan.map((parts) => {
+    const firstTop = plan[0]?.bodyImage ? this.headTop(plan[0].bodyKey, plan[0].bodyImage) : -1
+    const frames = plan.map(({ parts, bodyKey, bodyImage }) => {
       const canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
       const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.imageSmoothingQuality = 'high'
-        for (const { image, mirror } of parts) {
+        const top = bodyImage ? this.headTop(bodyKey, bodyImage) : -1
+        const drop = firstTop >= 0 && top >= 0 && bodyImage ? ((top - firstTop) * height) / bodyImage.naturalHeight : 0
+        for (const { image, mirror, hair } of parts) {
           ctx.save()
           if (mirror) {
             ctx.translate(width, 0)
             ctx.scale(-1, 1)
           }
-          ctx.drawImage(image, 0, 0, width, height)
+          ctx.drawImage(image, 0, hair ? drop : 0, width, height)
           ctx.restore()
         }
       }
@@ -162,5 +200,28 @@ export class SpriteCache {
     })
     this.looks.set(id, frames)
     return frames
+  }
+
+  /** The top of the head in a body picture (its own pixels), read once from the picture. */
+  private headTop(key: string, image: HTMLImageElement): number {
+    const known = this.headTops.get(key)
+    if (known !== undefined) return known
+    let top = -1
+    const w = Math.max(1, Math.round(image.naturalWidth * HEAD_BAND.width))
+    const h = Math.max(1, Math.round(image.naturalHeight * HEAD_BAND.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (ctx) {
+      try {
+        ctx.drawImage(image, Math.round(image.naturalWidth * HEAD_BAND.x), 0, w, h, 0, 0, w, h)
+        top = topRow(ctx.getImageData(0, 0, w, h).data, w, h)
+      } catch {
+        top = -1
+      }
+    }
+    this.headTops.set(key, top)
+    return top
   }
 }

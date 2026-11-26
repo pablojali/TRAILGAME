@@ -91,15 +91,18 @@ screens, instead of coded body parts.
   The frames share the stride evenly. The trunk, head and shorts are the same in every frame: only
   the arms and legs change. The code adds the bounce (lowest at frames 1 and 4) and the sway by
   moving the whole picture.
-- **Layers, back to front:** body → shirt → pack → hair. A layer with `_f1`, `_f2`… has a picture per
+- **Layers, back to front:** body → shoes → shirt → pack → hair. A layer with `_f1`, `_f2`… has a picture per
   frame, as many as the body; without them one picture serves every frame (a tank top, a
   pack, the hair) and is not mirrored.
-- **Feet:** the runners are barefoot and there are no shoe layers: the player's feet are below the
-  screen's edge and the rivals' are a few pixels.
+- **Feet:** shoes are a layer of their own (owner, 26 November 2026), one picture per frame like a
+  shirt with sleeves. The player's feet are below the screen's edge, so they show on the rivals.
+  The demo gives each rival a pair of their sex from `runner/footwear`, so every pair the owner
+  uploads shows. Linking each pair to the equipment's shoes (`starter-shoes`…) comes with the game.
 
 | Key | What | Per frame |
 |---|---|---|
 | `runner/bodies/{men\|women}_body_tone{n}_f{1,2,3}` | Bald, shirtless body with shorts | Yes |
+| `runner/footwear/lvl{L}_{men\|women}_shoes(_{NN})_f{1,2,3}` | Shoes, uploaded in Trail Studio › Avatares as `…_shoes_back_f{n}.png` (`_{NN}` when a level has more than one model) | Yes |
 | `runner/clothing/{shirt file}` | A shirt, named by level (`lvl3_men_shirt`) | Sleeves: `_f1`, `_f2`. Tank top: one |
 | `runner/accessories/{pack file}` | A pack, named by level (`lvl1_men_back`) | No |
 | `runner/heads/{head file}` | The hair seen from behind, named by level and tone (`lvl1_men_head_tone3`). It carries the nape and ears in that skin tone, so it fits that tone's body | No |

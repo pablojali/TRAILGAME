@@ -10,6 +10,10 @@ describe('Trail Studio: race engine art', () => {
     expect(backViewPath('lvl1_men_head_tone2.png')).toBeNull()
     expect(backViewPath('lvl1_men_shirt.png')).toBeNull()
     expect(backViewPath('lvl1_men_head_01_tone2_back.png')).toBeNull()
+    // Shoes seen from behind (26 November 2026): per frame, with the model number only when needed.
+    expect(backViewPath('lvl3_women_shoes_back_f2.png')).toBe('assets/race/back-view/runner/footwear/lvl3_women_shoes_f2.png')
+    expect(backViewPath('lvl1_men_shoes_02_back_f1.png')).toBe('assets/race/back-view/runner/footwear/lvl1_men_shoes_02_f1.png')
+    expect(backViewPath('lvl1_men_shoes_back.png')).toBeNull()
   })
 
   it('accepts body frames named by sex, tone and frame', () => {

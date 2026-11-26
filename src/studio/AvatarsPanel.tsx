@@ -20,8 +20,9 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
   const backHeads = useFolder(token, `${ENGINE_ROOT}/runner/heads`)
   const backShirts = useFolder(token, `${ENGINE_ROOT}/runner/clothing`)
   const backBodies = useFolder(token, `${ENGINE_ROOT}/runner/bodies`)
+  const backShoes = useFolder(token, `${ENGINE_ROOT}/runner/footwear`)
 
-  async function add(kind: (typeof AVATAR_KINDS)[number], files: globalThis.FileList) {
+  async function add(kind: (typeof AVATAR_KINDS)[number] | { id: 'shoes' }, files: globalThis.FileList) {
     setError('')
     let changes: Record<string, Upload> = {}
     for (const file of Array.from(files)) {
@@ -37,15 +38,21 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
       // the race engine, on the runner's canvas.
       const name = incomingName(file.name)
       const back = kind.id === 'bodies' ? (BODY_FRAME.test(name) ? `${ENGINE_ROOT}/runner/bodies/${name}` : null) : backViewPath(name)
+      if (kind.id === 'shoes' && !back?.includes('/footwear/')) {
+        setError(`${file.name}: el nombre tiene que ser como lvl1_men_shoes_back_f1.png (o lvl1_men_shoes_02_back_f1.png si el nivel tiene más de un modelo).`)
+        continue
+      }
       if (back) {
         try {
-          const existing = kind.id === 'heads' ? backHeads : kind.id === 'shirts' ? backShirts : backBodies
+          const folder = back.split('/').at(-2)
+          const existing = folder === 'heads' ? backHeads : folder === 'clothing' ? backShirts : folder === 'footwear' ? backShoes : backBodies
           changes = { ...changes, ...replacing(back, existing), [back]: await layerPicture(back, file, `Race engine: ${file.name} (seen from behind)`) }
         } catch (e) {
           setError(`${file.name}: ${(e as Error).message}`)
         }
         continue
       }
+      if (kind.id === 'shoes') continue
       const path = `${INCOMING}/${kind.id}/${incomingName(file.name)}`
       changes[path] = await asUpload(file, `New ${kind.title.slice(0, -1).toLowerCase()}: ${file.name}`)
     }
@@ -63,7 +70,7 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
         <p className="hint">
           <strong>De espaldas (motor de carrera):</strong> pon <code>_back</code> al final del nombre y van directo al motor, sin esperar a Claude: el pelo{' '}
           <code>lvl1_men_head_tone2_back.png</code>, una remera <code>lvl1_men_shirt_back.png</code> (con mangas, una por fotograma:{' '}
-          <code>lvl1_men_shirt_back_f1.png</code>, <code>_f2</code>…). Las mochilas de espaldas, en Races › Motor. En el lienzo de 1024 × 1536, como los cuerpos de Races › Motor.
+          <code>lvl1_men_shirt_back_f1.png</code>, <code>_f2</code>…), unas zapatillas <code>lvl1_men_shoes_back_f1.png</code> (abajo, en Zapatillas de espaldas). Las mochilas de espaldas, en Races › Motor. En el lienzo de 1024 × 1536, como los cuerpos de Races › Motor.
         </p>
         {error && (
           <p className="error" role="alert">
@@ -74,6 +81,29 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
       {AVATAR_KINDS.map((kind) => (
         <KindSection key={kind.id} token={token} ws={ws} setWs={setWs} kind={kind} onFiles={(files) => void add(kind, files)} />
       ))}
+      <section className="editPane" aria-label="Shoes seen from behind">
+        <div className="majorsBar">
+          <h3>Zapatillas de espaldas</h3>
+          <label className="primary upload">
+            Subir zapatillas
+            <input
+              type="file"
+              accept="image/png"
+              multiple
+              onChange={(e) => {
+                if (e.target.files?.length) void add({ id: 'shoes' }, e.target.files)
+                e.target.value = ''
+              }}
+            />
+          </label>
+        </div>
+        <p className="hint">
+          Solo para el motor de carrera (las de frente siguen en Equipamiento). Un PNG por fotograma en el lienzo de 1024 × 1536:{' '}
+          <code>lvl1_men_shoes_back_f1.png</code>, <code>_f2</code>, <code>_f3</code>; si el nivel tiene más de un modelo, con su número:{' '}
+          <code>lvl1_men_shoes_02_back_f1.png</code>. Las poses 4 a 6 las hace el motor con espejo.
+        </p>
+        <FileList title="En el motor de carrera" files={backShoes} ws={ws} setWs={setWs} />
+      </section>
     </div>
   )
 }

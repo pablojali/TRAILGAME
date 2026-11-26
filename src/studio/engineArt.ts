@@ -33,6 +33,10 @@ export const DECOR_SLOTS = (['pine', 'rock', 'bush', 'grass'] as const).flatMap(
 export function backViewPath(fileName: string): string | null {
   const head = /^(lvl\d+_(?:men|women)_head_tone[1-4])_back\.png$/.exec(fileName)
   if (head) return `${ENGINE_ROOT}/runner/heads/${head[1]}.png`
+  // Shoes seen from behind (owner request, 26 November 2026): one picture per frame, the level's model
+  // number only when the level has more than one (`lvl1_men_shoes_02_back_f1.png`).
+  const shoes = /^(lvl\d+_(?:men|women)_shoes(?:_\d{2})?)_back(_f\d+)\.png$/.exec(fileName)
+  if (shoes) return `${ENGINE_ROOT}/runner/footwear/${shoes[1]}${shoes[2]}.png`
   const shirt = /^(lvl\d+_(?:men|women)_shirt)_back(_f\d+)?\.png$/.exec(fileName)
   if (shirt) return `${ENGINE_ROOT}/runner/clothing/${shirt[1]}${shirt[2] ?? ''}.png`
   return null

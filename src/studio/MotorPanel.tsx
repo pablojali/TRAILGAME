@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { RepoFile } from './github'
-import { BODY_FRAME, DECOR_SLOTS, ENGINE_ROOT, replacing, SCENE_SLOTS } from './engineArt'
+import { rows } from './csvDoc'
+import { BODY_FRAME, DECOR_SLOTS, ENGINE_ROOT, packBackPath, replacing, SCENE_SLOTS } from './engineArt'
 import type { Workspace } from './model'
 import { asUpload, layerPicture, withUploads } from './uploads'
 import { useFolder } from './useFolder'
@@ -15,13 +16,23 @@ export function MotorPanel({ token, ws, setWs }: { token: string; ws: Workspace;
   const bodies = useFolder(token, `${ENGINE_ROOT}/runner/bodies`)
   const scene = useFolder(token, `${ENGINE_ROOT}/scene`)
   const decor = useFolder(token, `${ENGINE_ROOT}/decor`)
+  const packs = useFolder(token, `${ENGINE_ROOT}/runner/accessories`)
+  // Packs seen from behind (owner request, 26 November 2026): one picture per pack and sex.
+  const packSlots = rows(ws.docs.equipment)
+    .filter((row) => row.values.type === 'pack')
+    .flatMap((row) =>
+      (['men', 'women'] as const).flatMap((sex) => {
+        const path = packBackPath(row.values.avatar_layer ?? '', sex)
+        return path ? [{ id: path.slice(path.lastIndexOf('/') + 1, -'.png'.length), label: `${row.values.name || row.values.id} (${sex === 'men' ? 'hombre' : 'mujer'})` }] : []
+      }),
+    )
 
   async function addFrames(files: FileList) {
     setError('')
     let changes: Record<string, ReturnType<typeof replacing>[string]> = {}
     for (const file of Array.from(files)) {
       if (!BODY_FRAME.test(file.name)) {
-        setError(`${file.name}: el nombre tiene que ser como men_body_01_tone2_f1.png (men o women, tono 1–4, fotograma f1, f2…).`)
+        setError(`${file.name}: el nombre tiene que ser como men_body_tone2_f1.png (men o women, tono 1–4, fotograma f1, f2…).`)
         continue
       }
       const path = `${ENGINE_ROOT}/runner/bodies/${file.name}`
@@ -39,6 +50,16 @@ export function MotorPanel({ token, ws, setWs }: { token: string; ws: Workspace;
     if (file.type !== 'image/png') return setError(`${file.name}: solo PNG.`)
     const path = `${ENGINE_ROOT}/${folder}/${id}.png`
     setWs(withUploads(ws, { ...replacing(path, existing), [path]: await asUpload(file, `Race engine: ${label}`) }))
+  }
+
+  async function addLayer(folder: string, existing: RepoFile[] | null, id: string, label: string, file: File) {
+    setError('')
+    const path = `${ENGINE_ROOT}/${folder}/${id}.png`
+    try {
+      setWs(withUploads(ws, { ...replacing(path, existing), [path]: await layerPicture(path, file, `Race engine: ${label} seen from behind`) }))
+    } catch (e) {
+      setError(`${file.name}: ${(e as Error).message}`)
+    }
   }
 
   const pendingFrames = Object.entries(ws.uploads).filter(([path, upload]) => path.startsWith(`${ENGINE_ROOT}/runner/bodies/`) && upload.base64 !== null)
@@ -75,7 +96,7 @@ export function MotorPanel({ token, ws, setWs }: { token: string; ws: Workspace;
           </label>
         </div>
         <p className="hint">
-          Cuerpo calvo, sin remera y con pantalón, de espaldas, en el lienzo de 1024 × 1536. Un PNG por fotograma, con nombre <code>men_body_01_tone2_f1.png</code> (men o
+          Cuerpo calvo, sin remera y con pantalón, de espaldas, en el lienzo de 1024 × 1536. Un PNG por fotograma, con nombre <code>men_body_tone2_f1.png</code> (men o
           women, tono 1–4, f1, f2, f3…). Las cabezas y la ropa de espaldas se suben en Multimedia › Avatares, con <code>_back</code> en el nombre.
         </p>
         {pendingFrames.length > 0 && (
@@ -101,6 +122,16 @@ export function MotorPanel({ token, ws, setWs }: { token: string; ws: Workspace;
         <FileList title="En el juego" files={bodies} ws={ws} setWs={setWs} />
       </section>
 
+      <SlotSection
+        title="Mochilas de espaldas"
+        hint="Cada mochila de Equipamiento, por sexo, en el lienzo del corredor (1024 × 1536), en su sitio sobre la espalda. El nombre lo pone Studio."
+        folder="runner/accessories"
+        slots={packSlots}
+        files={packs}
+        ws={ws}
+        setWs={setWs}
+        onFile={(id, label, file) => void addLayer('runner/accessories', packs, id, label, file)}
+      />
       <SlotSection
         title="Fondos"
         hint="Capas del paisaje, de atrás hacia delante. PNG; el bosque lejano con fondo transparente."

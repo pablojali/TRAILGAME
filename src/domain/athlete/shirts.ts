@@ -4,7 +4,8 @@ import { SHIRT_FILES } from './shirtFiles'
 
 export { SHIRT_FILES }
 
-const NAME = /^lvl(\d+)_(men|women)_shirt_(\d{2})$/
+// One shirt per sex and level has no design number (owner decision, 26 November 2026): it is design 01.
+const NAME = /^lvl(\d+)_(men|women)_shirt(?:_(\d{2}))?$/
 
 export interface ShirtDefinition {
   /** Stable and saved in `appearance.outfit`, e.g. `shirt-l2-01`. */
@@ -25,7 +26,7 @@ export function buildShirtCatalog(files: readonly { file: string; label: string 
     if (!match) continue
     const [, level, sexName, design] = match
     shirts.push({
-      id: `shirt-l${Number(level)}-${design}`,
+      id: `shirt-l${Number(level)}-${design ?? '01'}`,
       sex: sexName === 'men' ? 'male' : 'female',
       level: Number(level),
       label,

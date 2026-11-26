@@ -15,7 +15,8 @@ import { HEAD_FILES } from './headFiles'
  */
 export { HEAD_FILES }
 
-const NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/
+// One head per sex and level has no design number (owner decision, 26 November 2026): it is design 01.
+const NAME = /^lvl(\d+)_(men|women)_head(?:_(\d{2}))?_tone(\d)$/
 
 export interface HeadDefinition {
   /** Stable and saved, e.g. `head-l2-01`. */
@@ -37,7 +38,7 @@ export function buildHeadCatalog(files: readonly string[]): HeadDefinition[] {
     if (!match) continue
     const [, level, sexName, design, tone] = match
     const sex: Sex = sexName === 'men' ? 'male' : 'female'
-    const id = `head-l${Number(level)}-${design}`
+    const id = `head-l${Number(level)}-${design ?? '01'}`
     const key = `${sex}/${id}`
     const head = byId.get(key) ?? { id, sex, level: Number(level), label: '', files: {} }
     head.files[Number(tone)] = file

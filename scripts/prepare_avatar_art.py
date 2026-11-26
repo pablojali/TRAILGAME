@@ -50,8 +50,8 @@ SIZE = (640, 960)
 QUALITY = 88
 
 BODY_NAME = re.compile(r"^(men|women)_body_01_tone(\d)\.png$")
-HEAD_NAME = re.compile(r"^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)(_blink)?\.png$")
-SHIRT_NAME = re.compile(r"^lvl(\d+)_(men|women)_shirt_(\d{2})\.png$")
+HEAD_NAME = re.compile(r"^lvl(\d+)_(men|women)_head(?:_(\d{2}))?_tone(\d)(_blink)?\.png$")
+SHIRT_NAME = re.compile(r"^lvl(\d+)_(men|women)_shirt(?:_(\d{2}))?\.png$")
 # Shoe art by equipment item id (owner decision, 31 October 2026; new art 5 November 2026: the
 # starting shoes are lvl0_shoes_01; lvl3_shoes_01 is the mountain trail shoes). lvl1_shoes_02 has no shop item yet; it
 # is prepared so it is ready when one is added.

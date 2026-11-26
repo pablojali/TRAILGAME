@@ -37,3 +37,15 @@ describe('head catalog', () => {
     ])
   })
 })
+
+describe('art named without a design number (owner decision, 26 November 2026)', () => {
+  it('reads a head with no design number as design 01, so saved heads keep their id', () => {
+    const [head] = buildHeadCatalog(['lvl1_men_head_tone1', 'lvl1_men_head_tone3'])
+    expect(head).toMatchObject({ id: 'head-l1-01', sex: 'male', level: 1, files: { 1: 'lvl1_men_head_tone1', 3: 'lvl1_men_head_tone3' } })
+  })
+
+  it('reads a shirt with no design number as design 01', async () => {
+    const { buildShirtCatalog } = await import('./shirts')
+    expect(buildShirtCatalog([{ file: 'lvl3_men_shirt', label: 'New shirt' }])).toMatchObject([{ id: 'shirt-l3-01', sex: 'male', level: 3, file: 'lvl3_men_shirt' }])
+  })
+})

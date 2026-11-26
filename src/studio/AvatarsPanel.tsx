@@ -58,8 +58,8 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
         </p>
         <p className="hint">
           <strong>De espaldas (motor de carrera):</strong> pon <code>_back</code> al final del nombre y van directo al motor, sin esperar a Claude: el pelo{' '}
-          <code>lvl1_men_head_01_tone2_back.png</code>, una remera <code>lvl1_men_shirt_01_back.png</code> (con mangas, una por fotograma:{' '}
-          <code>lvl1_men_shirt_01_back_f1.png</code>, <code>_f2</code>…). En el lienzo de 1024 × 1536, como los cuerpos de Races › Motor.
+          <code>lvl1_men_head_tone2_back.png</code>, una remera <code>lvl1_men_shirt_back.png</code> (con mangas, una por fotograma:{' '}
+          <code>lvl1_men_shirt_back_f1.png</code>, <code>_f2</code>…). Las mochilas de espaldas, en Races › Motor. En el lienzo de 1024 × 1536, como los cuerpos de Races › Motor.
         </p>
         {error && (
           <p className="error" role="alert">
@@ -212,7 +212,7 @@ function GameHeads({ ws, setWs, files }: { ws: Workspace; setWs(ws: Workspace): 
  * the game with the next proposal (CI updates the shirt list); a runner who wore it has no shirt.
  */
 function GameShirts({ ws, setWs, files }: { ws: Workspace; setWs(ws: Workspace): void; files: RepoFile[] | null }) {
-  const shirts = (files ?? []).filter((file) => /^lvl\d+_(men|women)_shirt_\d{2}\.png$/.test(file.name))
+  const shirts = (files ?? []).filter((file) => /^lvl\d+_(men|women)_shirt(_\d{2})?\.png$/.test(file.name))
   const gone = (file: RepoFile) => ws.uploads[file.path]?.base64 === null
   const toggle = (file: RepoFile) =>
     setWs(withUploads(ws, { [file.path]: gone(file) ? undefined : { base64: null, label: `Shirt ${file.name} (removed)` } }))

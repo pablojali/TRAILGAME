@@ -34,7 +34,7 @@ export interface HeadGroup {
   files: { name: string; path: string; url: string }[]
 }
 
-const HEAD_ART = /^(lvl(\d+)_(men|women)_head_(\d{2}))_tone\d(?:_blink)?\.png$/
+const HEAD_ART = /^(lvl(\d+)_(men|women)_head(?:_(\d{2}))?)_tone\d(?:_blink)?\.png$/
 
 /**
  * The heads in the game, one per design, in unlock order (owner request, 24 November 2026: delete
@@ -47,7 +47,7 @@ export function headGroups(files: readonly { name: string; path: string; url: st
     const match = HEAD_ART.exec(file.name)
     if (!match) continue
     const [, key, level, sex, design] = match
-    const group = groups.get(key!) ?? { key: key!, sex: sex as 'men' | 'women', level: Number(level), design: design!, files: [] }
+    const group = groups.get(key!) ?? { key: key!, sex: sex as 'men' | 'women', level: Number(level), design: design ?? '01', files: [] }
     group.files.push(file)
     groups.set(key!, group)
   }

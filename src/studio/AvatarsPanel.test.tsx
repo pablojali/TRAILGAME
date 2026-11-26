@@ -78,11 +78,11 @@ describe('Trail Studio · Avatares: art seen from behind', () => {
     render(<Harness onWs={(next) => (ws = next)} />)
     const heads = await screen.findByRole('region', { name: 'Heads' })
     await user.upload(within(heads).getByLabelText(/Subir heads/i), [
-      new File(['x'], 'lvl1_men_head_01_tone2_back.png', { type: 'image/png' }),
+      new File(['x'], 'lvl1_men_head_tone2_back.png', { type: 'image/png' }),
       new File(['x'], 'lvl1_men_head_02_tone1.png', { type: 'image/png' }),
     ])
     expect(Object.keys(ws!.uploads).sort()).toEqual([
-      'assets/race/back-view/runner/heads/lvl1_men_head_01_tone2.png',
+      'assets/race/back-view/runner/heads/lvl1_men_head_tone2.png',
       'assets/runner/incoming/heads/lvl1_men_head_02_tone1.png',
     ])
   })

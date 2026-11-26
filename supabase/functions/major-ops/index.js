@@ -1823,7 +1823,13 @@ function isCountryCode(value) {
 }
 
 // src/domain/athlete/headFiles.ts
-var HEAD_FILES = [];
+var HEAD_FILES = [
+  "lvl1_men_head_tone1",
+  "lvl1_men_head_tone3",
+  "lvl1_women_head_tone1",
+  "lvl3_women_head_tone1",
+  "lvl5_women_head_tone1"
+];
 
 // src/domain/athlete/heads.ts
 var NAME = /^lvl(\d+)_(men|women)_head(?:_(\d{2}))?_tone(\d)$/;
@@ -1856,7 +1862,8 @@ var SHIRT_FILES = [
   { file: "lvl1_women_shirt_01", label: "Blue tank top" },
   { file: "lvl2_women_shirt_01", label: "Coral tank top" },
   { file: "lvl2_women_shirt_02", label: "Teal and grey tank top" },
-  { file: "lvl3_women_shirt_03", label: "Pink and white tank top" }
+  { file: "lvl3_women_shirt_03", label: "Pink and white tank top" },
+  { file: "lvl3_men_shirt", label: "New shirt" }
 ];
 
 // src/domain/athlete/shirts.ts

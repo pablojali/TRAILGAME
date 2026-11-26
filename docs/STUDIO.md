@@ -99,6 +99,11 @@ built from this repository (`studio/index.html`, code in `src/studio`). Its inte
     `…_back_f1.png` per frame) goes straight to the race engine,
     `assets/race/back-view/runner/{heads,clothing}/`, without the name's `_back`, and with no Claude step.
     It must be on the runner's canvas. Each section lists what the engine has, with **Borrar**.
+  - **Shoes seen from behind** (26 November 2026), in their own section at the bottom of Avatares:
+    `lvl{L}_{men|women}_shoes_back_f{n}.png`, or `lvl{L}_{men|women}_shoes_{NN}_back_f{n}.png` when the
+    level has more than one model, → `assets/race/back-view/runner/footwear/lvl{L}_{sex}_shoes(_{NN})_f{n}.png`.
+    One picture per frame on the runner's canvas; the engine mirrors frames 4 to 6. A `.webp` of the same
+    name is deleted. The front shoes are unchanged (Equipamiento).
 - **Races › Motor** (25 November 2026): the art of the race seen from behind
   (docs/RACE_BACK_VIEW_DEMO.md), straight to `assets/race/back-view/`. Once the proposal is published,
   the test screen `/race-demo` uses it; later each race will choose its own.

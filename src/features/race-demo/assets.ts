@@ -9,7 +9,7 @@ const FILES = import.meta.glob<string>('/assets/race/back-view/**/*.{png,webp}',
 
 const ROOT = '/assets/race/back-view/'
 
-/** The bundled URL of a piece of art, e.g. `decor/pine-0` or `runner/bodies/men_body_01_tone2_f1`, if the owner has added it. */
+/** The bundled URL of a piece of art, e.g. `decor/pine-0` or `runner/bodies/men_body_tone3_f1`, if the owner has added it. */
 export function artUrl(key: string): string | undefined {
   return FILES[`${ROOT}${key}.webp`] ?? FILES[`${ROOT}${key}.png`]
 }

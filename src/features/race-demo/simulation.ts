@@ -24,10 +24,10 @@ interface SimRival {
 }
 
 /**
- * The player: the owner's first back-view body (men, tone 2), still bald and shirtless (24 November
- * 2026: hair and shirts come as separate layers later).
+ * The player: the owner's first full set of back-view layers (26 November 2026): men, tone 3, the
+ * level 1 hair and the level 3 tank top.
  */
-export const PLAYER_APPEARANCE: RunnerAppearance = { sex: 'men', skin: 'tone-2', hair: 'natural', shirt: 'none', shorts: 'black', shoes: 'orange', pack: null, bib: 7 }
+export const PLAYER_APPEARANCE: RunnerAppearance = { sex: 'men', skin: 'tone-3', hair: 'lvl1_men_head_tone3', shirt: 'lvl3_men_shirt', shorts: 'black', shoes: 'orange', pack: null, bib: 7 }
 
 /** Rival gaps stay between these: far ahead (beyond the horizon) and far behind (out of sight). */
 export const GAP_MIN = -170

@@ -83,13 +83,13 @@ const bundled = (key: string) => artUrl(key) !== undefined
  * The layers of a look (art keys without the frame), or null when there is no body art at all (the
  * view then draws its coded runner). The body follows the skin tone; while a tone has no body yet,
  * another tone of the same sex stands in, then the other sex. The shirt, pack and hair are named
- * like the avatar's files (`lvl1_men_shirt_01`…) and are left out while they have no art.
+ * by level, like the avatar's files (`lvl3_men_shirt`…), and are left out while they have no art.
  */
 export function backLayers(appearance: RunnerAppearance, has: (key: string) => boolean = bundled): string[] | null {
   const sex = appearance.sex ?? 'men'
   const tone = appearance.skin.replace('tone-', '')
   const other = sex === 'men' ? 'women' : 'men'
-  const bodies = [`${sex}_body_01_tone${tone}`, ...[sex, other].flatMap((s) => ['1', '2', '3', '4'].map((t) => `${s}_body_01_tone${t}`))]
+  const bodies = [`${sex}_body_tone${tone}`, ...[sex, other].flatMap((s) => ['1', '2', '3', '4'].map((t) => `${s}_body_tone${t}`))]
   const body = bodies.map((name) => `runner/bodies/${name}`).find((base) => hasArt(base, has))
   if (!body) return null
   const layers = [body]

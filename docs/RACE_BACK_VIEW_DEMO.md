@@ -99,17 +99,25 @@ screens, instead of coded body parts.
 
 | Key | What | Per frame |
 |---|---|---|
-| `runner/bodies/{men\|women}_body_01_tone{n}_f{1,2}` | Bald, shirtless body with shorts | Yes |
-| `runner/clothing/{shirt file}` | A shirt, named like the avatar's (`lvl1_men_shirt_01`) | Sleeves: `_f1`, `_f2`. Tank top: one |
-| `runner/accessories/{pack file}` | A pack, named like the avatar's (`lvl1_men_back_01`) | No |
-| `runner/heads/{head file}` | The hair seen from behind, named like the avatar's head in that tone (`lvl1_men_head_01_tone2`) | No |
+| `runner/bodies/{men\|women}_body_tone{n}_f{1,2,3}` | Bald, shirtless body with shorts | Yes |
+| `runner/clothing/{shirt file}` | A shirt, named by level (`lvl3_men_shirt`) | Sleeves: `_f1`, `_f2`. Tank top: one |
+| `runner/accessories/{pack file}` | A pack, named by level (`lvl1_men_back`) | No |
+| `runner/heads/{head file}` | The hair seen from behind, named by level and tone (`lvl1_men_head_tone3`). It carries the nape and ears in that skin tone, so it fits that tone's body | No |
 
 While a skin tone has no body, another tone (then the other sex) stands in. A shirt, pack or hair
 with no art is left out. With no body art at all, the coded runner is drawn.
 
-**In the game now:** `runner/bodies/men_body_01_tone2_f1` to `_f3` (owner art of 24 November 2026,
-background removed and placed on the canvas by Claude, all three with the same scale and position). The demo's player and rivals all use it, bald
-and shirtless, until hair and shirts arrive.
+**Names (owner, 26 November 2026):** one model per level, so there is no design number (`_01`)
+in the names any more. Trail Studio uploads with `_back` at the end of the name
+(`lvl1_men_head_tone3_back.png`) and stores it without it.
+
+**In the game now:**
+- `runner/bodies/men_body_tone3_f1` to `_f3`, `runner/heads/lvl1_men_head_tone3` and
+  `runner/clothing/lvl3_men_shirt` (a tank top, one picture for every frame): the owner's first full
+  set of 26 November 2026, in its final style. The demo's player wears it.
+- `runner/bodies/men_body_tone2_f1` to `_f3`: the first test body (24 November 2026), in an earlier
+  style and slightly higher on the canvas; the rivals use it until the other tones arrive in the
+  new style.
 
 **Appearance ids:** the demo's rivals still carry placeholder ids (`red`, `short-dark`…) with no
 art. When this view is connected to the game, the appearance will use the avatar's ids (sex, skin,

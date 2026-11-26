@@ -3,7 +3,7 @@ import { artUrl } from './assets'
 import { backLayers, drawnFrames, frameArt, strideFrames } from './backSprites'
 import { depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, PLAYER_Z, project, RUNNER_HEIGHT } from './projection'
 import { advanceGait, frameIndex, runnerPose, STANDING, strideAt, strideHz } from './runnerRig'
-import { GAP_MAX, GAP_MIN, RaceSimulation } from './simulation'
+import { GAP_MAX, GAP_MIN, PLAYER_APPEARANCE, RaceSimulation } from './simulation'
 import type { RaceViewRunner } from './types'
 import { DecorPool, laneOf, syncRunners, type ShownRunner } from './world'
 
@@ -108,7 +108,7 @@ describe('race back view: runner animation', () => {
 })
 
 describe('race back view: runner art', () => {
-  const files = new Set(['runner/bodies/men_body_01_tone2_f1', 'runner/bodies/men_body_01_tone2_f2', 'runner/clothing/lvl1_women_shirt_01', 'runner/heads/lvl1_men_head_01_tone2'])
+  const files = new Set(['runner/bodies/men_body_tone2_f1', 'runner/bodies/men_body_tone2_f2', 'runner/clothing/lvl1_women_shirt', 'runner/heads/lvl1_men_head_tone2'])
   const has = (key: string) => files.has(key)
 
   it('shares the stride evenly among the frames, in order, and shows the fists at the waist when standing', () => {
@@ -123,7 +123,7 @@ describe('race back view: runner art', () => {
   })
 
   it('mirrors a half stride of 2 or 3 drawn frames, and uses 4 or more as the whole stride', () => {
-    const body = 'runner/bodies/men_body_01_tone2'
+    const body = 'runner/bodies/men_body_tone2'
     expect(drawnFrames(body, has)).toBe(2)
     expect(strideFrames(2)).toBe(4)
     expect(strideFrames(3)).toBe(6)
@@ -135,14 +135,14 @@ describe('race back view: runner art', () => {
     expect(frameArt(body, 3, 4, has)).toEqual({ key: `${body}_f2`, mirror: true })
     const three = (key: string) => /_f[123]$/.test(key)
     expect([3, 4, 5].map((f) => frameArt('b', f, 6, three))).toEqual([1, 2, 3].map((n) => ({ key: `b_f${n}`, mirror: true })))
-    expect(frameArt('runner/clothing/lvl1_women_shirt_01', 3, 4, has)).toEqual({ key: 'runner/clothing/lvl1_women_shirt_01', mirror: false })
+    expect(frameArt('runner/clothing/lvl1_women_shirt', 3, 4, has)).toEqual({ key: 'runner/clothing/lvl1_women_shirt', mirror: false })
     expect(frameArt('runner/clothing/none', 0, 4, has)).toBeNull()
   })
 
   it('stacks body, shirt, pack and hair, lends another tone while one has no body, and leaves out what has no art', () => {
-    const look = { sex: 'men' as const, skin: 'tone-4', hair: 'lvl1_men_head_01_tone2', shirt: 'lvl1_women_shirt_01', shorts: 'black', shoes: 'grey', pack: 'lvl1_men_back_01' }
-    expect(backLayers(look, has)).toEqual(['runner/bodies/men_body_01_tone2', 'runner/clothing/lvl1_women_shirt_01', 'runner/heads/lvl1_men_head_01_tone2'])
-    expect(backLayers({ ...look, sex: 'women' }, has)?.[0]).toBe('runner/bodies/men_body_01_tone2')
+    const look = { sex: 'men' as const, skin: 'tone-4', hair: 'lvl1_men_head_tone2', shirt: 'lvl1_women_shirt', shorts: 'black', shoes: 'grey', pack: 'lvl1_men_back' }
+    expect(backLayers(look, has)).toEqual(['runner/bodies/men_body_tone2', 'runner/clothing/lvl1_women_shirt', 'runner/heads/lvl1_men_head_tone2'])
+    expect(backLayers({ ...look, sex: 'women' }, has)?.[0]).toBe('runner/bodies/men_body_tone2')
     expect(backLayers(look, () => false)).toBeNull()
   })
 
@@ -152,11 +152,12 @@ describe('race back view: runner art', () => {
   })
 
   it('reads the owner\'s three drawn frames as a stride of six', () => {
-    expect(strideFrames(drawnFrames('runner/bodies/men_body_01_tone2', (key) => artUrl(key) !== undefined))).toBe(6)
+    for (const tone of [2, 3]) expect(strideFrames(drawnFrames(`runner/bodies/men_body_tone${tone}`, (key) => artUrl(key) !== undefined))).toBe(6)
   })
 
   it('finds the owner\'s first body in the art folder', () => {
-    expect(backLayers({ sex: 'men', skin: 'tone-2', hair: 'natural', shirt: 'none', shorts: 'black', shoes: 'grey', pack: null })).toEqual(['runner/bodies/men_body_01_tone2'])
+    expect(backLayers({ sex: 'men', skin: 'tone-2', hair: 'natural', shirt: 'none', shorts: 'black', shoes: 'grey', pack: null })).toEqual(['runner/bodies/men_body_tone2'])
+    expect(backLayers(PLAYER_APPEARANCE)).toEqual(['runner/bodies/men_body_tone3', 'runner/clothing/lvl3_men_shirt', 'runner/heads/lvl1_men_head_tone3'])
   })
 })
 

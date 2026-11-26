@@ -6,7 +6,7 @@
 
 /**
  * How a runner looks from behind. The shirt, pack and hair name the owner's art like the avatar's
- * files (`lvl1_men_shirt_01`…, see backSprites.ts); an id with no art is a placeholder colour of the
+ * files by level (`lvl3_men_shirt`…, see backSprites.ts); an id with no art is a placeholder colour of the
  * coded runner, drawn only while there is no body art.
  */
 export interface RunnerAppearance {

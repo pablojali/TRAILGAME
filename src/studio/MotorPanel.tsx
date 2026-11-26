@@ -172,7 +172,7 @@ export function FileList({ title, files, ws, setWs }: { title: string; files: Re
             <button
               type="button"
               className="link"
-              onClick={() => setWs(withUploads(ws, { [file.path]: gone(file) ? undefined : { base64: null, label: `Race engine: ${file.name} (removed)` } }))}
+              onClick={() => setWs(withUploads(ws, { [file.path]: gone(file) ? undefined : { base64: null, label: `${file.path} (removed)` } }))}
             >
               {gone(file) ? 'Deshacer' : 'Borrar'}
             </button>

@@ -116,7 +116,7 @@ function isSessionType(value) {
 var HEAD_FILES = [];
 
 // src/domain/athlete/heads.ts
-var NAME = /^lvl(\d+)_(men|women)_head_(\d{2})_tone(\d)$/;
+var NAME = /^lvl(\d+)_(men|women)_head(?:_(\d{2}))?_tone(\d)$/;
 function buildHeadCatalog(files) {
   const byId = /* @__PURE__ */ new Map();
   for (const file of files) {
@@ -124,7 +124,7 @@ function buildHeadCatalog(files) {
     if (!match) continue;
     const [, level, sexName, design, tone] = match;
     const sex = sexName === "men" ? "male" : "female";
-    const id = `head-l${Number(level)}-${design}`;
+    const id = `head-l${Number(level)}-${design ?? "01"}`;
     const key = `${sex}/${id}`;
     const head = byId.get(key) ?? { id, sex, level: Number(level), label: "", files: {} };
     head.files[Number(tone)] = file;
@@ -153,7 +153,7 @@ var SHIRT_FILES = [
 ];
 
 // src/domain/athlete/shirts.ts
-var NAME2 = /^lvl(\d+)_(men|women)_shirt_(\d{2})$/;
+var NAME2 = /^lvl(\d+)_(men|women)_shirt(?:_(\d{2}))?$/;
 function buildShirtCatalog(files) {
   const shirts = [];
   for (const { file, label } of files) {
@@ -161,7 +161,7 @@ function buildShirtCatalog(files) {
     if (!match) continue;
     const [, level, sexName, design] = match;
     shirts.push({
-      id: `shirt-l${Number(level)}-${design}`,
+      id: `shirt-l${Number(level)}-${design ?? "01"}`,
       sex: sexName === "men" ? "male" : "female",
       level: Number(level),
       label,

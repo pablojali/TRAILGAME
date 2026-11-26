@@ -14,6 +14,18 @@ export function artUrl(key: string): string | undefined {
   return FILES[`${ROOT}${key}.webp`] ?? FILES[`${ROOT}${key}.png`]
 }
 
+/**
+ * The art keys in a folder, e.g. `artIn('runner/footwear/')`, without extension, sorted (each key
+ * once, even with both a .png and a .webp).
+ */
+export function artIn(prefix: string): string[] {
+  const keys = new Set<string>()
+  for (const path of Object.keys(FILES)) {
+    if (path.startsWith(ROOT + prefix)) keys.add(path.slice(ROOT.length).replace(/\.(png|webp)$/, ''))
+  }
+  return [...keys].sort()
+}
+
 /** Every art key the view asks for has a fallback; images load once and are reused. */
 export class ArtLibrary {
   private readonly images = new Map<string, HTMLImageElement | null>()

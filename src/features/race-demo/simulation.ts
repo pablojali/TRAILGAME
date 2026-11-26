@@ -1,3 +1,4 @@
+import { artIn } from './assets'
 import type { RaceViewState, RunnerAppearance } from './types'
 import { seededRandom } from './world'
 
@@ -10,7 +11,15 @@ import { seededRandom } from './world'
 const RIVAL_SHIRTS = { men: 'lvl3_men_shirt', women: 'lvl2_women_shirt' } as const
 const SHORTS = ['black', 'navy', 'grey']
 const HAIRS = ['short-dark', 'short-brown', 'short-blond', 'ponytail-dark', 'ponytail-red', 'cap-white']
-const SHOES = ['orange', 'white', 'lime', 'blue', 'pink']
+/**
+ * Shoes seen from behind for a sex: the owner's art in runner/footwear (`lvl1_men_shoes`…, uploaded in
+ * Trail Studio), so every pair the owner adds shows in the demo; a placeholder colour while there is none.
+ */
+function shoesFor(sex: 'men' | 'women', pick: <T>(list: readonly T[]) => T): string {
+  const pairs = [...new Set(artIn('runner/footwear/').map((key) => key.slice('runner/footwear/'.length).replace(/_f\d+$/, '')))]
+  const own = pairs.filter((name) => name.includes(`_${sex}_shoes`))
+  return own.length > 0 ? pick(own) : 'orange'
+}
 const PACKS = [null, 'vest-black', 'vest-blue']
 
 interface SimRival {
@@ -28,7 +37,7 @@ interface SimRival {
  * The player: the owner's first full set of back-view layers (26 November 2026): men, tone 3, the
  * level 1 hair and the level 3 tank top.
  */
-export const PLAYER_APPEARANCE: RunnerAppearance = { sex: 'men', skin: 'tone-3', hair: 'lvl1_men_head_tone3', shirt: 'lvl3_men_shirt', shorts: 'black', shoes: 'orange', pack: null, bib: 7 }
+export const PLAYER_APPEARANCE: RunnerAppearance = { sex: 'men', skin: 'tone-3', hair: 'lvl1_men_head_tone3', shirt: 'lvl3_men_shirt', shorts: 'black', shoes: shoesFor('men', (list) => list[0]!), pack: null, bib: 7 }
 
 /** Rival gaps stay between these: far ahead (beyond the horizon) and far behind (out of sight). */
 export const GAP_MIN = -170
@@ -72,7 +81,7 @@ export class RaceSimulation {
         hair: pick(HAIRS),
         shirt: n % 2 === 0 ? RIVAL_SHIRTS.women : RIVAL_SHIRTS.men,
         shorts: pick(SHORTS),
-        shoes: pick(SHOES),
+        shoes: shoesFor(n % 2 === 0 ? 'women' : 'men', pick),
         pack: pick(PACKS),
         bib: 10 + n,
       },

@@ -48,7 +48,7 @@ export const SPRITE_SIZES = {
 export type SpriteSize = keyof typeof SPRITE_SIZES
 
 /** The art's folders under assets/race/back-view/runner, back to front. */
-const LAYER_ORDER = ['bodies', 'clothing', 'accessories', 'heads'] as const
+const LAYER_ORDER = ['bodies', 'footwear', 'clothing', 'accessories', 'heads'] as const
 
 /** One layer of a frame: the art to draw and whether to mirror it. */
 export interface FrameArt {
@@ -82,8 +82,9 @@ const bundled = (key: string) => artUrl(key) !== undefined
 /**
  * The layers of a look (art keys without the frame), or null when there is no body art at all (the
  * view then draws its coded runner). The body follows the skin tone; while a tone has no body yet,
- * another tone of the same sex stands in, then the other sex. The shirt, pack and hair are named
- * by level, like the avatar's files (`lvl3_men_shirt`…), and are left out while they have no art.
+ * another tone of the same sex stands in, then the other sex. The shoes, shirt, pack and hair are
+ * named by level, like the avatar's files (`lvl1_men_shoes`, `lvl3_men_shirt`…), and are left out
+ * while they have no art. The shoes go over the body and under the shirt.
  */
 export function backLayers(appearance: RunnerAppearance, has: (key: string) => boolean = bundled): string[] | null {
   const sex = appearance.sex ?? 'men'
@@ -95,6 +96,7 @@ export function backLayers(appearance: RunnerAppearance, has: (key: string) => b
   const layers = [body]
   const named: Record<(typeof LAYER_ORDER)[number], string | null> = {
     bodies: null,
+    footwear: appearance.shoes,
     clothing: appearance.shirt,
     accessories: appearance.pack,
     heads: appearance.hair,

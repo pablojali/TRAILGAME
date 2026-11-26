@@ -139,6 +139,14 @@ describe('race back view: runner art', () => {
     expect(frameArt('runner/clothing/none', 0, 4, has)).toBeNull()
   })
 
+  it('draws the shoes over the body and under the shirt, one picture per frame, mirrored like the body', () => {
+    const files = new Set(['runner/bodies/women_body_tone1_f1', 'runner/footwear/lvl1_women_shoes_f1', 'runner/footwear/lvl1_women_shoes_f2', 'runner/clothing/lvl2_women_shirt_f1'])
+    const has = (key: string) => files.has(key)
+    const look = { sex: 'women' as const, skin: 'tone-1', hair: 'none', shirt: 'lvl2_women_shirt', shorts: 'black', shoes: 'lvl1_women_shoes', pack: null }
+    expect(backLayers(look, has)).toEqual(['runner/bodies/women_body_tone1', 'runner/footwear/lvl1_women_shoes', 'runner/clothing/lvl2_women_shirt'])
+    expect(frameArt('runner/footwear/lvl1_women_shoes', 2, 4, has)).toEqual({ key: 'runner/footwear/lvl1_women_shoes_f1', mirror: true })
+  })
+
   it('stacks body, shirt, pack and hair, lends another tone while one has no body, and leaves out what has no art', () => {
     const look = { sex: 'men' as const, skin: 'tone-4', hair: 'lvl1_men_head_tone2', shirt: 'lvl1_women_shirt', shorts: 'black', shoes: 'grey', pack: 'lvl1_men_back' }
     expect(backLayers(look, has)).toEqual(['runner/bodies/men_body_tone2', 'runner/clothing/lvl1_women_shirt', 'runner/heads/lvl1_men_head_tone2'])

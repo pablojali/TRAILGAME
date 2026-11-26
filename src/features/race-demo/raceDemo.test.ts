@@ -196,6 +196,18 @@ describe('race back view: simulated race', () => {
     }
   })
 
+  it('starts with the whole cast: one rival for each sex and skin tone, all close ahead', () => {
+    const runners = new RaceSimulation().state().runners
+    expect(runners).toHaveLength(8)
+    expect(new Set(runners.map((r) => `${r.appearance.sex}-${r.appearance.skin}`)).size).toBe(8)
+    for (const r of runners) {
+      expect(r.gapMetros).toBeLessThan(0)
+      expect(r.gapMetros).toBeGreaterThan(-45)
+    }
+    const woman = runners.find((r) => r.appearance.sex === 'women')!
+    expect(backLayers(woman.appearance)).toContain('runner/footwear/lvl1_women_shoes')
+  })
+
   it('runs a mixed field: half the rivals are women, each in the tank top of their sex', () => {
     const sim = new RaceSimulation(3, 4)
     const looks = sim.state().runners.map((r) => r.appearance)

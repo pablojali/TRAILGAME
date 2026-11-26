@@ -18,6 +18,7 @@ touch the game's races.
   choice of 24 November 2026), from the top of the head to the
   bottom edge, which cuts the legs at mid-thigh (owner, 24 November 2026: like the reference GIF, but
   smaller). The camera moves to match.
+- **Rivals:** the demo starts with eight, one for each sex and skin tone.
 - **+ rival / − rival:** adds a rival (far ahead, or now and then coming from behind) or removes the
   selected one. Both fade in or out; nothing pops.
 - **Rival + Gap:** holds the selected rival at a gap. Negative means ahead, positive means behind.
@@ -132,8 +133,11 @@ in the names any more. Trail Studio uploads with `_back` at the end of the name
 - `runner/bodies/women_body_tone1_f1` to `women_body_tone4_f3` and
   `runner/clothing/lvl2_women_shirt_f1` to `_f3`: the owner's women's bodies and a tank top (26
   November 2026), used as uploaded; the women's hair is being redone by the owner.
-- The demo's player is tone 3 with the hair and the tank top. Half the rivals are women; each rival
-  has its own skin tone and the tank top of their sex, and runs bald until the hair is ready.
+- `runner/footwear/lvl1_women_shoes_f1` to `_f3`: the women's level 1 shoes, with socks (26
+  November 2026); they fit the four tones.
+- The demo's player is tone 3 with the hair and the tank top. The demo starts with the whole cast:
+  eight rivals, one for each sex and skin tone, close ahead in a staggered line, each in the tank top
+  and shoes of their sex (the men barefoot until theirs arrive), bald until the hair is ready.
 
 **Appearance ids:** the demo's rivals still carry placeholder ids (`red`, `short-dark`…) with no
 art. When this view is connected to the game, the appearance will use the avatar's ids (sex, skin,

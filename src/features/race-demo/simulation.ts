@@ -50,9 +50,17 @@ export class RaceSimulation {
   private next = 1
   private readonly random: () => number
 
-  constructor(seed = 11, rivals = 4) {
+  /**
+   * The demo starts with the whole cast (owner, 26 November 2026): one rival for each sex and skin
+   * tone, close ahead in a staggered line so all eight show at once, then free to come and go.
+   */
+  constructor(seed = 11, rivals = 8) {
     this.random = seededRandom(seed)
-    for (let i = 0; i < rivals; i++) this.add()
+    for (let i = 0; i < rivals; i++) {
+      const id = this.add()
+      const rival = this.rivals.find((r) => r.id === id)!
+      rival.gap = -(5 + i * 4.5)
+    }
   }
 
   get ids(): string[] {
@@ -74,10 +82,11 @@ export class RaceSimulation {
       pace: fromBehind ? 0.4 + this.random() * 0.3 : (this.random() - 0.5) * 0.6,
       pinned: false,
       appearance: {
-        // Half the field are women (owner art of 26 November 2026), each in the tank top of their sex;
-        // their hair is still to come, so the rivals run bald for now.
+        // Men and women in turn, the skin tones 1 to 4 in pairs, so eight rivals are the whole cast
+        // (owner art of 26 November 2026), each in the tank top and shoes of their sex; their hair is
+        // still to come, so the rivals run bald for now.
         sex: n % 2 === 0 ? 'women' : 'men',
-        skin: `tone-${1 + Math.floor(this.random() * 4)}`,
+        skin: `tone-${((Math.ceil(n / 2) - 1) % 4) + 1}`,
         hair: pick(HAIRS),
         shirt: n % 2 === 0 ? RIVAL_SHIRTS.women : RIVAL_SHIRTS.men,
         shorts: pick(SHORTS),

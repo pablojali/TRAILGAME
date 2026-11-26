@@ -6,7 +6,8 @@ import { seededRandom } from './world'
  * The real race simulation replaces this later by giving the view the same RaceViewState.
  */
 
-const SHIRTS = ['red', 'blue', 'yellow', 'green', 'white', 'orange', 'purple', 'teal']
+/** The tank tops with back-view art, one per sex. */
+const RIVAL_SHIRTS = { men: 'lvl3_men_shirt', women: 'lvl2_women_shirt' } as const
 const SHORTS = ['black', 'navy', 'grey']
 const HAIRS = ['short-dark', 'short-brown', 'short-blond', 'ponytail-dark', 'ponytail-red', 'cap-white']
 const SHOES = ['orange', 'white', 'lime', 'blue', 'pink']
@@ -63,7 +64,18 @@ export class RaceSimulation {
       gap: fromBehind ? 12 + this.random() * 10 : -(12 + this.random() * 70),
       pace: fromBehind ? 0.4 + this.random() * 0.3 : (this.random() - 0.5) * 0.6,
       pinned: false,
-      appearance: { skin: `tone-${1 + Math.floor(this.random() * 4)}`, hair: pick(HAIRS), shirt: pick(SHIRTS), shorts: pick(SHORTS), shoes: pick(SHOES), pack: pick(PACKS), bib: 10 + n },
+      appearance: {
+        // Half the field are women (owner art of 26 November 2026), each in the tank top of their sex;
+        // their hair is still to come, so the rivals run bald for now.
+        sex: n % 2 === 0 ? 'women' : 'men',
+        skin: `tone-${1 + Math.floor(this.random() * 4)}`,
+        hair: pick(HAIRS),
+        shirt: n % 2 === 0 ? RIVAL_SHIRTS.women : RIVAL_SHIRTS.men,
+        shorts: pick(SHORTS),
+        shoes: pick(SHOES),
+        pack: pick(PACKS),
+        bib: 10 + n,
+      },
     }
     this.rivals.push(rival)
     return rival.id

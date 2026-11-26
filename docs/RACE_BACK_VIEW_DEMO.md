@@ -104,6 +104,12 @@ screens, instead of coded body parts.
 | `runner/accessories/{pack file}` | A pack, named by level (`lvl1_men_back`) | No |
 | `runner/heads/{head file}` | The hair seen from behind, named by level and tone (`lvl1_men_head_tone3`). It carries the nape and ears in that skin tone, so it fits that tone's body | No |
 
+**The hair follows the head.** The hair is one picture, drawn on the body's frame 1. In each frame
+the game finds the top of the body's head and moves the hair down by as much as the head moved
+(owner, 26 November 2026). So the body's head may bob with the shoulders, and every hairstyle follows
+it without a picture per frame. Shirts and packs, which follow the trunk's shape, have one picture
+per frame.
+
 While a skin tone has no body, another tone (then the other sex) stands in. A shirt, pack or hair
 with no art is left out. With no body art at all, the coded runner is drawn.
 
@@ -113,8 +119,10 @@ in the names any more. Trail Studio uploads with `_back` at the end of the name
 
 **In the game now:**
 - `runner/bodies/men_body_tone3_f1` to `_f3`, `runner/heads/lvl1_men_head_tone3` and
-  `runner/clothing/lvl3_men_shirt` (a tank top, one picture for every frame): the owner's first full
-  set of 26 November 2026, in its final style. The demo's player wears it.
+  `runner/clothing/lvl3_men_shirt_f1` to `_f3` (a tank top, one per frame): the owner's first full
+  set of 26 November 2026, in its final style. The demo's player wears it. In `_f2` and `_f3`
+  Claude moved the head and neck down 8 and 15 px (cut at the neck, blended) so they follow the
+  shoulders, as the owner approved.
 - `runner/bodies/men_body_tone2_f1` to `_f3`: the first test body (24 November 2026), in an earlier
   style and slightly higher on the canvas; the rivals use it until the other tones arrive in the
   new style.

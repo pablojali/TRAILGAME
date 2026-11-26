@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { artUrl } from './assets'
-import { backLayers, drawnFrames, frameArt, strideFrames } from './backSprites'
+import { backLayers, drawnFrames, frameArt, strideFrames, topRow } from './backSprites'
 import { depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, PLAYER_Z, project, RUNNER_HEIGHT } from './projection'
 import { advanceGait, frameIndex, runnerPose, STANDING, strideAt, strideHz } from './runnerRig'
 import { GAP_MAX, GAP_MIN, PLAYER_APPEARANCE, RaceSimulation } from './simulation'
@@ -144,6 +144,16 @@ describe('race back view: runner art', () => {
     expect(backLayers(look, has)).toEqual(['runner/bodies/men_body_tone2', 'runner/clothing/lvl1_women_shirt', 'runner/heads/lvl1_men_head_tone2'])
     expect(backLayers({ ...look, sex: 'women' }, has)?.[0]).toBe('runner/bodies/men_body_tone2')
     expect(backLayers(look, () => false)).toBeNull()
+  })
+
+  it('finds the top of the head as the first row with an opaque pixel', () => {
+    const width = 3
+    const height = 4
+    const data = new Uint8ClampedArray(width * height * 4)
+    expect(topRow(data, width, height)).toBe(-1)
+    data[(2 * width + 1) * 4 + 3] = 255
+    data[(3 * width + 0) * 4 + 3] = 255
+    expect(topRow(data, width, height)).toBe(2)
   })
 
   it('bounces lowest when the heel is up (frame 1) and highest in between', () => {

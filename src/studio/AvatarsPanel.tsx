@@ -3,7 +3,7 @@ import type { RepoFile } from './github'
 import { megabytes, type Upload } from './media'
 import type { Workspace } from './model'
 import { asUpload, layerPicture, withUploads } from './uploads'
-import { backViewPath, ENGINE_ROOT, replacing } from './engineArt'
+import { backViewPath, BODY_FRAME, ENGINE_ROOT, replacing } from './engineArt'
 import { FileList } from './MotorPanel'
 import { useFolder } from './useFolder'
 import { AVATAR_KINDS, headGroups, INCOMING, incomingName, MAX_BYTES, type HeadGroup } from './avatarFiles'
@@ -19,6 +19,7 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
   // Heads and shirts seen from behind, for the race engine (owner request, 25 November 2026).
   const backHeads = useFolder(token, `${ENGINE_ROOT}/runner/heads`)
   const backShirts = useFolder(token, `${ENGINE_ROOT}/runner/clothing`)
+  const backBodies = useFolder(token, `${ENGINE_ROOT}/runner/bodies`)
 
   async function add(kind: (typeof AVATAR_KINDS)[number], files: globalThis.FileList) {
     setError('')
@@ -32,11 +33,14 @@ export function AvatarsPanel({ token, ws, setWs }: { token: string; ws: Workspac
         setError(`${file.name}: ${megabytes(file.size)} is too big (at most ${megabytes(MAX_BYTES)}).`)
         continue
       }
-      // `…_back.png` (seen from behind) goes straight to the race engine, on the runner's canvas.
-      const back = kind.id === 'bodies' ? null : backViewPath(incomingName(file.name))
+      // `…_back.png` (seen from behind) and body frames (`men_body_tone2_f1.png`) go straight to
+      // the race engine, on the runner's canvas.
+      const name = incomingName(file.name)
+      const back = kind.id === 'bodies' ? (BODY_FRAME.test(name) ? `${ENGINE_ROOT}/runner/bodies/${name}` : null) : backViewPath(name)
       if (back) {
         try {
-          changes = { ...changes, ...replacing(back, kind.id === 'heads' ? backHeads : backShirts), [back]: await layerPicture(back, file, `Race engine: ${file.name} (seen from behind)`) }
+          const existing = kind.id === 'heads' ? backHeads : kind.id === 'shirts' ? backShirts : backBodies
+          changes = { ...changes, ...replacing(back, existing), [back]: await layerPicture(back, file, `Race engine: ${file.name} (seen from behind)`) }
         } catch (e) {
           setError(`${file.name}: ${(e as Error).message}`)
         }
@@ -134,12 +138,23 @@ function KindSection({
         <p className="muted">Nothing pending.</p>
       ) : (
         <ul className={`artGrid ${kind.id}`}>
-          {(waiting ?? []).map((file) => (
-            <li key={file.path}>
-              <img src={file.url} alt="" loading="lazy" />
-              <span>{file.name}</span>
-            </li>
-          ))}
+          {(waiting ?? []).map((file) => {
+            // Uploads waiting for Claude can be deleted too (owner request, 26 November 2026).
+            const gone = ws.uploads[file.path]?.base64 === null
+            return (
+              <li key={file.path} className={gone ? 'removed' : undefined}>
+                <img src={file.url} alt="" loading="lazy" />
+                <span>{file.name}</span>
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => setWs(withUploads(ws, { [file.path]: gone ? undefined : { base64: null, label: `Waiting art ${file.name} (removed)` } }))}
+                >
+                  {gone ? 'Deshacer' : 'Borrar'}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       )}
 
@@ -148,20 +163,10 @@ function KindSection({
       ) : kind.id === 'shirts' ? (
         <GameShirts ws={ws} setWs={setWs} files={live} />
       ) : (
-        <>
-          <h4>En el juego ({live?.length ?? '…'})</h4>
-          <ul className={`artGrid small ${kind.id}`}>
-            {(live ?? []).map((file) => (
-              <li key={file.path}>
-                <img src={file.url} alt="" loading="lazy" />
-                <span>{file.name}</span>
-              </li>
-            ))}
-          </ul>
-        </>
+        <FileList title="En el juego" files={live} ws={ws} setWs={setWs} />
       )}
 
-      {kind.id !== 'bodies' && <FileList title="De espaldas, en el motor de carrera" files={back} ws={ws} setWs={setWs} />}
+      <FileList title="De espaldas, en el motor de carrera" files={back} ws={ws} setWs={setWs} />
     </section>
   )
 }

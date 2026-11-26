@@ -8,6 +8,8 @@ vi.mock('./github', () => ({
   listFolder: async (_token: string, path: string) =>
     path === 'assets/runner/Clothing'
       ? ['lvl1_men_shirt_01.png', 'lvl2_women_shirt_01.png'].map((name) => ({ name, path: `${path}/${name}`, url: `https://example.test/${name}` }))
+      : path === 'assets/runner/incoming/bodies'
+      ? ['men_body_tone3_f2.png'].map((name) => ({ name, path: `${path}/${name}`, url: `https://example.test/${name}` }))
       : path === 'assets/runner/heads'
       ? ['lvl1_men_head_01_tone1.png', 'lvl1_men_head_01_tone2.png', 'lvl1_men_head_01_tone1_blink.png', 'lvl2_women_head_01_tone1.png'].map((name) => ({
           name,
@@ -85,5 +87,20 @@ describe('Trail Studio · Avatares: art seen from behind', () => {
       'assets/race/back-view/runner/heads/lvl1_men_head_tone2.png',
       'assets/runner/incoming/heads/lvl1_men_head_02_tone1.png',
     ])
+  })
+})
+
+describe('Trail Studio · Avatares: bodies', () => {
+  it('deletes a file waiting for Claude, and sends body frames seen from behind straight to the engine', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:preview')
+    const user = userEvent.setup()
+    let ws: Workspace | null = null
+    render(<Harness onWs={(next) => (ws = next)} />)
+    const bodies = await screen.findByRole('region', { name: 'Bodies' })
+    const waiting = (await within(bodies).findByText('men_body_tone3_f2.png')).closest('li')!
+    await user.click(within(waiting).getByRole('button', { name: 'Borrar' }))
+    expect(ws!.uploads['assets/runner/incoming/bodies/men_body_tone3_f2.png']?.base64).toBeNull()
+    await user.upload(within(bodies).getByLabelText(/Subir bodies/i), new File(['x'], 'women_body_tone1_f1.png', { type: 'image/png' }))
+    expect(ws!.uploads['assets/race/back-view/runner/bodies/women_body_tone1_f1.png']?.base64).toBe('AAAA')
   })
 })

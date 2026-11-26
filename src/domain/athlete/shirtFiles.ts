@@ -17,4 +17,5 @@ export const SHIRT_FILES: readonly { file: string; label: string }[] = [
   { file: 'lvl2_women_shirt_01', label: 'Coral tank top' },
   { file: 'lvl2_women_shirt_02', label: 'Teal and grey tank top' },
   { file: 'lvl3_women_shirt_03', label: 'Pink and white tank top' },
+  { file: 'lvl3_men_shirt', label: 'New shirt' },
 ]

@@ -2,7 +2,7 @@
 export const INCOMING = 'assets/runner/incoming'
 
 export const AVATAR_KINDS = [
-  { id: 'bodies', title: 'Bodies', live: 'assets/runner/bodies', hint: 'The whole body, on the runner\'s transparent 1024 × 1536 canvas.' },
+  { id: 'bodies', title: 'Bodies', live: 'assets/runner/bodies', hint: 'The whole body, on the runner\'s transparent 1024 × 1536 canvas. Body frames seen from behind (men_body_tone2_f1.png) go straight to the race engine.' },
   { id: 'heads', title: 'Heads', live: 'assets/runner/heads', hint: 'The head (face and hair), on the same canvas, in its place over the body.' },
   { id: 'shirts', title: 'Shirts', live: 'assets/runner/Clothing', hint: 'The shirt (T-shirt or tank top), on the same canvas, in its place over the body. Say its name and unlock level when you tell Claude.' },
 ] as const

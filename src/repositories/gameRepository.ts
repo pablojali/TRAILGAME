@@ -164,6 +164,11 @@ function isFactor(value: unknown): boolean {
 }
 
 /** A stored race result; its net coins must match the fee paid. */
+/** The ids of items still in the equipment table (deleted ones drop out). */
+function knownItems(ids: readonly string[]): string[] {
+  return ids.filter((id) => getEquipmentItem(id) !== undefined)
+}
+
 function isRaceResult(value: unknown, feePaid: number): value is RaceResult {
   return (
     isRecord(value) &&
@@ -196,7 +201,8 @@ function isRaceResult(value: unknown, feePaid: number): value is RaceResult {
     Array.isArray(value.factors) &&
     value.factors.every(isFactor) &&
     (value.equipment === undefined ||
-      (Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === 'string' && getEquipmentItem(id)))) &&
+      // An item deleted from the equipment table since (Trail Studio, 27 November 2026) stays in the history.
+      (Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === 'string'))) &&
     (value.rivalTimesS === undefined ||
       (Array.isArray(value.rivalTimesS) &&
         value.rivalTimesS.length === value.fieldSize - 1 &&
@@ -225,7 +231,6 @@ function isShoeWear(value: unknown): boolean {
   return (
     isRecord(value) &&
     typeof value.itemId === 'string' &&
-    getEquipmentItem(value.itemId) !== undefined &&
     isInt(value.durabilityAtStart, 0, 100) &&
     isInt(value.durabilityAtEnd, 0, 100) &&
     isInt(value.timeLostS, 0)
@@ -236,8 +241,9 @@ function isShoeWear(value: unknown): boolean {
 function parseRaceWear(value: unknown): RaceWear | null {
   if (!isRecord(value) || !isFiniteNumber(value.speed) || !(value.speed > 0) || !isRecord(value.used)) return null
   const used = value.used
-  if (!Object.entries(used).every(([id, share]) => wears(getEquipmentItem(id)) && isFiniteNumber(share) && share >= 0 && share <= 1)) return null
-  return { speed: value.speed, used: { ...(used as Record<string, number>) } }
+  if (!Object.values(used).every((share) => isFiniteNumber(share) && share >= 0 && share <= 1)) return null
+  // Items deleted from the table, or that no longer wear, drop out.
+  return { speed: value.speed, used: Object.fromEntries(Object.entries(used as Record<string, number>).filter(([id]) => wears(getEquipmentItem(id)))) }
 }
 
 function isNutrition(value: unknown): boolean {
@@ -311,7 +317,7 @@ function parseActiveRace(value: unknown, entries: readonly RaceEntry[], currentD
     !isStat(value.fitness) ||
     !isStat(value.fatigue) ||
     !Array.isArray(equipment) ||
-    !equipment.every((id) => typeof id === 'string' && getEquipmentItem(id) && !isConsumable(getEquipmentItem(id)!)) ||
+    !equipment.every((id) => typeof id === 'string' && !(getEquipmentItem(id) && isConsumable(getEquipmentItem(id)!))) ||
     !isFiniteNumber(value.dayForm) ||
     Math.abs(value.dayForm) > 1 ||
     !isNutrition(nutrition) ||
@@ -336,7 +342,7 @@ function parseActiveRace(value: unknown, entries: readonly RaceEntry[], currentD
     attributes,
     fitness: value.fitness,
     fatigue: value.fatigue,
-    equipment: [...(equipment as string[])],
+    equipment: knownItems(equipment as string[]),
     dayForm: value.dayForm,
     nutrition: { gel: (nutrition as Nutrition).gel, bar: (nutrition as Nutrition).bar },
     elapsedS: value.elapsedS,
@@ -437,20 +443,21 @@ export function parseGameState(value: unknown, now: number): GameState | null {
   if (!isInt(coins, 0)) return null
   const raceEntries = parseRaceEntries(value.raceEntries === undefined ? [] : value.raceEntries)
   if (!raceEntries) return null
-  // Missing: a career saved before equipment existed (nothing equipped). Known items, one per slot.
-  const equipment = value.equipment === undefined ? [] : value.equipment
-  if (!Array.isArray(equipment) || !equipment.every((id) => typeof id === 'string' && getEquipmentItem(id))) {
-    return null
-  }
+  // Missing: a career saved before equipment existed (nothing equipped). Known items, one per slot;
+  // an item deleted from the equipment table (Trail Studio, 27 November 2026) is dropped, never a
+  // reason to lose the career.
+  const rawEquipment = value.equipment === undefined ? [] : value.equipment
+  if (!Array.isArray(rawEquipment) || !rawEquipment.every((id) => typeof id === 'string')) return null
+  const equipment = knownItems(rawEquipment as string[])
   const slots = (equipment as string[]).map((id) => getEquipmentItem(id)!.slot)
   if (new Set(slots).size !== slots.length) return null
   // Missing: a career saved before the shop existed (it owns the starting equipment).
-  const ownedEquipment = value.ownedEquipment === undefined ? [...OWNED_FROM_START] : value.ownedEquipment
+  const rawOwned = value.ownedEquipment === undefined ? [...OWNED_FROM_START] : value.ownedEquipment
+  if (!Array.isArray(rawOwned) || !rawOwned.every((id) => typeof id === 'string')) return null
+  const ownedEquipment = knownItems(rawOwned as string[])
   if (
-    !Array.isArray(ownedEquipment) ||
-    !ownedEquipment.every((id) => typeof id === 'string' && getEquipmentItem(id)) ||
     new Set(ownedEquipment).size !== ownedEquipment.length ||
-    !OWNED_FROM_START.every((id) => ownedEquipment.includes(id)) ||
+    !OWNED_FROM_START.filter((id) => getEquipmentItem(id)).every((id) => ownedEquipment.includes(id)) ||
     !(equipment as string[]).every((id) => ownedEquipment.includes(id))
   ) {
     return null
@@ -547,19 +554,20 @@ export function parseGameState(value: unknown, now: number): GameState | null {
     const wear = value.wear
     if (
       !isRecord(wear) ||
-      !Object.entries(wear).every(
-        ([id, used]) => parsed.ownedEquipment.includes(id) && wears(getEquipmentItem(id)) && isFiniteNumber(used) && used >= 0 && used <= 1,
-      )
+      !Object.values(wear).every((used) => isFiniteNumber(used) && used >= 0 && used <= 1)
     ) {
       return null
     }
-    parsed.wear = { ...(wear as Record<string, number>) }
+    // Items no longer owned, deleted from the table or that no longer wear drop out.
+    parsed.wear = Object.fromEntries(
+      Object.entries(wear as Record<string, number>).filter(([id]) => parsed.ownedEquipment.includes(id) && wears(getEquipmentItem(id))),
+    )
   }
   // Missing: nothing replaced yet (A-5). Owned items, whole counts.
   if (value.replacements !== undefined) {
     const r = value.replacements
-    if (!isRecord(r) || !Object.entries(r).every(([id, n]) => parsed.ownedEquipment.includes(id) && isInt(n, 1))) return null
-    parsed.replacements = { ...(r as Record<string, number>) }
+    if (!isRecord(r) || !Object.values(r).every((n) => isInt(n, 1))) return null
+    parsed.replacements = Object.fromEntries(Object.entries(r as Record<string, number>).filter(([id]) => parsed.ownedEquipment.includes(id)))
   }
   // Missing: no rewarded ad watched yet (B-6d).
   if (value.ads !== undefined) {

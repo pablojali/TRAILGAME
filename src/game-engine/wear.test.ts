@@ -238,10 +238,13 @@ describe('equipment wear: saves', () => {
     expect(loaded.status === 'loaded' && 'wear' in loaded.state).toBe(false)
   })
 
-  it('rejects wear on items not owned, that never wear, or outside 0–1', () => {
-    for (const wear of [{ 'trail-shoes-light': 0.1 }, { poles: 0.1 }, { 'starter-shoes': 1.5 }, { 'starter-shoes': -0.1 }] as Record<string, number>[]) {
+  it('rejects wear outside 0–1, and drops wear on items not owned or that never wear', () => {
+    for (const wear of [{ 'starter-shoes': 1.5 }, { 'starter-shoes': -0.1 }] as Record<string, number>[]) {
       expect(parseSave(serializeSave(kitted(wear)), T0).status).toBe('incompatible')
     }
+    // Not owned, or no life in km (the owner may delete an item or its life_km in Trail Studio): dropped.
+    const loaded = parseSave(serializeSave(kitted({ 'trail-shoes-light': 0.1, poles: 0.1, 'starter-shoes': 0.2 })), T0)
+    expect(loaded.status === 'loaded' && loaded.state.wear).toEqual({ 'starter-shoes': 0.2 })
   })
 
   it('applies wear to equipped gear only, with the given item list for a race', () => {

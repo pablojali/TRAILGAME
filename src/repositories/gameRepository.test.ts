@@ -253,7 +253,6 @@ describe('localStorage game repository', () => {
     for (const variant of [
       { ...newGame(), ownedEquipment: ['poles'] }, // starting equipment missing
       { ...newGame(), ownedEquipment: ['starter-shoes', 'starter-shoes'] },
-      { ...newGame(), ownedEquipment: ['starter-shoes', 'jetpack'] },
       { ...newGame(), equipment: ['poles'] }, // equipped but not owned
     ]) {
       expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf(variant) }), () => T0))).toEqual({
@@ -261,6 +260,11 @@ describe('localStorage game repository', () => {
         reason: 'malformed',
       })
     }
+    // An item deleted from the equipment table (Trail Studio) is dropped, never a reason to lose the career.
+    expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf({ ...newGame(), ownedEquipment: ['starter-shoes', 'jetpack'] }) }), () => T0))).toMatchObject({
+      status: 'loaded',
+      state: { ownedEquipment: ['starter-shoes'] },
+    })
   })
 
   it('loads a career saved before consumables existed with none, and rejects invalid stocks', async () => {
@@ -289,12 +293,16 @@ describe('localStorage game repository', () => {
     }
   })
 
-  it('round-trips equipped items and rejects unknown or duplicated ones', async () => {
+  it('round-trips equipped items, drops deleted ones and rejects duplicated ones', async () => {
     const repo = createLocalStorageGameRepository(memoryStorage())
     const state = { ...newGame(), equipment: ['starter-shoes'] }
     await repo.save(state)
     expect(await loadResult(repo)).toEqual({ status: 'loaded', state })
-    for (const equipment of [['jetpack'], ['starter-shoes', 'starter-shoes'], 'starter-shoes']) {
+    expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: saveOf({ ...newGame(), equipment: ['jetpack'] }) }), () => T0))).toMatchObject({
+      status: 'loaded',
+      state: { equipment: [] },
+    })
+    for (const equipment of [['starter-shoes', 'starter-shoes'], 'starter-shoes']) {
       const raw = saveOf({ ...newGame(), equipment })
       expect(await loadResult(createLocalStorageGameRepository(memoryStorage({ [SAVE_KEY]: raw }), () => T0))).toEqual({
         status: 'incompatible',

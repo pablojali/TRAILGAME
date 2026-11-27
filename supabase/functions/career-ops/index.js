@@ -2964,20 +2964,24 @@ function isWholeNumber(value) {
 function isFactor(value) {
   return isRecord(value) && FACTOR_IDS.includes(value.id) && isFiniteNumber(value.value) && isFiniteNumber(value.reference) && isWholeNumber(value.effectS);
 }
+function knownItems(ids) {
+  return ids.filter((id) => getEquipmentItem(id) !== void 0);
+}
 function isRaceResult(value, feePaid) {
-  return isRecord(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && (value.rankingSeason === void 0 || isInt(value.rankingSeason, 190001, 999912)) && (value.rankingPoints === void 0 || isInt(value.rankingPoints, 0)) && (value.rankingAt === void 0 || isInt(value.rankingAt, 0)) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1))) && (value.splits === void 0 || Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true)) && (value.nutrition === void 0 || isNutrition(value.nutrition)) && (value.dnf === void 0 || isDnf(value.dnf)) && (value.shoeWear === void 0 || isShoeWear(value.shoeWear));
+  return isRecord(value) && isFiniteNumber(value.startedAt) && isInt(value.week, 1) && isInt(value.day, 1, DAYS_PER_WEEK) && isInt(value.levelAtStart, 1) && parseAttributes(value.attributes) !== null && isStat(value.fitness) && isStat(value.fatigue) && isFiniteNumber(value.dayForm) && Math.abs(value.dayForm) <= 1 && isInt(value.timeS, 1) && isInt(value.fieldSize, 1) && isInt(value.position, 1, value.fieldSize) && isInt(value.band, 0, PRIZE_BANDS.length - 1) && isInt(value.grossPrize, 0) && isInt(value.multiplierPct, 0, 100) && (value.rankingSeason === void 0 || isInt(value.rankingSeason, 190001, 999912)) && (value.rankingPoints === void 0 || isInt(value.rankingPoints, 0)) && (value.rankingAt === void 0 || isInt(value.rankingAt, 0)) && isInt(value.coinsAwarded, 0) && isInt(value.xpAwarded, 0) && value.netCoins === value.coinsAwarded - feePaid && isHundredths(value.fatigueChange, -STAT_MAX, STAT_MAX) && isHundredths(value.fitnessChange, -STAT_MAX, STAT_MAX) && typeof value.injured === "boolean" && isInt(value.referenceTimeS, 1) && isWholeNumber(value.gapS) && Array.isArray(value.factors) && value.factors.every(isFactor) && (value.equipment === void 0 || // An item deleted from the equipment table since (Trail Studio, 27 November 2026) stays in the history.
+  Array.isArray(value.equipment) && value.equipment.every((id) => typeof id === "string")) && (value.rivalTimesS === void 0 || Array.isArray(value.rivalTimesS) && value.rivalTimesS.length === value.fieldSize - 1 && value.rivalTimesS.every((t) => isInt(t, 1))) && (value.splits === void 0 || Array.isArray(value.splits) && value.splits.length > 0 && isSplitList(value.splits, value.fieldSize, true)) && (value.nutrition === void 0 || isNutrition(value.nutrition)) && (value.dnf === void 0 || isDnf(value.dnf)) && (value.shoeWear === void 0 || isShoeWear(value.shoeWear));
 }
 function isDnf(value) {
   return isRecord(value) && isInt(value.segment, 1) && isFiniteNumber(value.km) && value.km > 0 && isInt(value.aidStation, 1);
 }
 function isShoeWear(value) {
-  return isRecord(value) && typeof value.itemId === "string" && getEquipmentItem(value.itemId) !== void 0 && isInt(value.durabilityAtStart, 0, 100) && isInt(value.durabilityAtEnd, 0, 100) && isInt(value.timeLostS, 0);
+  return isRecord(value) && typeof value.itemId === "string" && isInt(value.durabilityAtStart, 0, 100) && isInt(value.durabilityAtEnd, 0, 100) && isInt(value.timeLostS, 0);
 }
 function parseRaceWear(value) {
   if (!isRecord(value) || !isFiniteNumber(value.speed) || !(value.speed > 0) || !isRecord(value.used)) return null;
   const used = value.used;
-  if (!Object.entries(used).every(([id, share]) => wears(getEquipmentItem(id)) && isFiniteNumber(share) && share >= 0 && share <= 1)) return null;
-  return { speed: value.speed, used: { ...used } };
+  if (!Object.values(used).every((share) => isFiniteNumber(share) && share >= 0 && share <= 1)) return null;
+  return { speed: value.speed, used: Object.fromEntries(Object.entries(used).filter(([id]) => wears(getEquipmentItem(id)))) };
 }
 function isNutrition(value) {
   return isRecord(value) && typeof value.gel === "boolean" && typeof value.bar === "boolean";
@@ -3019,7 +3023,7 @@ function parseActiveRace(value, entries, currentDayIndex) {
   const race = catalog && withCourse(catalog, course);
   const attributes = parseAttributes(value.attributes);
   const { equipment, nutrition, splits } = value;
-  if (!entry || !race || value.entryId !== entry.id || value.raceId !== entry.raceId || currentDayIndex !== DAYS_PER_WEEK - 1 || !isFiniteNumber(value.startedAt) || !isInt(value.levelAtStart, 1) || !attributes || !isStat(value.fitness) || !isStat(value.fatigue) || !Array.isArray(equipment) || !equipment.every((id) => typeof id === "string" && getEquipmentItem(id) && !isConsumable(getEquipmentItem(id))) || !isFiniteNumber(value.dayForm) || Math.abs(value.dayForm) > 1 || !isNutrition(nutrition) || !isFiniteNumber(value.elapsedS) || value.elapsedS <= 0 || !isFiniteNumber(value.inRaceFatigue) || !Array.isArray(splits) || splits.length === 0 || splits.length >= getSegmentCount(race) || !isSplitList(splits, RACE_SIMULATION.fieldSize, false)) {
+  if (!entry || !race || value.entryId !== entry.id || value.raceId !== entry.raceId || currentDayIndex !== DAYS_PER_WEEK - 1 || !isFiniteNumber(value.startedAt) || !isInt(value.levelAtStart, 1) || !attributes || !isStat(value.fitness) || !isStat(value.fatigue) || !Array.isArray(equipment) || !equipment.every((id) => typeof id === "string" && !(getEquipmentItem(id) && isConsumable(getEquipmentItem(id)))) || !isFiniteNumber(value.dayForm) || Math.abs(value.dayForm) > 1 || !isNutrition(nutrition) || !isFiniteNumber(value.elapsedS) || value.elapsedS <= 0 || !isFiniteNumber(value.inRaceFatigue) || !Array.isArray(splits) || splits.length === 0 || splits.length >= getSegmentCount(race) || !isSplitList(splits, RACE_SIMULATION.fieldSize, false)) {
     return null;
   }
   const raceWear = value.wear === void 0 ? void 0 : parseRaceWear(value.wear);
@@ -3032,7 +3036,7 @@ function parseActiveRace(value, entries, currentDayIndex) {
     attributes,
     fitness: value.fitness,
     fatigue: value.fatigue,
-    equipment: [...equipment],
+    equipment: knownItems(equipment),
     dayForm: value.dayForm,
     nutrition: { gel: nutrition.gel, bar: nutrition.bar },
     elapsedS: value.elapsedS,
@@ -3090,14 +3094,15 @@ function parseGameState(value, now) {
   if (!isInt(coins, 0)) return null;
   const raceEntries = parseRaceEntries(value.raceEntries === void 0 ? [] : value.raceEntries);
   if (!raceEntries) return null;
-  const equipment = value.equipment === void 0 ? [] : value.equipment;
-  if (!Array.isArray(equipment) || !equipment.every((id) => typeof id === "string" && getEquipmentItem(id))) {
-    return null;
-  }
+  const rawEquipment = value.equipment === void 0 ? [] : value.equipment;
+  if (!Array.isArray(rawEquipment) || !rawEquipment.every((id) => typeof id === "string")) return null;
+  const equipment = knownItems(rawEquipment);
   const slots = equipment.map((id) => getEquipmentItem(id).slot);
   if (new Set(slots).size !== slots.length) return null;
-  const ownedEquipment = value.ownedEquipment === void 0 ? [...OWNED_FROM_START] : value.ownedEquipment;
-  if (!Array.isArray(ownedEquipment) || !ownedEquipment.every((id) => typeof id === "string" && getEquipmentItem(id)) || new Set(ownedEquipment).size !== ownedEquipment.length || !OWNED_FROM_START.every((id) => ownedEquipment.includes(id)) || !equipment.every((id) => ownedEquipment.includes(id))) {
+  const rawOwned = value.ownedEquipment === void 0 ? [...OWNED_FROM_START] : value.ownedEquipment;
+  if (!Array.isArray(rawOwned) || !rawOwned.every((id) => typeof id === "string")) return null;
+  const ownedEquipment = knownItems(rawOwned);
+  if (new Set(ownedEquipment).size !== ownedEquipment.length || !OWNED_FROM_START.filter((id) => getEquipmentItem(id)).every((id) => ownedEquipment.includes(id)) || !equipment.every((id) => ownedEquipment.includes(id))) {
     return null;
   }
   if ([...equipment, ...ownedEquipment].some((id) => isConsumable(getEquipmentItem(id)))) {
@@ -3166,17 +3171,17 @@ function parseGameState(value, now) {
   }
   if (value.wear !== void 0) {
     const wear = value.wear;
-    if (!isRecord(wear) || !Object.entries(wear).every(
-      ([id, used]) => parsed.ownedEquipment.includes(id) && wears(getEquipmentItem(id)) && isFiniteNumber(used) && used >= 0 && used <= 1
-    )) {
+    if (!isRecord(wear) || !Object.values(wear).every((used) => isFiniteNumber(used) && used >= 0 && used <= 1)) {
       return null;
     }
-    parsed.wear = { ...wear };
+    parsed.wear = Object.fromEntries(
+      Object.entries(wear).filter(([id]) => parsed.ownedEquipment.includes(id) && wears(getEquipmentItem(id)))
+    );
   }
   if (value.replacements !== void 0) {
     const r = value.replacements;
-    if (!isRecord(r) || !Object.entries(r).every(([id, n]) => parsed.ownedEquipment.includes(id) && isInt(n, 1))) return null;
-    parsed.replacements = { ...r };
+    if (!isRecord(r) || !Object.values(r).every((n) => isInt(n, 1))) return null;
+    parsed.replacements = Object.fromEntries(Object.entries(r).filter(([id]) => parsed.ownedEquipment.includes(id)));
   }
   if (value.ads !== void 0) {
     const ads = parseAds(value.ads);

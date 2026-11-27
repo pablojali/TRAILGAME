@@ -1721,3 +1721,9 @@ button:disabled {
   margin: 0;
   font-size: 0.95rem;
 }
+
+/* A destructive action (Delete item). */
+button.danger {
+  color: #e5675f;
+  border-color: currentColor;
+}

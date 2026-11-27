@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { ATTRIBUTE_IDS } from '../domain/athlete/athlete'
-import { ITEM_LANGUAGES, parseEquipment, type EquipmentItem } from '../domain/equipment/items'
+import { ITEM_LANGUAGES, OWNED_FROM_START, parseEquipment, type EquipmentItem } from '../domain/equipment/items'
 import { itemEffect, itemLabel } from '../i18n/equipmentText'
 import { translate } from '../i18n/i18n'
-import { insertRow, rows, serializeDoc, updateRow, type CsvDoc } from './csvDoc'
+import { insertRow, replaceRows, rows, serializeDoc, updateRow, type CsvDoc } from './csvDoc'
 import { Field, NumberField, SelectField, TextField } from './fields'
 import { Picker } from './MediaPanels'
 import { itemPicture, layerColumn, layerLabel, layerPicture, layerSources, layerStem, withUploads } from './uploads'
@@ -124,6 +124,18 @@ export function EquipmentPanel({
     select(id)
   }
 
+  /**
+   * Deletes an item (owner request, 27 November 2026). Careers that own or wear it simply lose it
+   * when they load (src/repositories/gameRepository.ts); the starting kit can't be deleted.
+   */
+  function deleteItem(id: string) {
+    if (!window.confirm(`Delete ${id}? Runners who own it lose it.`)) return
+    const rest = itemRows.filter((r) => r.values.id !== id)
+    setWs({ ...ws, docs: { ...ws.docs, equipment: replaceRows(ws.docs.equipment, rest) } })
+    const next = rest[0]?.values.id
+    if (next) select(next)
+  }
+
   return (
     <div className="split">
       <section className="listPane" aria-label="Equipment">
@@ -159,6 +171,13 @@ export function EquipmentPanel({
               <span className="eyebrow">{v.id}</span>
               <h2>{v.name || v.name_es}</h2>
             </div>
+            {OWNED_FROM_START.includes(v.id!) ? (
+              <span className="hint">Starting kit: can't be deleted</span>
+            ) : (
+              <button type="button" className="ghost danger" onClick={() => deleteItem(v.id!)}>
+                Delete item
+              </button>
+            )}
           </div>
           <div className="previewRow">
             <Card values={v} item={read.item} picture={pictureFor(v)} />
@@ -216,9 +235,8 @@ export function EquipmentPanel({
               )}
             </Field>
             <TextField label="Layer on the runner" value={v.avatar_layer!} onChange={(x) => setItem({ avatar_layer: x })} hint="File in assets/runner/avatar" wide />
-            {v.type === 'shoes' ? (
-              <p className="hint wide">Claude prepares the shoes on the runner (send it the picture).</p>
-            ) : (
+            {/* Shoes too since 27 November 2026 (owner request): their picture on the runner is uploaded here. */}
+            {(
               <Field
                 label="Picture on the runner"
                 hint="PNG with a transparent background on the runner's canvas (1024 × 1536), in its place. Converted when published. {sex} in the name: one for men and one for women (the men's one serves both if missing). {tone}: one per skin tone (caps, with their face). Glasses and caps are sold in Look › Accessories and carry no race bonus."

@@ -256,7 +256,11 @@ request, no code publish.
   else is refused. It is saved in `assets/runner/accesories/{name}.png`, and the item's
   `avatar_layer` becomes `accessories/{name}.webp`. The art script, which CI runs before every
   build, makes the layer and the shop's cropped picture. A name with `{sex}` asks for two files
-  (men, women). Shoes are not uploaded here; Claude maps them.
+  (men, women). Since 27 November 2026 shoes are uploaded here too, like any other item (their older
+  art stays mapped in the art script's `FOOTWEAR` until replaced).
+- **Equipamiento › Delete item** (27 November 2026): removes the item from the table. Careers that own,
+  wear or have wear on it simply lose it when they load (`src/repositories/gameRepository.ts`); race
+  history keeps its id. The starting kit (`OWNED_FROM_START`, the starter shoes) can't be deleted.
 - **Reloj, gafas y gorras** (owner request, 15 November 2026): three new equipment types.
   - **Reloj** (`watch`) is equipment like the others. It has its own slot in Equipo › Equipado and
     a filter in the shop, and its bonuses are set here (the owner's choice: Regularidad).

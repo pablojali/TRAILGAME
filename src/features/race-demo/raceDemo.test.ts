@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { artUrl } from './assets'
 import { backLayers, drawnFrames, frameArt, strideFrames, topRow } from './backSprites'
+import { decorKey, opaqueBounds } from './decorArt'
 import { depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, PLAYER_Z, project, RUNNER_HEIGHT } from './projection'
 import { advanceGait, frameIndex, runnerPose, STANDING, strideAt, strideHz } from './runnerRig'
 import { GAP_MAX, GAP_MIN, kitsFor, PLAYER_APPEARANCE, RaceSimulation } from './simulation'
@@ -241,5 +242,26 @@ describe('race back view: simulated race', () => {
     sim.speed = 6
     for (let i = 0; i < 120; i++) sim.step(1 / 60)
     expect(sim.gapOf(id!)).toBeGreaterThan(-4)
+  })
+})
+
+describe('race back view: decor art', () => {
+  it('cuts a picture to its opaque pixels', () => {
+    // 4 × 3 picture with two opaque pixels at (1, 0) and (2, 1) and a faint one at (3, 2).
+    const data = new Uint8ClampedArray(4 * 3 * 4)
+    data[(0 * 4 + 1) * 4 + 3] = 255
+    data[(1 * 4 + 2) * 4 + 3] = 200
+    data[(2 * 4 + 3) * 4 + 3] = 10
+    expect(opaqueBounds(data, 4, 3)).toEqual({ x: 1, y: 0, width: 2, height: 2 })
+    expect(opaqueBounds(new Uint8ClampedArray(16), 2, 2)).toBeNull()
+  })
+
+  it('uses a drawn variant for every item of a kind, and the placeholder for kinds with no art', () => {
+    const keys = (prefix: string) => ['decor/pine-0', 'decor/rock-0', 'decor/rock-2'].filter((k) => k.startsWith(prefix))
+    expect(decorKey('pine', 0, keys)).toBe('decor/pine-0')
+    expect(decorKey('pine', 2, keys)).toBe('decor/pine-0')
+    expect(decorKey('rock', 2, keys)).toBe('decor/rock-2')
+    expect(decorKey('rock', 1, keys)).toBe('decor/rock-2')
+    expect(decorKey('grass', 0, keys)).toBeNull()
   })
 })

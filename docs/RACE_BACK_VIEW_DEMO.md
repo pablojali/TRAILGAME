@@ -126,6 +126,8 @@ in the names any more. Trail Studio uploads with `_back` at the end of the name
   tones, three frames each (26 November 2026), with the same silhouette in every tone, so one shirt
   fits all four. The trunk is still between frames; in `_f2` and `_f3` Claude moved the head and neck
   down 4 to 7 px (cut at the neck, blended) so the top of the head stays where it is in `_f1`.
+  On 28 November 2026 Claude filled a few white specks (a thumbnail on the fist of tones 1 and 2,
+  dots between the toes of tone 1) with the skin around them.
 - `runner/heads/lvl1_men_head_tone3`: the level 1 hair in tone 3.
 - `runner/clothing/lvl3_men_shirt_f1` to `_f3`: the level 3 tank top, one per frame. Claude moved
   `_f3` up 14 px to fit the bodies above (it was drawn on an earlier tone 3 whose trunk dropped) and
@@ -135,9 +137,14 @@ in the names any more. Trail Studio uploads with `_back` at the end of the name
   November 2026), used as uploaded; the women's hair is being redone by the owner.
 - `runner/footwear/lvl1_women_shoes_f1` to `_f3`: the women's level 1 shoes, with socks (26
   November 2026); they fit the four tones.
-- The demo's player is tone 3 with the hair and the tank top. The demo starts with the whole cast:
-  eight rivals, one for each sex and skin tone, close ahead in a staggered line, each in the tank top
-  and shoes of their sex (the men barefoot until theirs arrive), bald until the hair is ready.
+- 28 November 2026, from Trail Studio: men's shirts `lvl1` and `lvl2`, women's shirt `lvl1`; men's
+  shoes `lvl0` and `lvl2`, women's shoes `lvl0`, `lvl2` and `lvl3`, three frames each, used as
+  uploaded.
+- The demo's player is tone 3 with the hair, the level 3 tank top and the first men's shoes. The
+  demo starts with the whole cast: eight rivals, one for each sex and skin tone, close ahead in a
+  staggered line, bald until the hair is ready. Each rival wears the next shirt and the next pair of
+  shoes of their sex (owner, 28 November 2026), so the cast shows every kit uploaded; a new kit in
+  the art folder joins the round with no code change.
 
 **Appearance ids:** the demo's rivals still carry placeholder ids (`red`, `short-dark`…) with no
 art. When this view is connected to the game, the appearance will use the avatar's ids (sex, skin,

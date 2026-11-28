@@ -3,7 +3,7 @@ import { artUrl } from './assets'
 import { backLayers, drawnFrames, frameArt, strideFrames, topRow } from './backSprites'
 import { depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, PLAYER_Z, project, RUNNER_HEIGHT } from './projection'
 import { advanceGait, frameIndex, runnerPose, STANDING, strideAt, strideHz } from './runnerRig'
-import { GAP_MAX, GAP_MIN, PLAYER_APPEARANCE, RaceSimulation } from './simulation'
+import { GAP_MAX, GAP_MIN, kitsFor, PLAYER_APPEARANCE, RaceSimulation } from './simulation'
 import type { RaceViewRunner } from './types'
 import { DecorPool, laneOf, syncRunners, type ShownRunner } from './world'
 
@@ -209,18 +209,25 @@ describe('race back view: simulated race', () => {
       expect(r.gapMetros).toBeLessThan(0)
       expect(r.gapMetros).toBeGreaterThan(-45)
     }
-    const woman = runners.find((r) => r.appearance.sex === 'women')!
-    expect(backLayers(woman.appearance)).toContain('runner/footwear/lvl1_women_shoes')
   })
 
-  it('runs a mixed field: half the rivals are women, each in the tank top of their sex', () => {
+  it('dresses the starting cast in every shirt and every pair of shoes of each sex', () => {
+    const looks = new RaceSimulation().state().runners.map((r) => r.appearance)
+    for (const sex of ['men', 'women'] as const) {
+      const worn = looks.filter((l) => l.sex === sex).flatMap((l) => backLayers(l) ?? [])
+      for (const shirt of kitsFor('clothing', sex)) expect(worn).toContain(`runner/clothing/${shirt}`)
+      for (const shoes of kitsFor('footwear', sex)) expect(worn).toContain(`runner/footwear/${shoes}`)
+    }
+  })
+
+  it('runs a mixed field: half the rivals are women, each in a tank top of their sex', () => {
     const sim = new RaceSimulation(3, 4)
     const looks = sim.state().runners.map((r) => r.appearance)
     expect(looks.map((l) => l.sex)).toEqual(['men', 'women', 'men', 'women'])
     for (const look of looks) {
       const layers = backLayers(look)
       expect(layers?.[0]).toBe(`runner/bodies/${look.sex}_body_${look.skin.replace('-', '')}`)
-      expect(layers).toContain(`runner/clothing/lvl${look.sex === 'women' ? '2_women' : '3_men'}_shirt`)
+      expect(layers?.some((layer) => layer.startsWith('runner/clothing/') && layer.includes(`_${look.sex}_shirt`))).toBe(true)
     }
   })
 

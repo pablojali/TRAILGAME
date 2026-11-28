@@ -7,18 +7,31 @@ import { seededRandom } from './world'
  * The real race simulation replaces this later by giving the view the same RaceViewState.
  */
 
-/** The tank tops with back-view art, one per sex. */
-const RIVAL_SHIRTS = { men: 'lvl3_men_shirt', women: 'lvl2_women_shirt' } as const
 const SHORTS = ['black', 'navy', 'grey']
 const HAIRS = ['short-dark', 'short-brown', 'short-blond', 'ponytail-dark', 'ponytail-red', 'cap-white']
 /**
- * Shoes seen from behind for a sex: the owner's art in runner/footwear (`lvl1_men_shoes`…, uploaded in
- * Trail Studio), so every pair the owner adds shows in the demo; a placeholder colour while there is none.
+ * The kits of a sex with back-view art in a folder of runner/ (`clothing` → `lvl1_men_shirt`…,
+ * `footwear` → `lvl0_men_shoes`…), by level: every one the owner uploads in Trail Studio shows in the
+ * demo. Empty while there is none.
  */
-function shoesFor(sex: 'men' | 'women', pick: <T>(list: readonly T[]) => T): string {
-  const pairs = [...new Set(artIn('runner/footwear/').map((key) => key.slice('runner/footwear/'.length).replace(/_f\d+$/, '')))]
-  const own = pairs.filter((name) => name.includes(`_${sex}_shoes`))
-  return own.length > 0 ? pick(own) : 'orange'
+export function kitsFor(folder: 'clothing' | 'footwear', sex: 'men' | 'women'): string[] {
+  const prefix = `runner/${folder}/`
+  const names = [...new Set(artIn(prefix).map((key) => key.slice(prefix.length).replace(/_f\d+$/, '')))]
+  const item = folder === 'clothing' ? 'shirt' : 'shoes'
+  return names.filter((name) => name.includes(`_${sex}_${item}`))
+}
+
+/** The shoes of a sex: the first pair the owner uploaded, or a placeholder colour while there is none. */
+function shoesFor(sex: 'men' | 'women'): string {
+  return kitsFor('footwear', sex)[0] ?? 'orange'
+}
+
+/**
+ * The k-th kit of a list (owner, 28 November 2026: at least one runner in each shirt and each pair
+ * of shoes), going round the list; a fallback while the list is empty.
+ */
+function kitAt(list: readonly string[], k: number, fallback: string): string {
+  return list.length > 0 ? list[k % list.length]! : fallback
 }
 const PACKS = [null, 'vest-black', 'vest-blue']
 
@@ -37,7 +50,7 @@ interface SimRival {
  * The player: the owner's first full set of back-view layers (26 November 2026): men, tone 3, the
  * level 1 hair and the level 3 tank top.
  */
-export const PLAYER_APPEARANCE: RunnerAppearance = { sex: 'men', skin: 'tone-3', hair: 'lvl1_men_head_tone3', shirt: 'lvl3_men_shirt', shorts: 'black', shoes: shoesFor('men', (list) => list[0]!), pack: null, bib: 7 }
+export const PLAYER_APPEARANCE: RunnerAppearance = { sex: 'men', skin: 'tone-3', hair: 'lvl1_men_head_tone3', shirt: 'lvl3_men_shirt', shorts: 'black', shoes: shoesFor('men'), pack: null, bib: 7 }
 
 /** Rival gaps stay between these: far ahead (beyond the horizon) and far behind (out of sight). */
 export const GAP_MIN = -170
@@ -75,6 +88,9 @@ export class RaceSimulation {
   add(): string {
     const pick = <T>(list: readonly T[]): T => list[Math.floor(this.random() * list.length)]!
     const n = this.next++
+    const sex = n % 2 === 0 ? 'women' : 'men'
+    /** This rival's place among those of its sex: 0, 1, 2… */
+    const k = Math.floor((n - 1) / 2)
     const fromBehind = n % 3 === 0
     const rival: SimRival = {
       id: `rival-${n}`,
@@ -83,14 +99,14 @@ export class RaceSimulation {
       pinned: false,
       appearance: {
         // Men and women in turn, the skin tones 1 to 4 in pairs, so eight rivals are the whole cast
-        // (owner art of 26 November 2026), each in the tank top and shoes of their sex; their hair is
-        // still to come, so the rivals run bald for now.
-        sex: n % 2 === 0 ? 'women' : 'men',
+        // (owner art of 26 November 2026). Each wears the next shirt and the next pair of shoes of
+        // their sex, so the field shows every kit; their hair is still to come, so they run bald.
+        sex,
         skin: `tone-${((Math.ceil(n / 2) - 1) % 4) + 1}`,
         hair: pick(HAIRS),
-        shirt: n % 2 === 0 ? RIVAL_SHIRTS.women : RIVAL_SHIRTS.men,
+        shirt: kitAt(kitsFor('clothing', sex), k, 'red'),
         shorts: pick(SHORTS),
-        shoes: shoesFor(n % 2 === 0 ? 'women' : 'men', pick),
+        shoes: kitAt(kitsFor('footwear', sex), k, 'orange'),
         pack: pick(PACKS),
         bib: 10 + n,
       },

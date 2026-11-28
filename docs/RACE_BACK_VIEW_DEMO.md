@@ -76,11 +76,25 @@ Races › Motor.
 - In the game (28 November 2026): `pine-0`, `bush-0` and `rock-0`, the owner's golden-hour
   cut-outs.
 
-**Not yet wired:**
-- The sky, mountains and far forest are coded drawings (`assets.ts`: `makeBackdrop`,
-  `makeForestBand`).
-- They can take art in the same way (`scene/sky`, `scene/mountains`, `scene/forest`) when there is
-  some to try.
+**`ground/meadow` and `ground/trail`:** ground textures photographed from above, with no
+transparency (owner, 28 November 2026). The engine lays them on the ground in perspective, one
+screen row (or, near the camera, a strip of rows) at a time: the meadow over the whole ground, the
+trail over the trail, the texture's centre on the trail's centre. They slide with the distance run,
+so the ground runs at the camera, and fade into the meadow's average colour toward the horizon,
+where a photo would only flicker. One texture width is 3 m of meadow or 2.4 m of trail (the trail
+is 1.7 m wide). The engine shrinks them to at most 1024 px wide; a texture that tiles seamlessly
+hides the joins. The owner's first two were uploaded as `decor/grass-0` (meadow) and
+`decor/grass-1` (dirt) and moved here by Claude.
+
+**`scene/mountains`:** the far hills, on the horizon. A picture without transparency is taken as
+painted on white: the engine turns the white into sky (the mist becomes a thin veil) and cuts the
+picture to the drawing. It stands on the horizon, at most three quarters of the sky's height, side
+by side and mirrored every other one when it is narrower than the screen, and drifts a little on
+bends. With it, the coded ridges and the coded far forest step aside; the sky stays the coded
+gradient with the sun.
+
+**Not yet wired:** `scene/sky` (the coded gradient and sun) and `scene/forest` (the hills' picture
+already has its forest).
 
 ### Runner, seen from behind
 

@@ -188,7 +188,7 @@ function drawDecor(kind: DecorKind, variant: number): Canvas | null {
 }
 
 /** Sky, sun and mountains (fixed), made once per screen size. */
-export function makeBackdrop(width: number, horizonY: number): Canvas | null {
+export function makeBackdrop(width: number, horizonY: number, ridges = true): Canvas | null {
   const c = canvas(Math.ceil(width * 1.2), horizonY + 4)
   const g = c?.getContext('2d')
   if (!c || !g) return null
@@ -205,6 +205,7 @@ export function makeBackdrop(width: number, horizonY: number): Canvas | null {
   sun.addColorStop(1, 'rgba(255,170,100,0)')
   g.fillStyle = sun
   g.fillRect(0, 0, w, c.height)
+  if (!ridges) return c
   const random = seededRandom(5)
   // Two ridges: the far one pale and snowy, the near one darker.
   ridge(g, w, horizonY, horizonY * 0.38, 0.55, '#8b8fa3', '#eef0f4', random)

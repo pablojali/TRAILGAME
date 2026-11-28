@@ -1,6 +1,7 @@
-import { ArtLibrary, makeBackdrop, makeDecorSprites, makeForestBand } from './assets'
+import { ArtLibrary, artUrl, makeBackdrop, makeDecorSprites, makeForestBand } from './assets'
 import { backLayers, SpriteCache } from './backSprites'
 import { DecorArt } from './decorArt'
+import { SceneArt } from './sceneArt'
 import { drawRunner } from './drawRunner'
 import { bendAt, clamp01, DEFAULT_FRAMING, depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, project, trailCenter, type Camera, type Framing } from './projection'
 import { advanceGait, runnerPose, STANDING, type Pose } from './runnerRig'
@@ -19,6 +20,15 @@ const TRAIL_HALF = 0.85
 const TRAIL_STEPS = 36
 /** Every this many metres a faint band crosses the trail, so the eye feels it moving. */
 const BAND_EVERY = 2.5
+/** Metres of ground one width of the owner's meadow texture covers. */
+const MEADOW_TILE = 3
+/** Metres one width of the owner's trail texture covers: a little more than the trail is wide. */
+const TRAIL_TILE = 2.4
+/** The ground textures fade from full (nearer than this) to the plain colour (beyond the far one), metres. */
+const GROUND_FADE_NEAR = 25
+const GROUND_FADE_FAR = 70
+/** The owner's hills are at most this share of the sky's height. */
+const HILLS_MAX_SHARE = 0.75
 
 interface Drawable {
   z: number
@@ -43,6 +53,10 @@ export class RaceViewEngine {
   private readonly looks = new WeakMap<RunnerAppearance, readonly string[] | null>()
   private readonly decorSprites = makeDecorSprites()
   private readonly decorArt = new DecorArt(this.art)
+  private readonly sceneArt = new SceneArt(this.art)
+  /** The owner has drawn the far hills: the coded ridges and far forest step aside. */
+  private readonly hillsDrawn = artUrl('scene/mountains') !== undefined
+  private readonly groundMatrix = typeof DOMMatrix === 'undefined' ? null : new DOMMatrix()
   private readonly pool = new DecorPool()
   private readonly shown = new Map<string, ShownRunner>()
   private readonly drawables: Drawable[] = []
@@ -88,8 +102,8 @@ export class RaceViewEngine {
     this.cssWidth = cssWidth
     this.cssHeight = cssHeight
     this.camera = makeCamera(cssWidth, cssHeight, this.framing)
-    this.backdrop = makeBackdrop(cssWidth, this.camera.horizonY)
-    this.forest = makeForestBand(cssWidth, cssHeight * 0.05)
+    this.backdrop = makeBackdrop(cssWidth, this.camera.horizonY, !this.hillsDrawn)
+    this.forest = this.hillsDrawn ? null : makeForestBand(cssWidth, cssHeight * 0.05)
   }
 
   /** Moves the camera for a new framing of the player (debug panel). */
@@ -170,13 +184,18 @@ export class RaceViewEngine {
       ctx.fillStyle = '#c9b6a8'
       ctx.fillRect(0, 0, cam.width, cam.horizonY)
     }
+    // The owner's far hills, standing on the horizon.
+    this.drawHills(ctx, cam, bend)
     // Ground under everything.
     const ground = ctx.createLinearGradient(0, cam.horizonY, 0, cam.height)
     ground.addColorStop(0, '#6f7a52')
     ground.addColorStop(0.25, '#5d6a3e')
     ground.addColorStop(1, '#4b5531')
-    ctx.fillStyle = ground
+    const meadow = this.sceneArt.ground('meadow')
+    // Under the owner's meadow, its own average colour, so the far ground it fades into matches.
+    ctx.fillStyle = meadow ? this.sceneArt.tone('meadow') : ground
     ctx.fillRect(0, cam.horizonY, cam.width, cam.height - cam.horizonY + 40)
+    if (meadow) this.drawGroundTexture(ctx, cam, bend, meadow, MEADOW_TILE, null)
     // 2. Far forest: slow drift, more than the mountains.
     if (this.forest) ctx.drawImage(this.forest, -cam.width * 0.3 - bend * cam.width * 0.12, cam.horizonY - this.forest.height + 2)
 
@@ -245,6 +264,12 @@ export class RaceViewEngine {
     dirt.addColorStop(1, '#8a7052')
     ctx.fillStyle = dirt
     ctx.fill()
+    const texture = this.sceneArt.ground('trail')
+    if (texture) {
+      // The owner's trail: the texture laid on the trail, row by row; it runs at the camera itself.
+      this.drawGroundTexture(ctx, cam, bend, texture, TRAIL_TILE, TRAIL_HALF)
+      return
+    }
 
     // Faint bands across the trail at fixed places along the course: they run at the camera.
     const offset = BAND_EVERY - (this.odometer % BAND_EVERY)
@@ -255,6 +280,76 @@ export class RaceViewEngine {
       const depth = Math.max(1, 0.25 * a.scale)
       ctx.fillStyle = `rgba(70, 50, 30, ${alpha})`
       ctx.fillRect(a.x, a.y - depth / 2, b.x - a.x, depth)
+    }
+  }
+
+  /**
+   * A ground texture laid on the ground in perspective, one screen row at a time: each row is a depth,
+   * the texture tiles every `tile` metres across and along, and it slides with the distance run so
+   * the ground runs at the camera. With `half`, only the trail (that many metres each side of its
+   * centre); without, the whole ground. It fades into the plain ground colour toward the horizon,
+   * where a photo would only flicker.
+   */
+  private drawGroundTexture(ctx: CanvasRenderingContext2D, cam: Camera, bend: number, texture: HTMLCanvasElement, tile: number, half: number | null): void {
+    const pattern = ctx.createPattern(texture, 'repeat')
+    const matrix = this.groundMatrix
+    if (!pattern || !matrix) return
+    const texelsPerMetre = texture.width / tile
+    ctx.fillStyle = pattern
+    const depthTimesFocal = cam.focal * cam.eyeHeight
+    const top = Math.ceil(cam.horizonY + depthTimesFocal / GROUND_FADE_FAR)
+    let y = top
+    while (y < cam.height + 40) {
+      const z = depthTimesFocal / (y + 0.5 - cam.horizonY)
+      if (z < NEAR_Z * 0.5) break
+      // Texels of the course per screen row here: far rows each show their own, near ones are drawn
+      // in strips (the texture is magnified there), so the ground costs a few hundred fills a frame.
+      const advance = ((z * z) / depthTimesFocal) * texelsPerMetre
+      const strip = Math.max(1, Math.min(24, Math.floor(1.5 / advance)))
+      const scale = cam.focal / z
+      const centre = cam.width / 2 + trailCenter(bend, z) * scale
+      let left = 0
+      let right = cam.width
+      if (half !== null) {
+        left = Math.max(0, centre - half * scale)
+        right = Math.min(cam.width, centre + half * scale)
+      }
+      if (right > left) {
+        // Across: one metre is `scale` pixels on this row, the texture's centre on the trail's. Along:
+        // the strip's first row shows the course at its depth, and the texture runs back from there.
+        const along = ((z + this.odometer) * texelsPerMetre) % texture.height
+        matrix.a = scale / texelsPerMetre
+        matrix.b = 0
+        matrix.c = 0
+        matrix.d = -1 / advance
+        matrix.e = centre - (texture.width / 2) * matrix.a
+        matrix.f = y + along / advance
+        pattern.setTransform(matrix)
+        ctx.globalAlpha = clamp01((GROUND_FADE_FAR - z) / (GROUND_FADE_FAR - GROUND_FADE_NEAR))
+        ctx.fillRect(left, y, right - left, strip)
+      }
+      y += strip
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** The owner's far hills: on the horizon, side by side (mirrored every other one) across the screen. */
+  private drawHills(ctx: CanvasRenderingContext2D, cam: Camera, bend: number): void {
+    const hills = this.sceneArt.mountains()
+    if (!hills) return
+    const height = Math.min(cam.horizonY * HILLS_MAX_SHARE, (cam.width * 1.3 * hills.height) / hills.width)
+    const width = (height * hills.width) / hills.height
+    const bottom = cam.horizonY + 2
+    let x = -cam.width * 0.15 - bend * cam.width * 0.05
+    for (let i = 0; x < cam.width; i++, x += width) {
+      if (x + width < 0) continue
+      ctx.save()
+      if (i % 2 === 1) {
+        ctx.translate(x + width, 0)
+        ctx.scale(-1, 1)
+        ctx.drawImage(hills, 0, bottom - height, width, height)
+      } else ctx.drawImage(hills, x, bottom - height, width, height)
+      ctx.restore()
     }
   }
 

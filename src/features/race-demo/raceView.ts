@@ -1,5 +1,6 @@
 import { ArtLibrary, makeBackdrop, makeDecorSprites, makeForestBand } from './assets'
 import { backLayers, SpriteCache } from './backSprites'
+import { DecorArt } from './decorArt'
 import { drawRunner } from './drawRunner'
 import { bendAt, clamp01, DEFAULT_FRAMING, depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, project, trailCenter, type Camera, type Framing } from './projection'
 import { advanceGait, runnerPose, STANDING, type Pose } from './runnerRig'
@@ -41,6 +42,7 @@ export class RaceViewEngine {
   /** The art layers of each look, worked out once per appearance object. */
   private readonly looks = new WeakMap<RunnerAppearance, readonly string[] | null>()
   private readonly decorSprites = makeDecorSprites()
+  private readonly decorArt = new DecorArt(this.art)
   private readonly pool = new DecorPool()
   private readonly shown = new Map<string, ShownRunner>()
   private readonly drawables: Drawable[] = []
@@ -269,8 +271,7 @@ export class RaceViewEngine {
       ctx.ellipse(p.x, p.y - h * 0.2, h, h * 0.35, 0, 0, Math.PI * 2)
       ctx.fill()
     } else {
-      const art = this.art.image(`decor/${item.kind}-${item.variant}`)
-      const sprite = art ?? this.decorSprites.get(`${item.kind}-${item.variant}`)
+      const sprite = this.decorArt.sprite(item.kind, item.variant) ?? this.decorSprites.get(`${item.kind}-${item.variant}`)
       if (sprite) {
         const w = (h * sprite.width) / sprite.height
         ctx.drawImage(sprite, p.x - w / 2, p.y - h, w, h)

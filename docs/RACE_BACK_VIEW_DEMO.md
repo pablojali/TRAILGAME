@@ -62,11 +62,19 @@ drawing.
 
 ### Scene
 
-**`decor/<kind>-<n>`:** scenery pieces, standing on the bottom centre of the picture.
+**`decor/<kind>-<n>`:** scenery pieces on a transparent background, uploaded in Trail Studio ›
+Races › Motor.
 - `<kind>` is `pine`, `rock`, `bush` or `grass`.
-- `<n>` is the variant: 0, 1 or 2.
-- Height comes from the pool's sizes; width comes from the picture's proportions.
+- `<n>` is the variant: 0, 1 or 2. A kind with fewer drawn variants than 3 reuses the ones drawn,
+  so one pine fills the whole forest; a kind with none keeps its coded drawing.
+- The engine cuts each picture to its opaque part, so empty margins in the file do not matter: the
+  bottom of the drawing stands on the ground, at its horizontal centre. It keeps the picture at most
+  640 px tall, so large files cost no more to draw.
+- Height comes from the pool's sizes (pines 5–13 m, bushes 0.4–1 m, rocks 0.25–1.1 m); width comes
+  from the picture's proportions.
 - Pebbles on the trail stay coded.
+- In the game (28 November 2026): `pine-0`, `bush-0` and `rock-0`, the owner's golden-hour
+  cut-outs.
 
 **Not yet wired:**
 - The sky, mountains and far forest are coded drawings (`assets.ts`: `makeBackdrop`,

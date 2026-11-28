@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { artUrl } from './assets'
 import { backLayers, drawnFrames, frameArt, strideFrames, topRow } from './backSprites'
 import { decorKey, opaqueBounds } from './decorArt'
+import { whiteToAlpha } from './sceneArt'
 import { depthAlpha, FAR_Z, gapToZ, makeCamera, NEAR_Z, PLAYER_Z, project, RUNNER_HEIGHT } from './projection'
 import { advanceGait, frameIndex, runnerPose, STANDING, strideAt, strideHz } from './runnerRig'
 import { GAP_MAX, GAP_MIN, kitsFor, PLAYER_APPEARANCE, RaceSimulation } from './simulation'
@@ -263,5 +264,19 @@ describe('race back view: decor art', () => {
     expect(decorKey('rock', 2, keys)).toBe('decor/rock-2')
     expect(decorKey('rock', 1, keys)).toBe('decor/rock-2')
     expect(decorKey('grass', 0, keys)).toBeNull()
+  })
+})
+
+describe('race back view: scene art', () => {
+  it('turns a white background into transparency and keeps what is painted over it', () => {
+    // White, a pure dark green, and a mist: half-transparent grey over white.
+    const data = [255, 255, 255, 255, 20, 60, 30, 255, 191, 191, 191, 255]
+    whiteToAlpha(data)
+    expect(data[3]).toBe(0)
+    // Laid back over white, every pixel gives the original.
+    const overWhite = (i: number) => [0, 1, 2].map((c) => Math.round((data[i + c]! * data[i + 3]!) / 255 + 255 * (1 - data[i + 3]! / 255)))
+    expect(overWhite(4).every((v, c) => Math.abs(v - [20, 60, 30][c]!) <= 1)).toBe(true)
+    expect(overWhite(8).every((v) => Math.abs(v - 191) <= 1)).toBe(true)
+    expect(data[11]).toBe(64)
   })
 })

@@ -175,7 +175,12 @@ describe('race back view: runner art', () => {
 
   it('finds the owner\'s first body in the art folder', () => {
     expect(backLayers({ sex: 'men', skin: 'tone-2', hair: 'natural', shirt: 'none', shorts: 'black', shoes: 'grey', pack: null })).toEqual(['runner/bodies/men_body_tone2'])
-    expect(backLayers(PLAYER_APPEARANCE)).toEqual(['runner/bodies/men_body_tone3', 'runner/clothing/lvl3_men_shirt', 'runner/heads/lvl1_men_head_tone3'])
+    // The player's shoes are the first pair of men's shoes the owner has uploaded, if any: the test
+    // must not depend on which art is in the folder.
+    const layers = backLayers(PLAYER_APPEARANCE)!
+    expect(layers[0]).toBe('runner/bodies/men_body_tone3')
+    expect(layers.slice(-2)).toEqual(['runner/clothing/lvl3_men_shirt', 'runner/heads/lvl1_men_head_tone3'])
+    expect(layers.slice(1, -2).every((layer) => layer.startsWith('runner/footwear/lvl'))).toBe(true)
   })
 })
 
